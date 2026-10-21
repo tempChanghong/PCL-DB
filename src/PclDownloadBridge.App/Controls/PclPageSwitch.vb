@@ -13,17 +13,21 @@ Namespace Controls
         Private ReadOnly _installOffset As New TranslateTransform
         Private _installSelected As Boolean
         Private _transition As ClockGroup
+        Private ReadOnly _enabled As Func(Of Boolean)
 
         Friend Event Settled As EventHandler
 
-        Friend Sub New(host As FrameworkElement, versions As FrameworkElement, install As FrameworkElement)
+        Friend Sub New(host As FrameworkElement, versions As FrameworkElement, install As FrameworkElement, Optional enabled As Func(Of Boolean) = Nothing)
             _host = host : _versions = versions : _install = install
+            _enabled = If(enabled, Function() SystemParameters.ClientAreaAnimation)
             versions.RenderTransform = _versionOffset
             install.RenderTransform = _installOffset
             Settle(False)
             AddHandler host.Unloaded, Sub()
                                           If _transition IsNot Nothing Then Finish()
                                       End Sub
+            AddHandler host.IsVisibleChanged, Sub() If Not host.IsVisible AndAlso _transition IsNot Nothing Then Finish()
+            AddHandler host.SizeChanged, Sub() If _transition IsNot Nothing Then Finish()
         End Sub
 
         Friend ReadOnly Property Transition As ClockGroup
@@ -48,7 +52,7 @@ Namespace Controls
             Dim installOpacity = _install.Opacity, installX = _installOffset.X
             _installSelected = value
             StopTransition()
-            If Not animate OrElse Not _host.IsVisible OrElse Not _host.IsLoaded Then
+            If Not animate OrElse Not _enabled() OrElse Not _host.IsVisible OrElse Not _host.IsLoaded Then
                 Settle(True)
                 Return
             End If

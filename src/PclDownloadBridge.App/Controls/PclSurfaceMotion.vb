@@ -31,6 +31,8 @@ Namespace Controls
             Friend Pointer As MouseButtonEventHandler
             Friend Hidden As DependencyPropertyChangedEventHandler
             Friend Unloaded As RoutedEventHandler
+            Friend Key As KeyEventHandler
+            Friend Touch As EventHandler(Of TouchEventArgs)
         End Class
         Friend Sub New(host As Grid, overlay As Canvas, enabled As Func(Of Boolean), units As Func(Of FrameworkElement, IEnumerable(Of FrameworkElement)))
             _host = host : _overlay = overlay : _enabled = enabled : _units = units
@@ -49,8 +51,8 @@ Namespace Controls
             End Get
         End Property
 
-        Friend Sub Change(outgoing As FrameworkElement, incoming As FrameworkElement, changePage As Action)
-            If outgoing Is incoming Then
+        Friend Sub Change(outgoing As FrameworkElement, incoming As FrameworkElement, changePage As Action, Optional contentRefresh As Boolean = False, Optional compositeExit As Boolean = False)
+            If outgoing Is incoming AndAlso Not contentRefresh Then
                 changePage()
                 Return
             End If
@@ -59,7 +61,7 @@ Namespace Controls
             ' by the logical incoming layout would split unrelated outgoing pixels.
             Dim snapshot As PclExitSnapshot = Nothing
             If animate AndAlso outgoing IsNot Nothing Then
-                Dim segmented = _clock Is Nothing
+                Dim segmented = _clock Is Nothing AndAlso Not contentRefresh AndAlso Not compositeExit
                 snapshot = PclExitSnapshot.Capture(_host, If(segmented, _units(outgoing), Enumerable.Empty(Of FrameworkElement)()),
                     If(segmented, VisibleBar(outgoing), Nothing))
             End If
@@ -128,9 +130,13 @@ Namespace Controls
                     entry.Pointer = Sub() ReleaseBar(entry)
                     entry.Hidden = Sub() If Not bar.IsVisible Then ReleaseBar(entry)
                     entry.Unloaded = Sub() ReleaseBar(entry)
+                    entry.Key = Sub() ReleaseBar(entry)
+                    entry.Touch = Sub() ReleaseBar(entry)
                     AddHandler bar.PreviewMouseDown, entry.Pointer
                     AddHandler bar.IsVisibleChanged, entry.Hidden
                     AddHandler bar.Unloaded, entry.Unloaded
+                    AddHandler bar.PreviewKeyDown, entry.Key
+                    AddHandler bar.PreviewTouchDown, entry.Touch
                     append(New DoubleAnimation(10, 0, TimeSpan.FromMilliseconds(350)) With {
                         .BeginTime = TimeSpan.FromMilliseconds(If(snapshot Is Nothing, 0, 140)),
                         .EasingFunction = New PowerEase With {.Power = 3, .EasingMode = EasingMode.EaseOut}},
@@ -182,6 +188,8 @@ Namespace Controls
             RemoveHandler entry.Target.PreviewMouseDown, entry.Pointer
             RemoveHandler entry.Target.IsVisibleChanged, entry.Hidden
             RemoveHandler entry.Target.Unloaded, entry.Unloaded
+            RemoveHandler entry.Target.PreviewKeyDown, entry.Key
+            RemoveHandler entry.Target.PreviewTouchDown, entry.Touch
             entry.Offset.BeginAnimation(TranslateTransform.XProperty, Nothing)
             If entry.Target.RenderTransform Is entry.Group Then entry.Target.SetCurrentValue(UIElement.RenderTransformProperty, entry.OriginalTransform)
         End Sub

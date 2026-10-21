@@ -53,7 +53,8 @@ Partial Public Class MainWindow
 
     Public Sub New(Optional preview As Boolean = False)
         InitializeComponent()
-        _pageSwitch = New PclPageSwitch(DownloadViewHost, VersionPage, InstallPage)
+        _pageSwitch = New PclPageSwitch(DownloadViewHost, VersionPage, InstallPage,
+            Function() Not _closing AndAlso (preview OrElse SystemParameters.ClientAreaAnimation))
         AddHandler _pageSwitch.Settled, Sub()
                                            If Not _focusAfterPageSwitch Then Return
                                            _focusAfterPageSwitch = False
@@ -64,7 +65,7 @@ Partial Public Class MainWindow
         DownloadTab.Checked = True
         _preview = preview
         _surfaceMotion = New PclSurfaceMotion(PageSurface, PageGhost,
-            Function() (Not _preview OrElse _motionPreview) AndAlso (SystemParameters.ClientAreaAnimation OrElse _motionPreview), AddressOf SurfaceUnits)
+            AddressOf AllowPageMotion, AddressOf SurfaceUnits)
         InitializeMotion()
         InitializeAppearance()
         InitializeDeveloperSettings()
@@ -424,6 +425,24 @@ Partial Public Class MainWindow
     End Function
 
     Private Sub UpdateVersions()
+        If DownloadPage.IsVisible AndAlso _downloadView = DownloadView.Versions Then
+            Dim refocus = _focusAfterPageSwitch
+            _focusAfterPageSwitch = False
+            ' A completed catalogue replaces its own entry group, as PCL's loader
+            ' completion enters fresh content. Hidden catalogues do not touch it.
+            _surfaceMotion.Change(DownloadPage, DownloadPage,
+                Sub()
+                    If _pageSwitch.Transition IsNot Nothing Then _pageSwitch.Finish()
+                    RenderVersionCatalogue()
+                End Sub, contentRefresh:=True)
+            If refocus Then FocusDownloadPage()
+            If _surfaceMotion.Transition Is Nothing Then RestoreSurfaceFocus()
+        Else
+            RenderVersionCatalogue()
+        End If
+    End Sub
+
+    Private Sub RenderVersionCatalogue()
         VersionCards.Children.Clear()
         SetDownloadView(_downloadView)
         EmptyVersions.Text = If(_versions.Count = 0, "点击刷新读取版本列表", "没有匹配的版本")
@@ -544,9 +563,12 @@ Partial Public Class MainWindow
     Private Sub SwitchMainPage(settings As Boolean, Optional prepare As Action = Nothing)
         If settings Then
             _focusAfterPageSwitch = False
-            If _pageSwitch.Transition IsNot Nothing Then _pageSwitch.Finish()
         End If
-        SelectSurface(If(settings, DirectCast(SettingsPage, FrameworkElement), DownloadPage), prepare)
+        SelectSurface(If(settings, DirectCast(SettingsPage, FrameworkElement), DownloadPage),
+            Sub()
+                If settings AndAlso _pageSwitch.Transition IsNot Nothing Then _pageSwitch.Finish()
+                prepare?.Invoke()
+            End Sub)
     End Sub
 
     Private Sub SetDownloadView(view As DownloadView)
@@ -749,6 +771,8 @@ Partial Public Class MainWindow
         Else
             _closing = True
             _pendingSurfaceFocus = Nothing
+            _focusAfterPageSwitch = False
+            _pageSwitch.Finish()
             _surfaceMotion.Finish()
             For Each viewer In MotionViewers()
                 viewer.StopScrolling()

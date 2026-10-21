@@ -28,6 +28,8 @@ Partial Public Class MainWindow
         Dim secondRound As New MainWindow(True)
         secondRound.VerifyExitAndBarMotion(directory, check)
         VerifySnapshotViewport(directory, check)
+        Dim finalization As New MainWindow(True)
+        finalization.VerifyMotionFinalization(directory, check)
         Return passed
     End Function
 

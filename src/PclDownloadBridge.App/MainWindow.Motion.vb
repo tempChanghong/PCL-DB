@@ -7,15 +7,21 @@ Partial Public Class MainWindow
     Private _motionPreview As Boolean
     Private _pendingSurfaceFocus As Action
 
+    Private Function AllowPageMotion() As Boolean
+        Return Not _closing AndAlso (Not _preview OrElse _motionPreview) AndAlso (SystemParameters.ClientAreaAnimation OrElse _motionPreview)
+    End Function
+
+    Private Sub RestoreSurfaceFocus()
+        Dim focus = _pendingSurfaceFocus
+        _pendingSurfaceFocus = Nothing
+        If Not _closing Then focus?.Invoke()
+    End Sub
+
     Private Sub InitializeMotion()
         For Each viewer In MotionViewers()
             viewer.SmoothScrollingEnabled = Not _preview
         Next
-        AddHandler _surfaceMotion.Settled, Sub()
-                                              Dim focus = _pendingSurfaceFocus
-                                              _pendingSurfaceFocus = Nothing
-                                              If Not _closing Then focus?.Invoke()
-                                          End Sub
+        AddHandler _surfaceMotion.Settled, Sub() RestoreSurfaceFocus()
         AddHandler PageSurface.Loaded, Sub()
                                           If Not _preview Then _surfaceMotion.Change(Nothing, ActiveSurface(), Sub()
                                                                                                              End Sub)
@@ -31,7 +37,7 @@ Partial Public Class MainWindow
     End Function
     Private Function SurfaceUnits(surface As FrameworkElement) As IEnumerable(Of FrameworkElement)
         If surface Is DownloadPage Then
-            Return PclSurfaceMotion.Units(If(_downloadView = DownloadView.Versions, DirectCast(VersionScroll, FrameworkElement),
+            Return PclSurfaceMotion.Units(If(_downloadView = DownloadView.Versions, DirectCast(VersionPage, FrameworkElement),
                 If(_downloadView = DownloadView.Install, DirectCast(InstallScroll, FrameworkElement), DownloadProgress)))
         End If
         Return PclSurfaceMotion.Units(surface)
@@ -52,6 +58,6 @@ Partial Public Class MainWindow
                 DownloadTab.Checked = target Is DownloadPage
                 SettingsTab.Checked = target IsNot DownloadPage
                 prepare?.Invoke()
-            End Sub)
+            End Sub, compositeExit:=previous IsNot target AndAlso _pageSwitch.Transition IsNot Nothing)
     End Sub
 End Class
