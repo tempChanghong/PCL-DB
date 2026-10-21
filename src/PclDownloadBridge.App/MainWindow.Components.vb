@@ -231,7 +231,9 @@ Partial Public Class MainWindow
                 view.BodyInitialized = True
                 view.BodyEntries = available : view.BodyError = errorText : view.BodyPending = pending
             End If
-            Dim body = TryCast(view.Card.Body, StackPanel)
+            ' An invalidated body can remain visible only to finish a fold. Its
+            ' old tags and highlight must not be rebound to newly accepted data.
+            Dim body = If(view.Card.HasDeferredBodyRefresh, Nothing, TryCast(view.Card.Body, StackPanel))
             If body IsNot Nothing Then
                 For Each row In body.Children.OfType(Of PclListItem)()
                     Dim chosen = selected IsNot Nothing AndAlso row.Tag Is selected

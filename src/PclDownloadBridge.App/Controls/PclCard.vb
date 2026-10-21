@@ -62,13 +62,33 @@ Namespace Controls
         Private _collapsible As Boolean
         Private _built As Boolean
         Private _headerPressed As Boolean
+        Private _retiringBody As UIElement
+        Friend ReadOnly Property HasDeferredBodyRefresh As Boolean
+            Get
+                Return _retiringBody IsNot Nothing AndAlso Body Is _retiringBody
+            End Get
+        End Property
         Public Property Builder As Func(Of UIElement)
         Public Sub RefreshBody(builder As Func(Of UIElement))
+            If builder Is Nothing Then Throw New ArgumentNullException(NameOf(builder))
             Dim previousHeight = ActualHeight
             Me.Builder = builder
             _built = Not Collapsed
-            Body = If(Collapsed, Nothing, builder.Invoke())
-            If Not Collapsed AndAlso IsLoaded AndAlso IsVisible AndAlso
+            If Collapsed Then
+                If Body IsNot Nothing AndAlso _heightTransition IsNot Nothing AndAlso IsLoaded AndAlso IsVisible AndAlso _presenter.IsVisible Then
+                    ' PCL keeps SwapControl visible until the fold finishes. Retain
+                    ' accepted-away content for that exit, but block its old actions.
+                    _retiringBody = Body
+                    _presenter.IsEnabled = False
+                Else
+                    DiscardRetiringBody()
+                    Body = Nothing
+                End If
+                Return
+            End If
+            DiscardRetiringBody()
+            Body = builder.Invoke()
+            If IsLoaded AndAlso IsVisible AndAlso
                 (_heightTransition IsNot Nothing OrElse Double.IsNaN(Height)) Then
                 ' Metadata may replace the list during expansion. Keep the displayed
                 ' height, discard the old target and measure the accepted content.
@@ -110,6 +130,7 @@ Namespace Controls
             Set(value As Boolean)
                 If _collapsed = value Then
                     If Not value AndAlso Not _built AndAlso Builder IsNot Nothing Then
+                        DiscardRetiringBody()
                         Body = Builder.Invoke()
                         _built = True
                     End If
@@ -120,6 +141,7 @@ Namespace Controls
                 StopHeightTransition()
                 _collapsed = value
                 Input.KeyboardNavigation.SetTabNavigation(_presenter, If(value, Input.KeyboardNavigationMode.None, Input.KeyboardNavigationMode.Continue))
+                If Not value Then DiscardRetiringBody()
                 If Not value AndAlso Not _built AndAlso Builder IsNot Nothing Then
                     Body = Builder.Invoke()
                     _built = True
@@ -128,9 +150,7 @@ Namespace Controls
                     _presenter.Visibility = Visibility.Visible
                     StartHeightTransition(oldHeight, If(value, 40, ExpandedHeight()))
                 Else
-                    _presenter.Visibility = If(value, Visibility.Collapsed, Visibility.Visible)
-                    Height = If(value, 40, Double.NaN)
-                    ClipToBounds = False
+                    SettleHeight()
                 End If
                 Dim rotation = DirectCast(_arrow.RenderTransform, RotateTransform)
                 If IsLoaded AndAlso IsVisible AndAlso changed Then
@@ -241,7 +261,18 @@ Namespace Controls
         Private Sub SettleHeight()
             Height = If(_collapsed, 40, Double.NaN)
             _presenter.Visibility = If(_collapsed, Visibility.Collapsed, Visibility.Visible)
+            If _collapsed Then DiscardRetiringBody()
             ClipToBounds = False
+        End Sub
+        Private Sub DiscardRetiringBody()
+            Dim retired = _retiringBody
+            _retiringBody = Nothing
+            If retired Is Nothing Then Return
+            If Body Is retired Then Body = Nothing
+            _presenter.ClearValue(IsEnabledProperty)
+            ' Clearing the local gate can expose the default True value in net48.
+            ' Re-evaluate ancestor coercion before attaching replacement content.
+            _presenter.CoerceValue(IsEnabledProperty)
         End Sub
         Private Sub SettleArrow()
             Dim rotation = DirectCast(_arrow.RenderTransform, RotateTransform)

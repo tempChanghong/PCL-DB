@@ -2,6 +2,14 @@
 
 日期：2026-10-22（北京时间）。当前源码为尚未发布的 0.57 开发版 PCL-DB（PCL Download Bridge），包含 Visual Studio 2026 开发配置；最新公开预览版为 0.56，下方保留先前版本的验证记录。
 
+## 0.57 收起期间刷新组件列表
+
+- 基线 37d9ac0，修改前保存 `artifacts/bridge-0.57-fold-refresh/source-before.zip`、77 个 dist 文件的摘要/时间戳及七个参考仓库状态。重读固定 PCL MyCard.IsSwapped / StartHeightAnimation 与安装页选择后折叠的代码：正文保留可见直到收起完成。
+- `baseline/motion.json` 在原 295 项后失败。实际选择 Fabric 后暂停收起，再经 AcceptComponentList 接受新列表，component-fold-refresh.json 记录卡片仍为 885 DIP、原高度时钟未变，但正文已移除。修复后旧正文保持显示并禁用输入，保留旧行的选中外观，逻辑元数据和所选组件立即接受新响应，自定义名称不变，见 fixed/motion.json。
+- 正文工厂只保留最新一份，收起完成、隐藏或卸载后释放旧正文；提前展开从当前高度构建最新列表。旧正文不再重绑新条目身份，取消已按下的旧操作，并拒绝鼠标和键盘操作。无效空工厂在改变状态前拒绝；完全收起时刷新仍立即清空隐藏正文、延后构建。没有更改下载 Core、PCL 高度/箭头曲线或既有请求代次规则。
+- 新增 27 项动画/集成检查，总计 322 项，覆盖实际选择/响应、重复刷新、过期代次、只构建最新工厂、反向、名称与选中保留、隐藏/卸载和外层禁用，另有 13 帧 fold-refresh-frames。expanded/motion.json、diagnostic/motion.json 在 318 项后暴露内部禁用值 ClearValue 后新内容仍为 enabled，尽管祖先已禁用；disabled-retirement.json 记录完整父级状态。增加显式 CoerceValue 后，coercion/motion.json 首次完整通过，新正文正确继承禁用，祖先恢复时亦能正常恢复输入，没有放宽断言。
+- 最终 Release 构建、658 项完整界面、322 项动画、17 项固定源对照及 VS 2026 Debug/PDB 的验证结果分别保留。下载 Core 未改，不重复完整 745 项核心回归，仅运行 VS 配置中的 369 项精选逻辑检查。保持 0.57 开发版，不构建单 EXE 候选、不打包、不发版；dist 和参考仓库核对见 preservation.json。检查使用离屏控件、受控列表响应和合成输入，不作为桌面 FPS、真实鼠标/键盘设备或完整游戏安装验收。
+
 ## 0.57 选中标记弹出与颜色衔接
 
 - 基线 6bfa51c，修改前保存 `artifacts/bridge-0.57-selected-marker/source-before.zip`、77 个 dist 文件的摘要/时间戳及七个参考仓库状态。重新读取固定 PCL MyListItem.SetChecked 的两条并行高度曲线、延迟透明度、文字颜色及即时布局分支。

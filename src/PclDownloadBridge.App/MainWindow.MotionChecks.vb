@@ -37,6 +37,8 @@ Partial Public Class MainWindow
         VerifyPressMotion(directory, check)
         VerifySelectionMotion(directory, check)
         VerifyListSelectionMotion(directory, check)
+        Dim folding As New MainWindow(True)
+        folding.VerifyComponentFoldRefresh(directory, check)
         Return passed
     End Function
 
