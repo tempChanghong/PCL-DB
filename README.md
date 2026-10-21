@@ -8,7 +8,7 @@ VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，简称
 
 从 [Releases](https://github.com/tempChanghong/PCL-DB/releases) 下载预览版，解压后运行 `PclDownloadBridge.exe`。源码构建方法见下文。
 
-现有便携目录版使用时保留 EXE 同目录的 DLL、配置文件与 Markdown 文档。源码默认构建后运行 `src/PclDownloadBridge.App/bin/Release/net48/PclDownloadBridge.exe`；显式打包后也可运行 `dist/PclDownloadBridge/PclDownloadBridge.exe`。新增单 EXE 构建验证入口见下文，暂不替换现有正式打包格式。
+已有多文件便携版使用时仍须保留 EXE 同目录的 DLL 和配置文件。源码默认构建后运行 `src/PclDownloadBridge.App/bin/Release/net48/PclDownloadBridge.exe`；新的显式打包入口生成可独立分发的单 EXE，便携目录入口改为 `dist/PclDownloadBridge/PCL-DB.exe`。当前 0.57 仍为开发版，未更新公开发布包。
 
 1. 打开「设置 → 游戏文件夹」，点击「读取 PCL 的目录」选择实际使用的 PCL EXE。读取其旁的游戏目录、`PCL/Setup.ini` 的当前选择，以及 PCL 注册表自定义目录。也可手动选择 `.minecraft`。同页可分别设置「文件下载源」和「版本列表源」：BMCLAPI 优先、自动、官方优先；自动为默认值。切换版本列表源后，返回下载页会按新设置刷新当前列表；安装选项页也可点击「刷新列表」，保留版本、名称与组件选择。
 2. 回到「下载」，顶部显示安装目标；点击版本，填写实例名称。展开卡片选择 Forge、NeoForge、Fabric、Fabric API、OptiFine、OptiFabric 或 LiteLoader，点击「开始下载」。按 PCL 规则显示适用选项及互斥关系，Fabric API 和 OptiFabric 随父组件显示。默认拒绝覆盖同名实例。
@@ -144,17 +144,21 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 .\build.ps1 -Package
 ```
 
-此模式另运行 19 项打包回归，再生成便携目录和 ZIP。打包检查使用临时目录 `PCL-DB-PackageChecks-<随机ID>`。
+此模式独立构建单 EXE，并执行 25 项单文件和 658 项界面候选检查；完整模式另运行临时目录中的 46 项打包回归，再生成便携目录、ZIP、可单独分发的版本号 EXE 与独立构建清单。不会读取旧 bin 作为打包候选。
 
-包内固定为 4 个运行文件和 7 份文档（包含 `LICENCE`）。打包先在独立暂存目录复制和校验，旧目录中的其他文件不会被带入新包；替换成功后，旧目录和旧 ZIP 保留在本次报告记录的备份位置。遇到占用等替换失败时会尝试恢复旧输出，失败详情及备份路径保存在 `artifacts/packages/<本次编号>/failure.json`。这是目录和 ZIP 的顺序替换与回滚，不保证断电或强行终止进程时两者同时更新。
+新 ZIP 内固定为 `PclDownloadBridge/` 下的 `PCL-DB.exe`、7 份文档（包含 `LICENCE`）和 `build-manifest.json`，共 9 个文件，无相邻 DLL、config 或 PDB。独立资产为 `PCL-DB-<版本>-preview.exe` 及 `.build-manifest.json`。清单记录完整提交、分支、工作区是否有改动、源码清单 SHA-256、SDK、运行时、两份内嵌依赖及每个载荷文件的 SHA-256；EXE ProductVersion 必须包含该提交。构建前后和打包前均核对源码，旧候选不能混入新源码或文档。
 
-打包结果会打印本次 ZIP 和 `result.json` 的完整路径，其中记录 ZIP 的 SHA-256 及每个文件的内容哈希。可明确指定候选包，重新核对其内容与当前 Release 输出和文档是否一致：
+打包先复制已验证候选到独立暂存目录，校验四种输出后再顺序替换；旧目录、ZIP、EXE 和清单保留在报告记录的备份位置。文件占用或替换失败时逆序恢复，失败详情、回滚问题和备份位置写入 `artifacts/packages/<本次编号>/failure.json`。文件锁阻止并发打包，输出路径经过目录联接检查。这是顺序替换与尽力回滚，不保证断电或强制终止时的多文件原子性。
+
+结果打印 ZIP、单 EXE、清单及本次 `result.json` 的完整路径，报告记录全部摘要。明确指定候选包可独立检查包内一致性及所有分发资产：
 
 ```powershell
-.\tools\verify-package.ps1 -PackagePath .\dist\PCL-DB-0.57-preview.zip -DistributionPath .\dist\PclDownloadBridge
+.\tools\verify-package.ps1 -PackagePath .\dist\PCL-DB-0.57-preview.zip -DistributionPath .\dist\PclDownloadBridge -StandalonePath .\dist\PCL-DB-0.57-preview.exe -ManifestPath .\dist\PCL-DB-0.57-preview.build-manifest.json
 ```
 
-`-SkipTests` 仅跳过回归检查，打包时仍校验候选 ZIP 的完整文件清单和字节内容；不能据此声称通过完整回归。单独执行 `tools/verify-packaging.ps1` 需要已有 Release 构建。
+如需同时核对当前源码和已测试候选，追加 `-CandidateResultPath <本次单EXE验证打印的result.json完整路径>`，结果的 `CandidateVerified` 才为 true；未指定时只验证清单与文件内容的一致性，不证明构建来源或签名。该新入口针对 `PCL-DB-single-exe/v1` 格式，不重写现有旧版 ZIP。
+
+`-SkipTests -Package` 跳过核心、常规界面及打包回归，仍强制独立构建、25 项单文件与 658 项候选界面验收、源码及全部分发资产校验；不能据此声称通过完整回归。单独执行 `tools/verify-packaging.ps1` 会创建全新候选，仅在随机临时目录生成测试 ZIP，不更新项目 `dist`。可用 `-CandidateResultPath` 显式复用当前源码对应的候选，避免重复构建。
 
 单 EXE 功能可用以下命令独立验证；该命令构建开发候选，不生成 ZIP、不更新 `dist`，不创建 Release：
 
@@ -162,11 +166,11 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 .\tools\verify-single-exe.ps1
 ```
 
-验证器将 App/Core 构建到本次独立 artifacts 目录，只复制一个改名为 `PCL-DB.exe` 的文件到仓库之外、带中文和空格的临时目录。依次运行 25 项单文件检查和 658 项界面检查，并逐项核对内嵌两份 DLL 与本次构建、七份文档与源码的 SHA-256；报告保留候选路径及 EXE 摘要。检查使用回环 HTTP 和预览数据，不修改真实用户设置或安装游戏。
+验证器将 App/Core 构建到本次独立 artifacts 目录，只复制一个改名为 `PCL-DB.exe` 的文件到仓库之外、带中文和空格的临时目录。依次运行 25 项单文件检查和 658 项界面检查，并逐项核对内嵌两份 DLL 与本次构建、七份文档与源码的 SHA-256；报告保留候选路径、载荷快照、EXE 摘要、源码逐文件清单及完整提交。检查使用回环 HTTP 和预览数据，不修改真实用户设置或安装游戏。
 
 底层开关为 App 项目的 `-p:PclDbSingleExecutable=true`，通过资源嵌入和启动期程序集解析实现；常规构建及 VS Debug 仍使用独立 DLL。单 EXE 不依赖邻接 `.exe.config`，长路径设置由最早启动代码应用；系统仍须安装 .NET Framework 4.8。关于页优先打开随附或开发目录文档；缺失时从程序资源生成内容寻址的文档副本，正常模式位于 `%LOCALAPPDATA%/PclDownloadBridge/documents/`，预览检查只使用随机临时目录。单文件模式的第三方说明同时附带完整 `LICENCE`，不需要在 EXE 旁写出 DLL 或文档。
 
-当前阶段提供单文件构建及成品隔离验证。`build.ps1 -Package` 仍保留原 11 文件便携包，尚未接入新的单 EXE 候选；版本来源清单与正式分发格式将在后续独立处理。
+普通构建、F5 和单 EXE 验证均不会生成正式分发包。只有显式执行 `build.ps1 -Package` 才更新 `dist`；创建 Git 标签、上传资产与 GitHub Release 仍需另行明确要求。
 
 维护固定 PCL 参考时，先执行以下检查（需要本地 PCL Git 对象，可用 `-SourceRoot` 指向没有检出文件的仓库）：
 

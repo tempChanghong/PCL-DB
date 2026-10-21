@@ -1,15 +1,8 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-Add-Type -AssemblyName System.IO.Compression.FileSystem
-
-function Get-PackageLayout([string]$ProjectRoot, [string]$RuntimeDirectory) {
-    foreach ($name in @('PclDownloadBridge.exe', 'PclDownloadBridge.exe.config', 'PclDownloadBridge.Core.dll', 'Newtonsoft.Json.dll')) {
-        [pscustomobject]@{Name=$name; Source=(Join-Path $RuntimeDirectory $name)}
-    }
-    foreach ($name in @('LICENCE', 'README.md', 'SOURCE_REFERENCES.md', 'THIRD_PARTY_NOTICES.md', 'VALIDATION.md', 'PATCH_MECHANISMS.md', 'VS2026_DEBUG.md')) {
-        [pscustomobject]@{Name=$name; Source=(Join-Path $ProjectRoot $name)}
-    }
-}
+Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
+Import-Module (Join-Path $PSScriptRoot 'PackageCandidateTools.psm1')
+$script:PayloadNames = @('PCL-DB.exe','LICENCE','README.md','SOURCE_REFERENCES.md','THIRD_PARTY_NOTICES.md','VALIDATION.md','PATCH_MECHANISMS.md','VS2026_DEBUG.md')
 
 function Get-StreamHash([IO.Stream]$Stream) {
     $algorithm = [Security.Cryptography.SHA256]::Create()
@@ -17,9 +10,37 @@ function Get-StreamHash([IO.Stream]$Stream) {
     finally { $algorithm.Dispose() }
 }
 
-function Assert-ProjectChild([string]$ProjectRoot, [string]$Path) {
-    $prefix = [IO.Path]::GetFullPath($ProjectRoot).TrimEnd([IO.Path]::DirectorySeparatorChar) + [IO.Path]::DirectorySeparatorChar
-    if (![IO.Path]::GetFullPath($Path).StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) { throw "Output is outside the project: $Path" }
+function Assert-OutputChild([string]$Root, [string]$Path) {
+    $Root = [IO.Path]::GetFullPath($Root).TrimEnd([IO.Path]::DirectorySeparatorChar)
+    $full = [IO.Path]::GetFullPath($Path)
+    if (!$full.StartsWith(($Root + [IO.Path]::DirectorySeparatorChar), [StringComparison]::OrdinalIgnoreCase)) { throw "Output is outside the selected root: $Path" }
+    # Lexical containment alone would permit writes through a directory junction.
+    $cursor = $full
+    while ($cursor) {
+        if (Test-Path -LiteralPath $cursor) {
+            if ((Get-Item -LiteralPath $cursor -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "Output traverses a reparse point: $cursor" }
+        }
+        $cursor = Split-Path $cursor -Parent
+    }
+}
+
+function Assert-BuildManifest([object]$Manifest) {
+    if ($Manifest.Format -cne 'PCL-DB-single-exe/v1' -or $Manifest.Version -notmatch '^\d+\.\d+\.\d+$' -or
+        $Manifest.Build.SourceCommit -notmatch '^[0-9a-f]{40}$' -or $Manifest.Build.InventorySHA256 -notmatch '^[0-9A-F]{64}$' -or
+        $Manifest.Build.Configuration -cne 'Release' -or $Manifest.Build.Framework -cne 'net48' -or
+        $Manifest.Build.Dirty -isnot [bool] -or $Manifest.Build.SingleExecutable -isnot [bool] -or !$Manifest.Build.SingleExecutable -or
+        $Manifest.Verification.StandaloneChecks -ne 25 -or $Manifest.Verification.UiChecks -ne 658 -or $Manifest.Files.Count -ne 8) { throw 'Invalid build manifest.' }
+    $seen = @{}
+    foreach ($file in $Manifest.Files) {
+        if ($file.Name -cnotin $script:PayloadNames -or $seen.ContainsKey($file.Name) -or $file.Length -le 0 -or $file.SHA256 -notmatch '^[0-9A-F]{64}$') { throw 'Invalid build manifest file inventory.' }
+        $seen[$file.Name] = $true
+    }
+    if ($Manifest.EmbeddedAssemblies.Count -ne 2) { throw 'Incomplete embedded dependency inventory.' }
+    $seen = @{}
+    foreach ($assembly in $Manifest.EmbeddedAssemblies) {
+        if ($assembly.Name -cnotin @('PclDownloadBridge.Core','Newtonsoft.Json') -or $seen.ContainsKey($assembly.Name) -or $assembly.SHA256 -notmatch '^[0-9A-F]{64}$') { throw 'Invalid embedded dependency inventory.' }
+        $seen[$assembly.Name] = $true
+    }
 }
 
 function Test-PclDbPackage {
@@ -27,109 +48,162 @@ function Test-PclDbPackage {
     param(
         [Parameter(Mandatory)][string]$ProjectRoot,
         [Parameter(Mandatory)][string]$PackagePath,
-        [string]$RuntimeDirectory,
-        [string]$DistributionPath
+        [string]$DistributionPath,
+        [string]$StandalonePath,
+        [string]$ManifestPath,
+        [string]$CandidateResultPath
     )
-    $ProjectRoot = (Resolve-Path -LiteralPath $ProjectRoot).ProviderPath
-    if (!$RuntimeDirectory) { $RuntimeDirectory = Join-Path $ProjectRoot 'src/PclDownloadBridge.App/bin/Release/net48' }
-    $RuntimeDirectory = (Resolve-Path -LiteralPath $RuntimeDirectory).ProviderPath
     $PackagePath = (Resolve-Path -LiteralPath $PackagePath).ProviderPath
-    if ($DistributionPath) { $DistributionPath = (Resolve-Path -LiteralPath $DistributionPath).ProviderPath }
-    $layout = @(Get-PackageLayout $ProjectRoot $RuntimeDirectory)
-    $expected = @{}
-    foreach ($file in $layout) {
-        $item = Get-Item -LiteralPath $file.Source
-        if ($item.PSIsContainer) { throw "Expected a source file: $($file.Source)" }
-        $expected[('PclDownloadBridge/' + $file.Name)] = [pscustomobject]@{
-            Name=$file.Name; Length=$item.Length; SHA256=(Get-FileHash -LiteralPath $file.Source -Algorithm SHA256).Hash
-        }
-    }
     $zip = [IO.Compression.ZipFile]::OpenRead($PackagePath)
     try {
-        if ($zip.Entries.Count -ne $layout.Count) { throw "Package must contain exactly $($layout.Count) files." }
-        $seen = @{}
+        if ($zip.Entries.Count -ne 9) { throw 'Package must contain exactly 9 files.' }
+        $entries = @{}
         foreach ($entry in $zip.Entries) {
             $name = $entry.FullName
-            if (!$expected.ContainsKey($name) -or $seen.ContainsKey($name) -or $name -cne ('PclDownloadBridge/' + $expected[$name].Name)) { throw "Unexpected or duplicate package entry: $name" }
-            $seen[$name] = $true
+            if ($name -cnotin @($script:PayloadNames + 'build-manifest.json' | ForEach-Object { 'PclDownloadBridge/' + $_ }) -or $entries.ContainsKey($name)) { throw "Unexpected or duplicate package entry: $name" }
+            $entries[$name] = $entry
+        }
+        $manifestEntry = $entries['PclDownloadBridge/build-manifest.json']
+        if ($manifestEntry.Length -gt 1048576) { throw 'Oversized build manifest.' }
+        $stream = $manifestEntry.Open()
+        $reader = New-Object IO.StreamReader($stream, [Text.Encoding]::UTF8)
+        try { $manifest = $reader.ReadToEnd() | ConvertFrom-Json } finally { $reader.Dispose() }
+        Assert-BuildManifest $manifest
+        $expected = @{}
+        foreach ($file in $manifest.Files) { $expected[$file.Name] = $file }
+        $stream = $manifestEntry.Open()
+        try { $manifestHash = Get-StreamHash $stream } finally { $stream.Dispose() }
+        $expected['build-manifest.json'] = [pscustomobject]@{Name='build-manifest.json';Length=$manifestEntry.Length;SHA256=$manifestHash}
+        foreach ($file in $expected.Values) {
+            $entry = $entries[('PclDownloadBridge/' + $file.Name)]
             $stream = $entry.Open()
             try { $hash = Get-StreamHash $stream } finally { $stream.Dispose() }
-            if ($entry.Length -ne $expected[$name].Length -or $hash -ne $expected[$name].SHA256) { throw "Package differs from its source: $name" }
+            if ($entry.Length -ne $file.Length -or $hash -cne $file.SHA256) { throw "Package differs from its manifest: $($file.Name)" }
         }
     } finally { $zip.Dispose() }
+    if ($CandidateResultPath) {
+        $candidate = Test-PclDbCandidate -ProjectRoot $ProjectRoot -CandidateResultPath $CandidateResultPath
+        if ($manifest.Version -ne $candidate.Version -or $manifest.Build.SourceCommit -cne $candidate.Source.Commit -or
+            $manifest.Build.SourceBranch -cne $candidate.Source.Branch -or $manifest.Build.Dirty -ne $candidate.Source.Dirty -or
+            $manifest.Build.InventorySHA256 -cne $candidate.Source.InventorySHA256 -or $manifest.Build.DotnetSDK -cne $candidate.DotnetSDK) { throw 'Manifest differs from the selected candidate source.' }
+        foreach ($file in $candidate.PayloadFiles) {
+            if ($expected[$file.Name].Length -ne $file.Length -or $expected[$file.Name].SHA256 -cne $file.SHA256) { throw 'Manifest differs from the selected candidate bytes.' }
+        }
+        if (($manifest.EmbeddedAssemblies | ConvertTo-Json -Depth 4 -Compress) -cne ($candidate.EmbeddedAssemblies | ConvertTo-Json -Depth 4 -Compress)) { throw 'Manifest differs from the selected embedded dependencies.' }
+    }
     if ($DistributionPath) {
-        $actual = @(Get-ChildItem -LiteralPath $DistributionPath -File -Recurse -Force)
-        if ($actual.Count -ne $layout.Count) { throw 'Distribution contains missing or extra files.' }
-        foreach ($file in $layout) {
+        $actual = @(Get-ChildItem -LiteralPath $DistributionPath -Recurse -Force)
+        if ($actual.Count -ne 9 -or @($actual | Where-Object PSIsContainer).Count -ne 0) { throw 'Distribution contains missing or extra files.' }
+        foreach ($file in $expected.Values) {
             $path = Join-Path $DistributionPath $file.Name
-            if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ne $expected[('PclDownloadBridge/' + $file.Name)].SHA256) { throw "Distribution differs from its source: $($file.Name)" }
+            if ((Get-Item -LiteralPath $path).Length -ne $file.Length -or (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -cne $file.SHA256) { throw "Distribution differs from its manifest: $($file.Name)" }
         }
     }
-    $version = [Reflection.AssemblyName]::GetAssemblyName((Join-Path $RuntimeDirectory 'PclDownloadBridge.exe')).Version.ToString(3)
-    [pscustomobject]@{
-        Succeeded=$true; Version=$version; PackagePath=$PackagePath
-        PackageSHA256=(Get-FileHash -LiteralPath $PackagePath -Algorithm SHA256).Hash
-        DistributionPath=$DistributionPath; FileCount=$layout.Count
-        Files=@($layout | ForEach-Object { $expected[('PclDownloadBridge/' + $_.Name)] })
+    foreach ($asset in @(@{Path=$StandalonePath;Name='PCL-DB.exe'}, @{Path=$ManifestPath;Name='build-manifest.json'})) {
+        if ($asset.Path) {
+            if ((Get-Item -LiteralPath $asset.Path).Length -ne $expected[$asset.Name].Length -or
+                (Get-FileHash -LiteralPath $asset.Path -Algorithm SHA256).Hash -cne $expected[$asset.Name].SHA256) { throw "Separate asset differs from the ZIP: $($asset.Name)" }
+        }
     }
+    [pscustomobject]@{
+        Succeeded=$true;Version=$manifest.Version;PackagePath=$PackagePath;PackageSHA256=(Get-FileHash -LiteralPath $PackagePath -Algorithm SHA256).Hash
+        StandalonePath=$StandalonePath;StandaloneSHA256=$expected['PCL-DB.exe'].SHA256;ManifestPath=$ManifestPath;ManifestSHA256=$manifestHash
+        DistributionPath=$DistributionPath;FileCount=9;Files=@($expected.Values | Sort-Object Name);Build=$manifest.Build
+        CandidateVerified=[bool]$CandidateResultPath
+    }
+}
+
+function Move-PackageOutput([string]$Source, [string]$Destination, [bool]$IsDirectory) {
+    if ($IsDirectory) { [IO.Directory]::Move($Source, $Destination) } else { [IO.File]::Move($Source, $Destination) }
 }
 
 function New-PclDbPackage {
     [CmdletBinding()]
-    param([Parameter(Mandatory)][string]$ProjectRoot, [string]$RuntimeDirectory)
+    param(
+        [Parameter(Mandatory)][string]$ProjectRoot,
+        [string]$CandidateResultPath,
+        [string]$OutputRoot
+    )
     $ProjectRoot = (Resolve-Path -LiteralPath $ProjectRoot).ProviderPath
     if (!(Test-Path -LiteralPath (Join-Path $ProjectRoot 'PclDownloadBridge.sln') -PathType Leaf)) { throw 'The PCL-DB solution was not found.' }
-    if (!$RuntimeDirectory) { $RuntimeDirectory = Join-Path $ProjectRoot 'src/PclDownloadBridge.App/bin/Release/net48' }
-    $records = Join-Path $ProjectRoot 'artifacts/packages'
-    Assert-ProjectChild $ProjectRoot $records
+    if (!$OutputRoot) { $OutputRoot = $ProjectRoot }
+    $OutputRoot = [IO.Path]::GetFullPath($OutputRoot)
+    $records = Join-Path $OutputRoot 'artifacts/packages'
+    Assert-OutputChild $OutputRoot $records
     New-Item -ItemType Directory -Path $records -Force | Out-Null
-    # An OS file handle also coordinates separate PowerShell processes. The empty lock file can remain after a crash.
     try { $gate = [IO.File]::Open((Join-Path $records 'package.lock'), [IO.FileMode]::OpenOrCreate, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None) }
     catch { throw 'Another package operation is already running or the output lock is unavailable.' }
     try {
+        if (!$CandidateResultPath) {
+            $fresh = & (Join-Path $PSScriptRoot 'verify-single-exe.ps1') -PassThru
+            $CandidateResultPath = $fresh.ResultPath
+        }
+        $candidate = Test-PclDbCandidate -ProjectRoot $ProjectRoot -CandidateResultPath $CandidateResultPath
         $operation = Join-Path $records ((Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [Guid]::NewGuid().ToString('N'))
         $stage = Join-Path $operation 'PclDownloadBridge'
+        Assert-OutputChild $OutputRoot $stage
         New-Item -ItemType Directory -Path $stage -Force | Out-Null
-        foreach ($file in @(Get-PackageLayout $ProjectRoot $RuntimeDirectory)) {
-            Copy-Item -LiteralPath $file.Source -Destination (Join-Path $stage $file.Name)
+        foreach ($file in $candidate.PayloadFiles) { Copy-Item -LiteralPath (Join-Path $candidate.PayloadDirectory $file.Name) -Destination (Join-Path $stage $file.Name) }
+        $manifest = [ordered]@{
+            Format='PCL-DB-single-exe/v1';Version=$candidate.Version
+            Build=[ordered]@{SourceCommit=$candidate.Source.Commit;SourceBranch=$candidate.Source.Branch;Dirty=$candidate.Source.Dirty;InventorySHA256=$candidate.Source.InventorySHA256
+                DotnetSDK=$candidate.DotnetSDK;Configuration='Release';Framework='net48';SingleExecutable=$true}
+            Verification=[ordered]@{StandaloneChecks=$candidate.StandaloneChecks;UiChecks=$candidate.UiChecks}
+            EmbeddedAssemblies=$candidate.EmbeddedAssemblies;Files=$candidate.PayloadFiles
         }
-        $version = [Reflection.AssemblyName]::GetAssemblyName((Join-Path $stage 'PclDownloadBridge.exe')).Version.ToString(3)
-        # Retain the established 0.45-preview.zip naming when the patch component is zero.
-        $packageVersion = $version -replace '\.0$', ''
-        $zipName = "PCL-DB-$packageVersion-preview.zip"
-        $stageZip = Join-Path $operation $zipName
-        [IO.Compression.ZipFile]::CreateFromDirectory($stage, $stageZip, [IO.Compression.CompressionLevel]::Optimal, $true)
-        $null = Test-PclDbPackage -ProjectRoot $ProjectRoot -PackagePath $stageZip -RuntimeDirectory $RuntimeDirectory -DistributionPath $stage
-        $distribution = Join-Path $ProjectRoot 'dist/PclDownloadBridge'
-        $package = Join-Path $ProjectRoot "dist/$zipName"
-        $previous = Join-Path $operation 'previous'
-        $oldDirectory = Join-Path $previous 'PclDownloadBridge'
-        $oldZip = Join-Path $previous $zipName
-        $failedDirectory = Join-Path $operation 'failed-distribution'
-        $failedZip = Join-Path $operation 'failed.zip'
-        foreach ($path in @($stage, $stageZip, $distribution, $package, $oldDirectory, $oldZip, $failedDirectory, $failedZip)) { Assert-ProjectChild $ProjectRoot $path }
-        if ((Test-Path -LiteralPath $distribution) -and !(Test-Path -LiteralPath $distribution -PathType Container)) { throw 'The distribution path is occupied by a file.' }
-        if ((Test-Path -LiteralPath $package) -and !(Test-Path -LiteralPath $package -PathType Leaf)) { throw 'The ZIP path is occupied by a directory.' }
-        New-Item -ItemType Directory -Path (Split-Path $distribution -Parent), $previous -Force | Out-Null
-        $directoryBackedUp = $false; $zipBackedUp = $false; $directoryPublished = $false; $zipPublished = $false
+        $manifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $stage 'build-manifest.json') -Encoding UTF8
+        $packageVersion = $candidate.Version -replace '\.0$', ''
+        $stem = "PCL-DB-$packageVersion-preview"
+        $stageZip = Join-Path $operation ($stem + '.zip')
+        $stageExe = Join-Path $operation ($stem + '.exe')
+        $stageManifest = Join-Path $operation ($stem + '.build-manifest.json')
+        Copy-Item -LiteralPath (Join-Path $stage 'PCL-DB.exe') -Destination $stageExe
+        Copy-Item -LiteralPath (Join-Path $stage 'build-manifest.json') -Destination $stageManifest
+        # .NET Framework's CreateFromDirectory can emit backslashes. Write canonical ZIP names explicitly.
+        $archive = [IO.Compression.ZipFile]::Open($stageZip, [IO.Compression.ZipArchiveMode]::Create)
         try {
-            if (Test-Path -LiteralPath $distribution) { [IO.Directory]::Move($distribution, $oldDirectory); $directoryBackedUp = $true }
-            if (Test-Path -LiteralPath $package) { [IO.File]::Move($package, $oldZip); $zipBackedUp = $true }
-            [IO.Directory]::Move($stage, $distribution); $directoryPublished = $true
-            [IO.File]::Move($stageZip, $package); $zipPublished = $true
-            $report = Test-PclDbPackage -ProjectRoot $ProjectRoot -PackagePath $package -RuntimeDirectory $RuntimeDirectory -DistributionPath $distribution
+            foreach ($file in @(Get-ChildItem -LiteralPath $stage -File | Sort-Object Name)) {
+                $null = [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $file.FullName, ('PclDownloadBridge/' + $file.Name), [IO.Compression.CompressionLevel]::Optimal)
+            }
+        } finally { $archive.Dispose() }
+        $dist = Join-Path $OutputRoot 'dist'
+        $previous = Join-Path $operation 'previous'
+        $outputs = @(
+            [pscustomobject]@{Name='PclDownloadBridge';Stage=$stage;Directory=$true;BackedUp=$false;Published=$false}
+            [pscustomobject]@{Name=($stem + '.zip');Stage=$stageZip;Directory=$false;BackedUp=$false;Published=$false}
+            [pscustomobject]@{Name=($stem + '.exe');Stage=$stageExe;Directory=$false;BackedUp=$false;Published=$false}
+            [pscustomobject]@{Name=($stem + '.build-manifest.json');Stage=$stageManifest;Directory=$false;BackedUp=$false;Published=$false}
+        )
+        foreach ($output in $outputs) {
+            $output | Add-Member NoteProperty Final (Join-Path $dist $output.Name)
+            $output | Add-Member NoteProperty Backup (Join-Path $previous $output.Name)
+            $output | Add-Member NoteProperty Failed (Join-Path $operation ('failed-' + $output.Name))
+            foreach ($path in @($output.Stage,$output.Final,$output.Backup,$output.Failed)) { Assert-OutputChild $OutputRoot $path }
+            if ((Test-Path -LiteralPath $output.Final) -and (Get-Item -LiteralPath $output.Final -Force).PSIsContainer -ne $output.Directory) { throw "Output path has the wrong file type: $($output.Final)" }
+        }
+        $check = @{ProjectRoot=$ProjectRoot;CandidateResultPath=$CandidateResultPath}
+        $null = Test-PclDbPackage @check -PackagePath $stageZip -DistributionPath $stage -StandalonePath $stageExe -ManifestPath $stageManifest
+        New-Item -ItemType Directory -Path $dist,$previous -Force | Out-Null
+        try {
+            foreach ($output in $outputs) {
+                if (Test-Path -LiteralPath $output.Final) { Move-PackageOutput $output.Final $output.Backup $output.Directory; $output.BackedUp = $true }
+            }
+            foreach ($output in $outputs) { Move-PackageOutput $output.Stage $output.Final $output.Directory; $output.Published = $true }
+            $report = Test-PclDbPackage @check -PackagePath $outputs[1].Final -DistributionPath $outputs[0].Final -StandalonePath $outputs[2].Final -ManifestPath $outputs[3].Final
+            $report | Add-Member NoteProperty CandidateResultPath ([IO.Path]::GetFullPath($CandidateResultPath))
             $report | Add-Member NoteProperty BackupDirectory $previous
             $report | Add-Member NoteProperty ResultPath (Join-Path $operation 'result.json')
-            $report | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $report.ResultPath -Encoding UTF8
+            $report | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $report.ResultPath -Encoding UTF8
             return $report
         } catch {
             $failure = $_.Exception.Message
             $rollbackErrors = @()
-            try { if ($zipPublished) { [IO.File]::Move($package, $failedZip) } } catch { $rollbackErrors += $_.Exception.Message }
-            try { if ($directoryPublished) { [IO.Directory]::Move($distribution, $failedDirectory) } } catch { $rollbackErrors += $_.Exception.Message }
-            try { if ($zipBackedUp) { [IO.File]::Move($oldZip, $package) } } catch { $rollbackErrors += $_.Exception.Message }
-            try { if ($directoryBackedUp) { [IO.Directory]::Move($oldDirectory, $distribution) } } catch { $rollbackErrors += $_.Exception.Message }
-            [pscustomobject]@{Succeeded=$false; Error=$failure; RollbackErrors=$rollbackErrors; BackupDirectory=$previous} |
+            for ($index = $outputs.Count - 1; $index -ge 0; $index--) {
+                $output = $outputs[$index]
+                try { if ($output.Published) { Move-PackageOutput $output.Final $output.Failed $output.Directory } } catch { $rollbackErrors += $_.Exception.Message }
+                try { if ($output.BackedUp) { Move-PackageOutput $output.Backup $output.Final $output.Directory } } catch { $rollbackErrors += $_.Exception.Message }
+            }
+            [pscustomobject]@{Succeeded=$false;Error=$failure;RollbackErrors=$rollbackErrors;BackupDirectory=$previous} |
                 ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $operation 'failure.json') -Encoding UTF8
             throw "Package replacement failed: $failure See $operation"
         }

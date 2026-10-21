@@ -2,6 +2,16 @@
 
 日期：2026-10-21（北京时间）。当前源码为尚未发布的 0.57 开发版 PCL-DB（PCL Download Bridge），包含 Visual Studio 2026 开发配置；最新公开预览版为 0.56，下方保留先前版本的验证记录。
 
+## 0.57 单 EXE 第二阶段：分发接入
+
+- 修改前保存 `artifacts/bridge-0.57-package-stage2/source-before.zip` 和现有 dist 逐文件哈希/修改时间快照。仅修改打包、候选验证工具和说明，不改 VB 应用、下载 Core、控件及 VS 启动设置；保持 0.57 开发版。
+- 显式打包从全新构建并通过 25/658 项隔离检查的候选获取 EXE 与七份文档快照，不再复制旧 bin。候选记录完整 Git 提交、分支、工作区改动、SDK 和逐文件源码清单，构建前后及打包前检查来源，EXE ProductVersion 必须对应所记提交。新格式为单 EXE、七份文档、build-manifest.json，共九文件；另输出相同字节的单 EXE 与独立清单。
+- 隔离回归覆盖 ZIP/清单/候选载荷篡改、重复与缺失文件、隐藏遗留文件、单独资产不一致、源码新增/修改/删除、生成输出排除、多个资产占用、部分发布后 I/O 失败、逆序回滚、并发锁、重试及目录联接拒绝。报告区分只核对包内一致性与明确候选的来源核对，哈希不是签名。
+- Windows PowerShell 5.1 隔离候选 25 项单文件、658 项完整界面检查与最初 45 项打包机制检查通过，见 `test-third.log` / `package-third.json`；跨宿主来源排序修正后为 46 项，最终记录为 `test-final.log`、`package-final-ps5.json` 与 `package-final-ps7.json`。发现并修复 .NET Framework CreateFromDirectory 写入反斜杠 ZIP 路径、ZipArchiveMode 延迟加载，以及嵌套脚本强制重载模块可能移除调用方命令的问题；改用标准条目路径、显式压缩程序集加载与复用模块。交叉验证实际发现 Framework 与现代 .NET 的文化排序不同，来源摘要改为序号排序的统一 UTF-8 记录，同时避免宿主 JSON 转义差异。
+- 普通常规构建零警告、零错误，固定 PCL 对照 16 项（含 44 份源码和 12 项资源）通过，见 `default-build.log` / `pcl-reference.log`；应用和核心代码未改，不重复声称重新运行上一轮 745 项核心检查。
+- 将当前源码复制到没有相邻 PCL 的中文/空格临时目录，建立独立测试提交，通过实际 `build.ps1 -SkipTests -Package` 和显式 `verify-package.ps1` 入口，候选与清单均为该测试提交且 Dirty=false；结果为 `entrypoint-fixture.json` / `entrypoint-verification.json`。仅证明分发入口与候选隔离检查，不称为完整核心回归或正式发布。
+- 本轮仅在系统随机临时目录生成机制测试 ZIP，不生成或更新项目正式分发包，不建标签或发布 Release。最终验证日志、显式候选报告、打包检查报告及原分发保留证据位于本轮 artifacts 目录；文件占用、回滚与模拟下载检查不等于真实游戏安装验收。
+
 ## 0.57 单 EXE 第一阶段
 
 - 修改前保存 `artifacts/bridge-0.57-single-exe/source-before.zip`。新增 App 资源嵌入开关、最早启动引导和关于页内嵌文档回退；常规 VS/Release 仍默认多文件。最初构建遇到 VB 的 Path 局部名称遮蔽及 WPF 临时编译项目重复收集依赖，分别改为明确 IO.Path 和先清理、限定 DLL 后收集，最终构建零警告、零错误；未关闭缺失依赖检查来绕过构建问题。

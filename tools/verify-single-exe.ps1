@@ -1,7 +1,8 @@
-param([string]$ReportDirectory)
+param([string]$ReportDirectory, [switch]$PassThru)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $root = Split-Path $PSScriptRoot -Parent
+Import-Module (Join-Path $PSScriptRoot 'PackageCandidateTools.psm1')
 if (!$ReportDirectory) { $ReportDirectory = Join-Path $root 'artifacts/single-exe' }
 $operation = Join-Path ([IO.Path]::GetFullPath($ReportDirectory)) ((Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [Guid]::NewGuid().ToString('N'))
 $build = Join-Path $operation 'build'
@@ -23,7 +24,7 @@ function Invoke-IsolatedCheck([string]$Mode, [string]$Name, [int]$ExpectedCount)
         $exitCode = $process.ExitCode
         if ($null -eq $exitCode -or $exitCode -ne 0) { throw "Isolated check failed: $Name (exit $exitCode). See $path" }
     } finally { $process.Dispose() }
-    $report = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+    $report = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
     $scope = if ($Name -eq 'standalone') { 'standalone' } else { 'all' }
     if (!$report.Succeeded -or $report.Scope -ne $scope -or $report.Count -ne $ExpectedCount -or $report.Passed.Count -ne $ExpectedCount) { throw "Incomplete check report: $path" }
     return $report
@@ -31,8 +32,11 @@ function Invoke-IsolatedCheck([string]$Mode, [string]$Name, [int]$ExpectedCount)
 
 Push-Location -LiteralPath $root
 try {
+    $source = Get-PclDbSourceState $root
+    $sdk = (& dotnet --version | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0) { throw 'Cannot identify the build SDK.' }
     $buildLog = Join-Path $operation 'build.log'
-    & dotnet build src/PclDownloadBridge.App/PclDownloadBridge.App.vbproj -c Release -p:PclDbSingleExecutable=true --artifacts-path $build --nologo *> $buildLog
+    & dotnet build src/PclDownloadBridge.App/PclDownloadBridge.App.vbproj -c Release -p:PclDbSingleExecutable=true "-p:SourceRevisionId=$($source.Commit)" --artifacts-path $build --nologo *> $buildLog
     if ($LASTEXITCODE -ne 0) { Get-Content -LiteralPath $buildLog -Tail 25; throw 'Single executable build failed.' }
     $executables = @(Get-ChildItem -LiteralPath (Join-Path $build 'bin/PclDownloadBridge.App') -Filter PclDownloadBridge.exe -File -Recurse)
     if ($executables.Count -ne 1) { throw 'Expected one application build output.' }
@@ -43,8 +47,11 @@ try {
     New-Item -ItemType Directory -Path $cold | Out-Null
     $candidate = Join-Path $cold 'PCL-DB.exe'
     Copy-Item -LiteralPath $executables[0].FullName -Destination $candidate
+    $candidateHash = (Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash
+    $version = [Reflection.AssemblyName]::GetAssemblyName($candidate).Version.ToString(3)
+    if ([Diagnostics.FileVersionInfo]::GetVersionInfo($candidate).ProductVersion -cne ($version + '+' + $source.Commit)) { throw 'EXE product version does not identify the inspected source commit.' }
     $standalone = Invoke-IsolatedCheck '--standalone-checks' 'standalone' 25
-    $embedded = Get-Content -LiteralPath (Join-Path $operation 'embedded-content.json') -Raw | ConvertFrom-Json
+    $embedded = Get-Content -LiteralPath (Join-Path $operation 'embedded-content.json') -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($embedded.Assemblies.Count -ne 2 -or $embedded.Documents.Count -ne 7) { throw 'Incomplete embedded content inventory.' }
     foreach ($assembly in $embedded.Assemblies) {
         if ($assembly.Name -notin @('PclDownloadBridge.Core','Newtonsoft.Json')) { throw 'Unexpected embedded dependency.' }
@@ -57,13 +64,25 @@ try {
     }
     $ui = Invoke-IsolatedCheck '--ui-checks' 'ui' 658
     if (@(Get-ChildItem -LiteralPath $cold -Force).Count -ne 1) { throw 'The isolated run left extra files beside the executable.' }
-    $result = [ordered]@{Succeeded=$true; PowerShellVersion=$PSVersionTable.PSVersion.ToString(); Version=[Reflection.AssemblyName]::GetAssemblyName($candidate).Version.ToString(3);
+    if ((Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash -cne $candidateHash) { throw 'Candidate changed during isolated verification.' }
+    $payload = Join-Path $operation 'payload'
+    New-Item -ItemType Directory -Path $payload | Out-Null
+    Copy-Item -LiteralPath $candidate -Destination (Join-Path $payload 'PCL-DB.exe')
+    foreach ($document in $embedded.Documents) { Copy-Item -LiteralPath (Join-Path $root $document.Name) -Destination (Join-Path $payload $document.Name) }
+    $files = @(Get-ChildItem -LiteralPath $payload -File | Sort-Object Name | ForEach-Object {
+        [pscustomobject]@{Name=$_.Name;Length=$_.Length;SHA256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash}
+    })
+    Assert-PclDbSourceState $source (Get-PclDbSourceState $root)
+    $result = [ordered]@{Succeeded=$true; PowerShellVersion=$PSVersionTable.PSVersion.ToString(); Version=$version;
         StandaloneChecks=$standalone.Count; UiChecks=$ui.Count; EmbeddedAssemblies=$embedded.Assemblies; EmbeddedDocuments=$embedded.Documents;
-        CandidatePath=$candidate; CandidateSHA256=(Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash;
-        ColdDirectoryContainsOnlyExe=$true; BuildDirectory=$build; ResultPath=(Join-Path $operation 'result.json'); Published=$false; DistributionUpdated=$false}
+        CandidatePath=$candidate; CandidateSHA256=$candidateHash;
+        ColdDirectoryContainsOnlyExe=$true; Source=$source; DotnetSDK=$sdk; PayloadDirectory=$payload; PayloadFiles=$files;
+        BuildDirectory=$build; ResultPath=(Join-Path $operation 'result.json'); Published=$false; DistributionUpdated=$false}
     $result | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $result.ResultPath -Encoding UTF8
-    Write-Output "PASS single EXE: $($standalone.Count) standalone checks, $($ui.Count) UI checks; embedded bytes match the fresh build and seven source documents."
-    Write-Output "Report: $($result.ResultPath)"
+    if ($PassThru) { [pscustomobject]$result } else {
+        Write-Output "PASS single EXE: $($standalone.Count) standalone checks, $($ui.Count) UI checks; embedded bytes match the fresh build and seven source documents."
+        Write-Output "Report: $($result.ResultPath)"
+    }
 } catch {
     [pscustomobject]@{Succeeded=$false;Error=$_.Exception.ToString();Operation=$operation} | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $operation 'failure.json') -Encoding UTF8
     throw

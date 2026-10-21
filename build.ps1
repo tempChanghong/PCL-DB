@@ -13,13 +13,16 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'UI workflow checks failed.' }
         $uiChecks = Get-Content -LiteralPath artifacts/ui-checks-0.57.json -Raw | ConvertFrom-Json
         if (!$uiChecks.Succeeded -or $uiChecks.Scope -ne 'all' -or $uiChecks.Count -ne 658) { throw 'UI workflow checks failed.' }
-        if ($Package) { & './tools/verify-packaging.ps1' }
     }
     if ($Package) {
         Import-Module (Join-Path $PSScriptRoot 'tools/PackageTools.psm1') -Force
-        $result = New-PclDbPackage -ProjectRoot $PSScriptRoot
+        $candidate = & './tools/verify-single-exe.ps1' -PassThru
+        if (!$SkipTests) { & './tools/verify-packaging.ps1' -CandidateResultPath $candidate.ResultPath }
+        $result = New-PclDbPackage -ProjectRoot $PSScriptRoot -CandidateResultPath $candidate.ResultPath
         Write-Output "PASS package $($result.Version): $($result.FileCount) files verified."
         Write-Output "Package: $($result.PackagePath)"
+        Write-Output "Single EXE: $($result.StandalonePath)"
+        Write-Output "Build manifest: $($result.ManifestPath)"
         Write-Output "Report: $($result.ResultPath)"
     }
 } finally {
