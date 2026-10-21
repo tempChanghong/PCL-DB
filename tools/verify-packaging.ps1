@@ -4,7 +4,7 @@ Set-StrictMode -Version Latest
 $root = Split-Path $PSScriptRoot -Parent
 Import-Module (Join-Path $PSScriptRoot 'PackageTools.psm1') -Force
 if (!$ReportPath) { $ReportPath = Join-Path $root 'artifacts/package-checks.json' }
-$fixture = Join-Path ([IO.Path]::GetTempPath()) ('PCD-PackageChecks-' + [Guid]::NewGuid().ToString('N'))
+$fixture = Join-Path ([IO.Path]::GetTempPath()) ('PCL-DB-PackageChecks-' + [Guid]::NewGuid().ToString('N'))
 $runtime = Join-Path $fixture 'runtime'
 $passed = [Collections.Generic.List[string]]::new()
 
@@ -34,72 +34,72 @@ function Output-Snapshot([string]$Directory, [string]$Zip) {
 
 try {
     New-Item -ItemType Directory -Path $runtime -Force | Out-Null
-    Copy-Item -LiteralPath (Join-Path $root 'PlainCraftDownloader.sln') -Destination $fixture
+    Copy-Item -LiteralPath (Join-Path $root 'PclDownloadBridge.sln') -Destination $fixture
     foreach ($name in @('LICENCE','README.md','SOURCE_REFERENCES.md','THIRD_PARTY_NOTICES.md','VALIDATION.md','PATCH_MECHANISMS.md','VS2026_DEBUG.md')) {
         Copy-Item -LiteralPath (Join-Path $root $name) -Destination $fixture
     }
-    foreach ($name in @('PlainCraftDownloader.exe','PlainCraftDownloader.exe.config','PlainCraftDownloader.Core.dll','Newtonsoft.Json.dll')) {
-        Copy-Item -LiteralPath (Join-Path $root "src/PlainCraftDownloader.App/bin/Release/net48/$name") -Destination $runtime
+    foreach ($name in @('PclDownloadBridge.exe','PclDownloadBridge.exe.config','PclDownloadBridge.Core.dll','Newtonsoft.Json.dll')) {
+        Copy-Item -LiteralPath (Join-Path $root "src/PclDownloadBridge.App/bin/Release/net48/$name") -Destination $runtime
     }
-    $oldDirectory = Join-Path $fixture 'dist/PlainCraftDownloader'
+    $oldDirectory = Join-Path $fixture 'dist/PclDownloadBridge'
     New-Item -ItemType Directory -Path $oldDirectory -Force | Out-Null
     [IO.File]::WriteAllText((Join-Path $oldDirectory 'legacy-note.txt'), 'Fixture: preserve this old output, but do not include it in the new package.')
-    $version = [Reflection.AssemblyName]::GetAssemblyName((Join-Path $runtime 'PlainCraftDownloader.exe')).Version
+    $version = [Reflection.AssemblyName]::GetAssemblyName((Join-Path $runtime 'PclDownloadBridge.exe')).Version
     $packageVersion = if ($version.Build -eq 0) { $version.ToString(2) } else { $version.ToString(3) }
-    $packagePath = Join-Path $fixture "dist/PlainCraftDownloader-$packageVersion-preview.zip"
+    $packagePath = Join-Path $fixture "dist/PCL-DB-$packageVersion-preview.zip"
     [IO.File]::WriteAllText($packagePath, 'Fixture: previous ZIP bytes.')
-    $first = New-PcdPackage -ProjectRoot $fixture -RuntimeDirectory $runtime
+    $first = New-PclDbPackage -ProjectRoot $fixture -RuntimeDirectory $runtime
     Assert-Case ($first.Succeeded -and $first.FileCount -eq 11) 'new package contains exactly four runtime files and seven documents'
     Assert-Case ($first.PackagePath -eq $packagePath) 'package naming retains the established major/minor tag when the patch version is zero'
     Assert-Case (!(Test-Path -LiteralPath (Join-Path $oldDirectory 'legacy-note.txt'))) 'stale files are excluded from the new distribution'
-    Assert-Case ((Test-Path -LiteralPath (Join-Path $first.BackupDirectory 'PlainCraftDownloader/legacy-note.txt')) -and
-        [IO.File]::ReadAllText((Join-Path $first.BackupDirectory "PlainCraftDownloader-$packageVersion-preview.zip")) -eq 'Fixture: previous ZIP bytes.') 'previous directory and ZIP remain in the recorded backup'
-    $report = Test-PcdPackage -ProjectRoot $fixture -RuntimeDirectory $runtime -PackagePath $packagePath -DistributionPath $oldDirectory
+    Assert-Case ((Test-Path -LiteralPath (Join-Path $first.BackupDirectory 'PclDownloadBridge/legacy-note.txt')) -and
+        [IO.File]::ReadAllText((Join-Path $first.BackupDirectory "PCL-DB-$packageVersion-preview.zip")) -eq 'Fixture: previous ZIP bytes.') 'previous directory and ZIP remain in the recorded backup'
+    $report = Test-PclDbPackage -ProjectRoot $fixture -RuntimeDirectory $runtime -PackagePath $packagePath -DistributionPath $oldDirectory
     Assert-Case ($report.Files.Count -eq 11 -and @($report.Files | Where-Object Name -eq LICENCE).Count -eq 1) 'ZIP and distribution match all current source bytes including LICENCE'
 
     $candidate = Join-Path $fixture 'candidate.zip'
     Copy-Item -LiteralPath $packagePath -Destination $candidate
-    Edit-Zip $candidate { param($zip) $null = $zip.CreateEntry('PlainCraftDownloader/extra.txt') }
-    Assert-Rejected { Test-PcdPackage -ProjectRoot $fixture -RuntimeDirectory $runtime -PackagePath $candidate } 'exactly 11 files' 'candidate verification rejects an extra ZIP entry'
+    Edit-Zip $candidate { param($zip) $null = $zip.CreateEntry('PclDownloadBridge/extra.txt') }
+    Assert-Rejected { Test-PclDbPackage -ProjectRoot $fixture -RuntimeDirectory $runtime -PackagePath $candidate } 'exactly 11 files' 'candidate verification rejects an extra ZIP entry'
 
     Copy-Item -LiteralPath $packagePath -Destination $candidate -Force
-    Edit-Zip $candidate { param($zip) $zip.GetEntry('PlainCraftDownloader/LICENCE').Delete() }
-    Assert-Rejected { Test-PcdPackage -ProjectRoot $fixture -RuntimeDirectory $runtime -PackagePath $candidate } 'exactly 11 files' 'candidate verification rejects a missing licence'
+    Edit-Zip $candidate { param($zip) $zip.GetEntry('PclDownloadBridge/LICENCE').Delete() }
+    Assert-Rejected { Test-PclDbPackage -ProjectRoot $fixture -RuntimeDirectory $runtime -PackagePath $candidate } 'exactly 11 files' 'candidate verification rejects a missing licence'
 
     Copy-Item -LiteralPath $packagePath -Destination $candidate -Force
     Edit-Zip $candidate {
         param($zip)
-        $entry = $zip.GetEntry('PlainCraftDownloader/PlainCraftDownloader.Core.dll')
+        $entry = $zip.GetEntry('PclDownloadBridge/PclDownloadBridge.Core.dll')
         $entry.Delete()
-        $bytes = [IO.File]::ReadAllBytes((Join-Path $runtime 'PlainCraftDownloader.Core.dll'))
+        $bytes = [IO.File]::ReadAllBytes((Join-Path $runtime 'PclDownloadBridge.Core.dll'))
         $bytes[0] = $bytes[0] -bxor 1
-        $stream = $zip.CreateEntry('PlainCraftDownloader/PlainCraftDownloader.Core.dll').Open()
+        $stream = $zip.CreateEntry('PclDownloadBridge/PclDownloadBridge.Core.dll').Open()
         try { $stream.Write($bytes, 0, $bytes.Length) } finally { $stream.Dispose() }
     }
-    Assert-Rejected { Test-PcdPackage -ProjectRoot $fixture -RuntimeDirectory $runtime -PackagePath $candidate } 'differs from its source' 'candidate verification rejects modified runtime bytes'
+    Assert-Rejected { Test-PclDbPackage -ProjectRoot $fixture -RuntimeDirectory $runtime -PackagePath $candidate } 'differs from its source' 'candidate verification rejects modified runtime bytes'
 
     Copy-Item -LiteralPath $packagePath -Destination $candidate -Force
     Edit-Zip $candidate {
         param($zip)
-        $zip.GetEntry('PlainCraftDownloader/LICENCE').Delete()
-        $null = $zip.CreateEntry('PlainCraftDownloader/README.md')
+        $zip.GetEntry('PclDownloadBridge/LICENCE').Delete()
+        $null = $zip.CreateEntry('PclDownloadBridge/README.md')
     }
-    Assert-Rejected { Test-PcdPackage -ProjectRoot $fixture -RuntimeDirectory $runtime -PackagePath $candidate } 'duplicate package entry' 'candidate verification rejects duplicate names with an unchanged total count'
+    Assert-Rejected { Test-PclDbPackage -ProjectRoot $fixture -RuntimeDirectory $runtime -PackagePath $candidate } 'duplicate package entry' 'candidate verification rejects duplicate names with an unchanged total count'
 
     $readme = Join-Path $fixture 'README.md'
     $readmeBytes = [IO.File]::ReadAllBytes($readme)
     try {
         [IO.File]::AppendAllText($readme, 'Changed after packaging.')
-        Assert-Rejected { Test-PcdPackage -ProjectRoot $fixture -RuntimeDirectory $runtime -PackagePath $packagePath } 'differs from its source' 'candidate verification rejects outdated documentation'
+        Assert-Rejected { Test-PclDbPackage -ProjectRoot $fixture -RuntimeDirectory $runtime -PackagePath $packagePath } 'differs from its source' 'candidate verification rejects outdated documentation'
     } finally { [IO.File]::WriteAllBytes($readme, $readmeBytes) }
 
     [IO.File]::WriteAllText((Join-Path $oldDirectory '.fixture-extra'), 'Unexpected distribution file.')
     [IO.File]::SetAttributes((Join-Path $oldDirectory '.fixture-extra'), [IO.FileAttributes]::Hidden)
-    Assert-Rejected { Test-PcdPackage -ProjectRoot $fixture -RuntimeDirectory $runtime -PackagePath $packagePath -DistributionPath $oldDirectory } 'extra files' 'distribution verification includes hidden leftover files'
+    Assert-Rejected { Test-PclDbPackage -ProjectRoot $fixture -RuntimeDirectory $runtime -PackagePath $packagePath -DistributionPath $oldDirectory } 'extra files' 'distribution verification includes hidden leftover files'
     $before = Output-Snapshot $oldDirectory $packagePath
     $handle = [IO.File]::Open($packagePath, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::None)
     try {
-        Assert-Rejected { New-PcdPackage -ProjectRoot $fixture -RuntimeDirectory $runtime } 'Package replacement failed' 'a locked previous ZIP stops replacement after the old directory was backed up'
+        Assert-Rejected { New-PclDbPackage -ProjectRoot $fixture -RuntimeDirectory $runtime } 'Package replacement failed' 'a locked previous ZIP stops replacement after the old directory was backed up'
     } finally { $handle.Dispose() }
     Assert-Case ((Output-Snapshot $oldDirectory $packagePath) -eq $before) 'failed replacement restores every old directory file and the original ZIP bytes'
     $failure = @(Get-ChildItem -LiteralPath (Join-Path $fixture 'artifacts/packages') -Recurse -Filter failure.json | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json })
@@ -108,17 +108,17 @@ try {
     $gatePath = Join-Path $fixture 'artifacts/packages/package.lock'
     $gate = [IO.File]::Open($gatePath, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
     try {
-        Assert-Rejected { New-PcdPackage -ProjectRoot $fixture -RuntimeDirectory $runtime } 'already running' 'concurrent packaging is rejected while the output lock is held'
+        Assert-Rejected { New-PclDbPackage -ProjectRoot $fixture -RuntimeDirectory $runtime } 'already running' 'concurrent packaging is rejected while the output lock is held'
     } finally { $gate.Dispose() }
     Assert-Case ((Output-Snapshot $oldDirectory $packagePath) -eq $before) 'a competing packager leaves both existing outputs untouched'
 
     $licence = Join-Path $fixture 'LICENCE'
     [IO.File]::Move($licence, ($licence + '.saved'))
     try {
-        Assert-Rejected { New-PcdPackage -ProjectRoot $fixture -RuntimeDirectory $runtime } 'LICENCE|does not exist|Cannot find' 'missing source documentation fails before replacing existing outputs'
+        Assert-Rejected { New-PclDbPackage -ProjectRoot $fixture -RuntimeDirectory $runtime } 'LICENCE|does not exist|Cannot find' 'missing source documentation fails before replacing existing outputs'
     } finally { [IO.File]::Move(($licence + '.saved'), $licence) }
     Assert-Case ((Output-Snapshot $oldDirectory $packagePath) -eq $before) 'a staging failure preserves the previous directory and ZIP'
-    $retry = New-PcdPackage -ProjectRoot $fixture -RuntimeDirectory $runtime
+    $retry = New-PclDbPackage -ProjectRoot $fixture -RuntimeDirectory $runtime
     Assert-Case ($retry.Succeeded -and !(Test-Path -LiteralPath (Join-Path $oldDirectory '.fixture-extra'))) 'retry after failure releases the lock and publishes only the current file list'
     $result = [pscustomobject]@{Succeeded=$true; Count=$passed.Count; Passed=@($passed); Fixture=$fixture; PackageReport=$retry.ResultPath}
 } catch {

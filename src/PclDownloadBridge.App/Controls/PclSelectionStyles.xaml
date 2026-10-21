@@ -1,0 +1,166 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:p="clr-namespace:PclDownloadBridge.Controls">
+  <!-- Ported from fixed PCL Application.xaml and MyCheckBox.xaml; see SOURCE_REFERENCES.md. -->
+  <Style TargetType="PasswordBox">
+    <Setter Property="CaretBrush" Value="{DynamicResource ColorBrush1}"/>
+    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="PasswordBox">
+      <Border x:Name="CodeBorder" CornerRadius="3" BorderThickness="{TemplateBinding BorderThickness}" BorderBrush="{TemplateBinding BorderBrush}" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}"><ScrollViewer x:Name="PART_ContentHost"/></Border>
+      <ControlTemplate.Triggers>
+        <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="CodeBorder" Property="BorderBrush" Value="{DynamicResource ColorBrush3}"/></Trigger>
+        <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.45"/></Trigger>
+      </ControlTemplate.Triggers>
+    </ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <Style x:Key="PclAppearanceRadio" TargetType="RadioButton">
+    <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="Foreground" Value="{DynamicResource ColorBrush1}"/><Setter Property="MinHeight" Value="28"/>
+    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="RadioButton">
+      <Grid Background="{StaticResource ColorBrushSemiTransparent}" MinHeight="20">
+        <Ellipse x:Name="Ring" Width="18" Height="18" StrokeThickness="1.1" Margin="1,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Stroke="{TemplateBinding Foreground}" Fill="{DynamicResource ColorBrushHalfWhite}"/>
+        <Ellipse x:Name="Dot" Width="9" Height="9" Margin="5.5,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Fill="{TemplateBinding Foreground}" Visibility="Collapsed"/>
+        <ContentPresenter Margin="26,0,0,0" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+      </Grid>
+      <ControlTemplate.Triggers>
+        <Trigger Property="IsChecked" Value="True"><Setter Property="Foreground" Value="{DynamicResource ColorBrush2}"/><Setter TargetName="Dot" Property="Visibility" Value="Visible"/></Trigger>
+        <Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="{DynamicResource ColorBrush3}"/></Trigger>
+        <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Foreground" Value="{DynamicResource ColorBrush3}"/></Trigger>
+        <Trigger Property="IsPressed" Value="True"><Setter TargetName="Ring" Property="Fill" Value="{DynamicResource ColorBrushBg1}"/></Trigger>
+        <Trigger Property="IsEnabled" Value="False"><Setter Property="Foreground" Value="{DynamicResource ColorBrushGray5}"/></Trigger>
+      </ControlTemplate.Triggers>
+    </ControlTemplate></Setter.Value></Setter>
+  </Style>
+  <Style x:Key="PclComboToggle" TargetType="ToggleButton">
+    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ToggleButton">
+      <Border Background="{StaticResource ColorBrushSemiTransparent}">
+        <Path x:Name="Arrow" Width="15" RenderTransformOrigin="0.3,0.5" HorizontalAlignment="Right" Data="M1,1L4.5,4.5L8,1" StrokeThickness="1.5" Stroke="{TemplateBinding Foreground}" VerticalAlignment="Center">
+          <Path.RenderTransform><RotateTransform/></Path.RenderTransform>
+        </Path>
+      </Border>
+      <ControlTemplate.Triggers>
+        <Trigger Property="IsChecked" Value="True">
+          <Trigger.EnterActions><BeginStoryboard><Storyboard>
+            <DoubleAnimation Storyboard.TargetName="Arrow" Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)" To="180" Duration="0:0:0.2"><DoubleAnimation.EasingFunction><CircleEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction></DoubleAnimation>
+          </Storyboard></BeginStoryboard></Trigger.EnterActions>
+          <Trigger.ExitActions><BeginStoryboard><Storyboard>
+            <DoubleAnimation Storyboard.TargetName="Arrow" Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)" To="0" Duration="0:0:0.2"><DoubleAnimation.EasingFunction><CircleEase EasingMode="EaseOut"/></DoubleAnimation.EasingFunction></DoubleAnimation>
+          </Storyboard></BeginStoryboard></Trigger.ExitActions>
+        </Trigger>
+      </ControlTemplate.Triggers>
+    </ControlTemplate></Setter.Value></Setter>
+  </Style>
+
+  <Style TargetType="p:PclComboBoxItem">
+    <Setter Property="OverridesDefaultStyle" Value="True"/>
+    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="Foreground" Value="{DynamicResource ColorBrush1}"/>
+    <Setter Property="Background" Value="{StaticResource ColorBrushTransparent}"/>
+    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="p:PclComboBoxItem">
+      <Border x:Name="ItemBorder" Padding="6,4" Background="{TemplateBinding Background}" SnapsToDevicePixels="True">
+        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
+      </Border>
+    </ControlTemplate></Setter.Value></Setter>
+  </Style>
+
+  <Style TargetType="p:PclComboBox">
+    <Setter Property="OverridesDefaultStyle" Value="True"/>
+    <Setter Property="SnapsToDevicePixels" Value="True"/>
+    <Setter Property="Foreground" Value="{DynamicResource ColorBrushBg0}"/>
+    <Setter Property="Background" Value="{DynamicResource ColorBrushHalfWhite}"/>
+    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="FontFamily" Value="{StaticResource PclFont}"/>
+    <Setter Property="MinHeight" Value="28"/>
+    <Setter Property="MaxDropDownHeight" Value="320"/>
+    <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="p:PclComboBox">
+      <Grid>
+        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="3" BorderThickness="1" BorderBrush="{TemplateBinding Foreground}"/>
+        <ToggleButton x:Name="DropDownToggle" Style="{StaticResource PclComboToggle}" Margin="0,0,1.5,0" Foreground="{TemplateBinding Foreground}" IsTabStop="False" Focusable="False" ClickMode="Press" IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"/>
+        <ContentPresenter x:Name="PART_Content" Margin="8.5,0,21.5,0" IsHitTestVisible="False" VerticalAlignment="Center" TextElement.Foreground="{DynamicResource ColorBrush1}" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"/>
+        <Popup x:Name="PART_Popup" SnapsToDevicePixels="True" VerticalOffset="-1.5" AllowsTransparency="True" IsOpen="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" Placement="Bottom" PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" PopupAnimation="Fade">
+          <Grid x:Name="PanPopup" Width="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
+            <Border Background="{DynamicResource CardSurfaceBrush}" CornerRadius="3"/>
+            <Border x:Name="dropDownBorder" CornerRadius="3" BorderBrush="{TemplateBinding Foreground}" BorderThickness="1" MaxHeight="{TemplateBinding MaxDropDownHeight}">
+              <ScrollViewer x:Name="DropDownScrollViewer" PanningMode="VerticalOnly" CanContentScroll="False" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="1" Focusable="False">
+                <ItemsPresenter x:Name="ItemsPresenter" KeyboardNavigation.DirectionalNavigation="Contained"/>
+              </ScrollViewer>
+            </Border>
+          </Grid>
+        </Popup>
+      </Grid>
+      <ControlTemplate.Triggers>
+        <Trigger Property="HasItems" Value="False"><Setter TargetName="dropDownBorder" Property="Height" Value="26"/></Trigger>
+        <Trigger Property="IsEnabled" Value="False"><Setter TargetName="PART_Content" Property="Opacity" Value="0.55"/></Trigger>
+      </ControlTemplate.Triggers>
+    </ControlTemplate></Setter.Value></Setter>
+  </Style>
+
+  <Style TargetType="p:PclCheckBox">
+    <Setter Property="OverridesDefaultStyle" Value="True"/>
+    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="MinHeight" Value="20"/>
+    <Setter Property="MinWidth" Value="20"/>
+    <Setter Property="Foreground" Value="{DynamicResource ColorBrush1}"/>
+    <Setter Property="Cursor" Value="Hand"/>
+    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="p:PclCheckBox">
+      <Grid Background="{StaticResource ColorBrushSemiTransparent}" SnapsToDevicePixels="False" UseLayoutRounding="False">
+        <AccessText x:Name="Label" Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" IsHitTestVisible="False" Margin="26,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+        <Border x:Name="ShapeBorder" IsHitTestVisible="False" BorderThickness="1.1" HorizontalAlignment="Left" VerticalAlignment="Center" Width="18" Height="18" BorderBrush="{DynamicResource ColorBrush1}" CornerRadius="3" Margin="1,0,0,0" Background="{DynamicResource ColorBrushHalfWhite}"/>
+        <Path x:Name="ShapeCheck" IsHitTestVisible="False" HorizontalAlignment="Left" VerticalAlignment="Center" Fill="{Binding BorderBrush, ElementName=ShapeBorder}" Width="12" Height="12" Margin="4,0,0,0" Data="M0,6L1.5,4.5 4.5,7.5 10.5,1.5 12,3 4.5,10.5 0,6z">
+          <Path.RenderTransform><ScaleTransform CenterX="6" CenterY="6" ScaleX="0" ScaleY="0"/></Path.RenderTransform>
+        </Path>
+      </Grid>
+    </ControlTemplate></Setter.Value></Setter>
+  </Style>
+
+  <Style TargetType="p:PclTextBox">
+    <Setter Property="OverridesDefaultStyle" Value="True"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="Background" Value="{DynamicResource ColorBrushHalfWhite}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource ColorBrushBg0}"/>
+    <Setter Property="SelectionBrush" Value="{DynamicResource ColorBrush3}"/>
+    <Setter Property="Foreground" Value="{DynamicResource ColorBrush1}"/>
+    <Setter Property="FontFamily" Value="{StaticResource PclFont}"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+    <Setter Property="SnapsToDevicePixels" Value="True"/>
+    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="KeyboardNavigation.TabNavigation" Value="None"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="MaxLength" Value="1000"/>
+    <Setter Property="UndoLimit" Value="15"/>
+    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="p:PclTextBox">
+      <Grid SnapsToDevicePixels="True">
+        <Grid.RowDefinitions><RowDefinition MinHeight="28"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Border x:Name="border" BorderThickness="{TemplateBinding BorderThickness}" BorderBrush="{TemplateBinding BorderBrush}" Background="{TemplateBinding Background}" CornerRadius="3">
+          <ScrollViewer x:Name="PART_ContentHost" Margin="5,0,0,0" BorderThickness="0" Focusable="False" RenderOptions.ClearTypeHint="Enabled"/>
+        </Border>
+        <TextBlock x:Name="labHint" Text="{TemplateBinding HintText}" Visibility="Collapsed" IsHitTestVisible="False" Margin="7,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource ColorBrushGray4}"/>
+        <TextBlock x:Name="labWrong" Grid.Row="1" Text="{TemplateBinding ValidationMessage}" Foreground="{StaticResource ColorBrushRedLight}" FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0"/>
+      </Grid>
+      <ControlTemplate.Triggers>
+        <Trigger Property="Text" Value=""><Setter TargetName="labHint" Property="Visibility" Value="Visible"/></Trigger>
+        <Trigger Property="ValidationMessage" Value=""><Setter TargetName="labWrong" Property="Visibility" Value="Collapsed"/></Trigger>
+        <Trigger Property="ShowValidateResult" Value="False"><Setter TargetName="labWrong" Property="Visibility" Value="Collapsed"/></Trigger>
+      </ControlTemplate.Triggers>
+    </ControlTemplate></Setter.Value></Setter>
+  </Style>
+
+  <Style TargetType="p:PclSlider">
+    <Setter Property="OverridesDefaultStyle" Value="True"/>
+    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+    <Setter Property="MinHeight" Value="16"/>
+    <Setter Property="Foreground" Value="{DynamicResource ColorBrushBg0}"/>
+    <Setter Property="IsSnapToTickEnabled" Value="True"/>
+    <Setter Property="IsMoveToPointEnabled" Value="True"/>
+    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="p:PclSlider">
+      <Grid Background="{StaticResource ColorBrushSemiTransparent}" MinHeight="16" SnapsToDevicePixels="False" UseLayoutRounding="False">
+        <Track x:Name="PART_Track" Height="16" VerticalAlignment="Center">
+          <Track.DecreaseRepeatButton><RepeatButton Command="Slider.DecreaseLarge" Focusable="False" IsTabStop="False"><RepeatButton.Template><ControlTemplate TargetType="RepeatButton"><Border Height="2" VerticalAlignment="Center" Background="{Binding Foreground, RelativeSource={RelativeSource AncestorType=p:PclSlider}}"/></ControlTemplate></RepeatButton.Template></RepeatButton></Track.DecreaseRepeatButton>
+          <Track.Thumb><Thumb Width="10" Height="10"><Thumb.Template><ControlTemplate TargetType="Thumb"><Ellipse x:Name="ShapeDot" StrokeThickness="1.2" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=p:PclSlider}}" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=p:PclSlider}}"/></ControlTemplate></Thumb.Template></Thumb></Track.Thumb>
+          <Track.IncreaseRepeatButton><RepeatButton Command="Slider.IncreaseLarge" Focusable="False" IsTabStop="False"><RepeatButton.Template><ControlTemplate TargetType="RepeatButton"><Border Height="1" Opacity="0.3" VerticalAlignment="Center" Background="{DynamicResource ColorBrushBg0}"/></ControlTemplate></RepeatButton.Template></RepeatButton></Track.IncreaseRepeatButton>
+        </Track>
+      </Grid>
+    </ControlTemplate></Setter.Value></Setter>
+  </Style>
+</ResourceDictionary>

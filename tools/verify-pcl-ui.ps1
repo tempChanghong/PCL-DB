@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
 $sourceManifest = Get-Content -LiteralPath (Join-Path $root 'reference/PCL/manifest.json') -Raw | ConvertFrom-Json
 if ($sourceManifest.Repository -ne 'Meloong-Git/PCL' -or $sourceManifest.Commit -ne '5ef81e490ae46b1100d61e33d0183094c7a80ca8' -or @($sourceManifest.Files).Count -ne 44) { throw 'Unexpected PCL source baseline.' }
@@ -15,12 +15,12 @@ if ($assetManifest.Repository -ne 'Meloong-Git/PCL' -or $assetManifest.Commit -n
 function Assert-PclAsset([string]$relative) {
     $entry = @($assetManifest.Files | Where-Object File -eq $relative)
     if ($entry.Count -ne 1) { throw "Missing or duplicate PCL asset hash: $relative" }
-    $actual = Join-Path $root "src/PlainCraftDownloader.App/$relative"
+    $actual = Join-Path $root "src/PclDownloadBridge.App/$relative"
     if ((Get-FileHash -LiteralPath $actual -Algorithm SHA256).Hash -ne $entry[0].Hash) { throw "PCL asset bytes mismatch: $relative" }
 }
 foreach ($name in @('Button', 'RadioButton', 'ListItem', 'IconButton')) {
     $original = [IO.File]::ReadAllText((Join-Path $root "reference/PCL/Controls/My$name.xaml")).Replace("x:Class=`"My$name`"", "x:Class=`"Controls.Pcl$name`"")
-    $actual = [IO.File]::ReadAllText((Join-Path $root "src/PlainCraftDownloader.App/Controls/Pcl$name.xaml"))
+    $actual = [IO.File]::ReadAllText((Join-Path $root "src/PclDownloadBridge.App/Controls/Pcl$name.xaml"))
     if ($original.Replace("`r`n", "`n") -ne $actual.Replace("`r`n", "`n")) { throw "PCL original XAML mismatch: $name" }
     Write-Output "PASS original PCL $name XAML (only class name adapted)"
 }
@@ -30,7 +30,7 @@ foreach ($image in @('Grass', 'CommandBlock', 'CobbleStone', 'GoldBlock', 'Anvil
 Write-Output 'PASS original PCL block-image bytes'
 [xml]$sourceApplication = Get-Content -LiteralPath (Join-Path $root 'reference/PCL/Application.xaml') -Raw
 [xml]$sourceCheck = Get-Content -LiteralPath (Join-Path $root 'reference/PCL/Controls/MyCheckBox.xaml') -Raw
-[xml]$selection = Get-Content -LiteralPath (Join-Path $root 'src/PlainCraftDownloader.App/Controls/PclSelectionStyles.xaml') -Raw
+[xml]$selection = Get-Content -LiteralPath (Join-Path $root 'src/PclDownloadBridge.App/Controls/PclSelectionStyles.xaml') -Raw
 $sourceArrow = $sourceApplication.SelectSingleNode('//*[local-name()="Style" and @TargetType="ToggleButton"]//*[local-name()="Path"]')
 $actualArrow = $selection.SelectSingleNode('//*[local-name()="Style" and @*[local-name()="Key"]="PclComboToggle"]//*[local-name()="Path"]')
 foreach ($attribute in @('Data','Width','StrokeThickness','RenderTransformOrigin')) {
@@ -56,11 +56,11 @@ $shadowExpected = $shadowSource.Replace('MyDropShadow', 'PclDropShadow').
     Replace('Return GetValue(CornerRadiusProperty)', 'Return CType(GetValue(CornerRadiusProperty), CornerRadius)').
     Replace('Dim cr As CornerRadius = value', 'Dim cr As CornerRadius = CType(value, CornerRadius)')
 $shadowExpected = "Imports System.Windows`nImports System.Windows.Controls`nImports System.Windows.Media`n`nNamespace Controls`n" + $shadowExpected + "End Namespace`n"
-$shadowActual = [IO.File]::ReadAllText((Join-Path $root 'src/PlainCraftDownloader.App/Controls/PclDropShadow.vb'))
+$shadowActual = [IO.File]::ReadAllText((Join-Path $root 'src/PclDownloadBridge.App/Controls/PclDropShadow.vb'))
 if ($shadowExpected.Replace("`r`n", "`n") -ne $shadowActual.Replace("`r`n", "`n")) { throw 'PCL gradient shadow source differs beyond namespace, class name and explicit casts.' }
 Write-Output 'PASS original PCL gradient shadow drawing (only namespace, class name and strict casts adapted)'
 $runtimeTasks = [regex]::Replace([IO.File]::ReadAllText((Join-Path $root 'reference/PCL/Pages/PageSpeedLeft.xaml.vb')), '\s+', '')
-$taskAdapter = [IO.File]::ReadAllText((Join-Path $root 'src/PlainCraftDownloader.App/MainWindow.Tasks.vb'))
+$taskAdapter = [IO.File]::ReadAllText((Join-Path $root 'src/PclDownloadBridge.App/MainWindow.Tasks.vb'))
 foreach ($icon in @('CompleteIcon','WaitingIcon','FailedIcon')) {
     $match = [regex]::Match($taskAdapter, ('Private Const ' + $icon + ' As String = "([^"]+)"'))
     if (!$match.Success -or !$runtimeTasks.Contains([regex]::Replace($match.Groups[1].Value, '\s+', ''))) { throw "PCL runtime task vector mismatch: $icon" }
@@ -75,7 +75,7 @@ foreach ($attribute in @('Width','Height')) {
 }
 if ($sourceDot.GetAttribute('StrokeThickness') -ne $actualDot.GetAttribute('StrokeThickness')) { throw 'PCL slider outline mismatch.' }
 [xml]$sourceSettings = Get-Content -LiteralPath (Join-Path $root 'reference/PCL/Pages/PageSetup/PageSetupSystem.xaml') -Raw
-[xml]$actualWindow = Get-Content -LiteralPath (Join-Path $root 'src/PlainCraftDownloader.App/MainWindow.xaml') -Raw
+[xml]$actualWindow = Get-Content -LiteralPath (Join-Path $root 'src/PclDownloadBridge.App/MainWindow.xaml') -Raw
 [xml]$sourceInstall = Get-Content -LiteralPath (Join-Path $root 'reference/PCL/Pages/PageDownload/PageDownloadInstall.xaml') -Raw
 $sourceBack = $sourceInstall.SelectSingleNode('//*[@*[local-name()="Name"]="BtnBack"]')
 $actualBack = $actualWindow.SelectSingleNode('//*[@*[local-name()="Name"]="InstallBack"]')
@@ -108,7 +108,7 @@ foreach ($pair in @(@('ComboDownloadSource','SourceBox'), @('ComboDownloadVersio
 Write-Output 'PASS two PCL source selectors, original choice order and automatic defaults (mirror explicitly named BMCLAPI)'
 
 [xml]$hintSource = Get-Content -LiteralPath (Join-Path $root 'reference/PCL/Controls/MyHint.xaml') -Raw
-$hintCode = Get-Content -LiteralPath (Join-Path $root 'src/PlainCraftDownloader.App/Controls/PclHint.vb') -Raw
+$hintCode = Get-Content -LiteralPath (Join-Path $root 'src/PclDownloadBridge.App/Controls/PclHint.vb') -Raw
 $hintText = $hintSource.SelectSingleNode('//*[local-name()="TextBlock"]')
 if ($hintSource.DocumentElement.GetAttribute('BorderThickness') -ne '3,0,0,0' -or
     $hintSource.DocumentElement.GetAttribute('CornerRadius') -ne '2' -or
@@ -123,7 +123,7 @@ foreach ($pair in @(@('#ffdddf','255, 221, 223'), @('#d82929','216, 41, 41'), @(
 Write-Output 'PASS PCL red name-hint geometry and theme from fixed MyHint source'
 
 $versionSource = Get-Content -LiteralPath (Join-Path $root 'reference/PCL/Modules/Minecraft/ModMinecraft.vb') -Raw
-$versionAdapter = Get-Content -LiteralPath (Join-Path $root 'src/PlainCraftDownloader.App/VersionPresentation.vb') -Raw
+$versionAdapter = Get-Content -LiteralPath (Join-Path $root 'src/PclDownloadBridge.App/VersionPresentation.vb') -Raw
 $descriptions = [regex]::Matches($versionAdapter, 'Lore = "([^"]+)"')
 if ($descriptions.Count -ne 10) { throw 'PCL April Fools description count mismatch.' }
 foreach ($description in $descriptions) {

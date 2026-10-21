@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 function Get-PackageLayout([string]$ProjectRoot, [string]$RuntimeDirectory) {
-    foreach ($name in @('PlainCraftDownloader.exe', 'PlainCraftDownloader.exe.config', 'PlainCraftDownloader.Core.dll', 'Newtonsoft.Json.dll')) {
+    foreach ($name in @('PclDownloadBridge.exe', 'PclDownloadBridge.exe.config', 'PclDownloadBridge.Core.dll', 'Newtonsoft.Json.dll')) {
         [pscustomobject]@{Name=$name; Source=(Join-Path $RuntimeDirectory $name)}
     }
     foreach ($name in @('LICENCE', 'README.md', 'SOURCE_REFERENCES.md', 'THIRD_PARTY_NOTICES.md', 'VALIDATION.md', 'PATCH_MECHANISMS.md', 'VS2026_DEBUG.md')) {
@@ -22,7 +22,7 @@ function Assert-ProjectChild([string]$ProjectRoot, [string]$Path) {
     if (![IO.Path]::GetFullPath($Path).StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) { throw "Output is outside the project: $Path" }
 }
 
-function Test-PcdPackage {
+function Test-PclDbPackage {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$ProjectRoot,
@@ -31,7 +31,7 @@ function Test-PcdPackage {
         [string]$DistributionPath
     )
     $ProjectRoot = (Resolve-Path -LiteralPath $ProjectRoot).ProviderPath
-    if (!$RuntimeDirectory) { $RuntimeDirectory = Join-Path $ProjectRoot 'src/PlainCraftDownloader.App/bin/Release/net48' }
+    if (!$RuntimeDirectory) { $RuntimeDirectory = Join-Path $ProjectRoot 'src/PclDownloadBridge.App/bin/Release/net48' }
     $RuntimeDirectory = (Resolve-Path -LiteralPath $RuntimeDirectory).ProviderPath
     $PackagePath = (Resolve-Path -LiteralPath $PackagePath).ProviderPath
     if ($DistributionPath) { $DistributionPath = (Resolve-Path -LiteralPath $DistributionPath).ProviderPath }
@@ -40,7 +40,7 @@ function Test-PcdPackage {
     foreach ($file in $layout) {
         $item = Get-Item -LiteralPath $file.Source
         if ($item.PSIsContainer) { throw "Expected a source file: $($file.Source)" }
-        $expected[('PlainCraftDownloader/' + $file.Name)] = [pscustomobject]@{
+        $expected[('PclDownloadBridge/' + $file.Name)] = [pscustomobject]@{
             Name=$file.Name; Length=$item.Length; SHA256=(Get-FileHash -LiteralPath $file.Source -Algorithm SHA256).Hash
         }
     }
@@ -50,7 +50,7 @@ function Test-PcdPackage {
         $seen = @{}
         foreach ($entry in $zip.Entries) {
             $name = $entry.FullName
-            if (!$expected.ContainsKey($name) -or $seen.ContainsKey($name) -or $name -cne ('PlainCraftDownloader/' + $expected[$name].Name)) { throw "Unexpected or duplicate package entry: $name" }
+            if (!$expected.ContainsKey($name) -or $seen.ContainsKey($name) -or $name -cne ('PclDownloadBridge/' + $expected[$name].Name)) { throw "Unexpected or duplicate package entry: $name" }
             $seen[$name] = $true
             $stream = $entry.Open()
             try { $hash = Get-StreamHash $stream } finally { $stream.Dispose() }
@@ -62,24 +62,24 @@ function Test-PcdPackage {
         if ($actual.Count -ne $layout.Count) { throw 'Distribution contains missing or extra files.' }
         foreach ($file in $layout) {
             $path = Join-Path $DistributionPath $file.Name
-            if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ne $expected[('PlainCraftDownloader/' + $file.Name)].SHA256) { throw "Distribution differs from its source: $($file.Name)" }
+            if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ne $expected[('PclDownloadBridge/' + $file.Name)].SHA256) { throw "Distribution differs from its source: $($file.Name)" }
         }
     }
-    $version = [Reflection.AssemblyName]::GetAssemblyName((Join-Path $RuntimeDirectory 'PlainCraftDownloader.exe')).Version.ToString(3)
+    $version = [Reflection.AssemblyName]::GetAssemblyName((Join-Path $RuntimeDirectory 'PclDownloadBridge.exe')).Version.ToString(3)
     [pscustomobject]@{
         Succeeded=$true; Version=$version; PackagePath=$PackagePath
         PackageSHA256=(Get-FileHash -LiteralPath $PackagePath -Algorithm SHA256).Hash
         DistributionPath=$DistributionPath; FileCount=$layout.Count
-        Files=@($layout | ForEach-Object { $expected[('PlainCraftDownloader/' + $_.Name)] })
+        Files=@($layout | ForEach-Object { $expected[('PclDownloadBridge/' + $_.Name)] })
     }
 }
 
-function New-PcdPackage {
+function New-PclDbPackage {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$ProjectRoot, [string]$RuntimeDirectory)
     $ProjectRoot = (Resolve-Path -LiteralPath $ProjectRoot).ProviderPath
-    if (!(Test-Path -LiteralPath (Join-Path $ProjectRoot 'PlainCraftDownloader.sln') -PathType Leaf)) { throw 'The PCD solution was not found.' }
-    if (!$RuntimeDirectory) { $RuntimeDirectory = Join-Path $ProjectRoot 'src/PlainCraftDownloader.App/bin/Release/net48' }
+    if (!(Test-Path -LiteralPath (Join-Path $ProjectRoot 'PclDownloadBridge.sln') -PathType Leaf)) { throw 'The PCL-DB solution was not found.' }
+    if (!$RuntimeDirectory) { $RuntimeDirectory = Join-Path $ProjectRoot 'src/PclDownloadBridge.App/bin/Release/net48' }
     $records = Join-Path $ProjectRoot 'artifacts/packages'
     Assert-ProjectChild $ProjectRoot $records
     New-Item -ItemType Directory -Path $records -Force | Out-Null
@@ -88,22 +88,22 @@ function New-PcdPackage {
     catch { throw 'Another package operation is already running or the output lock is unavailable.' }
     try {
         $operation = Join-Path $records ((Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [Guid]::NewGuid().ToString('N'))
-        $stage = Join-Path $operation 'PlainCraftDownloader'
+        $stage = Join-Path $operation 'PclDownloadBridge'
         New-Item -ItemType Directory -Path $stage -Force | Out-Null
         foreach ($file in @(Get-PackageLayout $ProjectRoot $RuntimeDirectory)) {
             Copy-Item -LiteralPath $file.Source -Destination (Join-Path $stage $file.Name)
         }
-        $version = [Reflection.AssemblyName]::GetAssemblyName((Join-Path $stage 'PlainCraftDownloader.exe')).Version.ToString(3)
+        $version = [Reflection.AssemblyName]::GetAssemblyName((Join-Path $stage 'PclDownloadBridge.exe')).Version.ToString(3)
         # Retain the established 0.45-preview.zip naming when the patch component is zero.
         $packageVersion = $version -replace '\.0$', ''
-        $zipName = "PlainCraftDownloader-$packageVersion-preview.zip"
+        $zipName = "PCL-DB-$packageVersion-preview.zip"
         $stageZip = Join-Path $operation $zipName
         [IO.Compression.ZipFile]::CreateFromDirectory($stage, $stageZip, [IO.Compression.CompressionLevel]::Optimal, $true)
-        $null = Test-PcdPackage -ProjectRoot $ProjectRoot -PackagePath $stageZip -RuntimeDirectory $RuntimeDirectory -DistributionPath $stage
-        $distribution = Join-Path $ProjectRoot 'dist/PlainCraftDownloader'
+        $null = Test-PclDbPackage -ProjectRoot $ProjectRoot -PackagePath $stageZip -RuntimeDirectory $RuntimeDirectory -DistributionPath $stage
+        $distribution = Join-Path $ProjectRoot 'dist/PclDownloadBridge'
         $package = Join-Path $ProjectRoot "dist/$zipName"
         $previous = Join-Path $operation 'previous'
-        $oldDirectory = Join-Path $previous 'PlainCraftDownloader'
+        $oldDirectory = Join-Path $previous 'PclDownloadBridge'
         $oldZip = Join-Path $previous $zipName
         $failedDirectory = Join-Path $operation 'failed-distribution'
         $failedZip = Join-Path $operation 'failed.zip'
@@ -117,7 +117,7 @@ function New-PcdPackage {
             if (Test-Path -LiteralPath $package) { [IO.File]::Move($package, $oldZip); $zipBackedUp = $true }
             [IO.Directory]::Move($stage, $distribution); $directoryPublished = $true
             [IO.File]::Move($stageZip, $package); $zipPublished = $true
-            $report = Test-PcdPackage -ProjectRoot $ProjectRoot -PackagePath $package -RuntimeDirectory $RuntimeDirectory -DistributionPath $distribution
+            $report = Test-PclDbPackage -ProjectRoot $ProjectRoot -PackagePath $package -RuntimeDirectory $RuntimeDirectory -DistributionPath $distribution
             $report | Add-Member NoteProperty BackupDirectory $previous
             $report | Add-Member NoteProperty ResultPath (Join-Path $operation 'result.json')
             $report | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $report.ResultPath -Encoding UTF8
@@ -136,4 +136,4 @@ function New-PcdPackage {
     } finally { $gate.Dispose() }
 }
 
-Export-ModuleMember -Function New-PcdPackage, Test-PcdPackage
+Export-ModuleMember -Function New-PclDbPackage, Test-PclDbPackage

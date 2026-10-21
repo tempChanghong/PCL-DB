@@ -1,4 +1,4 @@
-﻿param([string]$SourceRoot, [switch]$CheckOnly, [switch]$ReplaceChanged)
+param([string]$SourceRoot, [switch]$CheckOnly, [switch]$ReplaceChanged)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $projectRoot = Split-Path $PSScriptRoot -Parent
@@ -122,7 +122,7 @@ try {
     foreach ($relative in $assets) {
         $source = "Plain Craft Launcher 2/$relative"
         $bytes = Read-GitBlob $source
-        Add-Candidate "src/PlainCraftDownloader.App/$relative" $bytes
+        Add-Candidate "src/PclDownloadBridge.App/$relative" $bytes
         $assetEntries += [pscustomobject]@{File=$relative; Source=$source; Hash=(Get-ByteHash $bytes)}
     }
     Add-Candidate 'LICENCE' (Read-GitBlob 'LICENCE')
@@ -130,7 +130,7 @@ try {
     Add-Manifest 'reference/pcl-assets.json' ([ordered]@{Repository='Meloong-Git/PCL'; Commit=$baseline; Algorithm='SHA256'; Files=$assetEntries}) $true
     foreach ($name in @('Button', 'RadioButton', 'ListItem', 'IconButton')) {
         $text = $texts["Controls/My$name.xaml"].Replace("x:Class=`"My$name`"", "x:Class=`"Controls.Pcl$name`"")
-        Add-Candidate "src/PlainCraftDownloader.App/Controls/Pcl$name.xaml" ($utf8.GetBytes($text)) $true
+        Add-Candidate "src/PclDownloadBridge.App/Controls/Pcl$name.xaml" ($utf8.GetBytes($text)) $true
     }
     $shadow = $texts['Controls/MyDropShadow.vb'].Replace('MyDropShadow', 'PclDropShadow').
         Replace('Return GetValue(ColorProperty)', 'Return CType(GetValue(ColorProperty), Color)').
@@ -138,17 +138,17 @@ try {
         Replace('Return GetValue(CornerRadiusProperty)', 'Return CType(GetValue(CornerRadiusProperty), CornerRadius)').
         Replace('Dim cr As CornerRadius = value', 'Dim cr As CornerRadius = CType(value, CornerRadius)')
     $shadow = "Imports System.Windows`nImports System.Windows.Controls`nImports System.Windows.Media`n`nNamespace Controls`n" + $shadow + "End Namespace`n"
-    Add-Candidate 'src/PlainCraftDownloader.App/Controls/PclDropShadow.vb' ($utf8.GetBytes($shadow)) $true
+    Add-Candidate 'src/PclDownloadBridge.App/Controls/PclDropShadow.vb' ($utf8.GetBytes($shadow)) $true
     [xml]$application = $texts['Application.xaml']
     $palette = @($application.Application.'Application.Resources'.ResourceDictionary.ChildNodes | Where-Object { $_.LocalName -in @('SolidColorBrush', 'Color') } | ForEach-Object { $_.OuterXml }) -join "`n"
     $dictionary = '<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">' + "`n" + $palette + "`n</ResourceDictionary>"
-    Add-Candidate 'src/PlainCraftDownloader.App/Controls/PclPalette.xaml' ($utf8.GetBytes($dictionary)) $true
+    Add-Candidate 'src/PclDownloadBridge.App/Controls/PclPalette.xaml' ($utf8.GetBytes($dictionary)) $true
     [xml]$main = $texts['FormMain.xaml']
     $icons = '<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=mscorlib">'
     foreach ($node in $main.SelectNodes('//*[local-name()="MyRadioButton"]')) {
         if ($node.GetAttribute('Text') -in @('下载', '设置')) { $icons += '<sys:String x:Key="IconTitle' + $node.GetAttribute('Text') + '">' + [Security.SecurityElement]::Escape($node.GetAttribute('Logo')) + '</sys:String>' }
     }
-    Add-Candidate 'src/PlainCraftDownloader.App/Controls/PclIcons.xaml' ($utf8.GetBytes($icons + '</ResourceDictionary>')) $true
+    Add-Candidate 'src/PclDownloadBridge.App/Controls/PclIcons.xaml' ($utf8.GetBytes($icons + '</ResourceDictionary>')) $true
     $report.PlannedFiles = $plan.Count
     $report.PreservedAdapters = @($plan | Where-Object Status -eq PreservedAdapter | ForEach-Object File)
     $report.MissingFiles = @($plan | Where-Object Status -eq Missing | ForEach-Object File)

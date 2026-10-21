@@ -1,0 +1,18 @@
+[
+  {
+    "Name": "PCL-DB",
+    "Projects": [
+      { "Path": "src\\PclDownloadBridge.App\\PclDownloadBridge.App.vbproj", "Action": "Start" },
+      { "Path": "src\\PclDownloadBridge.Core\\PclDownloadBridge.Core.vbproj", "Action": "None" },
+      { "Path": "tests\\PclDownloadBridge.Tests\\PclDownloadBridge.Tests.vbproj", "Action": "None" }
+    ]
+  },
+  {
+    "Name": "Offline Checks",
+    "Projects": [
+      { "Path": "src\\PclDownloadBridge.App\\PclDownloadBridge.App.vbproj", "Action": "None" },
+      { "Path": "src\\PclDownloadBridge.Core\\PclDownloadBridge.Core.vbproj", "Action": "None" },
+      { "Path": "tests\\PclDownloadBridge.Tests\\PclDownloadBridge.Tests.vbproj", "Action": "Start" }
+    ]
+  }
+]

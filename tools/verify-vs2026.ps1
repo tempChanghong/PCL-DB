@@ -1,4 +1,4 @@
-﻿param([switch]$Full)
+param([switch]$Full)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $root = Split-Path $PSScriptRoot -Parent
@@ -10,9 +10,9 @@ $installation = (& $vswhere -latest -products '*' -version '[18.0,19.0)' -requir
 if (!$installation) { throw 'VS 2026 needs .NET desktop development and the .NET Framework 4.8 targeting pack.' }
 $msbuild = Join-Path $installation.installationPath 'MSBuild\Current\Bin\amd64\MSBuild.exe'
 if (!(Test-Path -LiteralPath $msbuild)) { throw 'VS 2026 MSBuild.exe was not found.' }
-$appProject = 'src\PlainCraftDownloader.App\PlainCraftDownloader.App.vbproj'
-$testProject = 'tests\PlainCraftDownloader.Tests\PlainCraftDownloader.Tests.vbproj'
-$projects = @($appProject, 'src\PlainCraftDownloader.Core\PlainCraftDownloader.Core.vbproj', $testProject)
+$appProject = 'src\PclDownloadBridge.App\PclDownloadBridge.App.vbproj'
+$testProject = 'tests\PclDownloadBridge.Tests\PclDownloadBridge.Tests.vbproj'
+$projects = @($appProject, 'src\PclDownloadBridge.Core\PclDownloadBridge.Core.vbproj', $testProject)
 $properties = @{}
 
 function Expand-ProfileValue([string]$value, $evaluated) {
@@ -48,7 +48,7 @@ function Invoke-OfflineProfile([string]$project, [string]$name) {
 Push-Location -LiteralPath $root
 try {
     $buildLog = Join-Path $output 'debug-build.log'
-    & $msbuild PlainCraftDownloader.sln -restore -t:Build -p:Configuration=Debug '-p:Platform=Any CPU' -nologo -v:minimal *> $buildLog
+    & $msbuild PclDownloadBridge.sln -restore -t:Build -p:Configuration=Debug '-p:Platform=Any CPU' -nologo -v:minimal *> $buildLog
     if ($LASTEXITCODE -ne 0) { Get-Content -LiteralPath $buildLog -Tail 30; throw 'VS 2026 Debug build failed.' }
     foreach ($project in $projects) {
         $json = (& $msbuild $project -nologo -p:Configuration=Debug -p:Platform=AnyCPU -getProperty:TargetPath,TargetDir,ProjectDir,DebugType,DebugSymbols,Optimize,LaunchSettingsFilePath) -join "`n"
@@ -68,16 +68,20 @@ try {
     }
     $runs += Invoke-OfflineProfile $appProject 'UI Checks'
     $runs += Invoke-OfflineProfile $appProject 'Appearance Checks'
+    $runs += Invoke-OfflineProfile $appProject 'Developer Checks'
     $runs += Invoke-OfflineProfile $appProject 'Card Checks'
     $runs += Invoke-OfflineProfile $appProject 'Navigation Checks'
     $runs += Invoke-OfflineProfile $appProject 'Settings Compatibility'
     $runs += Invoke-OfflineProfile $appProject 'Preview Components'
     $uiPath = Join-Path $properties[$appProject].TargetDir 'vs-ui-checks.json'
     $ui = Get-Content -LiteralPath $uiPath -Raw | ConvertFrom-Json
-    if (!$ui.Succeeded -or $ui.Scope -ne 'all' -or $ui.Count -ne 561 -or $ui.Count -ne $ui.Passed.Count) { throw 'The UI profile did not produce a complete report.' }
+    if (!$ui.Succeeded -or $ui.Scope -ne 'all' -or $ui.Count -ne 597 -or $ui.Count -ne $ui.Passed.Count) { throw 'The UI profile did not produce a complete report.' }
     $appearancePath = Join-Path $properties[$appProject].TargetDir 'vs-appearance-checks.json'
     $appearance = Get-Content -LiteralPath $appearancePath -Raw | ConvertFrom-Json
-    if (!$appearance.Succeeded -or $appearance.Scope -ne 'appearance' -or $appearance.Count -ne 70 -or $appearance.Count -ne $appearance.Passed.Count) { throw 'The appearance profile did not produce a complete report.' }
+    if (!$appearance.Succeeded -or $appearance.Scope -ne 'appearance' -or $appearance.Count -ne 106 -or $appearance.Count -ne $appearance.Passed.Count) { throw 'The appearance profile did not produce a complete report.' }
+    $developerPath = Join-Path $properties[$appProject].TargetDir 'vs-developer-checks.json'
+    $developer = Get-Content -LiteralPath $developerPath -Raw | ConvertFrom-Json
+    if (!$developer.Succeeded -or $developer.Scope -ne 'developer' -or $developer.Count -ne 36 -or $developer.Count -ne $developer.Passed.Count) { throw 'The developer profile did not produce a complete report.' }
     $cardPath = Join-Path $properties[$appProject].TargetDir 'vs-card-checks.json'
     $cardChecks = Get-Content -LiteralPath $cardPath -Raw | ConvertFrom-Json
     if (!$cardChecks.Succeeded -or $cardChecks.Scope -ne 'cards' -or $cardChecks.Count -ne 66 -or $cardChecks.Count -ne $cardChecks.Passed.Count) { throw 'The card profile did not produce a complete report.' }

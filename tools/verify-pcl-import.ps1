@@ -4,8 +4,8 @@ Set-StrictMode -Version Latest
 $root = Split-Path $PSScriptRoot -Parent
 if (!$SourceRoot) { $SourceRoot = Join-Path (Split-Path $root -Parent) 'PCL' }
 if (!$ReportPath) { $ReportPath = Join-Path $root 'artifacts/pcl-import-checks.json' }
-$testRoot = Join-Path ([IO.Path]::GetTempPath()) ('PCD-ImportChecks-' + [Guid]::NewGuid().ToString('N'))
-$fixture = Join-Path $testRoot ('PCD source ' + [char]0x6D4B + [char]0x8BD5)
+$testRoot = Join-Path ([IO.Path]::GetTempPath()) ('PCL-DB-ImportChecks-' + [Guid]::NewGuid().ToString('N'))
+$fixture = Join-Path $testRoot ('PCL-DB source ' + [char]0x6D4B + [char]0x8BD5)
 $repository = Join-Path $testRoot ('upstream source ' + [char]0x6D4B + [char]0x8BD5 + '.git')
 $shell = [Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
 $passed = [Collections.Generic.List[string]]::new()
@@ -61,9 +61,9 @@ function Move-Aside([string]$Relative) {
 }
 
 try {
-    New-Item -ItemType Directory -Path (Join-Path $fixture 'tools'), (Join-Path $fixture 'src/PlainCraftDownloader.App') -Force | Out-Null
+    New-Item -ItemType Directory -Path (Join-Path $fixture 'tools'), (Join-Path $fixture 'src/PclDownloadBridge.App') -Force | Out-Null
     Copy-Item -LiteralPath (Join-Path $root 'reference') -Destination $fixture -Recurse
-    foreach ($folder in @('Controls', 'Images', 'Resources')) { Copy-Item -LiteralPath (Join-Path $root "src/PlainCraftDownloader.App/$folder") -Destination (Join-Path $fixture 'src/PlainCraftDownloader.App') -Recurse }
+    foreach ($folder in @('Controls', 'Images', 'Resources')) { Copy-Item -LiteralPath (Join-Path $root "src/PclDownloadBridge.App/$folder") -Destination (Join-Path $fixture 'src/PclDownloadBridge.App') -Recurse }
     Copy-Item -LiteralPath (Join-Path $root 'LICENCE') -Destination $fixture
     Copy-Item -LiteralPath (Join-Path $root 'tools/import-pcl-ui.ps1') -Destination (Join-Path $fixture 'tools')
     & git clone --shared --bare --quiet -- $SourceRoot $repository
@@ -71,7 +71,7 @@ try {
     $loose = Join-Path $repository 'Plain Craft Launcher 2/Images/Blocks/Grass.png'
     New-Item -ItemType Directory -Path (Split-Path $loose -Parent) -Force | Out-Null
     [IO.File]::WriteAllText($loose, 'Fixture-only loose resource: never copy these bytes.')
-    $adapter = Join-Path $fixture 'src/PlainCraftDownloader.App/Controls/PclButton.xaml'
+    $adapter = Join-Path $fixture 'src/PclDownloadBridge.App/Controls/PclButton.xaml'
     [IO.File]::AppendAllText($adapter, "`n<!-- Fixture-only local adaptation -->`n")
     $adapterBytes = [IO.File]::ReadAllBytes($adapter)
     $notes = Join-Path $fixture 'reference/PCL/local-notes.txt'
@@ -82,14 +82,14 @@ try {
     Assert-Case (@($first.Report.WrittenFiles).Count -eq 0 -and (Snapshot -Times) -eq $before) 'an unchanged import preserves every target byte and modification timestamp'
     Assert-Case (@($first.Report.PreservedAdapters).Count -eq 7 -and [Convert]::ToBase64String([IO.File]::ReadAllBytes($adapter)) -eq [Convert]::ToBase64String($adapterBytes)) 'existing local control adaptations are preserved'
     $assets = Get-Content -LiteralPath (Join-Path $fixture 'reference/pcl-assets.json') -Raw | ConvertFrom-Json
-    $incorrect = @($assets.Files | Where-Object { (Get-FileHash -LiteralPath (Join-Path $fixture "src/PlainCraftDownloader.App/$($_.File)") -Algorithm SHA256).Hash -ne $_.Hash })
+    $incorrect = @($assets.Files | Where-Object { (Get-FileHash -LiteralPath (Join-Path $fixture "src/PclDownloadBridge.App/$($_.File)") -Algorithm SHA256).Hash -ne $_.Hash })
     Assert-Case ($incorrect.Count -eq 0) 'all 12 binary resources match pinned hashes despite loose upstream resource contamination'
     $manifest = Get-Content -LiteralPath (Join-Path $fixture 'reference/PCL/manifest.json') -Raw | ConvertFrom-Json
     Assert-Case (@($manifest.Files).Count -eq 44 -and (Test-Path -LiteralPath $notes)) 'unrelated reference files are retained and excluded from the fixed source manifest'
     $again = Invoke-Import -Options @('-CheckOnly')
     Assert-Case ($again.ExitCode -eq 0 -and $again.Report.Mode -eq 'Check' -and (Snapshot -Times) -eq $before) 'repeated CheckOnly uses the fixed baseline without rewriting manifests or targets'
 
-    $missing = @('reference/PCL/Controls/MyButton.xaml', 'src/PlainCraftDownloader.App/Images/Themes/12.png', 'src/PlainCraftDownloader.App/Controls/PclButton.xaml', 'reference/PCL/manifest.json', 'reference/pcl-assets.json', 'LICENCE')
+    $missing = @('reference/PCL/Controls/MyButton.xaml', 'src/PclDownloadBridge.App/Images/Themes/12.png', 'src/PclDownloadBridge.App/Controls/PclButton.xaml', 'reference/PCL/manifest.json', 'reference/pcl-assets.json', 'LICENCE')
     foreach ($relative in $missing) { Move-Aside $relative }
     $beforeMissing = Snapshot -Times
     $check = Invoke-Import -Options @('-CheckOnly')
@@ -103,7 +103,7 @@ try {
 
     $damagedReference = Join-Path $fixture 'reference/PCL/Controls/MyButton.xaml'
     [IO.File]::AppendAllText($damagedReference, 'Fixture-only reference conflict.')
-    $lockedResource = Join-Path $fixture 'src/PlainCraftDownloader.App/Images/Themes/12.png'
+    $lockedResource = Join-Path $fixture 'src/PclDownloadBridge.App/Images/Themes/12.png'
     [IO.File]::AppendAllText($lockedResource, 'Fixture-only resource conflict.')
     $assetPath = Join-Path $fixture 'reference/pcl-assets.json'
     $assetText = [IO.File]::ReadAllText($assetPath).Replace('5ef81e490ae46b1100d61e33d0183094c7a80ca8', '0000000000000000000000000000000000000000')
@@ -120,7 +120,7 @@ try {
     Assert-Case (@($failure.Report.RollbackErrors).Count -eq 0 -and (Snapshot) -eq $beforeRollback) 'failure rolls the earlier replacement back to the exact pre-import bytes'
     $retry = Invoke-Import -Options @('-ReplaceChanged')
     Assert-Case ($retry.ExitCode -eq 0 -and @($retry.Report.WrittenFiles).Count -eq 4) 'explicit replacement repairs only changed fixed files and fills the missing licence'
-    Assert-Case ((Test-Path -LiteralPath (Join-Path $retry.Report.OperationDirectory 'previous/reference/PCL/Controls/MyButton.xaml')) -and (Test-Path -LiteralPath (Join-Path $retry.Report.OperationDirectory 'previous/src/PlainCraftDownloader.App/Images/Themes/12.png'))) 'successful explicit replacements retain original conflicting files in backups'
+    Assert-Case ((Test-Path -LiteralPath (Join-Path $retry.Report.OperationDirectory 'previous/reference/PCL/Controls/MyButton.xaml')) -and (Test-Path -LiteralPath (Join-Path $retry.Report.OperationDirectory 'previous/src/PclDownloadBridge.App/Images/Themes/12.png'))) 'successful explicit replacements retain original conflicting files in backups'
     $healthy = Invoke-Import -Options @('-CheckOnly')
     Assert-Case ($healthy.ExitCode -eq 0 -and @($healthy.Report.WrittenFiles).Count -eq 0) 'repaired files pass a subsequent pinned baseline check'
 

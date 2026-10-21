@@ -1,29 +1,35 @@
-# PCD · Plain Craft Downloader
+# PCL-DB · PCL Download Bridge
 
-VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，本地 0.48 预览版，简称 PCD。
+VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，0.49 预览版，简称 PCL-DB。
 
 以 PCL2 限制前代码为主要参照，读取 PCL 使用的 `.minecraft`，安装结果使用 PCL 能读取的版本目录格式。原五个启动器仓库不需要修改。
 
 ## 使用
 
-运行 `dist/PlainCraftDownloader/PlainCraftDownloader.exe`。便携使用时保留同目录的 DLL、配置文件与 Markdown 文档。
+从 [Releases](https://github.com/tempChanghong/PCL-DB/releases) 下载预览版，解压后运行 `PclDownloadBridge.exe`。源码构建方法见下文。
+
+运行 `dist/PclDownloadBridge/PclDownloadBridge.exe`。便携使用时保留同目录的 DLL、配置文件与 Markdown 文档。
 
 1. 打开「设置 → 游戏文件夹」，点击「读取 PCL 的目录」选择实际使用的 PCL EXE。读取其旁的游戏目录、`PCL/Setup.ini` 的当前选择，以及 PCL 注册表自定义目录。也可手动选择 `.minecraft`。同页可分别设置「文件下载源」和「版本列表源」：BMCLAPI 优先、自动、官方优先；自动为默认值。切换版本列表源后，返回下载页会按新设置刷新当前列表；安装选项页也可点击「刷新列表」，保留版本、名称与组件选择。
 2. 回到「下载」，顶部显示安装目标；点击版本，填写实例名称。展开卡片选择 Forge、NeoForge、Fabric、Fabric API、OptiFine、OptiFabric 或 LiteLoader，点击「开始下载」。按 PCL 规则显示适用选项及互斥关系，Fabric API 和 OptiFabric 随父组件显示。默认拒绝覆盖同名实例。
 3. 进度在「下载」中显示。返回安装选项后可通过「查看下载进度」再次打开；切换设置保留版本、组件、自定义名称和进度。下载期间目录及传输设置只读。取消后等待连接和安装处理器退出，再返回安装选项重新开始；新任务会清空上次统计，旧回调不会覆盖本次进度或已结束的结果。
 4. 完成后可点击「打开版本文件夹」查看安装结果，再回到 PCL 刷新版本列表。成功、失败和取消均可「复制任务信息」；信息和安装器日志始终对应原任务，不随之后选择的目录或版本变化。安装器日志是游戏根目录内的累计记录，未生成时按钮会禁用。若要补全已存在的同版本原版，在安装选项的「校验与补全」中明确勾选「校验补全已存在的同版本原版」。
 
-现有 `PCL/Setup.ini`、PCL 注册表和已有版本配置只读。组件实例在自己的 `PCL/Setup.ini` 中开启版本隔离，模组放在新实例的 `mods/`，共享支持库与资源。本程序偏好和日志位于 `%LOCALAPPDATA%/PlainCraftDownloader/`。安装缓存和处理器日志位于所选游戏目录的 `.vanilla-downloader/`。取消保留已校验共享文件及传输续传记录，不会删除存档。
+现有 `PCL/Setup.ini`、PCL 注册表和已有版本配置只读。组件实例在自己的 `PCL/Setup.ini` 中开启版本隔离，模组放在新实例的 `mods/`，共享支持库与资源。本程序偏好和日志位于 `%LOCALAPPDATA%/PclDownloadBridge/`。安装缓存和处理器日志位于所选游戏目录的 `.vanilla-downloader/`。取消保留已校验共享文件及传输续传记录，不会删除存档。
 
-## 更名与旧版设置
+## 名称与旧版设置
 
-项目根目录、解决方案、项目文件和命名空间统一使用 `PlainCraftDownloader`，窗口简称为 PCD，关于页显示 Plain Craft Downloader。
+项目名称为 Plain Craft Launcher (PCL) · Download Bridge（第三方下载补全版），简称 PCL-DB；仓库与根目录为 PCL-DB，解决方案、程序集和命名空间统一为 PclDownloadBridge。
 
-首次正常启动时，如果 `%LOCALAPPDATA%/PlainCraftDownloader/settings.json` 尚不存在，会验证并复制旧 `%LOCALAPPDATA%/VanillaDownloader/settings.json`，保留原文件、编码及未知字段。已有 PCD 设置优先，当前设置读取失败会暂停自动保存，检查后可点击保存设置；迁移目标不可写时继续读取旧偏好并提示。检查/预览模式只使用临时样本，不触发真实偏好迁移。
+偏好保存在 `%LOCALAPPDATA%/PclDownloadBridge/settings.json`。首次启动先尝试迁移旧 PCD 的 `%LOCALAPPDATA%/PlainCraftDownloader/settings.json`，不存在时再读取最早的 `%LOCALAPPDATA%/VanillaDownloader/settings.json`。迁移验证 JSON 后保留原字节、编码及未知字段，旧文件不改。已有新配置优先；最新旧配置损坏或不可读时报告错误，不静默退回更旧配置。检查和预览模式只用临时样本，不迁移真实用户偏好。
 
-游戏目录内的 `.vanilla-downloader/` 继续作为兼容数据格式，供缓存、续传、安装日志和跨版本安装锁使用。已有缓存可直接复用；更名不会另开安装锁，也无需移动游戏文件。旧验证记录和历史便携 ZIP 保留当时名称。
+游戏目录内的 `.vanilla-downloader/` 是兼容数据格式，缓存、续传、暂存、日志和安装锁继续使用，避免更名后重复安装或失去已有缓存。旧 ZIP 和历史验证记录保留当时名称。保存设置沿用互斥、深度合并与原子发布；当前配置损坏时暂停自动保存，主动保存才允许修复。
 
-设置迁移后的常规保存和外观保存都会保留未知字段及嵌套外观配置；配置在启动后损坏时，自动保存也会拒绝覆盖。多个新版 PCD 实例按设置文件协调读取、合并和原子写入；自动保存只提交当前窗口实际修改的字段，关闭旧窗口不会回写其他实例更新的选项；仅主动点击保存设置允许替换损坏 JSON。
+## 个性化与开发者设置
+
+默认提供龙猫蓝、浅蓝和深蓝，可独立开启深色模式。开发者设置默认关闭，包含常规下载诊断和实验性外观验证入口。验证码通过后，其他主题直接出现在同一个个性化列表中；关闭开发者设置、重新锁定或重启会话后恢复公开蓝色选择。旧的其他主题偏好保留，锁定时不会自动应用。
+
+代码只保留随机验证码的 SHA-256 摘要；输入及会话解锁状态不写入设置或日志。此入口用于本地功能分组，不作为安全隔离或上游额外授权的证明。
 
 ## 功能
 
@@ -44,11 +50,10 @@ VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，本地
 - 安装结束时，组件或暂存目录中的文件被占用，会保留清理未完成的临时文件，并尽量将路径写入安装器日志；成功、原始错误或取消状态保持。目录名冲突等实际写入失败仍阻止安装完成，取消后可重新开始并复用已校验文件。遗留临时目录暂不自动回收。
 - 下载清单按实际保存位置去重，兼容大小写、正反斜杠及内部 `.` / `..` 写法；重复文件保留完整的已知大小、SHA-1 和 MD5 校验，避免误用同大小的损坏文件。互相矛盾的声明在内容文件传输前报告具体路径，下载计数按唯一保存位置计算；选源仍沿用原优先级。
 - 只保留「下载」「设置」两个主页面，移除启动、联机、更多及辅助侧栏。沿用 PCL 的 48 DIP 标题栏、字体、方块图标；最新版本、四类可折叠版本列表、组件选择和进度均在下载流程中。
-- 「设置 → 关于 PlainCraftDownloader」提供构建版本、复制版本信息、项目说明、PCL / BMCLAPI 源码链接与来源致谢。布局参照 PCL 关于页的卡片、圆形图标、45 DIP 信息行及右侧操作按钮；返回时保留设置滚动位置，下载中也可查看。
+- 「设置 → 关于 PclDownloadBridge」提供构建版本、复制版本信息、项目说明、PCL / BMCLAPI 源码链接与来源致谢。布局参照 PCL 关于页的卡片、圆形图标、45 DIP 信息行及右侧操作按钮；返回时保留设置滚动位置，下载中也可查看。
 - 下载页「更改目录」或安装前缺少游戏目录时，直接定位到设置中的游戏目录卡片；保存设置遇到无效限速时，定位并聚焦到错误输入框。保存结果显示在按钮旁，后续编辑目录或下载设置时自动清除旧提示。
 - 下载结束后保留结果位置和操作入口：成功才提供版本文件夹，失败保留 PCL 失败图标与原因，主动取消显示「已取消 / 未完成」；开始下一任务时清除上次结果。原目录或日志已被移除时就地提示，不转到后来选择的目录。
 - 顶部页签、折叠标题、原版及组件版本行支持键盘焦点与 Enter/空格；选定原版后定位名称输入，选定组件后返回其标题。未访问的长列表占位仍可获得焦点并按需生成该行。Esc 先关闭下拉菜单或展开卡片，再逐层返回关于页/设置/安装选项；下载中返回不会取消任务，版本浏览页的 Esc 不关闭程序。
-- 设置中的「个性化 · 基础」支持 40%～100% 不透明度、五种常规配色、玄素黑、彩色渐变及自定义色调/饱和度/亮度；可切换彩色背景和标题纹理，修改即时生效并独立保存。沿用 PCL 的公开配色公式及原纹理，蓝色以外的预设参数为独立适配，不宣称完整复刻原版隐藏主题。
 - 原版及七类组件版本行按 PCL 的可见区域机制延迟创建：展开列表先保留完整的 42 DIP 行高度，滚动到该行后才生成图标、文字和点击处理；支持直接跳到中间或末尾，无需逐页点击“显示更多”。已访问的行继续复用，列表条目不变时切换选择只更新高亮。
 - 版本分类沿用固定 PCL 的误标记补正、已知愚人节版本和 UTC+2 日期规则；四类列表按发布时间降序，最新预览版只有晚于最新正式版才同时推荐。愚人节条目使用金块及 PCL 简介，`20w14∞` 显示别名保留原始下载 ID 和校验声明；名称卡和 Minecraft 摘要随所选原版使用对应图标。
 - 原版 JSON、客户端 JAR、Windows 支持库及原生库、日志配置、资源索引及对象规划。
@@ -109,9 +114,9 @@ OptiFine/OptiFabric 的跨版本兼容性沿用 PCL 检查和上游声明，不�
 
 ## 构建与验证
 
-Visual Studio 2026 可直接打开 `PlainCraftDownloader.sln`，选择 **Debug / Any CPU**，将 **PCD** 设为启动项目，选择同名启动配置后按 **F5**。已提供主程序、界面自检、组件页渲染及本地下载回归的启动配置；具体输出、断点建议和复查命令见 [VS2026_DEBUG.md](VS2026_DEBUG.md)。
+Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / Any CPU**，将 **PCL-DB** 设为启动项目，选择同名启动配置后按 **F5**。已提供主程序、界面自检、组件页渲染及本地下载回归的启动配置；具体输出、断点建议和复查命令见 [VS2026_DEBUG.md](VS2026_DEBUG.md)。
 
-主应用的 **Appearance Checks** 配置可独立执行 70 项主题/任务状态检查，**Card Checks** 执行 66 项卡片、摘要动画与安装视口检查；**Navigation Checks** 执行 31 项页面切换与状态保留检查；**Settings Compatibility** 执行 49 项更名与设置兼容检查；全量界面检查为 561 项，包含以上各组。检查在离线示例模式运行，失败保留已通过项、失败名称、异常堆栈与诊断，并返回失败退出码。
+主应用的 **Appearance Checks** 配置可独立执行 106 项主题/任务状态检查，**Card Checks** 执行 66 项卡片、摘要动画与安装视口检查；**Navigation Checks** 执行 31 项页面切换与状态保留检查；**Settings Compatibility** 执行 49 项更名与设置兼容检查；全量界面检查为 597 项，包含以上各组。检查在离线示例模式运行，失败保留已通过项、失败名称、异常堆栈与诊断，并返回失败退出码。
 
 需要 .NET SDK 10.0.4xx 与 .NET Framework 4.8 Developer Pack；完整处理器样本检查还需要本机 Java 8 或更高版本。应用运行本身需要 .NET Framework 4.8。两个 Java 桥接/样本 class 已随源码保留，重编译命令为 `javac --release 8`，对应源文件在 `tools/java/`。
 
@@ -121,14 +126,14 @@ Visual Studio 2026 可直接打开 `PlainCraftDownloader.sln`，选择 **Debug /
 
 从仓库获取完整源码后即可运行上述命令；常规构建和界面对照检查不需要在旁边另行克隆 PCL。固定源码快照和 12 项资源的提交哈希清单已包含在仓库中。只有维护者重新执行 `tools/import-pcl-ui.ps1` 导入上游代码时才需要相邻的 PCL 源码仓库。
 
-会构建三个 VB 项目，核对 44 份固定 PCL 源码及内置资源，运行本地下载/安装、界面及 19 项打包回归，然后生成便携目录和 ZIP。下载检查的目录位于系统临时目录 `PlainCraftDownloaderTests-<随机ID>`，打包检查使用 `PCD-PackageChecks-<随机ID>`；两者均不接触用户游戏目录。
+会构建三个 VB 项目，核对 44 份固定 PCL 源码及内置资源，运行本地下载/安装、界面及 19 项打包回归，然后生成便携目录和 ZIP。下载检查的目录位于系统临时目录 `PclDownloadBridgeTests-<随机ID>`，打包检查使用 `PCL-DB-PackageChecks-<随机ID>`；两者均不接触用户游戏目录。
 
 包内固定为 4 个运行文件和 7 份文档（包含 `LICENCE`）。打包先在独立暂存目录复制和校验，旧目录中的其他文件不会被带入新包；替换成功后，旧目录和旧 ZIP 保留在本次报告记录的备份位置。遇到占用等替换失败时会尝试恢复旧输出，失败详情及备份路径保存在 `artifacts/packages/<本次编号>/failure.json`。这是目录和 ZIP 的顺序替换与回滚，不保证断电或强行终止进程时两者同时更新。
 
 构建结果会打印本次 ZIP 和 `result.json` 的完整路径，其中记录 ZIP 的 SHA-256 及每个文件的内容哈希。可明确指定候选包，重新核对其内容与当前 Release 输出和文档是否一致：
 
 ```powershell
-.\tools\verify-package.ps1 -PackagePath .\dist\PlainCraftDownloader-0.48-preview.zip -DistributionPath .\dist\PlainCraftDownloader
+.\tools\verify-package.ps1 -PackagePath .\dist\PCL-DB-0.49-preview.zip -DistributionPath .\dist\PclDownloadBridge
 ```
 
 `-SkipTests` 仅跳过回归检查，打包时仍校验候选 ZIP 的完整文件清单和字节内容；不能据此声称通过完整回归。单独执行 `tools/verify-packaging.ps1` 需要已有 Release 构建。
@@ -147,7 +152,7 @@ pwsh -NoProfile -File .\tools\verify-pcl-import.ps1
 真实下载测试（明确指定独立输出目录）：
 
 ```powershell
-.\tests\PlainCraftDownloader.Tests\bin\Release\net48\PlainCraftDownloader.Tests.exe --live 1.21.1 D:\Temp\MC-Test\.minecraft --official
+.\tests\PclDownloadBridge.Tests\bin\Release\net48\PclDownloadBridge.Tests.exe --live 1.21.1 D:\Temp\MC-Test\.minecraft --official
 ```
 
 再次运行加 `--repair` 可验证文件复用。该命令会实际下载完整游戏文件。
@@ -157,7 +162,7 @@ pwsh -NoProfile -File .\tools\verify-pcl-import.ps1
 界面渲染检查（使用明确标注的示例数据，不代表真实下载）：
 
 ```powershell
-.\dist\PlainCraftDownloader\PlainCraftDownloader.exe --snapshot D:\Temp\preview.png
+.\dist\PclDownloadBridge\PclDownloadBridge.exe --snapshot D:\Temp\preview.png
 ```
 
 本地验证记录见 `VALIDATION.md`。新提供的两个 PCL 恢复项目的机制核对见 `PATCH_MECHANISMS.md`；本工具未自动给 PCL 打补丁。代码来源及第三方说明见同目录文档。

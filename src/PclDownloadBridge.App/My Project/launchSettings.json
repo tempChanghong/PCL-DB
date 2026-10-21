@@ -1,0 +1,52 @@
+{
+  "profiles": {
+    "PCL-DB": {
+      "commandName": "Project",
+      "commandLineArgs": "",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
+    "Developer Checks": {
+      "commandName": "Project",
+      "commandLineArgs": "--developer-checks \"$(TargetDir)vs-developer-checks.json\"",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
+    "UI Checks": {
+      "commandName": "Project",
+      "commandLineArgs": "--ui-checks \"$(TargetDir)vs-ui-checks.json\"",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
+    "Appearance Checks": {
+      "commandName": "Project",
+      "commandLineArgs": "--appearance-checks \"$(TargetDir)vs-appearance-checks.json\"",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
+    "Card Checks": {
+      "commandName": "Project",
+      "commandLineArgs": "--card-checks \"$(TargetDir)vs-card-checks.json\"",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
+    "Preview Components": {
+      "commandName": "Project",
+      "commandLineArgs": "--snapshot \"$(TargetDir)vs-components.png\" --page components --size 850x700",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
+    "Navigation Checks": {
+      "commandName": "Project",
+      "commandLineArgs": "--navigation-checks \"$(TargetDir)vs-navigation-checks.json\"",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
+    "Settings Compatibility": {
+      "commandName": "Project",
+      "commandLineArgs": "--compatibility-checks \"$(TargetDir)vs-compatibility-checks.json\"",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    }
+  }
+}
