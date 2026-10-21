@@ -33,6 +33,7 @@ Partial Public Class MainWindow
         Dim about As New MainWindow(True)
         about.VerifyAboutMotion(directory, check)
         VerifyMotionStress(directory, check)
+        VerifyMotionLayout(directory, check)
         Return passed
     End Function
 
@@ -187,7 +188,7 @@ Partial Public Class MainWindow
             seek(clock, 60)
             Dim offset = viewer.VerticalOffset
             IO.File.WriteAllText(IO.Path.Combine(directory, "wheel-sample.txt"), "offset=" & offset & ";clock=" & clock.CurrentTime.ToString())
-            check(Math.Abs(offset - 120 * (1 - Math.Pow(0.8, 6))) < 0.1, "real scrolling follows PCL's sixth-power ease-out")
+            check(Math.Abs(offset - 120 * (1 - Math.Pow(1 - clock.CurrentTime.Value.TotalMilliseconds / 300, 6))) < 0.1, "real scrolling follows PCL's sixth-power ease-out")
             viewer.ScrollDelta(120)
             Dim replacement = viewer.MotionClock
             replacement.Controller.Pause()
@@ -214,7 +215,7 @@ Partial Public Class MainWindow
             check(viewer.MotionClock Is Nothing, "keyboard navigation cancels smooth scrolling before native page commands")
             viewer.ScrollDelta(120) : layout()
             body.Children.Add(New Border With {.Height = 300}) : layout()
-            check(viewer.MotionClock Is Nothing, "an extent change cancels stale scrolling geometry")
+            check(viewer.MotionClock IsNot Nothing, "a content extent change preserves wheel input while clamping its remaining displacement")
             viewer.SmoothScrollingEnabled = False : viewer.ScrollDelta(120) : layout()
             check(viewer.MotionClock Is Nothing, "disabled scrolling uses immediate positioning")
             viewer.SmoothScrollingEnabled = True : viewer.ScrollDelta(120) : layout()

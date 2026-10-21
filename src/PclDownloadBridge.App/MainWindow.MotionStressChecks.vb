@@ -42,6 +42,7 @@ Partial Public Class MainWindow
             Dim aged = viewer.MotionClock
             aged.Controller.Pause() : layout()
             aged.Controller.SeekAlignedToLastTick(TimeSpan.FromMilliseconds(60), TimeSeekOrigin.BeginTime) : layout()
+            Dim ageMilliseconds = aged.CurrentTime.Value.TotalMilliseconds
             Dim origin = viewer.VerticalOffset
             For sampleIndex As Integer = 1 To 250
                 viewer.ScrollDelta(1)
@@ -49,12 +50,12 @@ Partial Public Class MainWindow
             clock = viewer.MotionClock
             Dim plan = DirectCast(clock.Timeline, PclWheelAnimation)
             IO.File.WriteAllText(IO.Path.Combine(directory, "wheel-aged.json"), New JObject From {
-                {"originBeforeBurst", origin}, {"originInPlan", plan.Sample(0)}, {"offsetAfterBurst", viewer.VerticalOffset},
+                {"originBeforeBurst", origin}, {"originInPlan", plan.Sample(0)}, {"offsetAfterBurst", viewer.VerticalOffset}, {"consumedAge", ageMilliseconds},
                 {"pulses", New JArray(plan.Inputs.Select(Function(pulse) New JObject From {{"age", pulse.X}, {"delta", pulse.Y}}))}}.ToString())
-            check(plan.Inputs.Count = 2 AndAlso plan.Inputs(0).X = 60 AndAlso plan.Inputs(1).X = 0,
+            check(plan.Inputs.Count = 2 AndAlso plan.Inputs(0).X = ageMilliseconds AndAlso plan.Inputs(1).X = 0,
                 "coalescing preserves separately aged inputs instead of restarting their easing or rounding time")
             For Each tick In {0.0, 15, 60, 150, 300}
-                Dim expected = origin + 120 * (Math.Pow(0.8, 6) - Math.Pow(1 - Math.Min(1, (60 + tick) / 300), 6)) +
+                Dim expected = origin + 120 * (Math.Pow(1 - ageMilliseconds / 300, 6) - Math.Pow(1 - Math.Min(1, (ageMilliseconds + tick) / 300), 6)) +
                     250 * (1 - Math.Pow(1 - tick / 300, 6))
                 check(Math.Abs(plan.Sample(tick) - expected) < 0.000001, "merged wheel displacement follows the unmodified PCL superposition at " & tick)
             Next
@@ -103,10 +104,11 @@ Partial Public Class MainWindow
                 "a component body refresh replaces an in-flight expansion target instead of finishing at the old list height")
             refreshed.Controller.Pause() : layout()
             refreshed.Controller.SeekAlignedToLastTick(TimeSpan.Zero, TimeSeekOrigin.BeginTime) : layout()
-            check(Math.Abs(card.ActualHeight - height) < 0.01 AndAlso built = 1 AndAlso card.ClipToBounds,
+            check(Math.Abs(DirectCast(refreshed.Timeline, DoubleAnimationUsingKeyFrames).KeyFrames(0).Value - height) < 0.01 AndAlso
+                Math.Abs(card.ActualHeight - SampleCardMotion(DirectCast(refreshed.Timeline, DoubleAnimationUsingKeyFrames), refreshed.CurrentTime.Value.TotalMilliseconds)) < 0.01 AndAlso built = 1 AndAlso card.ClipToBounds,
                 "retargeting starts at the displayed card height and builds the new content only once")
             opening.Controller.SkipToFill() : layout()
-            check(card.HeightTransition Is refreshed AndAlso Math.Abs(card.ActualHeight - height) < 0.01,
+            check(card.HeightTransition Is refreshed AndAlso Math.Abs(card.ActualHeight - SampleCardMotion(DirectCast(refreshed.Timeline, DoubleAnimationUsingKeyFrames), refreshed.CurrentTime.Value.TotalMilliseconds)) < 0.01,
                 "the discarded expansion cannot clear the replacement clock or jump to its obsolete height")
             Dim frames = IO.Path.Combine(directory, "card-refresh-frames")
             IO.Directory.CreateDirectory(frames)
@@ -118,13 +120,14 @@ Partial Public Class MainWindow
             Next
             refreshed.Controller.SeekAlignedToLastTick(TimeSpan.FromMilliseconds(75), TimeSeekOrigin.BeginTime) : layout()
             Dim middle = card.ActualHeight
-            check(anchored AndAlso Math.Abs(middle - (240 + (height - 240) * Math.Pow(0.5, 5))) < 0.01,
+            check(anchored AndAlso Math.Abs(middle - SampleCardMotion(DirectCast(refreshed.Timeline, DoubleAnimationUsingKeyFrames), refreshed.CurrentTime.Value.TotalMilliseconds)) < 0.01,
                 "a refreshed card keeps PCL's fifth-power easing and anchored list position without a discontinuity")
             card.RefreshBody(Function() New Border With {.Height = 8000})
             Dim enlarged = card.HeightTransition
             enlarged.Controller.Pause() : layout()
             enlarged.Controller.SeekAlignedToLastTick(TimeSpan.Zero, TimeSeekOrigin.BeginTime) : layout()
-            check(enlarged IsNot refreshed AndAlso Math.Abs(card.ActualHeight - middle) < 0.01,
+            check(enlarged IsNot refreshed AndAlso Math.Abs(DirectCast(enlarged.Timeline, DoubleAnimationUsingKeyFrames).KeyFrames(0).Value - middle) < 0.01 AndAlso
+                Math.Abs(card.ActualHeight - SampleCardMotion(DirectCast(enlarged.Timeline, DoubleAnimationUsingKeyFrames), enlarged.CurrentTime.Value.TotalMilliseconds)) < 0.01,
                 "a second refresh reverses a running resize from its current displayed height")
             refreshed.Controller.SkipToFill() : layout()
             check(card.HeightTransition Is enlarged, "a retired resize completion cannot finish a second replacement")

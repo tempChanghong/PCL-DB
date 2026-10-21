@@ -198,13 +198,23 @@ Namespace Controls
             AddHandler Loaded, Sub() UpdateShadowOffset(VisualTreeHelper.GetDpi(Me))
             AddHandler Unloaded, Sub() SettleMotion()
             AddHandler IsVisibleChanged, Sub() If Not IsVisible Then SettleMotion()
+            AddHandler SizeChanged, AddressOf CardSizeChanged
         End Sub
         Private _heightTransition As AnimationClock
+        Private _heightTarget As Double = Double.NaN
         Friend ReadOnly Property HeightTransition As AnimationClock
             Get
                 Return _heightTransition
             End Get
         End Property
+        Private Sub CardSizeChanged(sender As Object, args As SizeChangedEventArgs)
+            If Not args.WidthChanged OrElse _heightTransition Is Nothing OrElse Collapsed OrElse
+                Not IsLoaded OrElse Not IsVisible OrElse ActualWidth <= 0 Then Return
+            ' The old target was measured at the previous width. Reflow can make
+            ' it obsolete even though the animated Height still looks unchanged.
+            Dim target = ExpandedHeight()
+            If Math.Abs(target - _heightTarget) >= 1 Then StartHeightTransition(ActualHeight, target)
+        End Sub
         Private Function ExpandedHeight() As Double
             _presenter.Measure(New Size(Math.Max(0, ActualWidth), Double.PositiveInfinity))
             Return Math.Max(40, _presenter.DesiredSize.Height)
@@ -218,6 +228,7 @@ Namespace Controls
             End If
             ClipToBounds = True
             Dim clock = DirectCast(PclCardMotion.HeightTransition(origin, target).CreateClock(True), AnimationClock)
+            _heightTarget = target
             _heightTransition = clock
             AddHandler clock.Completed, Sub()
                                             If _heightTransition IsNot clock Then Return
@@ -248,6 +259,7 @@ Namespace Controls
         Private Sub StopHeightTransition()
             Dim previous = _heightTransition
             _heightTransition = Nothing
+            _heightTarget = Double.NaN
             If previous Is Nothing Then Return
             previous.Controller.Remove()
             ApplyAnimationClock(HeightProperty, Nothing)

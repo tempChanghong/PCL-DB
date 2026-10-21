@@ -53,15 +53,29 @@ Namespace Controls
 
         Private Sub OffsetChanged(sender As Object, args As ScrollChangedEventArgs)
             If Not ReferenceEquals(args.OriginalSource, Me) OrElse _clock Is Nothing Then Return
-            If args.ExtentHeightChange <> 0 OrElse args.ViewportHeightChange <> 0 Then
+            If args.ViewportHeightChange <> 0 Then
                 StopScrolling()
-            ElseIf args.VerticalChange <> 0 Then
+                Return
+            End If
+            Dim layoutClamp = False
+            If args.ExtentHeightChange <> 0 Then
+                ' Folding and refreshed cards change the extent on every frame.
+                ' Retain the gesture; only clamp outstanding requests to its new
+                ' range. A real external position change must still cancel it.
+                _requestedOffset = Math.Max(0, Math.Min(ScrollableHeight, _requestedOffset))
+                For index = 0 To _issuedOffsets.Count - 1
+                    _issuedOffsets(index) = Math.Max(0, Math.Min(ScrollableHeight, _issuedOffsets(index)))
+                Next
+                Dim previousOffset = VerticalOffset - args.VerticalChange
+                layoutClamp = Math.Abs(VerticalOffset - Math.Max(0, Math.Min(ScrollableHeight, previousOffset))) < 0.5
+            End If
+            If args.VerticalChange <> 0 Then
                 ' ScrollToVerticalOffset is queued. A ScrollChanged may acknowledge
                 ' an earlier animation tick while the latest command is still pending.
                 Dim own = _issuedOffsets.FindIndex(Function(offset) Math.Abs(offset - VerticalOffset) < 0.5)
                 If own >= 0 Then
                     _issuedOffsets.RemoveRange(0, own + 1)
-                ElseIf Math.Abs(VerticalOffset - _requestedOffset) > 0.5 Then
+                ElseIf Not layoutClamp AndAlso Math.Abs(VerticalOffset - _requestedOffset) > 0.5 Then
                     StopScrolling()
                 End If
             End If

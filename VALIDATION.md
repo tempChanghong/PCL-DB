@@ -2,6 +2,14 @@
 
 日期：2026-10-22（北京时间）。当前源码为尚未发布的 0.57 开发版 PCL-DB（PCL Download Bridge），包含 Visual Studio 2026 开发配置；最新公开预览版为 0.56，下方保留先前版本的验证记录。
 
+## 0.57 布局变化中的动画衔接
+
+- 基线 282dd34，修改前保存 `artifacts/bridge-0.57-motion-layout/source-before.zip`、77 个分发文件的摘要/时间戳和七个参考仓库状态。重读固定 PCL MyScrollViewer 的增量/范围更新与 MyCard 的尺寸事件和高度曲线，保留现有曲线及生命周期归属。
+- `baseline/motion.json` 在原 139 项后复现卡片展开时取消正在运行的滚轮时钟；`wheel-layout-state.json` 记录偏移仍为 288.54272，但余下滚动已被丢弃。现内容高度变化只限制待处理位置到新范围，原生越界钳位保留余量，自身排队回执继续识别；同次布局中的外部定位仍取消缓动，视口高度改变仍清理。同步修订原先明确要求 ExtentHeightChange 取消的旧断言，保持原检查数量。
+- `width-baseline/motion.json` 与 card-width-state.json 复现换行卡片缩窄后仍以旧的 610.5 DIP 为目标；现宽度事件重新测量活动的展开动画，新目标为约 1255.08 DIP，从原显示高度衔接。记录目标以避免不变目标反复重启；收起仍以 40 DIP 为目标，隐藏清理目标，旧回调不影响新动画。此分支沿用既有重定向适配，不宣称与上游跳过活动尺寸事件的分支逐行相同。
+- 新增 19 项动画检查，总计 158 项，覆盖展开/收起中滚动、自动钳位后的剩余位移、混合外部定位、延迟回执、视口变化、连续缩窄/放宽、PCL 曲线、Auto 终点及隐藏。expanded/motion.json、sample/motion.json、diagnostic/motion.json 保留初期断言失败；宽度诊断确认 Clock.CurrentTime 为约 66.94ms，而请求定位为 60ms。夹具现按实际 WPF 时钟采样核对曲线与起始关键帧，未修改产品时长或缓动函数；clock-samples/motion.json 为修正后的首份完整通过报告。首次 VS Debug 的旧滚轮检查同样以 60ms 断言实际 66.94ms 的值，保留 vs-motion-first-failure.json 与 vs-wheel-sample-first.txt；相关旧滚轮/卡片采样也改为核对实际时刻，保留纯函数的固定时刻样本、最终位移和旧回调断言。
+- Release 构建、658 项完整界面、158 项动画、17 项固定源对照与 VS 2026 Debug/PDB 的最终报告分别存于本轮日志/JSON。下载 Core 未修改，不重复完整 745 项核心回归，仅运行 VS 配置的精选逻辑检查。未构建单 EXE 候选，不打包、不建标签、不发 Release，分发文件与参考仓库保留结果见 preservation.json；验收为隔离控件/时钟与渲染，不作为桌面帧率实测。
+
 ## 0.57 连续滚轮与组件刷新动画
 
 - 基线 de331c5，修改前保存 `artifacts/bridge-0.57-motion-smooth/source-before.zip`、dist 文件摘要/时间戳和七个参考仓库状态。重读固定 PCL MyScrollViewer 的增量滚动、ModAnimation 的 Fluent 曲线与 MyCard 的尺寸变化、分段高度动画及强制更新路径。
