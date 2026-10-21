@@ -1,6 +1,6 @@
 # PCL-DB · PCL Download Bridge
 
-VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，简称 PCL-DB。当前版本为 **Beta 1.0**（`1.0.0-beta.1`）。[发布说明](docs/releases/1.0.0-beta.1.md)。
+VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，简称 PCL-DB。最新发布为 **Beta 1.0**（`1.0.0-beta.1`），当前主分支另含尚未发布的后续修复。[Beta 发布说明](docs/releases/1.0.0-beta.1.md)。
 
 以 PCL2 限制前代码为主要参照，读取 PCL 使用的 `.minecraft`，安装结果使用 PCL 能读取的版本目录格式。原五个启动器仓库不需要修改。
 
@@ -34,6 +34,8 @@ Beta 1.0 的两个下载入口使用相同的单 EXE，仍需系统安装 .NET F
 版本行的选中竖条按 PCL 的并行曲线弹出，取消时收缩并延后淡出，文字颜色同步渐变。快速反选保留当前高度、透明度和颜色；行高变化会更新强调色及标记尺寸，隐藏或更换主题会收束到当前选中状态。
 
 组件卡片收起期间若列表刷新，旧内容会保留到收起结束，并停止接收点击和键盘操作，避免留下大块空白。连续刷新只保留最新列表的构建请求；提前重新展开会从当前高度接入最新内容，游戏版本、已选组件和自定义名称继续保留。
+
+卡片标题在页面暂时屏蔽点击、标题隐藏、禁用或卸载时会取消旧按压；恢复后松开不会额外折叠，新点击照常生效。标题的有效点击高度和折叠动画仍参照固定 PCL 源码。
 
 偏好保存在 `%LOCALAPPDATA%/PclDownloadBridge/settings.json`。首次启动先尝试迁移旧 PCD 的 `%LOCALAPPDATA%/PlainCraftDownloader/settings.json`，不存在时再读取最早的 `%LOCALAPPDATA%/VanillaDownloader/settings.json`。迁移验证 JSON 后保留原字节、编码及未知字段，旧文件不改。已有新配置优先；最新旧配置损坏或不可读时报告错误，不静默退回更旧配置。检查和预览模式只用临时样本，不迁移真实用户偏好。
 

@@ -45,6 +45,7 @@ Namespace Controls
                 Return _header.Visibility = Visibility.Visible
             End Get
             Set(value As Boolean)
+                If Not value Then _headerPressed = False
                 _header.Visibility = If(value, Visibility.Visible, Visibility.Collapsed)
             End Set
         End Property
@@ -201,6 +202,7 @@ Namespace Controls
                                                      args.Handled = True
                                                  End Sub
             AddHandler header.MouseLeave, Sub() _headerPressed = False
+            AddHandler header.IsHitTestVisibleChanged, Sub() If Not header.IsHitTestVisible Then _headerPressed = False
             AddHandler header.MouseMove, Sub(sender, args)
                                             header.Cursor = If(Collapsible AndAlso (Collapsed OrElse args.GetPosition(header).Y <= 34), Input.Cursors.Hand, Input.Cursors.Arrow)
                                         End Sub
@@ -296,7 +298,7 @@ Namespace Controls
             ApplyAnimationClock(HeightProperty, Nothing)
         End Sub
         Private Function CanToggleHeader(args As Input.MouseButtonEventArgs) As Boolean
-            Return Collapsible AndAlso IsEnabled AndAlso
+            Return Collapsible AndAlso IsEnabled AndAlso ShowHeader AndAlso _header.IsHitTestVisible AndAlso
                 (Not IsLoaded OrElse args.GetPosition(_header).Y <= If(Collapsed, 40, 34))
         End Function
         Protected Overrides Sub OnDpiChanged(oldDpi As DpiScale, newDpi As DpiScale)

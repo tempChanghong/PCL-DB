@@ -9,6 +9,7 @@ Imports PclDownloadBridge.Controls
 Partial Public Class MainWindow
     Private Shared Sub VerifyPressMotion(directory As String, check As Action(Of Boolean, String))
         VerifyPressCurves(check)
+        Dim cardPress = ObserveCardPressLifecycle(directory)
         Dim button As New PclButton With {.Text = "下载", .Width = 120, .Height = 35}
         Dim icon As New PclIconButton With {.Logo = "M 0,8 L 8,0 L 8,5 L 16,5 L 16,11 L 8,11 L 8,16 Z", .Width = 32, .Height = 32}
         Dim rows As New StackPanel()
@@ -58,10 +59,10 @@ Partial Public Class MainWindow
             observations("detachActions") = actions
             IO.File.WriteAllText(IO.Path.Combine(directory, "press-lifecycle.json"), observations.ToString())
             check(Math.Abs(held - 0.945) < 0.00001, "holding an action button includes PCL's parallel seven-hundred-millisecond micro-shrink")
-            check(gated AndAlso gateActions = 0, "page input gating cancels pressed actions before restoring hit testing")
+            check(gated AndAlso gateActions = 0 AndAlso CBool(cardPress("gate")), "page input gating cancels pressed buttons icons and card headers before restoring hit testing")
             check(gateScale, "page input gating removes both owned scale clocks instead of retaining an invisible animation")
-            check(hidden AndAlso hideActions = 0, "hidden pages cannot retain a pressed action until they reappear")
-            check(detached AndAlso actions = 0, "detaching and reattaching either action control cannot replay its old press")
+            check(hidden AndAlso hideActions = 0 AndAlso CBool(cardPress("hidden")), "hidden pages and card headers cannot retain a pressed action until they reappear")
+            check(detached AndAlso actions = 0 AndAlso CBool(cardPress("detached")), "detaching and reattaching action controls cancels old presses while fresh clicks remain available")
             VerifyLivePress(button, icon, host, rows, layout, check, directory)
         End Using
     End Sub
