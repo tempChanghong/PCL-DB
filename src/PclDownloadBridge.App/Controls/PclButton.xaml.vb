@@ -27,8 +27,15 @@ Namespace Controls
             End Set
         End Property
         Private _down As Boolean
+        Private ReadOnly _pressMotion As PclPressMotion
+        Friend ReadOnly Property ScaleTransition As Animation.AnimationClock
+            Get
+                Return _pressMotion.Transition
+            End Get
+        End Property
         Public Sub New()
             InitializeComponent()
+            _pressMotion = New PclPressMotion(Me, DirectCast(PanFore.RenderTransform, ScaleTransform), Sub() _down = False)
             PclTheme.Watch(Me, Sub() Refresh(Nothing, Nothing))
             Cursor = Cursors.Hand
             Focusable = True
@@ -39,7 +46,6 @@ Namespace Controls
             AddHandler LostKeyboardFocus, AddressOf Refresh
             AddHandler IsEnabledChanged, Sub()
                                              _down = False
-                                             RestoreScale(300)
                                              Refresh(Nothing, Nothing)
                                          End Sub
         End Sub
@@ -61,27 +67,24 @@ Namespace Controls
             If Not IsEnabled Then Return
             _down = True
             Focus()
-            NumberTo(DirectCast(PanFore.RenderTransform, ScaleTransform), ScaleTransform.ScaleXProperty, 0.955, 80)
-            NumberTo(DirectCast(PanFore.RenderTransform, ScaleTransform), ScaleTransform.ScaleYProperty, 0.955, 80)
+            _pressMotion.Start(PclPressKind.ButtonDown)
             e.Handled = True
         End Sub
         Protected Overrides Sub OnMouseLeftButtonUp(e As MouseButtonEventArgs)
             MyBase.OnMouseLeftButtonUp(e)
             Dim click = _down AndAlso IsEnabled
             _down = False
-            RestoreScale(300)
-            If click Then RaiseEvent Click(Me, e)
+            If click Then
+                _pressMotion.Start(PclPressKind.ButtonUp)
+                RaiseEvent Click(Me, e)
+            End If
             e.Handled = True
         End Sub
         Protected Overrides Sub OnMouseLeave(e As MouseEventArgs)
             MyBase.OnMouseLeave(e)
             If Not _down Then Return
             _down = False
-            RestoreScale(800)
-        End Sub
-        Private Sub RestoreScale(milliseconds As Integer)
-            NumberTo(DirectCast(PanFore.RenderTransform, ScaleTransform), ScaleTransform.ScaleXProperty, 1, milliseconds)
-            NumberTo(DirectCast(PanFore.RenderTransform, ScaleTransform), ScaleTransform.ScaleYProperty, 1, milliseconds)
+            _pressMotion.Start(PclPressKind.ButtonLeave)
         End Sub
         Protected Overrides Sub OnKeyDown(e As KeyEventArgs)
             MyBase.OnKeyDown(e)

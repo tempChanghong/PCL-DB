@@ -11,6 +11,12 @@ Namespace Controls
         Inherits Border
         Public Event Click As RoutedEventHandler
         Private _down As Boolean
+        Private ReadOnly _pressMotion As PclPressMotion
+        Friend ReadOnly Property ScaleTransition As AnimationClock
+            Get
+                Return _pressMotion.Transition
+            End Get
+        End Property
         Private _logoScale As Double = 1
         Public Property Logo As String
             Get
@@ -31,35 +37,32 @@ Namespace Controls
         End Property
         Public Sub New()
             InitializeComponent()
+            _pressMotion = New PclPressMotion(Me, DirectCast(PanBack.RenderTransform, ScaleTransform), Sub() _down = False)
             Focusable = True : Cursor = Cursors.Hand
             AddHandler Loaded, Sub() RefreshColor(False)
             AddHandler IsEnabledChanged, Sub()
                                              _down = False
-                                             ScaleTo(1, 250)
                                              RefreshColor(IsLoaded)
                                          End Sub
-            AddHandler Unloaded, Sub()
-                                     _down = False
-                                     ScaleTo(1, 250)
-                                 End Sub
             AddHandler MouseEnter, Sub() RefreshColor(True)
             AddHandler GotKeyboardFocus, Sub() RefreshColor(True)
             AddHandler LostKeyboardFocus, Sub() RefreshColor(True)
             AddHandler MouseLeave, Sub()
                                        _down = False
-                                       ScaleTo(1, 250)
+                                       _pressMotion.Start(PclPressKind.IconLeave)
                                        RefreshColor(True)
                                    End Sub
             AddHandler MouseLeftButtonDown, Sub(sender, args)
                                                If Not IsEnabled Then Return
                                                _down = True : Focus()
-                                               ScaleTo(0.8, 400)
+                                               _pressMotion.Start(PclPressKind.IconDown)
                                                args.Handled = True
                                            End Sub
             AddHandler MouseLeftButtonUp, Sub(sender, args)
                                              If Not _down OrElse Not IsEnabled Then Return
                                              _down = False
-                                             ReleaseScale()
+                                             _pressMotion.Start(PclPressKind.IconUp)
+                                             RefreshColor(True)
                                              args.Handled = True
                                              RaiseEvent Click(Me, args)
                                          End Sub
@@ -80,26 +83,6 @@ Namespace Controls
                 Path.Fill = New SolidColorBrush(targetColor)
             End If
             PanBack.Background = New SolidColorBrush(Colors.Transparent)
-        End Sub
-        Private Sub ScaleTo(value As Double, milliseconds As Integer)
-            Dim scale = DirectCast(PanBack.RenderTransform, ScaleTransform)
-            If IsLoaded Then
-                NumberTo(scale, ScaleTransform.ScaleXProperty, value, milliseconds)
-                NumberTo(scale, ScaleTransform.ScaleYProperty, value, milliseconds)
-            Else
-                scale.BeginAnimation(ScaleTransform.ScaleXProperty, Nothing)
-                scale.BeginAnimation(ScaleTransform.ScaleYProperty, Nothing)
-                scale.ScaleX = value : scale.ScaleY = value
-            End If
-        End Sub
-        Private Sub ReleaseScale()
-            Dim animation As New DoubleAnimationUsingKeyFrames()
-            animation.KeyFrames.Add(New EasingDoubleKeyFrame(1.05, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(250))) With {.EasingFunction = New BackEase With {.Amplitude = 0.3, .EasingMode = EasingMode.EaseOut}})
-            animation.KeyFrames.Add(New EasingDoubleKeyFrame(1, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(500))) With {.EasingFunction = New PowerEase With {.Power = 3, .EasingMode = EasingMode.EaseOut}})
-            Dim scale = DirectCast(PanBack.RenderTransform, ScaleTransform)
-            scale.BeginAnimation(ScaleTransform.ScaleXProperty, animation)
-            scale.BeginAnimation(ScaleTransform.ScaleYProperty, animation)
-            RefreshColor(True)
         End Sub
     End Class
 End Namespace

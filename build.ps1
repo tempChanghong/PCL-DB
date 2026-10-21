@@ -16,7 +16,7 @@ try {
         & '.\src\PclDownloadBridge.App\bin\Release\net48\PclDownloadBridge.exe' --motion-checks artifacts/motion-checks-0.57.json | Out-Null
         if ($LASTEXITCODE -ne 0) { throw 'Motion checks failed.' }
         $motion = Get-Content -LiteralPath artifacts/motion-checks-0.57.json -Raw | ConvertFrom-Json
-        if (!$motion.Succeeded -or $motion.Scope -ne 'motion' -or $motion.Count -ne 158) { throw 'Motion checks failed.' }
+        if (!$motion.Succeeded -or $motion.Scope -ne 'motion' -or $motion.Count -ne 214) { throw 'Motion checks failed.' }
     }
     if ($Package) {
         Import-Module (Join-Path $PSScriptRoot 'tools/PackageTools.psm1') -Force

@@ -34,6 +34,7 @@ Partial Public Class MainWindow
         about.VerifyAboutMotion(directory, check)
         VerifyMotionStress(directory, check)
         VerifyMotionLayout(directory, check)
+        VerifyPressMotion(directory, check)
         Return passed
     End Function
 
