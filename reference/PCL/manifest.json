@@ -1,0 +1,182 @@
+{
+  "Files": [
+    {
+      "File": "Application.xaml",
+      "Hash": "FA4041D6C899DD1FF4D4AD6D8E605F99D3276608441C9937EBE1E772783212DC"
+    },
+    {
+      "File": "FormMain.xaml",
+      "Hash": "A0A39FC73017A028EA1A520361142FA0149C832364D5F8F395BD12F147D425B1"
+    },
+    {
+      "File": "Controls\\MyButton.xaml",
+      "Hash": "CC7EFC6955ECFC64710581052866CD629C0604DF53468541B1C715AF839DA2E2"
+    },
+    {
+      "File": "Controls\\MyButton.xaml.vb",
+      "Hash": "602207BE24CBAB6BBEFB1F8B56AE3A546B45EF1CB9453C1E8549CDE89A4499F4"
+    },
+    {
+      "File": "Controls\\MyCard.vb",
+      "Hash": "EEC893A69388B9157C12C86183E8F00E27BE29A371DD56E3F7F898158303FF01"
+    },
+    {
+      "File": "Controls\\MyCheckBox.xaml",
+      "Hash": "A14C6BD3E5784C18E1A724280EBD157A468EA398D5196F9BEF57C037DD0745DC"
+    },
+    {
+      "File": "Controls\\MyCheckBox.xaml.vb",
+      "Hash": "46BB7B544C537B2980759675F1EF818720C21291ACC9030E32737E79F27F612E"
+    },
+    {
+      "File": "Controls\\MyComboBox.vb",
+      "Hash": "AFA79C8028D0847F7B4FB6702BA5C4F2334E759EBA8FE2C2FE84DE82BD5D4BBD"
+    },
+    {
+      "File": "Controls\\MyComboBoxItem.vb",
+      "Hash": "A3CD272B47DBBAAAFA66972349008C7358C268949FF33552E652C208D485F261"
+    },
+    {
+      "File": "Controls\\MyDropShadow.vb",
+      "Hash": "52CCF36B286FF8DCB27CB12B085ED4493C6E16A0103223EDA7B43FCE8EE8F6D9"
+    },
+    {
+      "File": "Controls\\MyExtraTextButton.xaml",
+      "Hash": "3ED74185D06FBA542320B7BC83C93F2E2971CA95EC04D6BA7865CE1DB7CBAFE0"
+    },
+    {
+      "File": "Controls\\MyHint.xaml",
+      "Hash": "BFBC536749C814FB02CBD2293CA44B5AD46C3DA4C493E41996E1C08F2B7449A0"
+    },
+    {
+      "File": "Controls\\MyHint.xaml.vb",
+      "Hash": "EDEC6A36BFD35DE75BC6F15279F410FE65D00021A248B4E5B68AB130EA6122AD"
+    },
+    {
+      "File": "Controls\\MyIconButton.xaml",
+      "Hash": "7AA8085144BB41BC3293BA4CF4440CB21E342B5CACAC8FAD5776F538CA6F54F5"
+    },
+    {
+      "File": "Controls\\MyIconButton.xaml.vb",
+      "Hash": "04DBF2201BB4A77204E595851479C582A330BD30871CC884EE5B28A3BFC5FED6"
+    },
+    {
+      "File": "Controls\\MyListItem.xaml",
+      "Hash": "865ED50B599116CA9C5EF0A59BDBB297449BC8234D74EAF3A858C58CCF6A2A45"
+    },
+    {
+      "File": "Controls\\MyListItem.xaml.vb",
+      "Hash": "CD5E7F205FDFC4A0C99E86129FD8517F4742420BADC2BAD24720A45F3D73AE5B"
+    },
+    {
+      "File": "Controls\\MyRadioBox.xaml",
+      "Hash": "22629C0CB69FE3ECDA82878AAB379A23888E50DF2AEB00DF02CFC76D0490420A"
+    },
+    {
+      "File": "Controls\\MyRadioBox.xaml.vb",
+      "Hash": "4F7A899D257415EF18008B9DEB67A080138CDAD61E4126536855F8869DDDC3D0"
+    },
+    {
+      "File": "Controls\\MyRadioButton.xaml",
+      "Hash": "811CD99C34AE10ED2FF3ED92B7B0CE1AE2B7C676C82B562BDA8859AC722764CE"
+    },
+    {
+      "File": "Controls\\MyRadioButton.xaml.vb",
+      "Hash": "93F444FD729EF4BB0E6B1EF4C26D7A2A291DC4582EAAA6F2CF42F17F6ED33B1D"
+    },
+    {
+      "File": "Controls\\MySlider.xaml",
+      "Hash": "4FC633DAF62AB8CB783536DA10E0F0EA79ABF4AC6B13C297A7BACCE248E0F113"
+    },
+    {
+      "File": "Controls\\MySlider.xaml.vb",
+      "Hash": "4537DC587DF6F0CF65E6744995A0DAD4A24EC3709AC9A90345236F590A871C38"
+    },
+    {
+      "File": "Controls\\MyTextBox.vb",
+      "Hash": "B3D513E93EDB74AFB8A4DA3D0A0AC630A3517A7C7C9E44CD8B690B1AD60683E3"
+    },
+    {
+      "File": "Controls\\MyVirtualizingElement.vb",
+      "Hash": "11BE47EF450D58AFE57EBA359ECCABE58713281CCA1724B22B7664C5901F2B1F"
+    },
+    {
+      "File": "Controls\\Behaviors\\LazyLoadBehavior.vb",
+      "Hash": "CF98848CD5188AAA5DD7DEF167C954350D6B32899CCFE4743DAB841B4D949B53"
+    },
+    {
+      "File": "Modules\\ModSecret.vb",
+      "Hash": "B6D85456A9A552A9109DEFAC7BA3DAF19CA642EEFF63649B7757B467221B7DF7"
+    },
+    {
+      "File": "Modules\\Base\\ModNet.vb",
+      "Hash": "4BFFFDE0CF259E04375FA4C66211834952FA3C551D7424D6F2A920A6D628271C"
+    },
+    {
+      "File": "Modules\\Base\\ModValidate.vb",
+      "Hash": "56128D0B9A951280680BFCBD183ACC49C771651A3E46A517DCAA9A041C4F88E7"
+    },
+    {
+      "File": "Modules\\Minecraft\\ModDownload.vb",
+      "Hash": "18609AF70550FE80F1AEBF6715EA5A8F88BA40C306487C317EE2934C6A839F8E"
+    },
+    {
+      "File": "Modules\\Minecraft\\ModMinecraft.vb",
+      "Hash": "D1F70F95A2E1693F073024C4A2A74B987EFAAADE0ADB0A8B681D90EFFFE125D5"
+    },
+    {
+      "File": "Pages\\PageSelectLeft.xaml.vb",
+      "Hash": "A631D20DCF6545F3608F239AE77F02102DE71E8D6E19A076382040D8F9C4A87B"
+    },
+    {
+      "File": "Pages\\PageSpeedLeft.xaml",
+      "Hash": "FFA710D5054C2FB060E2743C902ECE2C1AB1192F25FF4E0FB38EF8B4177D4AF5"
+    },
+    {
+      "File": "Pages\\PageSpeedLeft.xaml.vb",
+      "Hash": "90AA6BBD850C6D54D9C520703EC089745C3B8E5324016E72D75BB524001F0A7D"
+    },
+    {
+      "File": "Pages\\PageSpeedRight.xaml",
+      "Hash": "458FE87243968414A4A16C15B684693454FB81BA49806BD2700485D9A096988D"
+    },
+    {
+      "File": "Pages\\PageDownload\\ModDownloadLib.vb",
+      "Hash": "396FC40E881F7088CD2022F470B27760C3FF90256501E41A4457B5794DBBB118"
+    },
+    {
+      "File": "Pages\\PageDownload\\PageDownloadInstall.xaml",
+      "Hash": "EDFCF801787CB9C4688A0B9C6343F22D1DE5200853C8DF6BA7CB6E03101DDA9C"
+    },
+    {
+      "File": "Pages\\PageDownload\\PageDownloadInstall.xaml.vb",
+      "Hash": "6B86632A666119B6B4624C78CAE54A966134EA132B34D7D7A893651AC93CE482"
+    },
+    {
+      "File": "Pages\\PageDownload\\PageDownloadLeft.xaml",
+      "Hash": "C0B8C73F2A983F2942DF5A3C9E2A4CAF227FE16DE7B762884578C06F3CA76F68"
+    },
+    {
+      "File": "Pages\\PageOther\\PageOtherAbout.xaml",
+      "Hash": "B7C6355CEE321F8FFBC4930C47928CA81EFB49E9D0207BADECA9966231624CB3"
+    },
+    {
+      "File": "Pages\\PageOther\\PageOtherAbout.xaml.vb",
+      "Hash": "795F10A367E625671D56E3323140D228DF8AF7933AB7D4C6331103DCABF2CA60"
+    },
+    {
+      "File": "Pages\\PageSetup\\PageSetupSystem.xaml",
+      "Hash": "74FE53AAD8C289CE378328CD2A539625EBCBE96B8413127B5CD4B3980D5E4CAC"
+    },
+    {
+      "File": "Pages\\PageSetup\\PageSetupUI.xaml",
+      "Hash": "EDEFCECD66E50A3938A4954CD565D6BF61EAC2478A55D4BAA9B52BEAF33830F9"
+    },
+    {
+      "File": "Pages\\PageSetup\\Settings.vb",
+      "Hash": "38B54ECAA39209082B579A2F640E196F78B2B4871FF1E3D105736C12D97A45D4"
+    }
+  ],
+  "Commit": "5ef81e490ae46b1100d61e33d0183094c7a80ca8",
+  "Repository": "Meloong-Git/PCL"
+}

@@ -1,0 +1,748 @@
+# 本地验证记录
+
+日期：2026-10-21（北京时间）。当前交付为本地 0.45 预览版 PCD（Plain Craft Downloader），包含 Visual Studio 2026 开发配置；下方保留先前版本的验证记录。
+
+## 本地 Git 初始提交与独立构建检查
+
+- 2026-10-21 验证本机 Git Credential Manager 的 GitHub 登录为 tempChanghong；当时该账号下 PCD 仓库不存在。用户确认尚无上游额外授权，并决定先完成本地提交，公开仓库与推送等待许可问题解决后继续。本轮未创建 GitHub 仓库、未推送。
+- 将当前项目初始化为独立 Git 仓库，使用 main 分支。仅纳入源码、测试、内置资源、固定参考与文档；忽略 bin/obj、.vs、artifacts、dist、用户配置及日志。提交身份采用该 GitHub 账号的 noreply 邮箱，未修改全局 Git 身份。
+- 修正此前遗漏 LICENCE 拼写的问题，根目录原样保留 PCL 固定提交的该文件，第三方说明明确当前命名和主题的待解决事项；没有为上游源码或素材另行授予开放许可。打包脚本也包含 LICENCE。
+- 默认界面对照检查不再读取相邻 PCL 工作树中的资源，改为核对 reference/pcl-assets.json 中固定提交的 12 项 SHA-256。生成清单时逐项读取原 Git 对象，与当前资源字节核对一致；44 份固定源码快照的暂存内容也与原清单全部一致。
+- 对 193 个待提交文件检查了构建产物、用户文件及常见令牌/私钥模式，未发现误收项；这属于提交前模式检查，不是完整安全审计。Git 属性固定文本换行并保留上游快照原有空白，暂存差异检查通过。
+- 将实际暂存 Git 树导出到 artifacts/publication-preflight-20261021/checkout；该目录旁没有 PCL 仓库，也没有旧 bin/obj。直接运行 build.ps1：三个项目的 Release 构建、15 项 PCL 对照、551 项完整下载/安装回归和 561 项 UI 检查通过，并生成包含许可文件的便携目录及 ZIP。结果与日志在同级 result.json 和 build.log，仅保留于本地。未据此声称人工 IDE 断点、真实 Minecraft 下载或完整游戏启动通过。
+
+## 0.45 更名后的保存冲突复查
+
+- 修改前保存 `artifacts/baseline-0.44/source.zip`（144 个源文件）及原七仓库状态。实际扫描当前代码、项目、资源 URI、构建与调试入口，没有发现额外的旧程序集/命名空间引用；旧设置目录键与兼容游戏缓存路径继续保留。
+- 先将原保存代码原样提取为可对临时文件执行的实际辅助方法，再追加检查。`settings-conflicts-before-0.45/ui.json` 在原 25 项通过后失败：普通保存丢失未知字段及嵌套外观字段；同一次诊断确认启动后损坏的当前文件也被自动保存覆盖。现场 `settings-conflicts-before.json` 的三个布尔值均为 false，未访问真实用户偏好。
+- 增加多实例场景后，`settings-stale-before-0.45/ui.json` 在前 43 项通过后复现旧窗口完整保存撤销另一实例下载源的问题；已增加启动/成功保存时的窗口基线，自动保存只提交实际修改，主动保存仍提交用户已检查的完整设置。关闭前未修改不会重写时间戳，非法速度修正仍会持久化。
+- 修复为互斥内重新读取、深度合并和原子发布；普通设置、外观保存及首次迁移都参与同一目标路径互斥。未知值、数组替换和显式 null 有回归覆盖；无法读取/解析时自动保存不覆盖，主动保存才可修复损坏 JSON。锁等待有上限，失败会释放自己的锁和临时文件。
+- 新增 24 项实际文件检查，Settings Compatibility 合计 49 项，完整 UI 为 561 项：迁移后的真实保存方法、未知嵌套字段、普通/外观自动写入拒绝损坏配置、显式恢复、24 个并行写入、占用文件、失败后重试、Windows 路径别名、不同配置独立以及异常退出的互斥所有者恢复。
+- 独立跨进程探针加载实际 Release App 的保存函数：另一进程持锁时，同文件大小写别名等待超时且原字节不变；其他配置仍可写，释放后可重试；终止自建测试持锁进程后可恢复，并保留未知字段。仅终止本次临时探针，未操作用户启动器。见 `settings-process-0.45.json`，不重复计入 UI 用例数。
+- 本机 VS 2026 Debug 构建及启动配置通过：175 项短控制台回归、561 项完整 UI；独立组为主题 70、卡片 66、导航 31、兼容 49，包含于完整 UI，不累加。Portable PDB/关闭优化验证通过，IDE 内 F5 断点未人工验收。
+- 最终 Release 构建零警告、零错误，561 项 UI 和打包程序的同一完整检查通过。Core 和控制台检查源码逐字节保持，Core DLL 与 0.44 完整 551 项下载/安装回归相同，未重复未变化的完整回归；本轮 VS 的 175 项短回归另行实际运行。
+- 当前源码 145 个文件；包内 10 个文件与 Release/文档逐字节核对。44 份参考与七个原仓库状态保持，详见 `package-verify-0.45.json` / `source-changes-0.45.json`。本轮未迁移真实用户偏好、联网下载整套游戏或启动 Minecraft。
+
+## 0.44 更名为 PCD
+
+- 用户确认 Plain Craft Downloader / PCD 后，先保存 `artifacts/baseline-0.43/source.zip`（143 个源文件）与七仓库状态、原 `.vs` 文件哈希。确认目标根目录不存在且未运行旧程序/VS，随后移动到 `D:\CodeProjects\Minecraft\PlainCraftDownloader`。旧 bin/obj 和当前旧便携目录移入基线归档，避免混用旧程序集；没有删除旧源码、历史 ZIP 或 VS 用户状态。
+- 解决方案及 slnLaunch、三个项目目录/文件、程序集、VB RootNamespace/Imports、WPF clr-namespace/pack URI、启动对象、manifest、脚本和调试配置统一到 PlainCraftDownloader。主窗口/标签显示 PCD，关于页和产品元数据显示 Plain Craft Downloader。版本为 0.44.0.0。
+- 设置写入 `%LOCALAPPDATA%/PlainCraftDownloader/settings.json`，首次启动仅在缺少新设置时验证并复制旧 VanillaDownloader 配置。临时文件加不覆盖的 File.Move 发布；已有或并发生成的新文件优先，保留旧配置、原编码和未知字段。损坏的新文件不自动回退覆盖，目标不可写则保留验证后的旧配置用于本次运行并提示。外观单独保存也沿用兼容读取。
+- 新增 25 项 Settings Compatibility，纳入完整 UI：程序集与命名空间身份、新旧路径、UTF8/UTF16、未知字段、重复读取、已有/损坏/占用目标、读取失败、重试及并行迁移。检查只访问随机临时目录，未在本轮执行真实用户设置迁移，详见 `settings-compatibility.json`。
+- 游戏目录内 `.vanilla-downloader` 的缓存、续传、暂存、日志和安装锁路径保持兼容。Core 业务源码只更新 HTTP User-Agent 名称/版本，其他下载/安装源文件按路径映射逐字节核对；Core DLL 因程序集/命名空间更名而改变，不宣称其二进制哈希保持。
+- 复查发现偏好读取失败后，旧自动保存入口仍可能写入当前默认值。`rename-saveguard-before-0.44/ui.json` 在前 23 项通过后复现未阻止自动保存；已添加读取失败状态，阻止关闭窗口、目录切换和外观自动保存，只有用户检查后点击保存设置才允许写入。新增两项覆盖自动阻止与主动保存，完整界面现为 537 项。
+- 本机 VS 2026 Debug 构建和 Portable PDB/关闭优化检查通过：175 项短控制台回归、537 项完整 UI，以及主题 70、卡片 66、导航 31、兼容 25 的独立启动配置。各独立组包含于 UI 总数，不相加。IDE F5 断点未人工验收。
+- 完整下载/安装回归通过 551 项，见 `download-regression-0.44.log`，Core 与测试程序哈希记录于 `core-regression-0.44.json`。随后仅对 App 补充自动保存保护；最终 Release 构建零警告、零错误，重跑 537 项 UI，通过后核对所用 Core/控制台程序仍与完整回归相同；当前源码 144 个文件。新便携目录与 ZIP 的 10 个文件逐字节核对，打包程序的离屏关于页、组件页及完整 UI 通过；重命名后的字体、图片资源和文档查找均走新程序集/源码路径。
+- `package-verify-0.44.json` 和 `source-changes-0.44.json` 记录重命名映射、唯一遗留的旧设置目录键、兼容缓存路径、44 份 PCL 参考、七仓库状态与 VS 缓存保留。历史记录继续使用当时名称；本轮未运行原 PCL、联网下载整套 Minecraft 或启动游戏。
+
+## 0.43 安装选项的页面转场
+
+- 修改前保存 `artifacts/baseline-0.42/source.zip`，141 个源文件；七个原仓库状态与 0.42 交付一致。独立探针加载原 0.42 便携程序，在隐藏的 WPF 呈现源中点击示例版本，立即观察到列表 Collapsed、安装页 Visible，两页均无属性动画、无转场时钟，见 `navigation-before-0.43.json`。未激活桌面窗口。
+- 对照固定 PCL 的 EnterSelectPage/ExitSelectPage 和 PanSelect 初始 X=40，补齐 10ms/100ms 起始的两段转场，总长 260ms。顶部共享工具栏不再因同页选择重复淡入，内容视口裁切横移并在结束前屏蔽点击；键盘回焦延后。原返回保留选择与版本列表位置的行为继续保留，具体与 PCL 的操作差异见 SOURCE_REFERENCES。
+- 原样摘取两个 AniStart 表达式及 AniEaseOutFluent 方法体，外部记录桩不执行原业务闭包；独立编译后与实际 Release App 的 8 组计划、832 个属性采样一致，覆盖时长/延迟边界、反向起点及冻结副本，见 `navigation-oracle-0.43.log` / `navigation-oracle-0.43.json`。这些采样不重复计入 UI 用例。
+- 新增 31 项 Navigation Checks：实际 WPF 时钟采样、中途反向、过时回调、重复刷新、输入门控、延后回焦、设置/进度跳转、卸载/重挂，以及自定义名称、依赖、已访问行和任务进度保留。实测属性和该帧 CurrentTime 保存在 `page-switch-motion.json`，不把请求的 Seek 时间当作已生效时间。安装/版本稳定画面及中间帧已离屏渲染检查。
+- 旧 UI 断言已适配新的内容容器；普通键盘流程在自有时钟结束后再断言行可回焦。中间阶段的命中测试禁用会连带使行 Focusable 暂时为 false，属于 PCL 式输入门控；新用例另覆盖未结束时快速返回，没有用固定睡眠跳过该边界。
+- VS 2026 Debug 构建通过：175 项短控制台回归、完整 512 项 UI（包含主题 70、卡片 66、页面切换 31），Portable PDB 与关闭优化验证通过。新增可直接选择的 Navigation Checks 启动配置；IDE 内 F5 断点仍未人工验收。
+- 最终 Release 构建零警告、零错误，551 项下载/安装检查和 512 项 UI 通过。相对 0.42 基线为 143 个源文件、15 项修改/新增、无删除；Core、卡片及摘要实现不变，44 份固定参考和七个原仓库状态保持。包内 10 个文件与 Release/文档逐字节一致，打包程序单独执行 31 项 Navigation Checks 通过，见 `package-verify-0.43.json` / `package-smoke-0.43.json`。
+- 本轮证据为本工具离屏 WPF 和本地模拟下载回归；未实际下载新版本、启动 Minecraft、运行原 PCL 或进行跨 DPI 逐像素验收。
+
+## 0.42 组件摘要显隐
+
+- 修改前保存 `artifacts/baseline-0.41/source.zip`，139 个源文件。固定 PCL SetPanelVisibility 和安装页 XAML 确认摘要与清除按钮不在同一个动画层。
+- 新增检查后保留原实现，`summary-before-0.42/ui.json` 在旧 38 项及折叠摘要一项通过后稳定失败：展开时 Summary=Hidden、Icon=Collapsed；文字和清除按钮共享父级。这与 PCL 保留子控件、对信息父层做透明度/平移的方式不同，见 `component-summary-structure.json`。
+- PclComponentSummary 将图标和文字组合为信息层，独立清除按钮保持位置及透明度；隐藏 60ms 线性到 Y=6/Opacity=0，显示 60ms 淡入并以 150ms 三次方缓动回位。实际时钟采样使用该帧 CurrentTime，不把 Pause/Seek 请求时间当作生效时间。
+- 增加 28 项检查，Card Checks 合计 66 项：未加载状态、冻结构造、实际显隐/反向时钟、旧时钟不能覆盖新状态、卸载重挂、刷新不重播、组件行/名称/依赖及滚动位置保留。清除展开中的 Fabric API 后保留 Fabric 与用户名称，显式不选依赖的偏好保留；重新选加载器不恢复该依赖。
+- 独立编译原 SetPanelVisibility 与原三次方缓动方法体，仅替换外部记录依赖。实际 Release App 的 8 组计划、288 个属性采样一致，包含冻结副本、已在中间位置的起点和线性终态。证据为 `summary-oracle-0.42.log` / `summary-oracle-0.42.json`，不与 UI 用例重复计数。
+- `summary-final-0.42/component-summary-motion.json` 记录真实控件值及清除按钮状态，`component-summary-expanded.png` / `component-summary-folded.png` 为稳定画面的离屏示例。未在本轮实际启动 PCL 或 Minecraft，也未进行原版跨 DPI 逐像素验收。
+- 首次 VS Debug 的单独 Card Checks 在旧绝对坐标断言处失败，现场保留于 `summary-debug-failure-0.42/`。加入窗口缩放后同一断言稳定失败：卡片宽度 764→728，按钮 X 为 702→666，而左右两次的右侧间距均为 32、Y 均为 5，见 `summary-anchor-resize-before-0.42/`。修正为核对右侧锚定与纵向位置并保留浮点容差；未改产品布局来迁就断言，也不声称恢复了首次失败时未记录的几何值。
+- 最终完整 Release 流水线 `build-final-0.42.log` 为零警告、零错误，551 项下载/安装检查和 481 项 UI 检查通过；其中 Card Checks 为 66 项，Appearance Checks 为 70 项，不重复相加。VS Debug 短回归为 175 项控制台检查，并运行同样的完整 UI/主题/卡片配置；Portable PDB/关闭优化检查通过，IDE 内 F5 命中断点仍未人工验收。
+- 相对 0.41 基线，共 141 个源文件、12 项修改/新增、无删除。Core 及上一轮卡片高度/箭头实现未改，44 份参考快照与七个原仓库状态保持；运行包/ZIP 的 10 个文件逐字节核对，并用打包程序独立执行 66 项 Card Checks，见 `package-verify-0.42.json` / `package-smoke-0.42.json`。
+
+
+## 0.41 卡片折叠与安装视口
+
+- 修改前保存 `artifacts/baseline-0.40/source.zip`，137 个源文件。核对固定 PCL 的 MyCard.StartHeightAnimation、ModAnimation 两类 Fluent 缓动及 PageDownloadInstall.PrepareSelectPage。
+- `card-before-0.41/ui.json` 稳定复现旧视口问题：120 行加载器列表滚到底部，选择另一个 MC 版本后新名称已更新，但 VerticalOffset 从 5230.8133 被夹到新页面底部 175.8133，而非 0。显式重置 InstallScroll 后为 0；设置往返仍保留原位置与展开状态。
+- 旧卡片统一 150ms、四次方高度缓动、三次方箭头缓动。现按源码采用五次方短程缓动和长列表两段计划，箭头 250ms 五次方。带初速度末段按原分式曲线及线性回退实现；WPF 冻结/克隆后参数保留。动画替换、完成和卸载会按所有权释放高度时钟，不重建已有行。
+- 原方法体和两类缓动函数摘取后未修改，外部依赖替换为记录桩，编译得到独立对照程序；实际 Release App 的 17 组计划、332 个高度采样、11 个箭头采样一致，包含短/长、展开/收回、800/3000 边界及 WPF 冻结副本。证据为 `card-oracle-0.41.log` / `card-oracle-0.41.json`，不计入 UI 用例数。
+- 新增 Card Checks 38 项，纳入完整 UI 检查：新版本定位、设置往返、计划边界、已加载 WPF 实际时钟采样、中途反向、旧时钟不覆盖新状态、完成、卸载和重新挂载。实际采样记录使用该次时钟 CurrentTime；WPF Pause/Seek 要经渲染帧处理，不把固定睡眠或请求时间当已生效时间。
+- 第一轮完整流水线为 551 项控制台及 452 项 UI，通过记录 `build-before-unload-guard-0.41.log`。随后补充固定高度卸载边界，`card-unload-before-0.41/ui.json` 在 37 项通过后复现高度被不必要清理的问题；已限制为仅清理正在播放的高度动画，普通固定高度保持。
+- 画面来自本工具离屏示例和实际 WPF 控件；未启动 PCL 原程序做跨 DPI 像素比对，未在本轮实际启动游戏。卡片摘要淡入/位移、整页转场、独立任务侧栏和完整下载排程器仍有差异，详见 `SOURCE_REFERENCES.md` 的 0.41 对照表。
+- 固定高度保护完成后，最终完整 Release 流水线 `build-final-0.41.log` 为零警告、零错误，551 项下载/安装检查和 453 项界面检查通过；独立 Card Checks 为其中 38 项，Appearance Checks 为其中 70 项，不重复相加。VS Debug 短回归为 175 项控制台检查，并运行相同的三种界面配置；Portable PDB/关闭优化核对通过，未进行 IDE 内 F5 人工断点验收。
+- 对照图在离屏检查中将页面淡入时钟归位到稳定画面，未改变生产页面的转场；`card-final-0.41/install-viewport.png` 可查看新版本从顶部开始的最小高度窗口。动画中间帧及实际时钟值另存 `card-motion-middle.png`、`live-card-motion.json`。
+- 交付核对为 139 个源文件，相对 0.40 基线 14 项修改/新增、无删除；Core 源码和 DLL 哈希保持，44 份固定参考及七个原仓库状态不变。包内 10 个文件与 Release/文档逐字节一致，独立启动打包程序执行 Card Checks 38 项通过，见 `package-verify-0.41.json`、`package-smoke-0.41.json`。
+
+
+## 0.40 主题检查的加载前提与失败现场
+
+- 修改前保存 `artifacts/baseline-0.39/source.zip`，共 136 个源文件。原 0.39 便携程序连续执行 20 次完整界面检查，每次 370 项通过，逐次诊断留在 `artifacts/appearance-before-0.40/`；没有因未复现而宣布旧问题消失。
+- 加入单独主题入口并保留原断言后，两次稳定复现：`appearance-expanded-0.40/ui.json` 和 `appearance-expanded-repeat-0.40/ui.json` 均为非零退出、13 项已经通过，失败名称与上一轮相同。此时进度仍为 0.398，主题为 green，但任务页 Collapsed、阶段 IsLoaded=false，图标和活动文字仍缓存蓝色 `#FF127AE1`。
+- 显式显示任务页并完成布局后，同一主题/任务代码的 IsLoaded=true、图标及文字为绿色 `#FF35B840`，进度仍为 0.398。`appearance-reveal-0.40/appearance-task-colors-0.26.json` 同时保留显示前后的值。确认这是隐藏且尚未加载子树的资源缓存被检查过早，不是安装进度归零；未修改主题资源实现或下载算法来掩盖断言。
+- 新增 45 项检查，覆盖五种任务状态各切换 green/colorful/blue 三次：所有阶段颜色、取消时的灰色说明、进度/百分比、任务代次、终止结果、原因文字，以及阶段控件身份与图形/文字均保持。单独主题入口 70 项通过，包含原 25 项及新增 45 项；这些用例也纳入完整界面检查，不能重复相加计数。
+- 全量/单独检查统一输出结构化 JSON，失败保留已经通过的检查、具体失败名称和堆栈，退出码仍为 1，不自动重试。VS 新增 Appearance Checks 配置；颜色状态逐次写入 `appearance-task-states.json`，显示后的任务页留作 `appearance-revealed.png`。
+- 为排除新增检查入口本身制造失败，另从已核验的 0.39 ZIP 提取原始程序，用外部 STA 反射程序直接调用它未修改的私有 VerifyAppearance：同一断言在 13 项通过后失败，颜色仍是蓝色、进度未变。相同外部程序调用最终 0.40 时通过 70 项。`appearance-investigation-0.40.json` 记录两个 App 的 SHA-256，旧程序与 0.39 交付报告一致；早先完整流水线失败时的精确旧现场未保留，不声称恢复了该次现场。
+- 通过受控异常调用实际 UiCheckRunner，失败时退出 1、保留先前一项检查、诊断文件、失败名称和异常类型；成功时退出 0、保留两项检查，见 `ui-report-contract-0.40/result.json`。这是独立报告协议检查，不重复计入 415 项界面用例。
+- 最终 Release `build-final-0.40.log` 零警告、零错误，551 项下载/安装检查、415 项 UI 检查通过；独立 Release 主题入口通过 70 项。VS 2026 Debug 验证为 175 项短控制台回归、415 项全量 UI 和包含于全量中的 70 项独立主题检查，portable PDB/关闭优化通过，未进行 IDE 内 F5 人工断点验收。
+- 源码相对 0.39 基线为 137 个文件、12 项修改/新增，无删除。Core、主题实现、任务进度实现源码与 Core DLL 哈希保持；44 份固定 PCL 快照和七个原仓库状态不变。运行包与 ZIP 的 10 个文件逐字节对照 Release/文档；完整核对见 `package-verify-0.40.json`。这些是离屏渲染、模拟任务及本地引擎验证，没有实际启动 PCL 或 Minecraft。
+
+
+## 0.39 常规重复库的版本与规则选择
+
+- 修改 Core 前复现四类失败：基础计划同时保留同类不同版本；较旧组件覆盖较新原版库；不同条件下仍多下载有效旧版本；实际组件安装也输出了降级普通库。记录为 `artifacts/lib-select-plan-before-0.39.log`、`lib-select-overlay-before-0.39.log`、`lib-select-rules-before-0.39.log`、`lib-select-install-before-0.39.log`。
+- 新增 PclLibrarySelection，按规则筛选后的普通/原生身份选择较新文件父目录版本，原版比较顺序来自固定提交的 MCUtils.cs。组件合并仅在同条件组内比较，不丢弃其他平台条件。保留本工具已有扩展名维度，未把此轮描述为 PCL 所有类路径行为的完整复刻。
+- `artifacts/lib-select-all-after-0.39.log` 的 32 项定向检查通过：1.9/1.10 顺序互换结果一致，rc/pre/snapshot/experimental、alpha 的原版排序、缺段与 Int32 溢出行为覆盖；保存目录优先于坐标中的版本文字，两个输入配置保持不变。
+- 另用固定提交的原始 C# 比较函数对照实际 Release Core：16 个版本两两组成 256 组，比较结果方向全部一致。原源码保持原样，外部 Lower/RegexSearch 方法由小型适配补足；样本限于小写版本及中文标记。`artifacts/pcl-version-oracle-0.39.json` 记录输入 Core SHA-256，独立于 551 项下载/安装检查计数。
+- Windows/默认规则先过滤再选较新版本，Linux-only 和明确禁用项不进入本次计划，但条件元数据保留。显式 null rules/natives 具有缺省含义。同目标的强弱检查合并、矛盾校验仍在下载前报错。
+- 实际 MinecraftInstaller 与模拟 Fabric 组合中，原版普通库 2 不被组件普通库 1 覆盖，原生库 1 升级到 2。最终 JSON 只保留这两个选定角色，二者文件内容正确，服务器没有收到 runtime1 请求；第二实例内容网络字节为零，原 JSON/PCL 设置字节保持。已在基础阶段下载的共享原生库 1 保留，不强制删除。
+- 这些是本地模拟内容与真实引擎/安装器检查，未启动 PCL 或完整游戏。修改前保存 `artifacts/baseline-0.38/source.zip`，共 134 个源文件；新增 VS Library Selection 配置，短验证涵盖九个控制台配置，44 份固定快照保持。
+- 最终完整 Release 流水线 `artifacts/build-final-0.39.log` 零警告、零错误，551 项下载/安装检查和 `ui-checks-0.39.json` 的 370 项 UI 检查通过。VS 2026 Debug 短验证为 175 项控制台检查、370 项 UI 检查，portable PDB 和关闭优化检查通过；未声称已人工按 F5 验证断点。
+- 首次完整流水线在主题切换后保留进度/阶段颜色的界面检查处失败，保留 `build-first-pass-0.39.log`；相同 Release 程序单独重跑通过 370 项，随后完整流水线也通过。未修改界面实现或删除该断言，尚未确定这一次间歇失败的原因，不把重跑通过写成已修复该问题。
+- 交付核对见 `artifacts/package-verify-0.39.json`：136 个源文件相对 0.38 基线有 13 项修改/新增、无删除，44 份快照与固定 Git 内容一致，七个原仓库状态保持。运行包/ZIP 的 10 个文件与 Release 输出及源文档逐字节对应，Core 与测试和版本对照程序的被测哈希一致。模拟安装落盘证据为 `lib-select-evidence-0.39.json`，打包程序的离线关于页启动和渲染记录为 `package-smoke-0.39.json` / `smoke-package-about-0.39.png`；不等同于桌面交互或游戏启动验收。
+
+## 0.38 支持库元数据的 Maven 回退
+
+- 修改 Core 前复现：缺失 artifact.path 时生成 `libraries/`，URL 缺失时不使用仓库，size 为 null 时抛类型转换错误；实际安装同时包含普通库/原生库时，两份错误的 `libraries/` 计划冲突。对应证据为 `artifacts/library-meta-path-before-0.38.log`、`library-meta-url-before-0.38.log`、`library-meta-null-size-before-0.38.log`、`library-meta-install-before-0.38.log`。
+- 新增共享 LibraryFile 转换：缺失/null 路径按 Maven 坐标和分类器定位；缺失/null URL 按库仓库及坐标定位，未声明仓库时沿用默认库仓库。明确的自定义路径与 URL 优先，仓库来源路径不被自定义本地保存路径改变。大小为 null 按未知处理，保留 SHA-1。明确空白路径在计划阶段报错。
+- `artifacts/library-meta-all-after-0.38.log` 最终共 38 项定向检查通过，覆盖普通/原生两类、缺失与 null 路径、自定义/默认仓库、显式值、扩展名/分类器、null 大小和空白路径。纯计划检查同时验证输入 JSON 字节序列化结果不变。
+- 实际安装器分别执行原版和模拟 Fabric：普通库/原生库在所需 Maven 路径落盘，Fabric 升级普通库后保留原生库。最终 JSON 中保留两种库角色、正确 id/clientVersion，未把缺失字段改写为目录路径。第二实例内容网络字节为零，客户端/原生库请求数不增加，已有实例 JSON 与 PCL/Setup.ini 逐字节保持。
+- 这些检查运行真实下载与安装代码，但内容及加载器配置为本地模拟数据。没有在本轮启动 PCL 或 Minecraft，也没有把离线模拟安装描述为真实游戏启动验收。
+- 修改前保存 `artifacts/baseline-0.37/source.zip`，共 133 个源文件；新增 VS 2026 Library Metadata 配置，短验证涵盖八个控制台配置。原 44 份参考和七个原仓库状态保持。
+- 初次完整流水线在 512 项控制台检查、370 项 UI 检查时通过，保留于 `build-before-pcl-extension-0.38.log`。随后核对 PCL McLibGet，发现它不解析 @extension。用该次旧 Core（SHA-256 `2C3A4DF431E349A7106C61966CC3A9823D07413DF30ECBD708C6EDCFF48D7E1D`）在独立 `artifacts/pcl-extension-before-0.38/` 下运行新增检查，确实发布了缺少 PCL 明确路径的扩展名配置；失败记录为 `library-meta-extended-before-0.38.log`，没有替换被测输出目录中的 Core。
+- 已补齐扩展名配置的明确路径/URL，克隆源数据并在安装入口及组件合并后统一处理。额外七项检查确认原版、模拟 Fabric 输出有 PCL 可直接读取的 artifact.path，带 @jar 的 Windows 原生 classifier 的架构键与明确路径正确；原版补全与第二组件实例均复用内容且保留旧 JSON。源服务器元数据保持原字节。扩展名模拟负载仍为测试字节，没有宣称它能实际运行 Java 游戏。
+- 扩展名兼容处理完成后，重新执行完整 Release 流水线，最终 `artifacts/build-final-0.38.log` 为零警告、零错误，519 项下载/安装检查及 `ui-checks-0.38.json` 的 370 项 UI 检查通过。最终 Release Core SHA-256 为 `255056B9672B682E5815615547D9CA830EC7080FEEF1D619E70FC8D984BCD2A7`。
+- 最终 VS 2026 Debug 构建和八个控制台配置通过，共 143 项定向检查、370 项 UI 检查；Portable PDB、DebugSymbols 与关闭优化设置正确。日志为 `vs2026-quick-final-0.38.log`，独立报告为 `vs2026-debug-0.38.json`。初次 136 项报告不作为最终版本验收；IDE 中 F5 人工断点命中仍未验收。
+- `library-meta-evidence-0.38.json` 检查最终完整回归中的四份常规配置及三份扩展名配置，复核文件位置、大小/SHA-1、客户端身份、明确的扩展名路径、Windows 架构键、已有偏好和私有载荷清理。`PclRuntimeReadVerified=false`、`GameLaunchVerified=false` 明确保留实际启动边界。
+- 文档同步后通过 `build.ps1 -SkipTests` 重建便携包，源码差异、44 份固定源码、标题纹理、七个原仓库状态和包内十个文件的字节检查见 `source-changes-0.38.json`、`upstream-state-0.38.json`、`package-verify-0.38.json`。原补丁仓库已有删除保持。仅本地交付，未提交、推送或公开发布。
+
+## 0.37 可选复制失败、回退与取消
+
+- 对照 PCL 复制失败回退后，用真实 NTFS 辅助流占用复现默认内容可以读取、哈希正确，但 File.Copy 抛共享占用错误。旧引擎在第一个候选处结束，既不尝试第二个本地候选，也不请求 HTTP。修复前证据为 `artifacts/copy-network-before-0.37.log`、`copy-local-before-0.37.log`，独立 .NET Framework 文件系统探测为 `probe-copy-streams-0.37.json`。
+- 受控 SHA-1 提供程序在源检查/副本检查的真实哈希结束处取消。旧引擎最终虽然抛取消异常，却已发布目标并计为已复用/完成；两个边界的失败证据为 `copy-cancel-hash-before-0.37.log`、`copy-cancel-hash-2-before-0.37.log`。测试在 Finally 恢复 SHA-1 映射，不修改应用配置或生产引擎的加密实现。
+- 本轮只捕获可选复制和副本校验的 IO/访问异常，继续其他本地源或 HTTP；复制前后及副本校验后检查取消。真实目标提交在捕获块之外。私有副本清理尽力进行，清理受阻不替换原始结果。
+- `artifacts/copy-all-after-0.37.log` 的 27 项定向检查通过：首个候选复制失败后，第二个本地候选零网络复用；仅有占用副本时只请求一次 HTTP、Retries=0、Reused=0；后续直接复用目标。默认内容和辅助流均保持，健康样本没有私有副本残留。
+- 回退 HTTP 被闸门暂停时取消，保留取消状态、不发布文件且不报告完成；继续保持辅助流占用也能重试成功。HTTP 返回错误哈希仍按原策略请求两次后失败，修正内容后可重试。真实目标替换被共享锁阻止时保留原目标字节、未请求 HTTP，解除目标占用后零网络复用成功。
+- 源检查和副本检查两个确定取消点均无目标、无完成、Reused=0、零网络，源文件及辅助流保持、私有副本清理完成；重试可复用。这验证的是检查结束边界，未声称同步 File.Copy 本身可被 token 中途打断或文件系统提交与取消原子化。
+- 首轮定向运行的异常类型断言未通过：网络错误对外包装为 IOException，原 InvalidDataException 位于 InnerException。已按真实合同修正检查，保留 `copy-all-draft-assertion-0.37.log`；最终完整定向检查通过后才进入发布构建。
+- 修改前保存 `artifacts/baseline-0.36/source.zip`，共 132 个源文件。新增 VS 2026 Copy Fallback 调试配置，短验证涵盖七个控制台配置。测试使用本地模拟数据和真实文件系统/回环 HTTP，未进行完整游戏启动。
+- 完整 Release 流水线 `artifacts/build-final-0.37.log` 通过：零警告、零错误，481 项下载/安装检查及 `ui-checks-0.37.json` 的 370 项 UI 检查通过。Release Core SHA-256 为 `020D2EA1831621A402DAFBB790AFDECA5095DD505D6AC412B26D52CEC58DF318`。
+- VS 2026 MSBuild 的 Debug 构建、Portable PDB 和关闭优化检查通过，七个控制台启动配置共 105 项定向检查、370 项 UI 检查通过；原始日志为 `vs2026-quick-0.37.log`，独立报告为 `vs2026-debug-0.37.json`。IDE 内 F5 人工断点命中仍未验收。
+- `copy-evidence-0.37.json` 复核七个场景在成功重试后的目标内容、源默认内容及辅助流、第二个本地源和无私有副本残留。取消发生时尚未发布的状态由定向断言验证；该最终文件复核不把重试后的目标描述为缺失。
+- 文档同步后以 `build.ps1 -SkipTests` 重新生成便携包。`source-changes-0.37.json`、`upstream-state-0.37.json`、`package-verify-0.37.json` 核对源码差异、44 份固定源码、标题纹理、七个原仓库及包内十个文件；原补丁仓库已有删除保持。仅本地交付，未提交、推送或公开发布。
+
+## 0.36 已有文件复用与 PCL 客户端查找
+
+- 修改 Core 前复现三项失败：未声明大小/哈希的文件误用另一目录的同名旧内容；版本目录内不同文件名的正确客户端仍被重新下载；实际安装器也漏掉该客户端。证据为 `artifacts/reuse-unknown-before-0.36.log`、`reuse-client-name-before-0.36.log`、`reuse-install-before-0.36.log`。
+- 只修改下载引擎的复用候选资格和客户端候选枚举。未声明大小且两个哈希均缺失/空白时不跨目录复用；版本目录内所有真实 `.jar` 扩展名的顶层文件经过原有内容检查后可被选用，不依赖目录同名。枚举前及候选路径仍通过已有目录边界检查。
+- 定向检查 `artifacts/reuse-all-after-0.36.log` 共 27 项通过：无声明/空白声明重新下载正确响应，Reused=0；SHA-1 正确但文件名不同或大写扩展名的旧客户端零 HTTP 复用，错误同大小客户端跳过；声明大小、SHA-1、MD5，以及两种合法空文件仍可复用。未知扩展名、JSON 和嵌套文件不被误当客户端。
+- 同大小损坏候选会回退 HTTP，最终目标通过哈希。所有外部源目录用全文件清单及每文件摘要比较，复用和下载回退后均不新增、删除或修改其中的文件。
+- 使用真实 MinecraftInstaller 与模拟原版元数据安装“新实例”：复用另一游戏目录“已有实例/custom-client.jar”，没有发起客户端请求；最终客户端内容正确，JSON 的 id/clientVersion 对应新实例及所选版本，旧 JSON 和 PCL/Setup.ini 保持，暂存载荷清理完成。这是本地模拟内容安装，未启动完整游戏。
+- 新增 VS 2026 的 PCL File Reuse 配置，短验证涵盖六个控制台配置。修改前保存 `artifacts/baseline-0.35/source.zip`，共 131 个源文件。测试编写时的 VB 局部名称遮蔽问题已修正，首次编译日志保留于 `reuse-test-build-0.36.log`，后续 `reuse-test-build-ready-0.36.log` 零警告、零错误。
+- 完整 Release 流水线 `artifacts/build-final-0.36.log` 零警告、零错误，454 项下载/安装检查和 `ui-checks-0.36.json` 的 370 项 UI 检查全部通过。Release Core SHA-256 为 `03D9B5237489DFCB8F37C3DE4DC2D215BD88AF32F89B7BBD6F6504E78B123E05`。
+- VS 2026 MSBuild 的 Debug 构建和六个控制台配置通过，共 78 项定向检查、370 项 UI 检查；Portable PDB、DebugSymbols 与关闭优化设置符合共享配置。日志为 `vs2026-quick-0.36.log`，报告为 `vs2026-debug-0.36.json`。IDE F5 人工断点命中仍未验收。
+- `reuse-evidence-0.36.json` 复核完整回归留下的样本：无声明时目标是服务器新内容，旧目录仍为原字节；非同名客户端和大小写扩展名复制后与声明内容相符，原目录同名损坏文件保留；实际安装器的新 JSON 身份、旧 JSON/PCL 设置和空暂存载荷均正确。
+- 最终文档通过 `build.ps1 -SkipTests` 同步到便携包。`source-changes-0.36.json`、`upstream-state-0.36.json`、`package-verify-0.36.json` 核对源码差异、七个原仓库、44 份固定源码、标题纹理及包内十个文件。原补丁仓库已有的删除状态保持。仅本地交付，未提交、推送或公开发布。
+
+## 0.35 下载成功后的分片清理
+
+- 修改 Core 前，通过回环服务器在响应前暂停、创建并持有真实分片文件，分别复现单连接旧分片、分段下载当前分片的占用。目标已通过大小/SHA-1 校验并提交，原实现仍重试并失败；证据为 `artifacts/transfer-cleanup-single-before-0.35.log`、`transfer-cleanup-segment-before-0.35.log`。同类占用并将日志位置设为目录的样本也失败，见 `transfer-cleanup-log-before-0.35.log`。
+- 只修改成功提交后的缓存清理：按文件捕获 IO/访问异常，记录保留路径后继续；日志无法写入时保留成功。损坏内容恢复和实际目标提交的原异常路径保留。不清理整个 transfers 目录，也不强制解除占用或自动扫描旧任务。
+- 新增 24 项检查，最终定向结果为 `artifacts/transfer-cleanup-all-after-0.35.log`。三个成功场景都只请求一次、内容字节数等于文件大小、Retries=0，目标通过校验且发送完成通知；下一批次直接复用目标、零网络内容。未知文件、未知分片名和另一个内容键目录均逐字节保持，未占用的已知文件继续清理，日志记录被占用路径或容忍不可写位置。
+- 同大小损坏响应仍经过两次请求后报校验错误，不发布目标；以目录占用目标路径仍失败并保留目录内原文件。修正实际原因后，两种样本均能重试成功。这些样本运行真实下载引擎，但内容是模拟数据，不是完整 Minecraft 下载或游戏启动验收。
+- 测试编写阶段的 VB 语法/成员引用问题和失败通知可能为空的断言已修正；首次日志保留为 `transfer-cleanup-test-build-0.35.log`、`transfer-cleanup-test-build-fixed-0.35.log`。最终检查通过后才进入完整构建。
+- 修改前保存 `artifacts/baseline-0.34/source.zip`，共 129 个源文件。保留 VS Debug 符号设置并增加 Transfer Completion 配置，短验证运行五个控制台配置；IDE F5 人工断点验收仍未执行。
+- 完整 Release 流水线通过：`artifacts/build-final-0.35.log` 为零警告、零错误，427 项下载/安装检查和 `ui-checks-0.35.json` 的 370 项 UI 检查全部通过。Core SHA-256 为 `797DC894A943AFD7B523D96A291D71DB9F67412D509E0F2373163B680178D7B8`。
+- VS 2026 的 Debug 构建、Portable PDB、关闭优化和五个控制台启动配置通过，共 51 项定向检查、370 项 UI 检查；原始日志为 `vs2026-quick-0.35.log`，独立报告为 `vs2026-debug-0.35.json`。新增配置运行上述 24 项检查。这里只验证构建链及实际启动参数，没有声称 IDE 中人工命中断点。
+- `transfer-cleanup-evidence-0.35.json` 直接检查完整回归留下的目标、保留分片、其余分片、未知文件和日志，另比对修复前三个失败样本已经发布的目标：对应 SHA-1 与修复后成功目标相同，证实是完成后的清理误报，而非放宽校验。
+- 文档同步后通过 `build.ps1 -SkipTests` 重建便携包，保留十个运行时/文档文件。源码差异、固定 44 份源码、标题纹理、七个原仓库状态和包内字节核对见 `source-changes-0.35.json`、`upstream-state-0.35.json`、`package-verify-0.35.json`；原补丁仓库已有的删除状态继续保持。仅本地交付，未提交、推送或公开发布。
+
+## 0.34 最终发布、补全替换与空批次取消
+
+- 主交付为最终写入前的取消边界。原代码在报告“写入版本信息”之前检查 token，报告返回后直接写入/改名或替换客户端；现在在这些可能耗时的步骤后、实际提交前再次检查。已经进入文件系统提交调用的结果保持，不在提交后用取消状态回滚或改报失败。
+- 修改 Core 前复现四组失败：在提交进度回调处取消的新安装仍成功；补全仍替换旧客户端；已取消的安装仍创建游戏根目录和写锁；已取消的空批次仍报告完成。日志为 `artifacts/commit-new-before-0.34.log`、`commit-repair-before-0.34.log`、`commit-entry-before-0.34.log`、`commit-batch-before-0.34.log`。
+- 新增 19 项检查，对应 `commit-*-after-0.34.log`。原版及模拟 Fabric 在提交通知处取消后，返回取消、没有发布实例且私有载荷清理完成；已校验的共享日志文件及支持库保留，以同一名字重试完成，内容传输字节为零、客户端请求数没有增加。
+- 补全样本先安装原版，保存原 JSON 与 PCL 偏好字节，再将客户端改为同大小损坏内容。完整下载替换文件后取消提交，损坏客户端、原 JSON 和偏好均保持；重试从已校验缓存提交替换文件，客户端 HTTP 请求总数保持两次，JSON 和偏好仍逐字节一致。
+- 入口已取消时不创建游戏目录或写锁。空/非空批次的预先取消，以及在清单生成期间取消，均无 HTTP、无目标文件、无完成通知。健康空批次在完成通知中收到的取消不会反向改变已经完成的批次结果。
+- VS 2026 控制台项目增加 Final Commit 配置，短验证脚本纳入该场景；共享 Debug 设置和原有启动方案保留。修改前保存 `artifacts/baseline-0.33-vs2026/source.zip`（128 个源文件），包含上一轮完整的 VS 配置。
+- 完整 Release 流水线通过，记录为 `artifacts/build-final-0.34.log`：零警告、零错误，403 项控制台回归及 `ui-checks-0.34.json` 的 370 项 UI 检查通过。Core SHA-256 为 `8CD268F58306F26245D1EAE12CC78613331C4FD93B0B68582DA8C292202CD576`；被测、应用和便携包中的 Release Core 字节一致。
+- VS 2026 MSBuild 的 Debug 构建及短启动配置验证通过，共 27 项控制台定向检查、370 项 UI 检查，含新增 Final Commit 场景；日志为 `vs2026-quick-0.34.log`，本次报告另存 `vs2026-debug-0.34.json`。符号和优化设置符合共享 Debug 配置，IDE 中 F5 人工断点命中仍未验收。
+- `commit-evidence-0.34.json` 复核了三种取消后重试的最终客户端哈希、PCL 偏好和私有载荷清理结果，并确认预先取消的安装和批次没有创建目标根目录。样本内容为模拟数据，测试运行实际安装代码，没有在本轮启动 PCL 或 Minecraft。
+- 源码差异、七个原仓库状态、44 份固定源码和包内十个文件的核对见 `source-changes-0.34.json`、`upstream-state-0.34.json`、`package-verify-0.34.json`。新增随包 `VS2026_DEBUG.md`，其余开发配置仍位于完整源码目录。最终文档更新后使用 `build.ps1 -SkipTests` 重新同步便携包，记录于 `package-build-0.34.log`；未提交、推送或公开发布。
+
+## Visual Studio 2026 开发与调试配置（0.33）
+
+- 本机检测到 Visual Studio Community 2026 18.10.3（安装版本 18.10.12224.181），具备 .NET 桌面开发和 .NET Framework 4.8 目标包。使用其 `MSBuild/Current/Bin/amd64/MSBuild.exe` 和项目固定范围内的 .NET SDK 10.0.401 构建 Debug；修改前的原解决方案也能构建，记录为 `artifacts/vs2026-baseline-build.log`。
+- 补齐主应用与控制台项目的 `My Project/launchSettings.json`，共七个项目启动配置；另提供 `VanillaDownloader.slnLaunch` 的两个共享解决方案方案。主应用在解决方案中显示 BetterPCL 并排在代码库前，Development 目录可直接打开调试指南、脚本和配置。三个项目仍使用原 VB.NET/WPF/net48 格式、程序集名与目录。
+- `Directory.Build.props` 明确设置 Debug 的 Portable PDB、DebugSymbols=true、Optimize=false。`tools/verify-vs2026.ps1` 检查 VS 安装组件、实际 MSBuild 属性和三个 PDB 的 Portable 格式，并读取真实启动配置展开 VS 路径宏后运行 Debug 程序。
+- 完整模式通过 384 项控制台回归、370 项 UI 检查和组件页离屏渲染，汇总见 `artifacts/vs2026-first-pass.log`，完整控制台输出保留在 `artifacts/vs2026/tests-Offline_All.stdout.log`。短模式随后通过三个单项配置共 19 项检查及相同的界面入口，见 `vs2026-quick-pass.log`。`artifacts/vs2026/report.json` 为最近一次短模式结果，ConsoleChecks=19，不将它描述为完整 384 项报告。
+- 实际启动配置的工作目录为各项目目录，输出位于各自的 `bin/Debug/net48/`。已检查组件页图像 `src/VanillaDownloader.App/bin/Debug/net48/vs-components.png`；UI Checks 的 `vs-ui-checks.json` 包含 370 个通过项目。本地回归使用回环 HTTP / 模拟内容，没有通过这些启动配置联网安装完整游戏。
+- Release 再次构建为零警告、零错误，见 `artifacts/vs2026-release-build.log`。Release 应用 SHA-256 仍为 `D440E638738E5BAC6D7D529D2E8C6D2D73176A3AE4708C5EC79C9CA1347A0EAF`，Core 仍为 `6E86FBEC3AC86CA072CF1C4DD02283A8D4A5E89B351B171473E3457027704A2B`，与 0.33 便携包对应文件一致。程序版本和现有便携包保持 0.33，本轮交付为开发配置与指南。
+- 修改前保存 `artifacts/baseline-vs2026/source.zip`（122 个源文件）；差异和仓库状态见 `source-changes-vs2026.json`、`upstream-state-vs2026.json`，综合证据为 `vs2026-verification.json`。没有修改下载/安装或界面业务源码，没有删除或覆盖已有 `.vs` / `.suo` 状态，原七仓库保持。
+- 上述验证覆盖 VS 的构建链、符号文件和启动入口，尚未在 VS IDE 内执行 F5 并人工命中断点；报告中的 `IdeF5BreakpointVerified=false` 明确保留这一验收边界。操作、断点和异常设置见根目录 `VS2026_DEBUG.md`。
+
+## 0.33 清理受阻时保留真实安装结果
+
+- 主交付为组件工作区与实例暂存载荷清理的异常隔离。对照固定 PCL 的清理 Try/Catch，修复私有文件占用导致成功安装失败、配置错误被覆盖，以及取消变成普通 IO 错误的问题。
+- 修改 Core 前，用真实 FileStream 持有私有文件，分别复现成功安装、错误配置和取消三条路径的失败断言。记录为 `artifacts/cleanup-component-success-before-0.33.log`、`cleanup-stage-failure-before-0.33.log`、`cleanup-stage-cancel-before-0.33.log`；修复后对应检查均通过。
+- 新增 24 项本地检查，六组日志为 `cleanup-component-success-after-0.33.log`、`cleanup-component-log-blocked-after-0.33.log`、`cleanup-component-failure-after-0.33.log`、`cleanup-stage-failure-after-0.33.log`、`cleanup-stage-cancel-after-0.33.log`、`cleanup-publication-failure-after-0.33.log`。
+- 成功样本持有组件工作区的 `launcher_profiles.json`，仍能发布已校验的客户端、组件 JSON 和支持库，并在安装器日志中留下受阻的私有目录。日志路径改为已有目录时，不覆盖该目录内的哨兵文件，安装仍成功；保留的被占用文件仍在原位置。
+- 两个错误配置样本分别占用组件工作区和暂存客户端，最终仍抛出原始 Fabric 版本不匹配错误，现有共享文件字节不变，没有发布实例。取消样本仍返回 OperationCanceledException、释放游戏根目录写锁；解除占用后重试成功，客户端 HTTP 请求总数保持一次。
+- 最终发布样本在提交时制造已有目录冲突并占用暂存文件。真实发布失败仍被报告，原目录哨兵文件保持，没有发布版本 JSON；解除样本占用和冲突后重试成功，客户端同样只请求一次。
+- 修改前保存 `artifacts/baseline-0.32/source.zip`（120 个源文件）。清理只针对本次生成的 GUID 工作/载荷目录，保留传输缓存和已有版本；受阻目录及暂存父目录暂不自动回收。没有修改页面布局、选源、并行下载、限速或分段算法。
+- 完整 Release 流水线通过，记录为 `artifacts/build-final-0.33.log`：零警告、零错误，384 项控制台检查和 `ui-checks-0.33.json` 的 370 项界面检查通过。Core SHA-256 为 `6E86FBEC3AC86CA072CF1C4DD02283A8D4A5E89B351B171473E3457027704A2B`，被测、应用和便携包中的 Core 字节一致。
+- 六组完整回归样本的实际日志路径、仍保留的临时文件、受保护的日志目录和最终/重试实例状态另存于 `cleanup-evidence-0.33.json`。均为回环 HTTP 和模拟组件内容；本轮未联网安装整套 Minecraft、启动 PCL 或启动游戏。
+- 源码差异、原七仓库状态、44 份固定源码及九文件便携包核对见 `source-changes-0.33.json`、`upstream-state-0.33.json`、`package-verify-0.33.json`，保留补丁仓库原有 `Patch-PCL.ps1` 删除状态。文档更新后以 `build.ps1 -SkipTests` 同步最终便携包，记录于 `package-build-0.33.log`；未提交、推送或公开发布。
+
+## 0.32 组件配置中的普通支持库与原生库
+
+- 主交付为加载器配置合并的库完整性。对照固定 PCL `McLibListGetWithJson` 将普通库和原生库分别参与身份比较，修复同坐标互相覆盖及单独升级普通库时原生库丢失。包含 artifact 与 natives 的节点分拆为两个 PCL 可读条目，保留原生库解压排除规则。
+- 修改 Core 前复现两个失败：原生条目排在普通库后时，最终计划丢失普通库；加载器升级普通库时，原配置的原生库被一起覆盖。失败日志为 `artifacts/native-profile-before-0.32.log` 和 `native-overrides-before-0.32.log`；修复后对应检查通过。
+- 新增 28 项检查，分组日志为 `native-profile-after-0.32.log`、`native-overrides-after-0.32.log`、`native-rules-after-0.32.log`、`native-install-after-0.32.log`、`native-cancel-after-0.32.log`。包括两种条目顺序、三种升级方向、源 JSON 不变、无内部合并标记、Windows/Linux 条件、null 标记、两种原版库格式的完整模拟 Fabric 安装，以及最终版本 JSON、真实落盘文件字节和 PCL 隔离设置。
+- 两种模拟安装的原生文件均只请求一次，组件补全从已经验证的原版文件复用，没有再次联网获取该文件。这里的 Fabric 启动配置和 JAR 内容均为本地模拟样本；测试运行真实安装代码，没有以样本安装冒充公网加载器实装或游戏启动。
+- 取消检查阻塞加载器新增原生库的 HTTP 响应，确认实例仍未发布；取消完成后没有该原生库或实例输出，私有组件载荷已清理。解除阻塞后，以同一实例名重试完成，普通与原生库都存在于最终计划和文件目录。
+- 修改前保存 `artifacts/baseline-0.31/source.zip`（119 个源文件）。本轮无界面交互或布局源码更改，原版下载、选源、限速及续传机制延续 0.31；组件下载使用已有共享引擎。版本覆盖继续采用原有后加载器覆盖逻辑，本轮只修正普通/原生身份，不宣称完整实现 PCL 的版本比较策略。
+- 完整 Release 流水线通过，记录为 `artifacts/build-final-0.32.log`：零警告、零错误，360 项控制台检查和 `ui-checks-0.32.json` 的 370 项 UI 检查通过。Core SHA-256 为 `E0F5516979AEB32D5A016426C0B4138400614F11D3B3ACB01E07F41692D4467E`；被测 Core、App 使用的 Core 和便携包中的 Core 保持一致。
+- 完整检查生成的两份实际安装 JSON 另存为 `native-installed-combined-false-0.32.json` 与 `native-installed-combined-true-0.32.json`；文件大小、SHA-1、普通/原生角色和解压声明的复核见 `native-install-evidence-0.32.json`。两个配置合计四个最终库文件的字节均匹配声明；这是模拟内容的安装结果，没有启动 PCL 或 Minecraft 来验收游戏运行。
+- 差异、原七仓库状态及九文件便携包核对见 `source-changes-0.32.json`、`upstream-state-0.32.json`、`package-verify-0.32.json`。44 份固定源码及标题纹理逐项核对 Git；保留补丁仓库原有 `Patch-PCL.ps1` 删除状态。最终文档更新后以 `build.ps1 -SkipTests` 同步便携包，记录于 `package-build-0.32.log`；未提交、推送或公开发布。
+
+## 0.31 下载清单去重、校验与冲突预检查
+
+- 主交付为下载清单可靠性。重新核对固定 PCL `ModNet.LoaderDownload.Start` 的目标路径去重后，修复同一目标不同路径写法导致重复传输/统计，以及旧的首条记录去重丢弃后续大小和哈希约束的问题。
+- 在修改 Core 前，以真实下载引擎和回环 HTTP 复现两个失败：同大小的损坏文件因后续 SHA-1 被丢弃而误复用；大小写、正反斜杠和内部点路径指向同一目标时触发多次请求。失败日志分别为 `artifacts/plan-strength-before-0.31.log`、`plan-alias-before-0.31.log`，修复后的对应日志均通过。
+- 新增 30 项控制台检查，总计 332 项。覆盖弱声明后补 SHA-1 / MD5、未知大小补已知大小、首条 URL 顺序、原输入记录不变、路径别名只请求一次、唯一完成数和字节数、大小/SHA-1/MD5 冲突、整批启动前拒绝越界路径、双哈希必须同时通过、失败保留目标字节、真实安装修复共享库、安装成功后的再次校验零内容下载，以及资源 object 去重与旧版 virtual 别名保留。
+- 三种冲突样本均将可下载的其他任务放在队列前部，实际 HTTP 请求数仍为零，旧目标字节不变，也不发布该批的其他文件。完整安装样本中的支持库冲突在读取版本元数据后即终止，没有索引或内容请求，没有发布实例。该边界不表示安装前无需读取版本 JSON / 资源索引。
+- 双哈希样本使用正确 SHA-1 和错误 MD5：现有文件不能被误复用，两次实际请求也均无法通过最终校验，原目标保持。MD5 失败的错误提示现在使用“大小或哈希校验失败”。不同算法间的声明是否矛盾仍需内容验证。
+- 完整 Release 流水线通过，记录于 `artifacts/build-final-0.31.log`：零警告、零错误，332 项控制台检查；`ui-checks-0.31.json` 中 370 项界面检查继续通过。本轮无布局或交互代码改动，界面延续 0.30；这些仍是隐藏 WPF 自动检查，不是新增的物理键盘人工验收。
+- 修改前保存 `artifacts/baseline-0.30/source.zip`（117 个源文件）。差异、原七仓库状态、Core 三处构建副本及九文件便携包核对见 `source-changes-0.31.json`、`upstream-state-0.31.json`、`package-verify-0.31.json`。44 份固定 PCL 快照和主题纹理继续逐项与 Git 基线核对，保留补丁仓库原有 `Patch-PCL.ps1` 删除状态。
+- 0.31 本轮修改了下载 Core，原有选源、共享并行连接预算、分段、限速和单连接续传检查在完整回归中继续通过。只在本地完成验证与打包，没有重新联网安装整套 Minecraft 或启动游戏，没有提交、推送或公开发布。文档完成后以 `build.ps1 -SkipTests` 重新同步便携包，记录为 `artifacts/package-build-0.31.log`，测试结果仍以先前的完整流水线为准。
+
+## 0.30 键盘选择、延迟行与 Esc 层级
+
+- 主交付为顶部页签、可折叠卡片和版本行的键盘可达性，以及按菜单/卡片/页面层级处理 Esc。普通按钮原先已有 Enter/空格，本轮没有重复实现；仍使用既有选择、依赖、返回和下载状态保护路径。
+- 新检查先在 0.29 上复现 `top navigation exposes a keyboard focus target`，记录为 `artifacts/keyboard-before-0.30.txt`：标题页签原先不可聚焦，也未实现键盘激活。
+- 新增 29 项工作流检查，共 370 项：页签可聚焦、WPF 方向焦点预测、Enter/空格切页、已选与禁用页签、卡片展开/折叠复用、原版键盘选择不提交下载、名称目标与原行保留、Esc 返回、组件选择/依赖/标题目标、展开卡片先关闭、清除按钮不二次折叠、只读信息无死焦点、关于返回、下拉 Esc 只关菜单、设置返回、下载中返回不取消、不清进度、根页不关闭，以及长列表占位/生成/替换/方向预测。
+- 自检使用不显示、不激活的隐藏 WPF presentation source、实际路由键事件、焦点可达性和方向焦点预测。隐藏源没有真实键盘焦点，`keyboard-tab-focus-0.30.json` 如实记录 `KeyboardTarget=null`；未声称验证物理 Tab/Shift+Tab、操作系统原生焦点或跨显示器键盘行为。焦点转移调用生产 WPF Focus 入口，仍需真实桌面人工验收。
+- 1,200 行独立模拟列表通过键盘焦点事件到达第 900 行后，仅创建 35 行完整控件；该行位于视口 Y=658～700，记录为 `keyboard-lazy-focus-0.30.json`。这是特定样本的创建数与几何，不是帧率或内存基准。此前 1,200 行版本/组件视口延迟检查继续执行。
+- 已检查 `align-keyboard-selection-after-0.30.png` 与 `align-keyboard-lazy-after-0.30.png` 的 850×700 离屏布局。前者为通过路由键选择后的安装页，后者为模拟长列表位置；没有以离屏截图冒充真实键盘焦点提示的人工验收。
+- 最终完整 Release 流水线记录为 `artifacts/build-final-0.30.log`，界面记录为 `ui-checks-0.30.json`：零警告、零错误，302 项本地下载/安装检查与 370 项 UI 检查全部通过。
+- 首轮构建未通过：WPF 中间 BAML 文件缺失，同时有一处检查代码通过实例调用静态方法的警告，保留于 `build-first-pass-0.30.log`。已使用完整类型名修正该调用，再执行标准 Rebuild；`keyboard-rebuild-0.30.log` 为零警告、零错误，370 项 UI 检查通过。最终交付以重跑的完整流水线日志及包核对为准。
+- Core 与控制台检查源码不变，Core SHA-256 为 `9DBBC0FE0F3AD09DB34531F588334098E531D246A5123D757A9A5361F7B5C4FA`。本轮没有完整在线安装或游戏启动；设置读写及对外动作保持预览隔离，不改用户偏好、PCL 配置、剪贴板，也不启动 Shell 程序。
+- 修改前保存 `artifacts/baseline-0.29/source.zip`；差异、原七仓库状态和便携包核对见 `source-changes-0.30.json`、`upstream-state-0.30.json`、`package-verify-0.30.json`。44 份固定快照和原补丁仓库已有删除状态保持。便携包为 `dist/BetterPCL-0.30-preview.zip`，仅本地交付，未提交、推送或公开发布。
+
+## 0.29 任务结果、目录上下文与取消状态
+
+- 主交付为任务结束后的版本文件夹/日志/复制信息入口、原任务上下文固定及取消与失败的区别。任务从开始到收尾使用原根目录、Minecraft、组件与名称，成功目录来自 `InstallResult.InstancePath`，不由后来选项重新推导。
+- 在旧代码上先加入取消结果检查，`artifacts/task-result-before-0.29.txt` 复现 `a user-cancelled task does not display the failed-task cross icon`：用户取消后仍出现失败叉号。修复后，已完成阶段保留勾号，未完成阶段显示灰色状态；真实失败继续使用固定 PCL 图形。
+- 新增 15 项工作流检查，共 341 项：主动取消无失败叉号、成功结果/实际路径/取消入口替换、切换根目录与计划后仍定位原结果和日志、复制原参数与结果、外部动作失败不污染成功状态、预览无真实外部副作用、最小窗口可达、目录/日志消失时不转向其他根目录、新任务清空旧状态、失败图标/不提供未发布目录、失败信息归属、真实取消流程与复制状态，以及取消清理异常仍保留取消状态和诊断。
+- 结果检查通过生产 `StartInstall` 流程运行，安装器返回值/失败/取消由受控任务替代，不下载或安装真实 Minecraft。目录、日志及删除检查全部使用随机独立临时目录；仅删除该检查创建的空实例目录和日志文件，不使用递归删除。剪贴板和 Shell 使用注入回调，只验证目标和文本。
+- 已检查 `align-task-success-after-0.29.png`、`align-task-failed-after-0.29.png`、`align-task-cancelled-after-0.29.png`（850×700）及 `align-task-result-minimum-after-0.29.png`（810×470）离屏结果。静态截图前刷新配色并结束页面淡入；最小窗口通过既有滚动区域访问完整结果，未做原生 Shell、剪贴板或跨 DPI 人工验收。
+- 最终完整 Release 流水线为 `artifacts/build-final-0.29.log`，界面记录为 `ui-checks-0.29.json`：零警告、零错误，302 项本地下载/安装检查及 341 项 UI 检查全部通过。
+- Core 与控制台检查源码不变，Core SHA-256 为 `9DBBC0FE0F3AD09DB34531F588334098E531D246A5123D757A9A5361F7B5C4FA`；本轮不涉及完整在线游戏安装或启动，也没有迁移或修改 PCL 数据。安装器日志仍是各根目录的累计文件，界面不宣称日志按任务隔离。
+- 修改前保存 `artifacts/baseline-0.28/source.zip`；原七仓库状态、源码差异与包核对见 `upstream-state-0.29.json`、`source-changes-0.29.json`、`package-verify-0.29.json`。44 份固定快照及原补丁仓库已有删除状态保持。便携包为 `dist/BetterPCL-0.29-preview.zip`；仅本地交付，未提交、推送或公开发布。
+
+## 0.28 设置目标定位与保存反馈
+
+- 主交付为目录入口定位、限速错误定位及保存按钮旁的即时反馈。原目录入口使用 `ScrollToTop`，添加个性化后目标可能不在首屏；现在通过统一的 `NavigateToSetting` 显示设置、更新布局并带入目标控件，限速错误同时聚焦输入框。
+- 在旧代码上先加入实际路由点击检查，`artifacts/settings-before-0.28.txt` 复现 `changing the install folder brings its selector fully into view below expanded personalization`。810×470、自定义主题展开时，目录选择框 Y=450～499 DIP，视口仅 386 DIP；修复后约为 99.93～148.93 DIP，记录为 `settings-folder-navigation-0.28.json`。
+- 新增 9 项 WPF 工作流检查，共 326 项：更改目录目标可见、原版与自定义名称保留、缺少目录的安装入口定位、保存无效限速时输入与提示可见、修正后清除错误、保存结果就地可见，以及编辑下载源、Java 路径和文件复用开关后清除过期的保存成功提示。预览保存不写用户配置；原有原子保存与失败保留旧文件检查继续执行。
+- 已查看 `align-folder-navigation-0.28.png`、`align-settings-invalid-after-0.28.png`、`align-settings-saved-after-0.28.png` 的 810×470 离屏渲染。截图使用示例目录，静态截图前刷新配色并结束页面淡入，验证可见性和错误/成功反馈；未做原生鼠标、跨 DPI 或实际窗口激活焦点的人工验收。
+- 最终完整 Release 流水线与界面结果为 `artifacts/build-final-0.28.log`、`ui-checks-0.28.json`：零警告、零错误，302 项本地下载/安装检查及 326 项 UI 检查全部通过。最后同步清除页脚中相同的过期提示后，追加构建并重跑 326 项 UI 检查；未重复运行不受影响的下载检查。
+- Core、控制台检查与设置文件写入源码保持不变，Core SHA-256 为 `9DBBC0FE0F3AD09DB34531F588334098E531D246A5123D757A9A5361F7B5C4FA`。本轮只重跑本地 HTTP / Java 回归，没有联网安装整套 Minecraft 或启动游戏。
+- 修改前保存 `artifacts/baseline-0.27/source.zip`。原仓库状态、差异及包核对分别为 `upstream-state-0.28.json`、`source-changes-0.28.json`、`package-verify-0.28.json`；原 44 份源码快照不变，原补丁仓库已有删除状态保留。包内重命名 EXE 的离屏设置页启动成功，九份打包文件均与构建或源文档一致。便携包为 `dist/BetterPCL-0.28-preview.zip`，仅本地交付，未提交、推送或公开发布。
+
+## 0.27 关于页与项目名称
+
+- 主交付为「设置 → 关于 BetterPCL」及暂定项目名称；PCL 关于页的两份源码纳入固定快照，总数 44。具体布局依据与独立适配见 `SOURCE_REFERENCES.md` 的 0.27 节。仅保留下载、设置两个主标签，关于页使用设置子页及返回按钮。
+- 新增 17 项 WPF 工作流检查，总计 317 项：真实按钮导航、主标签数量、名称一致性、实际程序集版本/产品信息、复制内容、真实源码地址、三份文档路径、无效目标拒绝、动作失败行内提示、预览副作用抑制、滚动可达/归顶、返回设置偏移保留、下载中访问/设置保护、返回下载时保留计划和任务进度、已选标签行为，以及最小窗口操作按钮边界。
+- 外部动作检查注入受控回调，核对要复制的文字、链接及真实文档位置，不写用户剪贴板、不启动浏览器或记事本。生产入口仍使用系统剪贴板、默认浏览器和记事本；未进行真实桌面点击验收。预览运行不会保存用户偏好。
+- 本轮已检查默认蓝色 `align-about-after-0.27.png`、彩色主题 `align-about-colorful-after-0.27.png`（850×700）及最小窗口 `align-about-minimum-after-0.27.png`（810×470）的离屏渲染；卡片、信息行及操作按钮显示正常，低高度窗口通过垂直滚动访问其余内容。均为 96 DPI 示例渲染，不表示跨显示器或原版逐像素人工验收。
+- 完整 Release 流水线记录为 `artifacts/build-final-0.27.log`：零警告、零错误，302 项下载/安装检查与 317 项 UI 检查全部通过。随后补齐文件说明字段 BetterPCL，追加一次零警告/错误的构建并重跑 317 项 UI 检查；没有重复运行未变化的下载检查。构建和检查结果以该日志及 `ui-checks-0.27.json` 为准。
+- Core 和控制台检查源码保持原样；Core SHA-256 与 0.26 一致：`9DBBC0FE0F3AD09DB34531F588334098E531D246A5123D757A9A5361F7B5C4FA`。本轮回归使用本地 HTTP / Java 处理器样本，没有重新联网安装整套游戏或启动 Minecraft。重命名后的 `BetterPCL.exe` 已使用离屏关于页模式实际启动，包内配置和嵌入资源可正常加载。
+- 修改前已保存 `artifacts/baseline-0.26/source.zip`。原七仓库状态、源码差异及包核对记录为 `upstream-state-0.27.json`、`source-changes-0.27.json`、`package-verify-0.27.json`；补丁仓库原有 `Patch-PCL.ps1` 删除状态保留。包路径为 `dist/BetterPCL-0.27-preview.zip`，EXE 与配置使用 BetterPCL 名称，既有内部程序集与设置/缓存路径保留。仅本地修改，未提交、推送或公开发布。
+
+## 0.26 个性化基础与即时换色
+
+- 按用户提供的个性化截图核对源码后，实现基础外观设置。布局与公开算法可直接参照，隐藏主题参数映射在公开 ModSecret 中缺失，独立预设和边界见 `SOURCE_REFERENCES.md` 的 0.26 节。新增四份固定快照，共 42 份；新增原版标题纹理素材，不修改图片内容。
+- 新增 25 项 WPF/偏好检查，总计 300 项：默认蓝色及不透明度、40% 下限/70% 中点、八个单选项及两页导航、异常字段与非有限数、临时文件的自定义颜色/透明度原子读写、合并时保留下载参数与未知字段、常规设置携带外观、HSL2 和标题公式、已加载页签与输入框立即换色、组件行/名称/依赖保持、任务颜色/进度保持、下载期间外观可调整且传输设置仍锁定、纹理开关/原图 alpha、关闭彩色背景、自定义三参数、最小窗口几何、原单选圈/选中点、全部预设颜色不同与唯一选择，以及恢复默认只改外观。
+- 自检在预览模式及隐藏 WPF presentation source 中运行。仅向独立临时 JSON 写入读写样本，不改用户偏好或 PCL 数据；生产即时保存入口在预览模式中禁止写入。任务进度换色前后均为 0.398，现有阶段颜色随主题变为绿色，见 `appearance-task-colors-0.26.json`。不透明度通过 Window.Opacity 属性验证，未进行真实桌面透视合成的人工验收。
+- 最终完整 Release 构建为 `artifacts/build-final-0.26.log`：0 警告、0 错误，302 项下载/安装检查与 300 项 UI 检查通过，界面记录为 `ui-checks-0.26.json`。原控件 XAML、字体、方块图形、来源和简介检查继续通过；新增单选几何与标题图片字节核对，42 份快照逐项与固定 Git 内容验证。
+- 首轮 `build-first-pass-0.26.log` 同样完成全部检查，但 WPF SDK 清理临时项目文件时出现一次文件占用警告，包核对因此没有通过“零警告”条件。保留该轮日志后重新执行完整流水线，最终构建已无该警告，以最终日志及包核对结果为准。
+- 已查看 `align-appearance-colorful-after-0.26.png`、`align-appearance-custom-after-0.26.png`、`align-appearance-download-after-0.26.png`（850×700）及 `align-appearance-minimum-after-0.26.png`（810×470）。粉橙渐变与原纹理、紫色自定义、已有安装选项及最小窗口均完成离屏检查；图片为示例数据的 96 DPI 内容渲染，未声称与原版隐藏主题逐像素一致。
+- Core、控制台检查、元数据与实际下载/安装源码未改；Core 与 0.25 字节一致，SHA-256 `9DBBC0FE0F3AD09DB34531F588334098E531D246A5123D757A9A5361F7B5C4FA`。本轮重跑本地 HTTP 和 Java 处理器回归，没有重新联网安装完整游戏或启动 Minecraft。
+- 修改前保存 `artifacts/baseline-0.25/source.zip`。原仓库状态、源码差异与包一致性分别为 `upstream-state-0.26.json`、`source-changes-0.26.json`、`package-verify-0.26.json`；补丁仓库原有 `Patch-PCL.ps1` 删除状态保留。仅本地 0.26，未提交、推送或公开发布。
+
+## 0.25 组件长列表与选择稳定性
+
+- 主交付为七类组件列表按 PCL 可见区域延迟创建，移除每 100 条的追加按钮，并保留选择变化前已创建的行。固定源码依据及仍保留的呈现差异见 `SOURCE_REFERENCES.md` 的 0.25 节；引用快照仍为 38 份，无新增或修改。
+- 在原实现上先加入工作流检查，`artifacts/component-list-before-0.25.txt` 复现 `a component catalogue exposes all 1200 rows without show-more pagination`。原代码仅先展示 100 个完整控件；现在预留全量行高，按视口创建，直接滚动即可访问后续版本。
+- 新增 20 项实际 WPF 检查，总计 275 项：关闭列表不建 body、全量 1,200 行无分页、42 DIP 行高、可见行与完整滚动范围、条目元数据归属、中部/末尾直接可达、无关列表晚到时保留、末尾真实点击与依赖/名称、选择/重开复用、高亮迁移、未访问选中行延迟生成时读取最新选择、刷新替换并重新绑定、旧 body 停止生成、新行实际点击使用新地址、清除高亮/依赖，以及七种组件均使用同一全量延迟列表机制。
+- 1,200 条 Fabric 样本使用隐藏 WPF presentation source、真实 ScrollViewer 命令与路由点击。首屏创建 7 行，跳到中部后累计 22 行，跳到末尾后累计 30 行，见 `component-list-layout-0.25.json`。这是特定窗口和模拟数据下的控件创建数量，不是帧率或内存基准；0.16.x 等大量构造条目不表示真实发布版本。
+- 原 0.21 的保留检查同步改为无分页列表与延迟行语义，仍覆盖无关列表晚到、未变化刷新、选择高亮及新元数据替换；没有删除这些工作流检查。分类与原版长列表等既有检查继续执行。
+- 最终完整 Release 构建为 `artifacts/build-final-0.25.log`：0 警告、0 错误，302 项下载/安装检查与 275 项 UI 检查通过；界面记录为 `ui-checks-0.25.json`。固定 XAML、字体、图形、设置及简介的来源检查继续通过，38 份快照逐一核对固定 Git 内容。
+- 已查看 850×700 的 `align-component-head-after-0.25.png`、`align-component-tail-after-0.25.png`、`align-components-after-0.25.png`，以及 810×470 的 `align-minimum-after-0.25.png`。列表头尾可见，组件图标与行高保持，最小窗口继续使用既有滚动布局。图片为 96 DPI 离屏示例，未进行真实 PCL 像素或原生鼠标/跨显示器人工验收。
+- Core、控制台检查、组件元数据获取与实际安装源码未改；Core 与 0.24 字节一致，SHA-256 `9DBBC0FE0F3AD09DB34531F588334098E531D246A5123D757A9A5361F7B5C4FA`。本轮重跑本地 HTTP 及 Java 处理器回归，没有重新联网安装整套游戏或实装上述模拟加载器版本。
+- 修改前保存 `artifacts/baseline-0.24/source.zip`。原仓库状态、源码差异和便携包一致性分别为 `upstream-state-0.25.json`、`source-changes-0.25.json`、`package-verify-0.25.json`；补丁仓库原有 `Patch-PCL.ps1` 删除状态保留。仅本地 0.25，未提交、推送或公开发布。
+
+## 0.24 长列表展开、滚动与选择
+
+- 主交付为原版版本行按 PCL 可见区域延迟创建，参照固定 `MyVirtualizingElement` 和 `LazyLoadBehavior`；细节及仍保留的组件分页/动画差异见 `SOURCE_REFERENCES.md` 的 0.24 节。新增两份固定快照，共 38 份；原 36 份不变。
+- 在原实现上先加入工作流检查，`artifacts/long-list-before-0.24.txt` 复现 `opening a 1200-version category does not construct every expensive PCL row`。原代码展开即创建 1,200 个图文版本行；修复后先保留轻量占位，完整滚动高度约 50,400 DIP 不变。
+- 新增 18 项 WPF 检查，总计 255 项：关闭分类不建内容、展开不创建全量行、固定行高、实际视口生成首屏行、完整滚动范围、原始条目归属、移出/重新挂载后恢复、跳到中间/末尾而不遍历生成全部条目、末尾真实点击进入正确安装选项、隐藏页不继续生成、返回及折叠重开复用、刷新后旧分类不生成/新行使用新元数据，以及显式初始化幂等和兄弟索引稳定。
+- 长列表检查使用隐藏的 WPF presentation source，并通过真实 ScrollViewer 命令、布局更新、Loaded/Unloaded 和版本行路由事件执行；没有显示或激活桌面窗口。首屏实际创建 10 行，布局数据见 `long-list-layout-0.24.json`；中部跳转后总创建量小于 60，末尾小于 90。这里是控件创建数量证据，不是帧率、峰值内存或原生鼠标性能测量。
+- 最终完整 Release 构建为 `artifacts/build-final-0.24.log`：0 警告、0 错误，302 项下载/安装检查与 255 项 UI 检查通过；界面记录为 `ui-checks-0.24.json`。固定控件 XAML、字体、图形、设置及愚人节简介的来源检查继续通过，38 份快照逐一与固定 Git 内容核对。
+- 已查看 `align-long-head-after-0.24.png`、`align-long-tail-after-0.24.png`、`align-special-after-0.24.png`、`align-components-after-0.24.png`（850×700），及 `align-minimum-after-0.24.png`（810×470），另保存中部与普通版本页。版本行未因延迟创建而出现可见空白，末尾可达，组件与最小窗口沿用既有滚动布局。图片为 96 DPI 位图；1.99.x 是明确的模拟长列表数据，不代表真实版本下载，也未做真实 PCL 像素或跨显示器人工验收。
+- Core、控制台检查与组件选择/下载源码未改。Core 与 0.23 字节一致，SHA-256 `9DBBC0FE0F3AD09DB34531F588334098E531D246A5123D757A9A5361F7B5C4FA`。本轮重跑本地 HTTP 与 Java 处理器回归，未重新联网安装完整游戏或启动 Minecraft。
+- 修改前保存 `artifacts/baseline-0.23/source.zip`。原仓库状态、源码差异和便携包一致性分别为 `upstream-state-0.24.json`、`source-changes-0.24.json`、`package-verify-0.24.json`；补丁仓库原有 `Patch-PCL.ps1` 删除状态保留。仅本地 0.24，未提交、推送或公开发布。
+
+## 0.23 版本浏览与特殊版本对齐
+
+- 主交付为固定 PCL 的版本分类、排序、最新推荐与特殊版本呈现，具体来源及独立适配见 `SOURCE_REFERENCES.md` 的 0.23 节。新增 `ModMinecraft.vb` 固定快照，共 36 份；原 35 份内容保持一致。
+- 新检查先在原实现上复现 `latest recommendations sort release times before choosing release and snapshot`，记录为 `artifacts/version-before-0.23.txt`。原版推荐依赖来源的原顺序，特殊版本还会同时出现在远古类。修复后四类互斥、按时间排序，推荐只选实际最新的正式版和更新的预览版。
+- 新增 27 项实际 WPF 检查，总计 237 项：乱序推荐、1.x 误标记、四种预览标记例外、所有指定愚人节 ID（含两种无限更新 ID）、UTC+2 跨日与同一时刻不同偏移、图标、简介、日期副标题、推荐早于/等于正式版、仅正式/仅预览/仅特殊及空列表。通过版本行实际按下/松开选择无限更新，确认显示别名、自动命名及名称刷新正确，原始 ID/Kind/URL/SHA-1/时间和输入顺序均未被改写。
+- 渲染又发现 Minecraft 摘要图标固定为草方块，增加检查在修复前复现 `the Minecraft summary uses the selected base version icon instead of a fixed grass block`，记录为 `version-icon-before-0.23.txt` 和 `align-infinite-before-icon-0.23.png`。按 PCL `Init` 修正后，选择特殊版本显示金块；添加 Fabric 后名称卡显示 Fabric，原版摘要仍显示金块。
+- 最终完整 Release 构建为 `artifacts/build-final-0.23.log`：0 警告、0 错误，302 项下载/安装检查与 237 项 UI 检查通过；界面记录为 `ui-checks-0.23.json`。固定控件 XAML、字体、图形和设置来源检查继续通过，新增核对十段愚人节简介来自固定源码。
+- 已查看 `align-special-after-0.23.png`、`align-infinite-after-0.23.png`、`align-versions-after-0.23.png`（850×700），以及 `align-minimum-after-0.23.png`（810×470）。完整窗口显示金块、简介及别名；最小窗口使用原有滚动区域。图片为 96 DPI 示例离屏渲染，未做真实 PCL 像素、原生鼠标或跨 DPI 人工验收。
+- Core 和控制台检查源码未改，Core 与 0.22 字节一致，SHA-256 `9DBBC0FE0F3AD09DB34531F588334098E531D246A5123D757A9A5361F7B5C4FA`。本轮重跑本地 HTTP 及 Java 处理器回归；未重新联网安装完整 Minecraft、实装无限更新或启动游戏。
+- 修改前保存 `artifacts/baseline-0.22/source.zip`。原仓库状态、源码差异和包一致性为 `upstream-state-0.23.json`、`source-changes-0.23.json`、`package-verify-0.23.json`；原补丁仓库已有 `Patch-PCL.ps1` 删除状态保留。仅本地 0.23，未提交、推送或公开发布。
+
+## 0.22 名称与安装入口对齐
+
+- 主交付为 PCL 式名称即时校验、红色提示条、手动编辑状态与回车提交。依据固定 `5ef81e4` 的安装页及 `ValidateFolderName`，具体改造和保留的校验补全模式见 `SOURCE_REFERENCES.md` 的 0.22 节；新增三份源码快照后共 35 份，原 32 份保持原样。
+- `artifacts/name-before-0.22.txt` 在原 0.21 行为上复现 `invalid instance names immediately show a PCL validation error and disable installation`。原代码只在点击开始后校验；现在文字、目录、校验模式和组件变化共同更新输入错误、提示与按钮状态。实际内核也复用目标检查，在创建私有目录或读取元数据前拒绝占用目标。
+- 渲染中另发现名称框和红色提示条重复报错，补充 `name-visual-before-0.22.txt` 复现 `the PCL name card suppresses inline validation text and shows only its separate hint`。移植源码的 `ShowValidateResult=False` 后名称卡恢复原高度，其他设置输入框的行内错误保持可见。
+- 新增 27 项 WPF 检查，总计 210 项：非法名称、修正后恢复、手动改回默认文字、提示条几何/配色、行内提示开关、目录重名、同名文件、缺少修复 JSON、切换目录/校验模式及加载器限制。键盘检查通过实际 TextBox 路由事件和生产安装处理器提交；用受控任务代替下载执行，核对提交参数、设置页保护、重复回车、完成后解锁与点击前目标变化。模拟键盘源/安装结果不是原生键盘或真实安装验收；隔离预览模式不写入用户偏好或日志。
+- 新增 25 项内核检查，定向结果 `artifacts/name-preflight-after-0.22.log`：16 类非法输入、有效中文名称、校验本身不创建目录、已有实例不改写、校验补全所需 JSON、同名文件以及真实 `MinecraftInstaller` 在无可用元数据地址时仍先因目标占用而拒绝。所用 JSON 为本地目的地检查样本，不替代原版兼容性检查。
+- 最终完整 Release 构建为 `artifacts/build-final-0.22.log`，0 警告、0 错误，302 项下载/安装检查和 210 项 UI 检查通过；界面记录 `ui-checks-0.22.json`。原 XAML/字体/图形/布局来源检查及新增 MyHint 几何/红色主题检查通过。
+- 已查看 850×700 的非法名称、目录重名与普通组件页，以及 810×470 的非法名称页（`artifacts/align-*-after-0.22.png`）。红色提示条位于名称卡片下，名称框保持单行错误边框，最小窗口可滚动。均为示例数据的 96 DPI 离屏渲染，尚无真实 PCL 像素或跨 DPI 人工验收。
+- 本轮 Core 只调整 `InstallPreflight.vb` 及安装入口的目标检查顺序，SHA-256 `9DBBC0FE0F3AD09DB34531F588334098E531D246A5123D757A9A5361F7B5C4FA`。传输、分段、源选择、续传和安装器执行模块未改；完整回环及 Java 处理器回归重新执行，未重新联网安装完整 Minecraft 或启动游戏。
+- 修改前保存 `artifacts/baseline-0.21/source.zip`；原仓库状态、源码/引用差异和包一致性分别为 `upstream-state-0.22.json`、`source-changes-0.22.json`、`package-verify-0.22.json`。保留补丁仓库已有 `Patch-PCL.ps1` 删除状态。仅本地 0.22，未提交、推送或公开发布。
+
+## 0.21 PCL 视觉与操作流程对照
+
+- 已重新对照固定 PCL 控件及安装页源码，完整逐项结果和保留差异见 `SOURCE_REFERENCES.md` 的 0.21 节。修正点击判定、状态配色、组件长文字、展开列表保留、默认命名与名称卡片图标；不改下载内核或增加主界面。
+- 新增检查先在原界面实现上复现：`artifacts/interaction-before-0.21.txt` 为 `PCL version rows ignore a mouse release without a press on that row`。原版本行仅在 MouseUp 激活，未核对本行 MouseDown；顶部页签和卡片存在同类缺口。修复后按下、移出、禁用/重启用及松开形成明确的一次点击；实际页签还检查不会冒泡为窗口拖动，清除不会触发第二次折叠。
+- 新增 36 项 UI 检查，总计 183 项。使用实际 WPF 路由事件验证版本行、按钮、页签、卡片及真实导航/清除处理；核对按下色、0.98 行缩放、选中文字 ColorBrush2、页签 alpha 120、闲置选中行底色；折叠赋相同值不再触发重复事件，首次展开内容仍只创建一次。
+- 展开 Fabric 的 150 条模拟条目并通过真实「显示更多」点击追加，随后接收 NeoForge 列表，确认原 body 和 150 行保留；普通刷新同样复用。选中变化刷新高亮，本组件新列表仍替换旧行。长摘要经实际 850×500 布局后，文字右边界不越过清除区域，并保留完整版本 ToolTip。六项命名/图标检查覆盖 Fabric 构建后缀、Forge + OptiFine、旧 LiteLoader、NeoForge 与自定义名称。
+- 最终完整构建为 `artifacts/build-final-0.21.log`：Release 0 警告、0 错误，279 项下载/安装检查与 183 项 UI 检查通过；结果为 `ui-checks-0.21.json`。定向构建为 `interaction-after-build-0.21.log`。32 份固定 PCL 快照以及原控件 XAML、字体、图形和设置来源检查继续通过。
+- 已查看 850×700 的 `align-components-after-0.21.png`、`align-components-long-after-0.21.png`、`align-interaction-pressed-after-0.21.png`，以及 810×470 的 `align-minimum-after-0.21.png`。名称图标、按下状态、摘要省略与清除区域未见遮挡；另保存正常展开列表及修改前组件/版本页。图像均用示例数据、96 DPI 离屏渲染，路由事件检查不替代真实鼠标、原版像素对比或跨显示器人工验收。
+- Core、控制台检查与来源工具源码本轮未改；Core 与 0.20 字节一致，SHA-256 `3E9E1F8EB1F84E5AB3CD412971D9497886D34C9BF2846E9C12D3466F30290445`。重新运行本地 HTTP 与 Java 处理器回归，没有重新联网安装完整 Minecraft 或启动游戏。
+- 修改前保存 `artifacts/baseline-0.20/source.zip`。原仓库状态、源码差异及包一致性分别为 `upstream-state-0.21.json`、`source-changes-0.21.json`、`package-verify-0.21.json`；原补丁仓库的 `Patch-PCL.ps1` 删除状态保留。仅本地 0.21，未提交、推送或公开发布。
+
+## 0.20 取消、失败与连续重试
+
+- 主交付为任务进度的批次归属和结束状态保护。对照固定 PCL `PageSpeedLeft.xaml.vb/TaskRefresh` 与 `ModDownloadLib.vb/McInstallState` 按 Loader 状态呈现任务的规则；具体独立适配见 `SOURCE_REFERENCES.md` 的 0.20 节。
+- 先保留原实现行为，将实际 `Progress` 构造提取为单一工厂，再加入定向工作流检查。`artifacts/task-lifecycle-before-0.20.txt` 复现 `queued progress cannot reopen a failed task while its error dialog still owns the UI`：先报告进度但暂不处理，令任务失败并保持 `_busy=True`，再运行 WPF 嵌套消息循环，旧回调将错误页改回运行中。测试通过 `DispatcherFrame` 模拟提示框期间的消息处理，没有自动操作真实错误弹窗。
+- 修复为回调捕获任务批次、运行时复核当前批次及结束/取消状态。任务结束时先拒收后续回调，再写入最终百分比、图标及统计；新任务独立重置。取消和活动窗口关闭使用同一入口，重复取消不改写等待说明，取消期间以「—」代替已经失效的速度、连接数及剩余数量。完成停止后设置解锁，旧回调不能污染重试。
+- 新增 15 项实际 WPF 队列检查，总计 147 项：正常回调、失败提示期间的排队消息、失败图标、连续重试的统计与文件归属、成功结果固定 100%、取消令牌与重复取消、取消中说明稳定、停止后解锁、空闲取消、新任务清零及独立令牌、活动窗口关闭和关闭后丢弃。均在隔离预览模式执行，不写入用户偏好或游戏实例。
+- 新增 3 项回环安装检查到 `AdaptiveParallelChecks` 的 `parallel-cancel`：资源分支受阻且组件已完成时写锁仍被持有；取消退出后可重新独占打开锁文件且暂存文件已清理；解除资源闸门后以同一名称重新安装，JSON/JAR、资源和支持库字节正确，并复用已完成文件。定向结果为 `artifacts/cancel-retry-after-0.20.log`；样本是本地 HTTP 与模拟 Minecraft 内容，不是公网或真实游戏启动。
+- 最终完整 Release 构建为 `artifacts/build-final-0.20.log`，0 警告、0 错误，279 项下载/安装检查与 147 项 UI 检查通过；界面记录为 `ui-checks-0.20.json`。32 份固定 PCL 快照哈希及原控件、字体、图形和布局来源检查继续通过。
+- 已查看 850×700 的取消等待与失败页面、810×470 的取消等待最小窗口渲染（`artifacts/align-*-after-0.20.png`），标题、等待说明和禁用操作沿用原有布局；另保存正常任务页。均为 96 DPI 示例离屏图像，动画、真实弹窗与跨 DPI 鼠标交互尚无人工验收。
+- Core 与 0.19 字节一致，SHA-256 `3E9E1F8EB1F84E5AB3CD412971D9497886D34C9BF2846E9C12D3466F30290445`。本轮重新执行本地回环及 Java 处理器回归，没有重新联网安装完整 Minecraft 或启动游戏。
+- 修改前保留 `artifacts/baseline-0.19/source.zip`。原仓库状态、源码差异和便携包一致性为 `upstream-state-0.20.json`、`source-changes-0.20.json`、`package-verify-0.20.json`；保留补丁仓库原有 `Patch-PCL.ps1` 删除状态。仅本地 0.20，没有提交、推送或公开发布。
+
+## 0.19 加载器组合的即时校验
+
+- 本轮对照固定 PCL 的 OptiFine/Forge 兼容过滤、当前选择刷新及 OptiFabric 依赖处理，完善已选组合的页面状态。具体依据与保留选择的独立适配见 `SOURCE_REFERENCES.md` 的 0.19 节；没有修改既有兼容规则或下载调度。
+- 新增工作流检查先在未修复的 0.18 界面代码复现：`artifacts/compatibility-before-0.19.json` 记录失败 `refreshed Forge requirements immediately block an incompatible plan with a visible reason`。样本先选 Forge 47.2.18 + OptiFine I6，再让同一个 I6 的刷新条目要求 47.2.19；原界面仍允许点击开始并显示通常安装说明。最终内核校验原本会拒绝，因此不是已经发布了错误组合的证据。
+- 现在所有入口复用 `ComponentSelection.Validate`：刷新后立即展示原因、冲突标题标「不兼容」、保留清除按钮及兼容替代项；不删除原选择或改名。缺少 OptiFabric 时阻止开始，依赖晚到后恢复，手动取消则保持取消；移除 OptiFine 后恢复 Fabric 方案。取消可选 Fabric API 仍可安装。任务结束解锁也不能重新启用无效组合。
+- 新增 15 项实际 WPF 工作流检查，总计 132 项。禁用按钮使用真实 `ToolTipService.ShowOnDisabled` 并检查原因，以覆盖提示在小窗口滚动区域下方的场景。测试运行于隔离预览模式，不写入用户设置或游戏实例；模拟组件元数据不是上游当前真实兼容性声明。
+- 最终完整 Release 构建见 `artifacts/build-final-0.19.log`，0 警告、0 错误，276 项下载/安装检查与 132 项 UI 检查通过；界面记录为 `ui-checks-0.19.json`。完整构建前的定向记录为 `compatibility-after-build-0.19.log`。固定 PCL 控件、字体、图形和来源布局检查继续通过，32 份快照哈希保持一致。
+- 已查看 850×700 的 `align-components-incompatible-after-0.19.png`、`align-components-bridge-required-after-0.19.png` 及 810×470 的 `align-minimum-after-0.19.png`。新增状态复用原文字、卡片、按钮和提示区域；未扩大窗口或新增主界面。均为 96 DPI 示例离屏渲染，不能替代真实 PCL 逐像素对照、鼠标悬停人工验收或跨 DPI 测试。
+- Core 与 0.18 字节一致，SHA-256 `3E9E1F8EB1F84E5AB3CD412971D9497886D34C9BF2846E9C12D3466F30290445`；本轮完整重跑本地回环及 Java 处理器检查，没有重新联网安装整套游戏、实装所有加载器或启动 Minecraft。
+- 修改前保留 `artifacts/baseline-0.18/source.zip`。原仓库状态、源码差异和便携包一致性为 `upstream-state-0.19.json`、`source-changes-0.19.json`、`package-verify-0.19.json`；原补丁仓库已有的 `Patch-PCL.ps1` 删除状态保留。交付为本地 0.19，没有提交、推送或公开发布。
+
+## 0.18 切源与列表刷新
+
+- 本轮选择完善 0.17 的后续流程：切换版本来源后返回下载页刷新、安装选项页直接刷新、单项组件重试、保留选择并更新其下载声明。固定 PCL `PageDownloadInstall.xaml.vb` 的列表刷新与选择更新为依据，具体对应与独立适配边界见 `SOURCE_REFERENCES.md` 的 0.18 节。
+- 新增检查先在修改前界面代码上复现：`artifacts/refresh-before-0.18.log` 报错 `refresh rebinds the chosen component version to newly validated catalogue metadata`。原实现虽更新列表，已选对象仍引用旧 URL/校验数据；修复为按种类、Minecraft 和版本号绑定新条目。缺少已选版本时保留选择和名称、显示待确认并阻止开始安装，不擅自升级。
+- 新增 21 项 WPF 工作流检查，直接驱动实际窗口的异步加载方法，使用可控任务先后完成来验证快速切源、取消后晚到成功/失败、单项重试不打断其他组件、请求所有权释放、手动取消依赖、自定义名称、缺少版本、清除后重选依赖、安装冻结、文件来源独立、manifest 刷新失败保留缓存，以及关闭后的结果丢弃。模拟提供者仅供隔离的界面自检使用；没有请求公网或写入用户设置。
+- 最终完整构建记录为 `artifacts/build-final-0.18.log`，界面结果为 `ui-checks-0.18.json`：Release 0 警告、0 错误，276 项下载/安装检查、117 项 UI 检查通过。`build-first-pass-0.18.log` 为中间 115 项 UI 记录，最终额外补充依赖重选状态与安装中 manifest 晚到保护，以最终记录为准。
+- 下载内核和控制台检查源码未改动；被测 Core 与 0.17 字节一致，SHA-256 为 `3E9E1F8EB1F84E5AB3CD412971D9497886D34C9BF2846E9C12D3466F30290445`。本轮重新执行了回环与本地处理器回归，没有重新联网下载完整 Minecraft、实装所有加载器或启动游戏；此前公网样本仍属于各自版本记录。
+- 已查看 `align-components-refreshing-after-0.18.png`、`align-components-unavailable-after-0.18.png`（850×700）与 `align-minimum-after-0.18.png`（810×470）：刷新和待确认状态使用现有 PCL 卡片/字体/提示区域，保留清除操作并禁用开始按钮，最小窗口可滚动。另保留正常组件页和来源菜单渲染。均为 96 DPI 示例渲染，不是实际 PCL 的逐像素或人工跨 DPI 验收。
+- 修改前保留 `artifacts/baseline-0.17/source.zip`；来源静态检查继续核对 32 份固定 PCL 快照。源仓库状态、源码差异和便携包一致性分别为 `upstream-state-0.18.json`、`source-changes-0.18.json`、`package-verify-0.18.json`；运行文件与文档逐项核对 ZIP 哈希。原补丁仓库已有的 `Patch-PCL.ps1` 删除状态继续保留。仅本地 0.18，未提交、推送或公开发布。
+
+## 0.17 官方 / BMCLAPI 来源选择
+
+- 主交付为「文件下载源」「版本列表源」独立设置，按固定 PCL `PageSetupSystem.xaml` 的原顺序和自动默认值，镜像明确显示 BMCLAPI。只扩展下载设置，继续保持两个主页面。具体代码依据、第三方接口范围和未对齐差异见 `SOURCE_REFERENCES.md` 的 0.17 节。
+- 新增 36 项下载检查：九种文件/列表组合的真实回环 manifest 请求与完整文件 SHA-1（18 项）、四类组件在相反文件偏好下选择正确列表及 XML/HTML 解析失败后的回退（10 项）、OptiFine 官方/镜像优先和坏 ZIP 回退（8 项）。OptiFine 用于验证的安装器为只含标识的 fixture，作为 LiteLoader 的 Mod 放入私有测试目录，没有执行该伪造 class；不冒充真实 OptiFine 游戏验收。
+- 新增 11 项界面/设置检查：两组默认、策略独立、语义值保存、真实临时配置文件往返、三种旧值迁移、非法值默认、安装期间冻结、独立布局行与实际长文案 Popup。设置文件使用独立临时目录，用户的应用偏好与 PCL 设置未被测试改写。
+- 完整构建与来源静态检查见 `artifacts/build-final-0.17.log`，界面结果见 `ui-checks-0.17.json`。最终 Release 构建 0 警告、0 错误，276 项下载/安装检查及 96 项 UI 检查全部通过；第一遍记录为 `build-first-pass-0.17.log`。最终包的运行文件、当前文档、被测内核与 ZIP 内容逐项哈希一致。
+- 公网交叉来源验证使用官方 `minecraft/font/unifont.zip`，1,496,916 字节、SHA-1 `666999116c467f10622db1527a06ddc0a6efad2a`。`live-source-selection-0.17/result.json` 中：官方文件 / BMCLAPI 列表优先的样本记录了列表备选请求，文件从官方入口下载并通过哈希；BMCLAPI 文件 / 官方列表样本仅请求官方列表，文件从 BMCLAPI 入口下载并通过哈希。所有文件均重新下载，复用数为 0。
+- 为确认首轮列表备选不是固定路由错误，又在新目录重试。`live-source-selection-repeat-0.17/result.json` 中，BMCLAPI 列表仅请求 BMCLAPI 入口并返回 920 个版本，文件走官方；反向组合的 BMCLAPI 文件优先触发官方回退，文件依然通过哈希。两轮共同证实独立路由和公网回退，不宣称每次请求都会命中首选，也不是官方与镜像的速度比较。原始回环测试在两个来源始终可用时断言只请求首选。
+- 已查看 `align-settings-after-0.17.png`（850×700）、`source-menu-0.17.png`，两组控件未与线程/限速行重叠，长选项文字完整。均为本工具离屏/隐形测试窗口的 96 DPI 样本，不是 PCL 原程序像素对比。
+- 修改前保存 `artifacts/baseline-0.16/source.zip`。版本为本地 0.17；源仓库 HEAD/工作区、源码变化和包一致性分别记录于 `upstream-state-0.17.json`、`source-changes-0.17.json`、`package-verify-0.17.json`。原补丁仓库已有的 `Patch-PCL.ps1` 删除状态继续保留；没有提交、推送或公开发布。
+
+## 0.16 自动选源与共享预算下的并行安装
+
+- 固定源码依据与保留差异详见 `SOURCE_REFERENCES.md` 的 0.16 节。本轮主交付为官方版本列表探测、跨阶段并行、统一内容下载预算及并行进度，附带安装页图标按钮适配；没有恢复其他启动器页面或修改 PCL。
+- 新增 30 项回环/安装检查：官方 4 秒判定、5 秒备选启动、手动覆盖、跨策略共享、无效/取消不学习；资源响应被闸门阻塞时 Fabric 仍能完成、全部成功前不发布、取消后退出、哈希错误终止其他分支并可重试；三个独立引擎共用 2 个连接与总计 256 KiB/s，跨引擎相同缓存只由一个任务下载且两份目标均通过 SHA-1。固定时间判定的模拟通过回环延迟完成，不代表公网源始终有同样响应。
+- 在中间构建中复现并修复一次并行进度退化：真实 fixture Java 打印的未知进度被汇总成 0%。新增断言先失败于 `artifacts/parallel-progress-before-0.16.log`，修复后 `parallel-progress-after-0.16.log` 通过；保留负比例作为未知状态，同时保留最后已知比例计算总进度。它不是仅测试一段重复实现的数学公式。
+- 新增 8 项 UI 检查：资源/组件完成状态独立、总权重相加、后续资源事件不重新打开处理器、当前阶段数量与全局剩余分离、返回与清除尺寸/图形比例/黑色透明度，以及实际清除事件和依赖清除。测试中发现无路由标识的 Click 参数导致清除异常，已改为传递原始输入事件参数。
+- 最终验证以 `artifacts/build-final-0.16.log` 与 `artifacts/ui-checks-0.16.json` 为准；Release 构建 0 警告/0 错误、240 项下载/安装检查与 85 项 UI 检查均通过。`build-first-pass-0.16.log` 为中间 239/84 项检查记录，未包含随后增加的真实 Java 未知进度和阶段数量保护。
+- 联网安装 Minecraft 1.21.1 + NeoForge 21.1.77 到独立测试目录 `artifacts/live-0.16/.minecraft`：30,415ms、计划 4,102 项、复用 4,100 个文件、内容网络读取 6,802,724 字节。复用来自旧 0.13 测试根目录；日志在资源分支尚有文件时已经出现安装处理器阶段。不是冷缓存测速，也没有与 PCL 在相同网络下比较；元数据请求不计入内容字节。
+- 当前最终构建再次安装到 `artifacts/live-0.16-final/.minecraft`，复用上一测试目录：30,885ms、同为 4,102 项计划 / 4,100 个复用文件 / 6,802,724 字节内容传输。`live-neoforge-final-0.16.log` 保存结果；`verify-live-final-0.16.ps1` 除 108 项运行文件和 8 项 JVM 模块外，直接枚举原资源索引逐个核对 **3,911 项资源对象的大小与 SHA-1**，全部通过，见 `live-verify-final-0.16.json`；新实例的真实 Java 参数解析结果为 `jvm-profile-final-0.16.json`。
+- `artifacts/verify-live-0.16.ps1` 对新实例独立复核 108 项运行文件的声明哈希、资源索引、8 项 JVM 模块文件、PCL 版本隔离与安装记录，见 `live-verify-0.16.json`；真实 Java 21 的参数解析 `-version` 检查通过，见 `jvm-profile-0.16.json`。未启动 Minecraft 主程序或实际 PCL 界面，不能视为游戏启动/账号验收。
+- 已查看 `align-components-after-0.16.png`、`align-task-parallel-after-0.16.png` 与 810×470 的 `align-minimum-after-0.16.png`，返回与清除尺寸、并行阶段状态和最小窗口未见异常。图像使用固定示例和 96 DPI；没有跨 DPI 人工验收。原字体、四份控件 XAML、十份图形、渐变阴影和任务图形的固定来源检查继续执行，快照清单共 32 份。
+- 修改前保存 `artifacts/baseline-0.15/source.zip`；版本更新为本地 0.16，所有改动仍在独立 VanillaDownloader 内。原仓库状态、源码差异和便携包一致性分别记录在 `upstream-state-0.16.json`、`source-changes-0.16.json`、`package-verify-0.16.json`。保留补丁仓库已有的 `Patch-PCL.ps1` 删除状态；没有提交、推送或公开发布。
+
+## 0.15 PCL 视觉与下载主流程对照
+
+按用户要求再次核对固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 源码。完整差异表在 `SOURCE_REFERENCES.md` 的「0.15 视觉与下载主流程对照」，明确分开已对齐、独立适配和仍有差异的部分；没有宣称所有下载行为或画面已经完全等价。
+
+| 本轮修改 | 源码依据与复现 | 修复与验证 |
+|---|---|---|
+| piston-data/piston-meta 未按资源、支持库、元数据分类映射镜像路径 | `ModDownload.DlSourceAssetsGet/DlSourceLibraryGet/DlSourceLauncherOrMetaGet`；原 0.14 Core 上 `source-routing-before-0.15.log`、`source-download-before-0.15.log` 均失败，回环请求错误根路径后返回 404 | asset 使用 `/assets`，library 使用 `/maven` 再 `/libraries`，meta/client 保留根路径；18 项主机/类别/偏好组合、3 项既有映射保护及 4 项真实回环下载/回退检查通过 |
+| 组件收起箭头朝下，且未随标题悬停变色 | 安装页七类卡片 `SwapLogoRight=True`、`MyCard.IsSwapped`；`ui-alignment-before-0.15.log` 断言失败 | 收起 270°、展开 180°、转动 250ms；分类收起仍为 0°。箭头跟随标题 90ms 变色 |
+| 卡片边缘使用通用模糊阴影 | `MyCard` 的 `MyDropShadow` 配置及完整绘制源文件 | 移植九块渐变阴影，原源码除类名、命名空间和四处显式转换外保持一致；原注释保留。半径 3、圆角 5、静止/悬停透明度 0.07/0.4，DPI 偏移使用一个物理像素；完整适配源码由来源脚本比较通过 |
+| 失败图标使用字体“×”，任务列宽、图形尺寸及百分比取整与 PCL 运行时不同 | 新增固定 `PageSpeedLeft.xaml.vb` 快照，而非只读 PageSpeedRight 的注释样例 | 复用原等待/完成/失败路径，状态列 50 DIP、行高 26、完成 15×16、失败 15×15；子阶段百分比向下取整。保留四项统计与下载页内任务布局 |
+| 无效输入只有红边框，缺少错误底色 | `MyTextBox.RefreshColor`；中间构建的 `ui-input-before-0.15.log` 断言失败 | 补齐原淡红底色和 10/100/200ms 状态颜色时长；名称框的透明底色规则保留 |
+| 处理器有明确阶段比例但没有文件数量时一直显示省略号 | `ui-processor-before-0.15.log` 断言失败 | 已知比例显示整数百分比；仅负比例代表未知进度并保留省略号。37.6% 样本显示 37%，未知处理器输出显示省略号 |
+
+- 来源回归先在原 0.14 内核（SHA-256 `C324F69A4F78569CD61418908F5A6759B8D4FF79A852414B67DC89DCD2D09D6A`）复现。对应修复后记录为 `artifacts/source-routing-after-0.15.log`、`artifacts/source-download-after-0.15.log`；后者实际绑定回环 HTTP、下载并核对整文件 SHA-1，且模拟 maven 失败后换用 libraries，不冒充公网 CDN 可用性验收。
+- 最终完整 Release 构建 0 警告、0 错误，209 项下载/安装检查和 77 项界面/设置检查通过，见 `artifacts/build-final-0.15.log`、`artifacts/ui-checks-0.15.json`。新增 25 项来源检查、10 项 UI 检查；原字体、三个原控件 XAML、十份图形、选择框和设置布局来源检查继续通过，另核对完整渐变阴影源码与三类运行时任务图形。`build-first-pass-0.15.log` 为处理中途的 75 项 UI 检查记录，最终以 77 项结果为准。
+- 离屏渲染安装、展开组件、任务、失败任务、错误设置五种状态，以及 810×470 最小窗口，共六张图片：`artifacts/align-*-after-0.15.png`。已查看安装、失败任务、错误设置及最小窗口渲染，箭头、图形、底色和阴影符合本轮源码参数，没有运行异常。修复前图片为 `align-install-before-0.15.png`、`align-tasks-before-0.15.png`。均使用明确的示例目录/版本数据和 96 DPI RenderTargetBitmap；没有与真实 PCL 程序截图作逐像素或跨显示器交互验收。
+- 再次使用官方 Minecraft 资源 `minecraft/font/unifont.zip`（1,496,916 字节，SHA-1 `666999116c467f10622db1527a06ddc0a6efad2a`）联网取消/重试：保留 97,761 字节，重试实际 Range 下载 1,399,155 字节，整文件大小与哈希一致，无完整临时文件残留，见 `artifacts/live-single-resume-0.15.log`、`artifacts/live-single-0.15/result.json`、`artifacts/live-single-postverify-0.15.json`。该资源路径是本轮映射保护与下载回归，不是新加入的每个镜像类别路径的公网验证，也不是 PCL 速度比较。
+- 本轮没有启动 Minecraft、改写用户游戏实例或重新实装所有加载器。自动选源目前仍固定镜像优先；PCL 的官方列表 4 秒采样、分开的文件/列表偏好、跨阶段并行、动态连接/超时统计仍未完整对齐，见上述差异表。返回/清除按钮、长列表动画和缓动曲线也还有适配差异。
+- 源码快照为 `artifacts/baseline-0.14/source.zip`。业务核心仅修改 `SourcePolicy.vb`；UI 修改限于上述视觉与阶段进度，新增 `PclDropShadow.vb`。`reference/PCL/manifest.json` 补充两份固定快照，导入脚本能重新生成阴影适配类。差异、原仓库状态和便携包一致性见 `artifacts/source-changes-0.15.json`、`artifacts/upstream-state-0.15.json`、`artifacts/package-verify-0.15.json`；原仓库 HEAD/工作区状态保持原样，包括补丁仓库已有的 `Patch-PCL.ps1` 删除状态。未提交或推送。
+
+复查示例：
+
+```powershell
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression source-routing
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression source-download
+.\tools\verify-pcl-ui.ps1
+.\src\VanillaDownloader.App\bin\Release\net48\VanillaDownloader.exe --snapshot D:\Temp\pcl-install.png --page install --size 850x500
+```
+
+## 0.14 普通单连接文件续传
+
+本轮选择完善取消、断线后的重试。对照固定 PCL `ModNet.vb` 下载线程按 `DownloadStart` 发起 Range、验证长度及不支持时回退的流程，发现本工具此前仅有大文件分段续传，普通单连接下载每次都以 `FileMode.Create` 从头写入。新增检查先在未修改的 0.13 内核（SHA-256 `E45AC84AAABE93B769BC400B02EF515CF65A6378DDFF98B57174A56F75FAAC3C`）复现，再修改下载引擎。
+
+| 场景 | 修复前证据 | 本轮结果 |
+|---|---|---|
+| 取消后用新引擎和新暂存目录重试 | `single-resume-cancel-before-0.14.log`：已保留 98,304 字节，第二次仍传输完整 2,097,152 字节 | `single-resume-cancel-after-0.14.log`：相同样本第二次传输 1,998,848 字节，Range 从残片末尾开始，整文件 SHA-1 匹配后发布 |
+| 服务器发送 128 KiB 后断开 | `single-resume-disconnect-before-0.14.log`：两次共传输 2,228,224 字节 | `single-resume-disconnect-after-0.14.log`：第二次只请求剩余部分，总内容字节为文件大小 2,097,152，最终 SHA-1 匹配 |
+| 安装流程清理取消的客户端 payload 后重试 | `single-resume-install-before-0.14.log`：未能利用传输残片 | `single-resume-install-after-0.14.log`：回环样本的完整 MinecraftInstaller 流程先取消且不发布实例，再以相同名称重试，从独立传输缓存恢复客户端并完成安装 |
+
+新增八组共 25 项检查；修复后记录为 `artifacts/single-resume-*-after-0.14.log`，完整运行记录见 `artifacts/build-final-0.14.log`。验证边界如下：
+
+- 仅已知大小、具有有效 SHA-1/MD5 声明的文件可追加残片；未知大小、没有哈希时从头下载。残片本身尚未校验，不能据其长度认定内容正确；最终完整文件必须再次通过大小与哈希校验。同大小损坏残片会导致最终校验失败，清除后完整重试，不发布损坏结果。
+- 严格核对 206 的 bytes 单位、明确的起点/终点/总长，以及存在时的 Content-Length；覆盖起点错误、终点错误、总长错误、长度错误、缺少 Content-Range、通配范围、未知总长、错误单位和 416。均在追加前拒绝并回退完整请求。服务器忽略 Range 返回 200 时直接覆盖并使用这次完整响应，避免再次请求和错误拼接。
+- 完整正确的临时文件校验后不再联网；完整但损坏的文件从头替换。保留现有 URL/摘要/大小传输键和 `complete.tmp` 路径，可跨引擎对象及安装暂存目录恢复。取消样本确认任务返回后字节计数不再增长、没有发布部分文件；不据此宣称对所有服务器和系统网络缓冲完成独立连接数审计。
+- 完整 Release 构建 0 警告、0 错误；184 项下载/安装检查、67 项界面/设置检查通过，原 PCL 控件/字体/图形来源检查通过。新增联网检查入口仅在显式传入 `--live-single-resume` 时运行，独立构建 0 警告、0 错误，见 `artifacts/build-live-harness-0.14.log`；默认回归不访问公网。界面仍只有下载、设置两页。
+- 真实联网测试选择已校验的 Minecraft 1.21.1 资源索引中的 `minecraft/font/unifont.zip`，大小 1,496,916 字节，声明 SHA-1 `666999116c467f10622db1527a06ddc0a6efad2a`，使用官方资源 URL，测试目录为 `artifacts/live-single-0.14`。第一轮设置 256 KiB/s 内容上限，在接收 97,761 字节后取消，未发布目标；第二轮新建引擎，实际走 Range 续传，传输 1,399,155 字节，最终大小/SHA-1 正确。证据：`artifacts/live-single-input-0.14.json`、`artifacts/live-single-resume-0.14.log`、`artifacts/live-single-0.14/result.json`、`artifacts/live-single-postverify-0.14.json`。内容字节不包括 HTTP/TLS 开销；不是 PCL 速度对比，也不代表每种 CDN 都支持续传。
+- 本轮没有启动 Minecraft，也没有重新实装全部加载器或在 PCL UI 中验收。真实联网检查覆盖单连接资源；客户端取消后重试由上述回环安装流程覆盖，既有真实 NeoForge 安装记录保留在 0.13 段。
+- 源码快照为 `artifacts/baseline-0.13/source.zip`；本轮业务内核只修改 `DownloadEngine.vb`，应用仅升级版本号。差异、原仓库状态及打包核对分别见 `artifacts/source-changes-0.14.json`、`artifacts/upstream-state-0.14.json`、`artifacts/package-verify-0.14.json`。保留补丁仓库既有文件删除状态，修改仅保留本地，未提交或推送。
+
+复查示例：
+
+```powershell
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression single-resume-cancel
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression single-resume-range
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression single-resume-corrupt
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression single-resume-install
+```
+
+## 0.13 处理器输出复用与路径校验
+
+再次阅读固定 PCL 的 `ForgelikeInjector`、日志进度处理以及下载器的复用前校验流程；PCL 的 VB 源码将处理器交给 Java 安装器，本轮没有声称从该 VB 文件中移植完整处理器缓存。辅助核对 HMCL `ForgeNewInstallTask.ProcessorTask.execute` 的非空输出列表、全部摘要通过才跳过及执行后校验规则，用 VB 独立实现。
+
+新增回归在原 0.12 内核（SHA-256 `67589457CC3D897E31EE742D46A83F05C7B2DC0E05C328A343A82C253407FAE4`）先复现三项问题，见 `artifacts/processor-output-*-before-0.13.log`：
+
+| 场景 | 修复前 | 本轮结果 |
+|---|---|---|
+| 同一安装声明安装两个实例 | 样本处理器实际执行 2 次 | 第一次结果按声明 SHA-1 缓存，第二次恢复后逐项校验，实际执行合计 1 次；所选其他游戏目录也能只读复用并为目标建立自己的缓存 |
+| 安装器声明相对输出路径 | Java 已在工作目录正确写入，但校验错误使用应用当前目录，安装失败 | 按 Java 工作目录解析相对路径，安装及后续复用通过 |
+| 输出声明指向私有工作目录之外 | 可读取并接受外部文件，且已经执行处理器 | 在执行和缓存前拒绝越界声明；执行后重新检查路径链接，外部哨兵文件保持原字节 |
+
+处理器输出使用独立的 `.vanilla-downloader/processor-cache/`，与下载依赖缓存分开。只有输出列表非空、每一项都具有有效 40 位 SHA-1、所有文件都匹配时，才允许跳过；摘要变量和大小写均可解析。完整校验全部输出后才保存缓存。输出在读取缓存及复制后均校验，临时副本原子提交，复制支持取消；不同处理器覆盖同一路径时按各自摘要顺序恢复，不把最终阶段误当作中间阶段。未声明输出、空输出、无哈希或部分无哈希的声明不允许跳过；不从文件名或命令行参数猜测摘要。
+
+- 新增九组共 21 项检查，见 `artifacts/processor-output-*-after-0.13.log` 和完整构建日志：重复安装、跨目录复用、摘要变量、多阶段同路径、多输出缺失、同大小损坏、无完整校验声明、相对路径、取消后重试、输出校验失败后重试、缓存不可用和越界声明。多输出只命中部分时仍重新执行；校验失败不发布实例、不保存未通过的输出；缓存路径被普通文件占据时正常执行并保留该文件，无 `.cache-*` 残留。检查使用回环 HTTP、随机临时目录和实际 Java 样本处理器，不代表全历史 Forge 实装性能。
+- 完整 Release 构建 0 警告、0 错误；159 项下载/安装检查、67 项界面/设置检查通过，见 `artifacts/build-final-0.13.log`、`artifacts/ui-checks-0.13.json`。既有处理器失败退出测试改用尚未生成的输出摘要，确保发生缓存未命中后实际执行 Java，继续断言非零退出不发布实例；没有移除失败断言。界面保持下载、设置两页，仅进度详情增加「已校验输出，跳过重复执行」。处理器复用不混入下载文件复用数量。
+- 真实安装 Minecraft 1.21.1 + NeoForge 21.1.77 到新目录 `artifacts/live-0.13/.minecraft`，选择旧 0.12-repeat 测试目录复用：41,594ms，计划 4,102 项、复用 4,100 个下载文件、内容传输 6,802,724 字节，见 `artifacts/live-neoforge-0.13.log`。这不是冷缓存测速或 PCL 速度对比；元数据请求不计入内容字节。NeoForge 21.1.77 的六个客户端处理器没有声明 outputs，本轮没有据此跳过它们；沿用此前映射预下载优化，实际继续执行其余处理器。新根目录的 processor-cache 条目为 0，不能把样本中的减少执行次数当作这一 NeoForge 版本的加速效果。
+- 新发布的 108 个运行文件全部通过声明大小/SHA-1 复核，资源索引 SHA-1 匹配，8 个显式 JVM 模块路径文件存在，见 `artifacts/verify-live-0.13.ps1`、`artifacts/live-verify-0.13.json`。实际 JVM 配置展开后交给 Java 21.0.10 并追加 `-version`，解析成功，保留两组 add-opens 和 add-exports，见 `artifacts/jvm-profile-0.13.json`。没有传入 Minecraft 主类、启动游戏或在 PCL UI 中验收。
+- 真实根目录保留 139 个下载缓存条目、95,593,510 字节，逐一复核内容 SHA-1 与文件名一致；无临时缓存或发布副本，见 `artifacts/cache-live-verify-0.13.json`。缓存自洽性检查不等于独立来源鉴定。两个私有缓存仍无自动容量淘汰；本轮没有向共享 libraries 发布安装器专用依赖。
+- 0.12 源码快照为 `artifacts/baseline-0.12/source.zip`，业务修改仅在 `ComponentInstaller.vb`、`VerifiedComponentCache.vb`。差异清单、原启动器仓库状态及便携包一致性分别见 `artifacts/source-changes-0.13.json`、`artifacts/upstream-state-0.13.json`、`artifacts/package-verify-0.13.json`。原仓库 HEAD/工作区状态与 0.12 相同，包括补丁仓库既有的 `Patch-PCL.ps1` 删除状态。变更未提交、未推送。
+
+单项复查示例：
+
+```powershell
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression processor-output-reuse
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression processor-output-partial
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression processor-output-unverified
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression processor-output-relative
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression processor-output-outside
+```
+
+## 0.12 已校验安装缓存与中断恢复
+
+前一版只在安装工作目录中保留处理器依赖，结束或中断后会清理，下次需要重新下载。本轮先在 0.11 内核上建立四组失败用例，再增加独立私有缓存，并验证无哈希文件、损坏缓存、取消、发布失败及缓存不可用时的行为。
+
+- 修复前证据：`artifacts/component-cache-reuse-before-0.12.log` 中相同内容、改换 URL 的第二次安装仍传输 1,863 字节；`component-cache-md5-before-0.12.log`、`component-cache-damaged-before-0.12.log`、`component-cache-cancel-before-0.12.log` 均因不存在持久复用能力退出 1。取消用例随后还揭示，完整客户端也会随暂存清理而丢失，需一起保留至成功发布。
+- 新私有缓存位于 `.vanilla-downloader/component-cache/`，按上游 SHA-1 或 MD5 标识内容；只有校验值有效时才启用。恢复时校验缓存和目标临时副本，保存时校验新副本再原子提交；其他所选复用根目录只读。缓存命中仍计入原有“复用”统计，内容字节统计只记录实际网络传输。
+- 缓存仅对组件下载及完整暂存客户端启用；普通资源对象沿用已有对象仓库。成功发布后移除客户端的额外缓存副本，之后从版本目录复用。组件依赖可同时存在于运行库和私有缓存中；没有自动容量淘汰策略，本版主要解决安装依赖重下与中断恢复。
+
+新增 16 项检查分为七组，修复后证据为 `artifacts/component-cache-*-after-0.12.log`：
+
+| 场景 | 验证结果 |
+|---|---|
+| 同内容换 URL、换实例、换游戏根目录 | 有上游哈希的安装器和处理器依赖第二次内容传输为 0；从所选其他根目录校验复用，并保存到新根目录自己的缓存 |
+| 仅有 MD5 的旧式元数据 | 仍能按声明的校验值复用 |
+| 没有哈希的安装器 | 安装器每次重新请求，已声明哈希的依赖可复用；不会只凭 URL 或文件名建立持久缓存 |
+| 同大小缓存损坏 | 单字节破坏的 JAR 被拒绝，重新下载并修复；随后实际 Java 样本处理器执行成功 |
+| 下载完成后、处理器执行前取消 | 不发布实例；保留已经提交的客户端/安装器/依赖缓存；同名重试内容传输 0，成功后释放客户端额外副本 |
+| 共享库被占用导致发布失败 | 保留原锁定文件；解除占用后同名重试，不重下安装器与处理器依赖 |
+| 缓存路径被普通文件占据 | 正常安装仍成功，保留该文件，不留下部分缓存副本 |
+
+- 完整 Release 构建 0 警告、0 错误；138 项下载/安装检查、67 项界面/设置检查通过，见 `artifacts/build-final-0.12.log`、`artifacts/ui-checks-0.12.json`。界面仍只有下载、设置两页。
+- 两轮真实安装均为 Minecraft 1.21.1 + NeoForge 21.1.77，写入独立的 `artifacts/live-0.12/.minecraft` 与 `artifacts/live-0.12-repeat/.minecraft`。第一轮复用旧 0.11 测试根目录，45,839ms、计划 4,102 项、复用 4,067 个文件、内容传输 28,356,685 字节；第二轮选择第一轮根目录复用，41,885ms、复用 4,100 个文件、内容传输 6,802,724 字节。少传 21,553,961 字节的依赖内容；安装器本次未提供上游哈希，仍重新下载。证据：`artifacts/live-neoforge-first-0.12.log`、`artifacts/live-neoforge-repeat-0.12.log`。这不是冷缓存测速，也不代表相同公网条件或 PCL 速度对比；版本列表、索引等元数据请求不计入上述内容字节。
+- 两个新根目录分别复核 108 个运行所需文件的声明大小/SHA-1、资源索引及 8 个显式 JVM 模块路径文件，均通过；实际 JVM 配置交给 Java 21.0.10 并追加 `-version` 后均成功，未启动 Minecraft。证据：`artifacts/live-verify-0.12.json`、`artifacts/live-verify-repeat-0.12.json`、`artifacts/jvm-profile-first-0.12.json`、`artifacts/jvm-profile-repeat-0.12.json`，相应复核脚本保存在同目录。
+- 两个游戏根目录各有 139 个私有缓存条目、95,593,510 字节，逐项核对文件内容与摘要文件名一致；成功发布的客户端没有额外缓存副本，没有 `.cache-*` 临时副本残留。见 `artifacts/component-cache-live-verify-0.12.json`。这一检查复核缓存自洽性，上游哈希约束由下载路径和上述回归样本共同覆盖，不宣称是独立的上游来源鉴定。
+- 0.11 源码快照在 `artifacts/baseline-0.11/source.zip`；业务改动为新增 `VerifiedComponentCache.vb`、下载引擎缓存接入、组件下载启用缓存和暂存客户端生命周期。源码差异与原启动器仓库状态见 `artifacts/source-changes-0.12.json`、`artifacts/upstream-state-0.12.json`。便携目录/ZIP/测试输出一致性见 `artifacts/package-verify-0.12.json`。
+
+单项复查示例：
+
+```powershell
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression component-cache-reuse
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression component-cache-damaged
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression component-cache-cancel
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression component-cache-unavailable
+```
+
+## 0.11 加载器参数合并
+
+本轮发现此前的“安装成功、文件哈希正确”不足以证明生成的 JVM 参数有效：0.10 的真实 NeoForge 产物中，重复的 `--add-opens`、`--add-exports` 被错误去重。保留旧产物不改写，新增回归用例在原 0.10 内核上复现，再修复并验证新产物。
+
+| 缺陷 | 修复前证据 | 修复与覆盖 |
+|---|---|---|
+| 用数组并集合并有序参数，删除重复选项名/值，破坏选项和值的配对 | `artifacts/profile-modern-before-0.11.log`；真实旧产物见 `artifacts/jvm-profile-before-0.11.json` | 按 PCL 默认追加数组的方式保留全部 token；覆盖多组 add-opens/add-exports、重复游戏参数值和两个 tweakClass，且不修改输入对象 |
+| 旧式游戏参数与新式加载器参数合并时删除整个 arguments 段，连 JVM 参数一并丢失 | `artifacts/profile-legacy-before-0.11.log` | 保留旧字符串和新结构并存；新增 JVM 段时带入 PCL 旧版的 classpath/natives 等四项默认值，已有新式 JVM 段则不重复注入 |
+| 压平新式条件参数对象时发生 InvalidCastException，导致旧版组件安装失败 | `artifacts/profile-legacy-rules-before-0.11.log` | 条件对象、包含空格的值和特性占位符保留原结构，由 PCL 启动时求值；仅新增 game 段时不改变旧版 JVM 回退路径 |
+| 支持库覆盖键忽略扩展名，把同坐标 jar 与 zip 当作同一个文件覆盖 | `artifacts/profile-library-types-before-0.11.log` | 覆盖键包含 classifier 与扩展名，默认 jar 和显式 @jar 统一；同组的 zip/classifier 变体保留，路径映射仍通过已有 Maven 校验 |
+
+- 四组修复前检查均以退出码 1 失败，相同的修复后检查均通过，见 `artifacts/profile-*-after-0.11.log`。原 0.10 NeoForge 配置交给本机 Java 21.0.10 解析时退出 1，未配对的 `java.base/java.lang.invoke=cpw.mods.securejarhandler` 被当作主类并触发 ClassNotFoundException；旧产物两个相关选项名各只剩 1 个。
+- 完整 Release 构建：0 警告、0 错误；122 项下载/安装检查（新增 14 项）、67 项界面/设置检查通过。证据：`artifacts/build-final-0.11.log`、`artifacts/ui-checks-0.11.json`。既有混合参数检查根据 PCL 同时读取两种格式的行为更新为结构完整性断言，没有取消该检查。
+- 重新联网安装 Minecraft 1.21.1 + NeoForge 21.1.77 到新的 `artifacts/live-0.11/.minecraft`，成功耗时 56,400ms、计划 4,102 项、复用 4,067 个文件、内容传输 28,356,685 字节。复用来源为 0.10 的测试根目录；其共享库不再包含安装器专用依赖，本次重新下载了部分处理器依赖，不能把耗时与先前缓存不同的测试直接比较。证据：`artifacts/live-neoforge-0.11.log`。
+- 发布后 108 个运行所需文件均通过声明的大小/SHA-1 校验，资源索引正确，JVM 模块路径显式引用的 8 个文件存在，见 `artifacts/verify-live-0.11.ps1`、`artifacts/live-verify-0.11.json`。
+- 使用新实例的实际 JVM 配置、展开本地路径和占位符、应用 Windows 默认规则，再在末尾追加 `-version` 交给真实 Java 21.0.10：退出成功，add-opens/add-exports 各保留 2 个，输出 Java 版本信息，无参数解析错误。证据：`artifacts/jvm-profile-after-0.11.json`、`artifacts/jvm-profile-after-0.11.log`。检查没有传入 Minecraft 主类、访问账号或打开游戏；不代表完整 Minecraft 启动验收。混合旧版格式及不同库类型目前由本地样本覆盖，未宣称全历史版本实装通过。
+- 本轮业务内核仅修改 `ComponentInstaller.MergeProfile`，源码快照保留在 `artifacts/baseline-0.10/source.zip`；差异见 `artifacts/source-changes-0.11.json`。主界面仍为下载、设置两页。原启动器仓库状态与上轮相同，既有补丁文件删除状态保留，见 `artifacts/upstream-state-0.11.json`。
+- 便携目录、ZIP 中的运行文件与本轮构建、测试使用的输出按 SHA-256 一致性核对，见 `artifacts/package-verify-0.11.json`。
+
+升级说明：0.11 只修正新生成的配置，不自动改写已有实例。此前使用本工具安装的加载器实例请用新名称重新安装；共享的有效游戏文件仍可复用。原版补全继续拒绝改写加载器实例。
+
+复查单项问题及实际 JVM 参数：
+
+```powershell
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression profile-modern
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression profile-legacy
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression profile-legacy-rules
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression profile-library-types
+# 针对含 arguments.jvm 的配置；参数为版本 JSON 和独立结果文件。本次实测使用 Java 21。
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --check-jvm-profile D:\Temp\MC\versions\example\example.json D:\Temp\jvm-check.json
+```
+
+## 0.10 安装失败恢复与已有文件保护
+
+在未修改的 0.9 安装内核上新增隔离回归用例，以下五项均先以退出码 1 复现，再修复并通过相同用例。测试仅绑定回环 HTTP、使用随机临时目录；占用场景由测试自身的 Windows 文件共享句柄模拟，提交撞名由进度回调在最终提交前创建目录模拟，不冒充真实游戏进程或断电测试。
+
+| 缺陷 | 修复前证据 | 修复与回归覆盖 |
+|---|---|---|
+| 补全入口未核对资源索引、日志文件声明及 PCL 游戏版本，可能保留不一致 JSON 却报告补全成功 | `artifacts/install-repair-before-0.10.log` | 不一致声明提前拒绝，保留原始 JSON 字节，尚未请求资源索引或内容。覆盖资源索引、日志文件、旧版 assets 名称、clientVersion；正常补全和无 clientVersion 的原版配置仍通过 |
+| 组件安装把私有工作目录中的所有库复制回共享目录，未引用的内嵌文件也能覆盖无关已有库 | `artifacts/install-library-scope-before-0.10.log` | 仅发布最终启动配置引用且已经检查的运行库；旧 Forge versionInfo 样本保留无关库原字节、不发布处理器专用依赖，所需运行库和新实例正常提交 |
+| 正确共享库仍被无条件替换，被其他程序读取占用时导致安装失败 | `artifacts/install-library-in-use-before-0.10.log` | 目标大小/哈希匹配时直接复用；持有不允许删除的读取句柄时仍能安装新组件实例 |
+| 需要替换的损坏库被占用时，提交失败留下 `.component-*` 临时副本 | `artifacts/install-library-locked-before-0.10.log` | 失败保留原文件、不发布实例，并清理本次临时副本；解除占用后以同一名称重试成功 |
+| 最终提交时其他程序创建同名目录，失败后客户端 JAR/JSON 遗留在中间 publish 目录 | `artifacts/install-publish-before-0.10.log` | 去掉多余中转目录，直接将同卷私有 payload 重命名为目标实例；失败仍由原暂存清理逻辑回收，保留外部目录的哨兵文件，解除冲突后完整重试成功 |
+
+- 完整 Release 构建：0 警告、0 错误；108 项下载/安装检查（新增 18 项）、67 项界面/设置检查通过。证据：`artifacts/build-final-0.10.log`、`artifacts/ui-checks-0.10.json`。五组修复后记录为 `artifacts/install-*-after-0.10.log`。
+- 实际联网安装 Minecraft 1.21.1 + NeoForge 21.1.77 到新的 `artifacts/live-0.10/.minecraft` 成功：40,649ms，计划 4,102 项、复用 4,100 个文件，内容传输 6,802,724 字节；来源和版本目录见 `artifacts/live-neoforge-0.10.log`。复用的是先前 0.4 测试目录，不是冷缓存测速。
+- 对最终发布目录再次检查：版本 id/clientVersion、PCL 版本隔离配置和安装记录正确；计划中的 108 个文件均存在并符合声明的大小/SHA-1，资源索引 SHA-1 匹配，另外检查 JVM 模块路径显式引用的 8 个文件均存在，没有 `.component-*` 残留。验证脚本与结果：`artifacts/verify-live-0.10.ps1`、`artifacts/live-verify-0.10.json`。文件规划使用本项目规划器，发布后的存在性、大小及 SHA-1 复核另用 PowerShell 完成；不是独立启动器兼容性验收。
+- 未启动 Minecraft，未在 PCL UI 中验收启动结果，也没有模拟断电或承诺全目录事务回滚。失败时可以保留已经校验、提交的共享下载文件和传输缓存；既有实例与无关文件的保护由上述样本覆盖。
+- 对照 `artifacts/baseline-0.9/source.zip`，业务内核仅修改 `MinecraftInstaller.vb`、`ComponentInstaller.vb`；应用界面没有布局或导航变更，仍只有下载、设置。源文件差异清单和原启动器仓库状态见 `artifacts/source-changes-0.10.json`、`artifacts/upstream-state-0.10.json`；补丁仓库中既有的用户删除状态保留。
+- 便携包中的 EXE、Core DLL 及随包文件按 SHA-256 核对，运行文件与本轮构建、控制台测试使用的输出一致。证据：`artifacts/package-verify-0.10.json`。
+
+复查单项问题：
+
+```powershell
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression install-repair
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression install-library-scope
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression install-library-in-use
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression install-library-locked
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression install-publish
+```
+
+## 0.9 限速与取消
+
+本轮对照固定 PCL `ModNet.vb` 的共享限速额度与 100ms 刷新机制，先补回归用例，在旧实现上复现失败后修复。网络样本仅绑定回环地址，文件写入随机测试目录，不接触用户游戏目录。
+
+| 缺陷 | 修复前证据 | 修复与验证 |
+|---|---|---|
+| 以引擎存活时间作为累计下载额度，校验/复用/等待期间积累的额度导致超速 | `artifacts/rate-idle-before-0.9.log`：192 KiB 文件设置 96 KiB/s，等待后仅 802ms 完成，用例失败 | 改为所有内容连接共享的异步排程，空闲信用最多 100ms。完整回归中两批分别 2004/2015ms 完成；已有文件仍只复用、不请求 HTTP |
+| 取消的限速等待留下累计字节负债，下一批继续等待已取消任务的额度 | `artifacts/rate-cancel-before-0.9.log`：取消约 357ms 后，下一批 1 KiB 文件在 1 KiB/s 下超出 5 秒测试期限 | 批次开始时清除已结束任务的等待排程。完整回归中约 364ms 取消，下一批 1015ms 完成；随后原分段文件续传并通过完整哈希检查 |
+| 极小正数速度值取整为 0，意外成为不限速 | `artifacts/rate-input-before-0.9.log`：`0.0000001 MiB/s` 被当作有效值，拦截检查失败 | 对不足 1 字节/秒的正数显示行内提示，禁止保存和开始下载；合法最小值及明确的 0（不限速）仍接受。见 `artifacts/ui-checks-0.9.json` |
+
+- 完整 Release 构建 0 警告、0 错误，90 项下载/安装检查、67 项界面/设置检查通过。证据：`artifacts/build-final-0.9.log`、`artifacts/ui-checks-0.9.json`。保留 0.8 全部检查，并增加 8 项传输检查和 3 项输入检查。
+- 四个并行文件共 512 KiB，合并上限 256 KiB/s，完整回归耗时 2006ms，所有文件哈希匹配。单文件和分段连接走相同限速入口；取消会等待分段任务结束，不发布不完整目标。
+- 单独运行较慢的 `--regression rate-slow`：1 KiB 内容限制为 20 字节/秒，实际耗时 51212ms、重试 0 次，哈希匹配。超过正常 45 秒网络无数据期限的主动限速等待没有触发超时；其间仍采样和上报进度。证据：`artifacts/rate-slow-after-0.9.log`。该耗时用例单独执行，不加入默认构建检查。
+- 实际读取或落盘后限制节奏，64 KiB 应用块及系统缓冲仍可能产生短时峰值；本轮证明的是内容下载的共享平均上限和取消行为，不是网卡逐毫秒整形或公网性能基准。版本列表、索引等元数据不计入内容限速。
+- 对照 0.8 快照，下载内核只修改 `DownloadEngine.vb`；界面业务改动为速度输入校验及错误提示。主导航仍只有下载、设置，原启动器仓库保持原状，既有补丁仓库中的用户删除状态保留。源码快照在 `artifacts/baseline-0.8/source.zip`。
+- 本轮未重新下载完整游戏或启动 Minecraft；完整游戏的最近一次真实联网安装与哈希复核为下方 0.8 记录。便携目录与 ZIP 中的 EXE、Core DLL 等文件按 SHA-256 核对，且与本轮测试使用的输出一致，见 `artifacts/package-verify-0.9.json`。
+
+复查限速用例：
+
+```powershell
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression rate-idle
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression rate-parallel
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression rate-cancel
+.\tests\VanillaDownloader.Tests\bin\Release\net48\VanillaDownloader.Tests.exe --regression rate-slow
+```
+
+## 0.8 缺陷复现与修复
+
+先在未修改的 0.7 下载内核上添加隔离复现用例，三项均以非零退出码失败，再修改内核并运行相同用例。测试仅绑定回环 HTTP、写入随机临时目录。
+
+| 缺陷 | 修复前证据 | 修复与回归覆盖 |
+|---|---|---|
+| 相同 URL/哈希资源写入多个路径时争用同一传输缓存，出现文件占用并让整批下载失败 | `artifacts/bug-cache-alias-before-0.8.log` | 按缓存身份协调下载到发布；八个目标下载一次、复用七次；等待中的任务可取消，取消后重试全部目标成功。见 `bug-cache-alias-after-0.8.log` |
+| 合法的零字节资源被无条件当作损坏文件，反复下载仍校验失败 | `artifacts/bug-empty-file-before-0.8.log` | 明确大小为零或有匹配哈希时接受；保持非零大小不符、未知且未经校验的空文件拒绝。重复安装不再次请求。见 `bug-empty-file-after-0.8.log` |
+| 缺少分片列表的续传 JSON 引发空引用，重试一直读取同一坏记录 | `artifacts/bug-corrupt-journal-before-0.8.log` | 校验总长、列表和边界类型，重建损坏记录后下载并校验；覆盖缺字段、错误类型等结构，保留无关文件。见 `bug-corrupt-journal-after-0.8.log` |
+
+- 完整 Release 构建：0 警告、0 错误；82 项下载/安装检查（含 12 项新增回归检查）、64 项界面/设置检查通过。证据：`artifacts/build-final-0.8.log`、`artifacts/ui-checks-0.8.json`。
+- 独立输出 `artifacts/live-0.8/.minecraft` 的 Minecraft 1.21.1 实际安装通过：14,422 ms，计划 3,962 项、复用 3,961 个文件，内容文件传输 0 字节；版本和资源索引等元数据仍实际联网读取。复用 0.4 的测试缓存，不能作为冷缓存或与 PCL 对比的速度基准。日志：`artifacts/live-vanilla-0.8.log`。
+- 另行检查最终版本 JSON 的 id/clientVersion、客户端 JAR 和资源索引 SHA-1，全部通过，见 `artifacts/live-verify-0.8.json`。没有启动 Minecraft，也没有在 PCL UI 中验收启动结果。
+- 对照 0.7 快照，下载内核只修改 `DownloadEngine.vb`、`Models.vb`、`PclSegmentScheduler.vb` 三个文件；0.7 源码保留于 `artifacts/baseline-0.7/source.zip`。主界面仍为下载、设置两页，原启动器仓库状态保持原状。
+
+## 0.7 本轮验证
+
+- 按固定 PCL `PageSetupSystem.xaml` 改为紧凑双列设置布局，补齐主题边框混色、安装名称框透明行为和字体基准 URI；连接数使用原比例滑条，仍限制于内核支持的 8/16/32/64 档位。任务统计对齐原字号和分隔线，加入实时活动连接数；主导航仍只有下载、设置。
+- Release 构建及完整检查见 `artifacts/build-final-0.7.log`：70 项本地下载逻辑/回环网络/Java 样本检查与 64 项应用界面/设置检查通过，0 警告、0 错误。原控件、PNG、字体字节及新增滑条/设置布局参数比对通过。
+- 新增 14 项应用检查覆盖共享列的实际对齐、28/7 DIP 行高间距、输入错误撑开并恢复行高、旧连接档位映射、键盘步进命令、滑条滚轮转交、RangeValue 无障碍接口、名称框透明/长度限制、GlyphTypeface 命中嵌入字体、最小窗口 Java 输入布局、实时连接数、新任务清空旧数据及完成态归零。
+- `artifacts/preview-0.7-*.png` 检查完整/默认/最小窗口设置、错误与禁用态、组件/任务及展开菜单；页面中的版本、目录和传输数据仍为隔离示例。没有宣称通过原版 PCL 运行截图的逐像素验收。
+- 本轮不改下载内核，不重新下载完整游戏，也未启动 Minecraft。0.6 源码快照保留于 `artifacts/baseline-0.6/source.zip`。
+
+## 0.6 本轮验证
+
+- 对照固定 PCL 基线的 `MyComboBox`、`MyComboBoxItem`、`MyCheckBox`、`MyTextBox` 和 `Application.xaml`，替换系统默认选择框、菜单、勾选框及文本框外观；主导航仍只有下载与设置。上游快照、移植区别见 `SOURCE_REFERENCES.md`。
+- Release 三项目构建与完整本地检查见 `artifacts/build-final-0.6.log`：70 项下载逻辑/回环网络/Java 样本检查、50 项应用界面与设置检查通过；0 警告、0 错误。原三份 XAML、方块图标及新增箭头/勾选几何参数比对通过。
+- 新增 15 项检查包括实际 WPF Popup 展开和宽度、F4/Esc 路由键盘事件、关闭时滚轮转交父级且不改值、选择事件与底层目录对象、长目录的自定义容器、勾选框 UI Automation Toggle、禁用不可操作、速度即时校验、恢复期间禁止写入、原子保存 Unicode、文件占用失败保留原字节并清理临时写入。窗口和菜单在不可见的应用自有测试宿主中执行，不冒充人工物理键盘验收。
+- 重新渲染并查看完整/默认/最小窗口设置页、错误提示、禁用态、主页面、组件页，以及真实控件树中的展开菜单截图。证据为 `artifacts/preview-0.6-*.png`，页面内容仍为隔离示例数据。
+- 本轮不改下载内核和原启动器仓库；没有重新执行完整游戏的真实网络安装。0.5 源码保留于 `artifacts/baseline-0.5/source.zip`。
+
+## 0.5 本轮验证
+
+- 界面范围缩减为「下载」「设置」两个主页面；启动、联机、更多、辅助侧栏和独立目录/下载管理页面已移除。组件选择、安装确认和进度属于下载流程，目录选择属于设置。
+- Release 三项目构建：0 警告、0 错误；70 项本地逻辑/回环网络/Java 处理器检查和 35 项界面流程检查通过。证据：`artifacts/build-final-0.5.log`、`artifacts/ui-checks-0.5.json`。
+- 界面检查覆盖：只剩两个主导航、没有空任务入口、切换设置保留安装配置及进度、更改目录保留版本/组件/自定义名称、清空目录不沿用旧目标、任务进度在下载页内可再次进入、下载期间可查看设置但不能改写安装目标或传输参数、完成后恢复设置操作。七类组件和既有依赖、异步返回保护检查继续通过。
+- 使用隔离示例数据渲染并查看主页面、组件选择、下载进度、设置完整视图、默认大小设置视图及最小窗口。图片为 `artifacts/preview-0.5-*.png`；其中速度和进度是渲染样例，不能作为实际下载证据。
+- 本轮只调整应用界面、导航、文档和打包，不改下载内核；没有重新下载完整游戏，没有启动 Minecraft 或在 PCL UI 内验收。0.4 源码快照保留于 `artifacts/baseline-0.4/source.zip`。
+
+## 0.4 本轮验证
+
+- Release 构建及完整本地检查见 `artifacts/build-final-0.4.log`；本轮逻辑/网络/Java 处理器检查 70 项、界面流程检查 25 项。
+- 新覆盖：缺少 Java 时尚未请求资源索引和客户端；Fabric 不需要安装器 Java；PCL 不兼容路径不创建目录。已有下载、哈希、续传、处理器、取消与原版补全检查继续执行。
+- 界面新覆盖：API/OptiFabric 晚到时选中依赖；尊重手动取消；同一 MC 旧请求不会覆盖新结果；安装开始后的返回结果不修改选择；更换目录后保留配置返回；清除目录选择不会沿用旧安装目标；本地处理阶段保留累计传输计数。
+- 三个导航图标更换为一致的圆角描边；组件卡片折叠时不创建版本列表。主页面、组件页、目录选择返回流程、下载详情及最小窗口使用 WPF 示例数据渲染检查。
+- 真实 NeoForge 1.21.1 / 21.1.77 安装复测成功，输出 `artifacts/live-0.4/.minecraft`：用时 40,100 ms，处理计划 4,102 项，复用 4,100 项，内容网络读取 6,802,724 字节。Java 预检查、客户端处理器及最终提交完成。日志为 `artifacts/live-neoforge-0.4.log`。复用了 0.3 测试目录，不能作为冷启动或与 PCL 对比的速度基准。
+- 新增两个补丁项目只读取源码与清单，没有运行补丁；机制差异见 `PATCH_MECHANISMS.md`。保留第二个项目中原有的 `Patch-PCL.ps1` 删除状态。0.3 源码保留于 `artifacts/baseline-0.3/source.zip`。
+- 本轮没有启动 Minecraft，没有在原版 PCL 的界面内验收启动结果。
+
+## 0.3 本轮验证
+
+- Release 三项目构建：0 警告、0 错误；67 项本地逻辑/网络/Java 处理器检查、15 项界面流程检查通过。完整输出见 `artifacts/build-final-0.3.log`。
+- 本地检查覆盖七类版本列表、PCL 互斥规则、Forge 精确版本要求、OptiFabric 依赖、旧式启动参数合并、库版本替换、Maven 路径、官方 OptiFine HTML 备用解析、MD5/SHA-1、Java 参数转义及中文空格路径、真实 Java 样本处理器、输出哈希、取消和失败不发布。
+- 界面检查 15 项，包括七类卡片结构、依赖联动、自定义名称保护、26 DIP 分任务行及总进度不回退。渲染检查包括 850×500、810×470 及 1000×750，使用示例数据。
+- 源码导入及比对脚本核对三份原版 XAML（只改类名）、十份原版方块图标；新增下载按钮/任务页/组件逻辑的固定上游快照。0.2 源码已保留于 `artifacts/baseline-0.2/source.zip`。
+
+### 0.3 真实安装
+
+全部输出在独立的 `artifacts/live-0.3/.minecraft`。未使用用户账号，也未访问用户实际游戏目录。复用 0.2 测试文件或本轮共享文件，因此这些用时不能用来与 PCL 做速度对比。文件数为处理计划数量，可能含重复校验的支持库。
+
+| Minecraft / 组件 | 实际安装结果 | 用时 | 网络读取字节 | 日志 |
+|---|---|---:|---:|---|
+| 1.21.1 / Fabric 0.16.9 + Fabric API 0.116.17 | 成功提交实例、API、启动配置及隔离设置 | 10,831 ms | 6,373,787 | `live-fabric-0.3.log` |
+| 1.21.1 / NeoForge 21.1.77 | 执行映射/分离/重命名/补丁等客户端处理器，生成支持库并提交 | 45,389 ms | 35,656,734 | `live-neoforge-0.3.log` |
+| 1.20.1 / Forge 47.2.18 + OptiFine I6 | 指定兼容版本、执行 Forge 处理器、OptiFine 作为实例内 Mod | 48,925 ms | 123,782,912 | `live-forge-optifine-0.3.log` |
+| 1.20.1 / 独立 OptiFine I6 | 调用官方安装逻辑，生成 OptiFine 库及启动配置 | 16,196 ms | 30,174,058 | `live-optifine-0.3.log` |
+| 1.20.1 / Fabric 0.15.11 + API 0.92.2 + OptiFine I6 + OptiFabric 1.14.3 | 真实获取 CurseForge 分页列表、下载三份 Mod，合并并提交 | 10,711 ms | 13,598,110 | `live-optifabric-0.3.log` |
+| 1.12.2 / LiteLoader 1.12.2-SNAPSHOT | 下载旧版原版及 LiteLoader 支持库，合并 tweakClass 并提交 | 19,896 ms | 70,954,159 | `live-liteloader-0.3.log` |
+
+以上六条安装路径覆盖七类组件。处理器详细输出位于测试根目录的 `.vanilla-downloader/installer.log`。真实 Fabric 安装还暴露并修正了测试宿主缺少长路径 manifest 的问题，测试程序现与应用使用相同 longPathAware 配置。
+
+另外独立读取六个最终实例，重新校验客户端 JAR、当前 Windows 启动支持库、日志配置共 465 个计划文件，全部通过；确认 JSON 已移除继承关系、主类正确，模组数量分别为 0/3/1/0/1/0，并读取实际 OptiFabric JAR 的 `fabric.mod.json` 验证 id。结果在 `artifacts/installed-component-checks-0.3.json`。字体与 PCL 原字体的 SHA-256 相同。
+
+### 本轮证据边界
+
+没有实际启动 Minecraft，未在原版 PCL UI 中验收启动结果，也没有验证任意 Fabric/OptiFine/OptiFabric 版本组合或全部历史 Forge 版本。没有获取或复制原启动器的 CurseForge API 密钥。公开列表缺少哈希的 OptiFabric 文件通过官方 CDN、长度和 JAR 内容校验，不能说它具有上游 SHA-1 验证。
+
+此前的“未支持加载器”等说明属于 0.1/0.2 的历史状态，不代表本版功能。
+
+## 0.2 本轮验证
+
+- Release 三项目构建：0 警告、0 错误。
+- 36 项逻辑/回环网络检查通过。新覆盖 PCL 动态 60/40 切分、动态区间日志续传、元数据延迟竞争、失败立即启动备选、错误哈希拒绝、竞争请求取消，以及持续低速内容源切换。
+- 11 项独立界面流程检查通过：48 DIP 标题栏、5 类卡片、40 DIP 折叠高度、42 DIP 版本行、懒生成列表、点击版本进入安装确认页、版本参数传递、内部标题、目录/任务导航、返回列表及原按钮圆角。
+- 三份控件 XAML 与固定上游源码比对：只改类名；四份方块图标字节一致。字体直接来自同仓库。校验脚本为 `tools/verify-pcl-ui.ps1`。
+- 渲染并查看正常/展开版本列表、安装确认、任务页、设置页，以及 810×470 最小窗口；所有预览使用示例数据，并非真实下载过程截图。
+- 对上一版界面及源码保留本地快照：`artifacts/baseline-0.1/`。
+
+### 0.2 真实完整下载（空目录、无文件复用）
+
+输出：`artifacts/live-0.2/.minecraft`，版本 1.21.1，官方优先、全局连接上限 64（单主机 16）。
+
+- 成功提交 3,962 个文件。
+- `Reused=0`，游戏文件网络读取累计 919,909,872 字节（包含动态调整时可能读取后放弃的尾部字节）。
+- 完整安装用时 **71,225 ms**，期间累计 **269 次动态切分**。
+- 此记录是本轮 0.2 开发过程中的一次网络测试；随后增加了持续低速源切换规则，其本地回环测试通过。没有在同网络条件下测量原版 PCL，因此不能给出相对 PCL 的速度提升比例。
+- 随后完整校验补全 **5,218 ms**：复用 3,961 个游戏文件、游戏文件传输 0 字节；版本等元数据仍联网读取。
+
+证据：`artifacts/live-install-0.2.log`、`artifacts/live-repair-0.2.log`、`artifacts/fixture-tests-0.2.log`、`artifacts/ui-checks-0.2.json`。
+
+视觉上已按源代码移植布局、XAML、字体、图标与主题，但没有宣称通过原版 PCL 运行截图的逐像素比对，或已达到人眼无法区分。PCL 内实际启动 Minecraft 仍未验证。
+
+## 以下为 0.1 历史记录
+
+## 构建
+
+- VB.NET Core / WPF App / Console Tests 三项目，目标 .NET Framework 4.8。
+- `dotnet build VanillaDownloader.sln -c Release`：通过，0 警告、0 错误。
+- SDK 风格 VB WPF net48 的 `mscorlib` 构建问题通过显式框架引用解决，见官方问题 `https://github.com/dotnet/wpf/issues/11501`。未更改系统程序集。
+
+## 隔离检查：30 项通过
+
+测试在回环 TCP HTTP 样本和随机临时目录中执行，不修改用户 PCL 配置或现有游戏目录。
+
+- PCL `$` 路径、当前选择、已有实例计数、自定义目录去重、重复 INI 键以最后值为准。
+- PCL 配置字节保持不变；路径越界、绝对元数据路径、保留名称和尾部点拒绝。
+- 支持库规则顺序、平台筛选、Maven classifier、原生库回退、自定义实例路径、旧资源映射、PCL 镜像映射。
+- 四段 Range 下载及最终哈希、跨目录复用零网络、不同实例名称间客户端 JAR 复用。
+- Range 不支持时回退；取消不提交半文件；分段续传；坏哈希不提交。
+- 自定义实例 JSON/JAR 的最终提交；同名实例拒绝覆盖。
+- 补全恢复缺失支持库且版本 JSON 字节不变；继承/模组实例拒绝补全。
+- 客户端下载失败时不发布半安装的版本目录。
+
+原始输出：`artifacts/fixture-tests.log`。测试会留下随机临时目录以便复查。
+
+## 真实网络与落盘
+
+测试目录：`artifacts/live-1.21.1/.minecraft`，独立于用户实际游戏目录。
+
+1. Minecraft Java 1.21.1 完整安装通过，规划并提交 3,962 个文件（含最终版本 JSON）。本次成功续跑复用此前的 85 个已完成文件，游戏文件传输 850,954,766 字节。
+2. 首次镜像优先尝试较慢，停止后改为官方优先完成；因此这不是一次冷缓存全程速度基准，也不能据此宣称达到 PCL 同等速度。
+3. 随后真实校验补全通过，复用 3,961 个游戏文件，游戏文件传输 0 字节。版本 manifest、版本 JSON、资源索引元数据仍联网获取，因此不是“全程零网络”。
+4. 真实实例 JSON 的 SHA-256：`6BE6294DE79E8DDA6D678315F586D7FF0352E656E2EA7F4CB13AC9F373F46DD9`。
+
+原始输出：`artifacts/live-install.log`、`artifacts/live-repair.log`。
+
+## 界面
+
+- 用 WPF RenderTargetBitmap 渲染并人工查看主页面，检查中文、列表、目录摘要、按钮和安装区域布局。
+- `artifacts/preview.png` 使用明确标注的示例目录及版本数据；不是下载成功截图。
+- 该检查没有替代真实用户点击目录选择、PCL 刷新和启动游戏。
+
+## 尚未验证
+
+- 未使用用户账号登录、未实际启动 Minecraft、未在 PCL UI 内确认版本列表或启动结果。
+- 没有全历史版本、ARM64、加载器、Java 运行时管理或正式性能对比证据。
+- PCL 根目录许可情况见 `THIRD_PARTY_NOTICES.md`；此次仅本地构建，无推送和公开分发。
+
+## 原仓库保护
+
+交付前检查 PCL、PCL-CE、HMCL、PrismLauncher、PCL2- 五个仓库，均仍为原 HEAD，工作区无修改。

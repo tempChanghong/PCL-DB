@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net48</TargetFramework><RootNamespace>PlainCraftDownloader.Tests</RootNamespace><OptionStrict>On</OptionStrict><ApplicationManifest>../../src/PlainCraftDownloader.App/app.manifest</ApplicationManifest></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../../src/PlainCraftDownloader.Core/PlainCraftDownloader.Core.vbproj" /></ItemGroup>
+  <ItemGroup><Reference Include="System.IO.Compression"/><Reference Include="System.IO.Compression.FileSystem"/><EmbeddedResource Include="Resources/FixtureProcessor.class" LogicalName="FixtureProcessor.class"/></ItemGroup>
+</Project>

@@ -1,0 +1,64 @@
+{
+  "profiles": {
+    "Offline All": {
+      "commandName": "Project",
+      "commandLineArgs": "",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
+    "Download Plan": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression plan-strength",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
+    "Native Libraries": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression native-install",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
+    "Library Selection": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression lib-select-all",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
+    "Library Metadata": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression library-meta-all",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
+    "Copy Fallback": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression copy-all",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
+    "PCL File Reuse": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression reuse-all",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
+    "Transfer Completion": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression transfer-cleanup-all",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
+    "Final Commit": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression commit-cancel-new",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
+    "Cleanup Cancellation": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression cleanup-stage-cancel",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    }
+  }
+}

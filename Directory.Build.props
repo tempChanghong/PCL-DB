@@ -1,0 +1,11 @@
+<Project>
+  <!-- Explicit shared debugger settings; Release keeps the SDK defaults. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>portable</DebugType>
+    <Optimize>false</Optimize>
+  </PropertyGroup>
+  <PropertyGroup Condition="Exists('$(MSBuildProjectDirectory)/My Project/launchSettings.json')">
+    <LaunchSettingsFilePath>$(MSBuildProjectDirectory)/My Project/launchSettings.json</LaunchSettingsFilePath>
+  </PropertyGroup>
+</Project>

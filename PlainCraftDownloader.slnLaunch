@@ -1,0 +1,18 @@
+[
+  {
+    "Name": "PCD",
+    "Projects": [
+      { "Path": "src\\PlainCraftDownloader.App\\PlainCraftDownloader.App.vbproj", "Action": "Start" },
+      { "Path": "src\\PlainCraftDownloader.Core\\PlainCraftDownloader.Core.vbproj", "Action": "None" },
+      { "Path": "tests\\PlainCraftDownloader.Tests\\PlainCraftDownloader.Tests.vbproj", "Action": "None" }
+    ]
+  },
+  {
+    "Name": "Offline Checks",
+    "Projects": [
+      { "Path": "src\\PlainCraftDownloader.App\\PlainCraftDownloader.App.vbproj", "Action": "None" },
+      { "Path": "src\\PlainCraftDownloader.Core\\PlainCraftDownloader.Core.vbproj", "Action": "None" },
+      { "Path": "tests\\PlainCraftDownloader.Tests\\PlainCraftDownloader.Tests.vbproj", "Action": "Start" }
+    ]
+  }
+]
