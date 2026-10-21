@@ -72,7 +72,7 @@ Namespace Controls
             _clock = Nothing
             old?.Controller.Remove()
             BeginAnimation(AnimatedOffsetProperty, Nothing)
-            SetCurrentValue(AnimatedOffsetProperty, VerticalOffset)
+            SetValue(AnimatedOffsetProperty, VerticalOffset)
             _requestedOffset = Double.NaN
             _issuedOffsets.Clear()
         End Sub
@@ -90,19 +90,39 @@ Namespace Controls
             If _clock IsNot Nothing Then
                 Dim elapsed = If(_clock.CurrentTime, TimeSpan.Zero).TotalMilliseconds
                 For Each pulse As Point In DirectCast(_clock.Timeline, PclWheelAnimation).Inputs
-                    If pulse.X + elapsed < 300 Then inputs.Add(New Point(pulse.X + elapsed, pulse.Y))
+                    If pulse.X + elapsed < 300 Then AppendPulse(inputs, pulse.X + elapsed, pulse.Y)
                 Next
             End If
-            inputs.Add(New Point(0, delta))
+            AppendPulse(inputs, 0, delta)
             Dim origin = VerticalOffset
             StopScrolling()
-            SetCurrentValue(AnimatedOffsetProperty, origin)
+            If inputs.Count = 0 Then Return
+            ' This private DP has no bindings. Its real base value must survive
+            ' attaching a new, not-yet-active clock; SetCurrentValue can revert
+            ' to the default zero at that point and queue a spurious scroll jump.
+            SetValue(AnimatedOffsetProperty, origin)
             _lastSample = origin
             _requestedOffset = origin
             Dim clock = DirectCast(New PclWheelAnimation(origin, inputs).CreateClock(True), AnimationClock)
             _clock = clock
             AddHandler clock.Completed, Sub() If _clock Is clock Then StopScrolling()
             ApplyAnimationClock(AnimatedOffsetProperty, clock)
+        End Sub
+
+        Private Shared Sub AppendPulse(inputs As List(Of Point), age As Double, delta As Double)
+            ' Pulses are ordered oldest first. Equal-age increments share the
+            ' exact same PCL curve, so coalescing them is lossless, including
+            ' opposite inputs in one frame. Do not quantize different ages.
+            If inputs.Count > 0 AndAlso inputs(inputs.Count - 1).X = age Then
+                Dim combined = inputs(inputs.Count - 1).Y + delta
+                If combined = 0 Then
+                    inputs.RemoveAt(inputs.Count - 1)
+                Else
+                    inputs(inputs.Count - 1) = New Point(age, combined)
+                End If
+            ElseIf delta <> 0 Then
+                inputs.Add(New Point(age, delta))
+            End If
         End Sub
 
         Friend Function OwnsWheel(source As DependencyObject) As Boolean

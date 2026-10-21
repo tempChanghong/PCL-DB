@@ -56,7 +56,7 @@ Namespace Controls
             End Get
             Set(value As Boolean)
                 _swapLogoRight = value
-                DirectCast(_arrow.RenderTransform, RotateTransform).Angle = If(_collapsed, If(value, 270, 0), 180)
+                SettleArrow()
             End Set
         End Property
         Private _collapsible As Boolean
@@ -64,9 +64,16 @@ Namespace Controls
         Private _headerPressed As Boolean
         Public Property Builder As Func(Of UIElement)
         Public Sub RefreshBody(builder As Func(Of UIElement))
+            Dim previousHeight = ActualHeight
             Me.Builder = builder
             _built = Not Collapsed
             Body = If(Collapsed, Nothing, builder.Invoke())
+            If Not Collapsed AndAlso IsLoaded AndAlso IsVisible AndAlso
+                (_heightTransition IsNot Nothing OrElse Double.IsNaN(Height)) Then
+                ' Metadata may replace the list during expansion. Keep the displayed
+                ' height, discard the old target and measure the accepted content.
+                StartHeightTransition(previousHeight, ExpandedHeight())
+            End If
         End Sub
         Public Property Title As String
             Get
@@ -117,32 +124,19 @@ Namespace Controls
                     Body = Builder.Invoke()
                     _built = True
                 End If
-                If IsLoaded AndAlso changed Then
+                If IsLoaded AndAlso IsVisible AndAlso changed Then
                     _presenter.Visibility = Visibility.Visible
-                    _presenter.Measure(New Size(Math.Max(0, ActualWidth), Double.PositiveInfinity))
-                    Dim target = If(value, 40, Math.Max(40, _presenter.DesiredSize.Height))
-                    ClipToBounds = True
-                    Dim clock = DirectCast(PclCardMotion.HeightTransition(oldHeight, target).CreateClock(True), AnimationClock)
-                    _heightTransition = clock
-                    AddHandler clock.Completed, Sub()
-                                                        If _heightTransition IsNot clock Then Return
-                                                        _heightTransition = Nothing
-                                                        BeginAnimation(HeightProperty, Nothing)
-                                                        Height = If(_collapsed, 40, Double.NaN)
-                                                        _presenter.Visibility = If(_collapsed, Visibility.Collapsed, Visibility.Visible)
-                                                        ClipToBounds = False
-                                                    End Sub
-                    Height = oldHeight
-                    ApplyAnimationClock(HeightProperty, clock)
+                    StartHeightTransition(oldHeight, If(value, 40, ExpandedHeight()))
                 Else
                     _presenter.Visibility = If(value, Visibility.Collapsed, Visibility.Visible)
                     Height = If(value, 40, Double.NaN)
                     ClipToBounds = False
                 End If
                 Dim rotation = DirectCast(_arrow.RenderTransform, RotateTransform)
-                If IsLoaded AndAlso changed Then
+                If IsLoaded AndAlso IsVisible AndAlso changed Then
                     rotation.BeginAnimation(RotateTransform.AngleProperty, PclCardMotion.ArrowTransition(rotation.Angle, If(value, If(SwapLogoRight, 270, 0), 180)))
                 Else
+                    rotation.BeginAnimation(RotateTransform.AngleProperty, Nothing)
                     rotation.Angle = If(value, If(SwapLogoRight, 270, 0), 180)
                 End If
                 RaiseEvent FoldChanged(Me, EventArgs.Empty)
@@ -202,13 +196,8 @@ Namespace Controls
             AddHandler MouseEnter, Sub() Hover(True)
             AddHandler MouseLeave, Sub() Hover(False)
             AddHandler Loaded, Sub() UpdateShadowOffset(VisualTreeHelper.GetDpi(Me))
-            AddHandler Unloaded, Sub()
-                                     If _heightTransition Is Nothing Then Return
-                                     StopHeightTransition()
-                                     Height = If(_collapsed, 40, Double.NaN)
-                                     _presenter.Visibility = If(_collapsed, Visibility.Collapsed, Visibility.Visible)
-                                     ClipToBounds = False
-                                 End Sub
+            AddHandler Unloaded, Sub() SettleMotion()
+            AddHandler IsVisibleChanged, Sub() If Not IsVisible Then SettleMotion()
         End Sub
         Private _heightTransition As AnimationClock
         Friend ReadOnly Property HeightTransition As AnimationClock
@@ -216,6 +205,46 @@ Namespace Controls
                 Return _heightTransition
             End Get
         End Property
+        Private Function ExpandedHeight() As Double
+            _presenter.Measure(New Size(Math.Max(0, ActualWidth), Double.PositiveInfinity))
+            Return Math.Max(40, _presenter.DesiredSize.Height)
+        End Function
+        Private Sub StartHeightTransition(origin As Double, target As Double)
+            StopHeightTransition()
+            ' PCL MySizeChanged skips its first layout and sub-DIP height noise.
+            If origin <= 0 OrElse Math.Abs(target - origin) < 1 Then
+                SettleHeight()
+                Return
+            End If
+            ClipToBounds = True
+            Dim clock = DirectCast(PclCardMotion.HeightTransition(origin, target).CreateClock(True), AnimationClock)
+            _heightTransition = clock
+            AddHandler clock.Completed, Sub()
+                                            If _heightTransition IsNot clock Then Return
+                                            StopHeightTransition()
+                                            SettleHeight()
+                                        End Sub
+            Height = origin
+            ApplyAnimationClock(HeightProperty, clock)
+        End Sub
+        Private Sub SettleHeight()
+            Height = If(_collapsed, 40, Double.NaN)
+            _presenter.Visibility = If(_collapsed, Visibility.Collapsed, Visibility.Visible)
+            ClipToBounds = False
+        End Sub
+        Private Sub SettleArrow()
+            Dim rotation = DirectCast(_arrow.RenderTransform, RotateTransform)
+            rotation.BeginAnimation(RotateTransform.AngleProperty, Nothing)
+            rotation.Angle = If(_collapsed, If(SwapLogoRight, 270, 0), 180)
+        End Sub
+        Private Sub SettleMotion()
+            If _heightTransition IsNot Nothing Then
+                StopHeightTransition()
+                SettleHeight()
+            End If
+            _headerPressed = False
+            SettleArrow()
+        End Sub
         Private Sub StopHeightTransition()
             Dim previous = _heightTransition
             _heightTransition = Nothing

@@ -32,6 +32,7 @@ Partial Public Class MainWindow
         finalization.VerifyMotionFinalization(directory, check)
         Dim about As New MainWindow(True)
         about.VerifyAboutMotion(directory, check)
+        VerifyMotionStress(directory, check)
         Return passed
     End Function
 

@@ -2,6 +2,14 @@
 
 日期：2026-10-22（北京时间）。当前源码为尚未发布的 0.57 开发版 PCL-DB（PCL Download Bridge），包含 Visual Studio 2026 开发配置；最新公开预览版为 0.56，下方保留先前版本的验证记录。
 
+## 0.57 连续滚轮与组件刷新动画
+
+- 基线 de331c5，修改前保存 `artifacts/bridge-0.57-motion-smooth/source-before.zip`、dist 文件摘要/时间戳和七个参考仓库状态。重读固定 PCL MyScrollViewer 的增量滚动、ModAnimation 的 Fluent 曲线与 MyCard 的尺寸变化、分段高度动画及强制更新路径。
+- `baseline.json` 在原 112 项后复现同帧 500 次输入保留 500 项缓动状态；另将原源码快照展开到隔离目录，只加入新回归夹具，`baseline-repro/motion.json` 与 wheel-burst.json 再次记录 500 项。精确合并相同年龄增量后为 1 项，不量化不同输入的时间，最终滚动距离不变。随后 `sampling/motion.json` 与 wheel-aged.json 复现非零位置连续输入将起点 588.54272 变为 0：私有动画 DP 使用 SetCurrentValue，其临时当前值在新时钟附加时失效。改用真实基值 SetValue 后，时钟替换前后都保持该偏移。不同年龄曲线逐点、总位移、反向抵消与陈旧回调继续核对。
+- `card-baseline.json` 与 card-refresh-before.json 复现展开中更换组件列表后继续以 5040 DIP 为目标，尽管新内容只需 240 DIP，最终还原 Auto 时会跳变。现从当前显示的 540 DIP 重测新内容并替换时钟，沿用 PCL 距离分段曲线；稳定展开状态的内容替换也平滑调整，低于 1 DIP 的噪声不启动动画。隐藏/卸载清理高度与箭头时钟，隐藏时折叠直接选择终态；方向设置只清理箭头，不中断高度动画，显式固定高度保留。
+- 新增 27 项独立动画回归，合计 139 项；覆盖连续重定向、起始位置、实际第五次幂采样、旧回调、Auto 高度恢复、隐藏/再现、固定高度，以及实际 AcceptComponentList 入口保留所选 MC 和已编辑名称。新增 15 帧 card-refresh-frames，保持既有切页/列表时间线；输入提交耗时只记录本机隔离测量，不据此宣称桌面 FPS 或相对 PCL 的性能倍率。
+- Release 构建、658 项完整界面、139 项动画、17 项固定源对照与 VS 2026 Debug/PDB 的最终报告分别记录在本轮各日志/JSON。未修改下载 Core，不重复完整 745 项核心回归；只运行 VS 配置所含精选逻辑检查。未构建单 EXE 候选，不打包、不建标签、不发 Release，dist 与参考仓库保留结果见 preservation.json。
+
 ## 0.57 动画与关于页最终复核
 
 - 修改前保存 `artifacts/bridge-0.57-final-audit/source-before.zip`、77 个分发文件的哈希/时间戳与七个参考仓库状态，基线 01e5e7c。再次读取固定 PCL MyPageRight 的进入/退出曲线与 PageOtherAbout 的三列、45 DIP 行、35 DIP 按钮及头像布局，保留现有布局和动效参数。
