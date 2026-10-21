@@ -6,6 +6,11 @@
 
 开发时实际阅读了以下代码；以下对应关系说明实际实现依据，并非只参考界面截图。
 
+## 0.57 简化显示全称
+
+- 当前显示全称改为 Plain Craft Launcher - Download Bridge，覆盖 ProductInfo、关于页及版本信息、App 的 Title / AssemblyTitle / Product 和当前项目说明。PCL-DB 简称、PclDownloadBridge 技术标识、兼容设置路径、下载缓存和安装锁保持；历史记录保留各轮当时的名称。
+- 许可原文、固定 PCL 快照、资源、上游署名及独立第三方声明保持。
+
 ## 0.57 单 EXE 分发接入与来源清单
 
 - 延续前阶段实际阅读的固定 PCL build.yml 直接分发 EXE、写入构建提交的思路；本轮不修改下载 Core、VB/WPF 界面和资源，不引入新的上游实现。普通构建与 VS F5 保持多文件，显式打包改用已通过隔离检查的单 EXE。

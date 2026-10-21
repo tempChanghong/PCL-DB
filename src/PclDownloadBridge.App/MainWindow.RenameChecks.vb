@@ -17,8 +17,12 @@ Partial Public Class MainWindow
             "PCL-DB app assembly and every application type use the approved namespace")
         check(GetType(MinecraftInstaller).Assembly.GetName().Name = "PclDownloadBridge.Core" AndAlso GetType(MinecraftInstaller).FullName = "PclDownloadBridge.Core.MinecraftInstaller",
             "PCL-DB loads the renamed Core assembly and namespace")
-        check(ProductInfo.DisplayName = "PCL-DB" AndAlso ProductInfo.FullName = "Plain Craft Launcher (PCL) · Download Bridge（第三方下载补全版）" AndAlso ProductInfo.VersionReport().Contains(ProductInfo.FullName),
-            "PCL-DB short name full name and copied version report remain consistent")
+        Dim assemblyTitle = DirectCast(assembly.GetCustomAttributes(GetType(Reflection.AssemblyTitleAttribute), False).Single(), Reflection.AssemblyTitleAttribute).Title
+        Dim assemblyProduct = DirectCast(assembly.GetCustomAttributes(GetType(Reflection.AssemblyProductAttribute), False).Single(), Reflection.AssemblyProductAttribute).Product
+        check(ProductInfo.DisplayName = "PCL-DB" AndAlso ProductInfo.FullName = "Plain Craft Launcher - Download Bridge" AndAlso
+            AboutProductItem.Title = ProductInfo.FullName AndAlso assemblyTitle = ProductInfo.FullName AndAlso assemblyProduct = ProductInfo.FullName AndAlso
+            ProductInfo.VersionReport().Contains(ProductInfo.FullName),
+            "PCL-DB full name remains consistent across the about page assembly metadata and copied version report")
         check(IO.Path.GetFileName(_settingsDirectory) = "PclDownloadBridge" AndAlso IO.Path.GetFileName(IO.Path.GetDirectoryName(LegacySettingsFile)) = DownloadSettingsFile.LegacyDirectoryName AndAlso SettingsFile <> LegacySettingsFile,
             "PCL-DB writes preferences under its new name while keeping a distinct legacy read path")
 

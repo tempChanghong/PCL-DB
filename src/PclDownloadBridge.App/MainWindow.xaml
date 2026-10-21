@@ -287,7 +287,7 @@
                     <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition/><ColumnDefinition Width="150"/></Grid.ColumnDefinitions>
                     <Grid.RowDefinitions><RowDefinition Height="45"/><RowDefinition Height="45"/><RowDefinition Height="45"/></Grid.RowDefinitions>
                     <Border Width="34" Height="34" CornerRadius="17" Background="{DynamicResource ColorBrush3}" VerticalAlignment="Center"><TextBlock x:Name="AboutMonogram" Text="DB" Foreground="White" FontSize="12" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-                    <p:PclListItem x:Name="AboutProductItem" Grid.Column="1" Title="Plain Craft Launcher (PCL) · Download Bridge（第三方下载补全版）" Info="Minecraft Java 原版下载补全工具" Margin="-5,0,15,0" IsHitTestVisible="False"/>
+                    <p:PclListItem x:Name="AboutProductItem" Grid.Column="1" Title="Plain Craft Launcher - Download Bridge" Info="Minecraft Java 原版下载补全工具" Margin="-5,0,15,0" IsHitTestVisible="False"/>
                     <p:PclButton Grid.Column="2" Text="项目说明" Tag="README.md" Height="35" Click="OpenAboutDocument"/>
                     <Image Grid.Row="1" Source="Images/Blocks/CommandBlock.png" Width="34" Height="34"><Image.Clip><EllipseGeometry Center="17,17" RadiusX="17" RadiusY="17"/></Image.Clip></Image>
                     <p:PclListItem x:Name="AboutVersionItem" Grid.Row="1" Grid.Column="1" Title="本地预览版" Margin="-5,0,15,0" IsHitTestVisible="False"/>

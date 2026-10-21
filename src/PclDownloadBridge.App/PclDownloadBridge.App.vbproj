@@ -6,9 +6,9 @@
     <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>PclDownloadBridge</RootNamespace>
     <AssemblyName>PclDownloadBridge</AssemblyName>
-    <Title>Plain Craft Launcher (PCL) · Download Bridge（第三方下载补全版）</Title>
-    <AssemblyTitle>Plain Craft Launcher (PCL) · Download Bridge（第三方下载补全版）</AssemblyTitle>
-    <Product>Plain Craft Launcher (PCL) · Download Bridge（第三方下载补全版）</Product>
+    <Title>Plain Craft Launcher - Download Bridge</Title>
+    <AssemblyTitle>Plain Craft Launcher - Download Bridge</AssemblyTitle>
+    <Product>Plain Craft Launcher - Download Bridge</Product>
     <Description>Minecraft Java 原版下载补全工具</Description>
     <Version>0.57.0</Version>
     <AssemblyVersion>0.57.0.0</AssemblyVersion>

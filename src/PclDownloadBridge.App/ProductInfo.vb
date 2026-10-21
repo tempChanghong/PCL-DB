@@ -2,7 +2,7 @@ Imports System.Reflection
 
 Friend Module ProductInfo
     Friend Const DisplayName As String = "PCL-DB"
-    Friend Const FullName As String = "Plain Craft Launcher (PCL) · Download Bridge（第三方下载补全版）"
+    Friend Const FullName As String = "Plain Craft Launcher - Download Bridge"
     Friend Const PclReference As String = "5ef81e490ae46b1100d61e33d0183094c7a80ca8"
 
     Friend ReadOnly Property VersionText As String

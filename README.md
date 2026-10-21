@@ -19,7 +19,7 @@ VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，简称
 
 ## 名称与旧版设置
 
-项目名称为 Plain Craft Launcher (PCL) · Download Bridge（第三方下载补全版），简称 PCL-DB；仓库与根目录为 PCL-DB，解决方案、程序集和命名空间统一为 PclDownloadBridge。
+项目全称为 Plain Craft Launcher - Download Bridge，简称 PCL-DB；仓库与根目录为 PCL-DB，解决方案、程序集和命名空间统一为 PclDownloadBridge。第三方独立项目身份不变。
 
 偏好保存在 `%LOCALAPPDATA%/PclDownloadBridge/settings.json`。首次启动先尝试迁移旧 PCD 的 `%LOCALAPPDATA%/PlainCraftDownloader/settings.json`，不存在时再读取最早的 `%LOCALAPPDATA%/VanillaDownloader/settings.json`。迁移验证 JSON 后保留原字节、编码及未知字段，旧文件不改。已有新配置优先；最新旧配置损坏或不可读时报告错误，不静默退回更旧配置。检查和预览模式只用临时样本，不迁移真实用户偏好。
 
