@@ -48,7 +48,7 @@ Partial Public Class MainWindow
         End Try
     End Sub
 
-    Private Sub SaveVersionFormatVisual(directory As String)
+    Private Sub SaveVersionFormatVisual(directory As String, Optional fileName As String = "forge-new-numbering.png")
         Dim content = DirectCast(Me.Content, FrameworkElement), host As New Border With {.Width = 850, .Height = 700}
         Dim source As Interop.HwndSource = Nothing
         Try
@@ -56,7 +56,7 @@ Partial Public Class MainWindow
             source = PreviewSurface.Attach(host, 850, 700)
             DownloadPage.BeginAnimation(OpacityProperty, Nothing) : DownloadPage.Opacity = 1
             host.Measure(New Size(850, 700)) : host.Arrange(New Rect(0, 0, 850, 700)) : host.UpdateLayout() : FlushControlLayout() : host.UpdateLayout()
-            SaveControlVisual(host, Path.Combine(directory, "forge-new-numbering.png"))
+            SaveControlVisual(host, Path.Combine(directory, fileName))
         Finally
             If source IsNot Nothing Then
                 source.RootVisual = Nothing : source.Dispose()

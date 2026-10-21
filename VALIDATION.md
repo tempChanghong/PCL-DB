@@ -1,6 +1,16 @@
 # 本地验证记录
 
-日期：2026-10-21（北京时间）。当前交付为 0.54 预览版 PCL-DB（PCL Download Bridge），包含 Visual Studio 2026 开发配置；下方保留先前版本的验证记录。
+日期：2026-10-21（北京时间）。当前交付为 0.55 预览版 PCL-DB（PCL Download Bridge），包含 Visual Studio 2026 开发配置；下方保留先前版本的验证记录。
+
+## 0.55 加载器预发布边界
+
+- 修改前保存 `artifacts/bridge-0.55/source-before.zip`。新增用例在旧行为下复现：CompareMc 把 1.9-pre1 判为高于 1.13，实际 WPF 页面错误显示对应卡片；核心检查非零退出，卡片检查在原 80 项后失败，见 component-versions-before.log 与 before/checks.json。
+- 核心复用已有的 PCL 版本比较器，卡片按 PCL 的代际规则显示；预发布排序和卡片代际分别处理。新增 21 项核心检查含 Validate、Forge/OptiFine 排除区间和实际回环 OptiFabric 元数据；新增 18 项界面检查含 13 组版本、实际行选择、依赖自动补选、清除及不兼容行过滤。修复后专项核心及 98 项卡片检查通过，见 component-versions-fixed.log、after/checks.json；离屏示例为 after/loader-1.20.4-pre1.png。
+- 首轮完整 Release 与 VS Debug 通过后，继续核对 PCL 源码发现 OptiFabric 起点应按 1.16 代际，而非与最终正式版做完整排序；新增下限用例复现排序修复可能引入的 1.16-pre1 拒绝，见 lower-bound-before.log。将代际判断集中到 Core 后，下限目录请求、组合校验及界面自动补选均通过。较早完整日志另存 initial-full-build.log / initial-vs2026.log，不与最终结果累加。
+- 最终 Release 构建零警告、零错误；完整核心 642 项（新增 21 项）、完整界面 652 项（新增 18 项）、固定 PCL 对照 16 项及打包 19 项通过，日志为 full-build.log。最终 VS 2026 Debug 构建、便携 PDB、关闭优化及现行启动配置通过：核心精选 266 项，完整界面 652 项；外观 129、开发者 36、卡片 98、导航 31、设置兼容 49 均为界面子集，不重复累加。报告为 vs2026-report.json，新增 Component Versions 启动配置执行上述 21 项核心用例。
+- 正式候选在提交后重新构建，程序集 ProductVersion 核对为 0.55.0 加实际发布提交 SHA，记录于 committed-build.log 及 published.json；此前完整回归针对相同功能源码，不将仅为更新提交信息的构建计成另一轮回归。最终 `dist/PCL-DB-0.55-preview.zip` 按显式候选核对 11 个文件，见 final-package.json / final-package-verification.json，并核对公开下载哈希；旧版 ZIP 保留。
+- 七个参考仓库的提交及原有修改状态保持；固定 44 份参考源码、12 项资源及原控件 XAML 检查通过。本轮的前后失败现场、较早通过结果与最终验证记录分别保留。
+- 本轮只使用合成列表和回环元数据；界面允许组合不代表相应预发布游戏已有真实加载器发行，也不代表完成联网安装或启动游戏。未人工在 VS IDE 内按 F5 命中断点。
 
 ## 0.54 Forge 卡片版本判断
 

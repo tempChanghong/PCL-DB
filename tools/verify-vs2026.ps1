@@ -64,7 +64,7 @@ try {
     if ($Full) {
         $runs += Invoke-OfflineProfile $testProject 'Offline All'
     } else {
-        foreach ($name in @('Download Plan', 'Native Libraries', 'Cleanup Cancellation', 'Final Commit', 'Transfer Completion', 'PCL File Reuse', 'Copy Fallback', 'Library Metadata', 'Library Selection', 'Metadata Transfers', 'Processor Log Recovery', 'Java Runtime Probe', 'Folder Discovery', 'NeoForge Versions')) { $runs += Invoke-OfflineProfile $testProject $name }
+        foreach ($name in @('Download Plan', 'Native Libraries', 'Cleanup Cancellation', 'Final Commit', 'Transfer Completion', 'PCL File Reuse', 'Copy Fallback', 'Library Metadata', 'Library Selection', 'Metadata Transfers', 'Processor Log Recovery', 'Java Runtime Probe', 'Folder Discovery', 'NeoForge Versions', 'Component Versions')) { $runs += Invoke-OfflineProfile $testProject $name }
     }
     $runs += Invoke-OfflineProfile $appProject 'UI Checks'
     $runs += Invoke-OfflineProfile $appProject 'Appearance Checks'
@@ -75,7 +75,7 @@ try {
     $runs += Invoke-OfflineProfile $appProject 'Preview Components'
     $uiPath = Join-Path $properties[$appProject].TargetDir 'vs-ui-checks.json'
     $ui = Get-Content -LiteralPath $uiPath -Raw | ConvertFrom-Json
-    if (!$ui.Succeeded -or $ui.Scope -ne 'all' -or $ui.Count -ne 634 -or $ui.Count -ne $ui.Passed.Count) { throw 'The UI profile did not produce a complete report.' }
+    if (!$ui.Succeeded -or $ui.Scope -ne 'all' -or $ui.Count -ne 652 -or $ui.Count -ne $ui.Passed.Count) { throw 'The UI profile did not produce a complete report.' }
     $appearancePath = Join-Path $properties[$appProject].TargetDir 'vs-appearance-checks.json'
     $appearance = Get-Content -LiteralPath $appearancePath -Raw | ConvertFrom-Json
     if (!$appearance.Succeeded -or $appearance.Scope -ne 'appearance' -or $appearance.Count -ne 129 -or $appearance.Count -ne $appearance.Passed.Count) { throw 'The appearance profile did not produce a complete report.' }
@@ -84,7 +84,7 @@ try {
     if (!$developer.Succeeded -or $developer.Scope -ne 'developer' -or $developer.Count -ne 36 -or $developer.Count -ne $developer.Passed.Count) { throw 'The developer profile did not produce a complete report.' }
     $cardPath = Join-Path $properties[$appProject].TargetDir 'vs-card-checks.json'
     $cardChecks = Get-Content -LiteralPath $cardPath -Raw | ConvertFrom-Json
-    if (!$cardChecks.Succeeded -or $cardChecks.Scope -ne 'cards' -or $cardChecks.Count -ne 80 -or $cardChecks.Count -ne $cardChecks.Passed.Count) { throw 'The card profile did not produce a complete report.' }
+    if (!$cardChecks.Succeeded -or $cardChecks.Scope -ne 'cards' -or $cardChecks.Count -ne 98 -or $cardChecks.Count -ne $cardChecks.Passed.Count) { throw 'The card profile did not produce a complete report.' }
     $navigationPath = Join-Path $properties[$appProject].TargetDir 'vs-navigation-checks.json'
     $navigation = Get-Content -LiteralPath $navigationPath -Raw | ConvertFrom-Json
     if (!$navigation.Succeeded -or $navigation.Scope -ne 'navigation' -or $navigation.Count -ne 31 -or $navigation.Count -ne $navigation.Passed.Count) { throw 'The navigation profile did not produce a complete report.' }

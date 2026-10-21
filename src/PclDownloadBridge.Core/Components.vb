@@ -74,7 +74,7 @@ Public Class ComponentSelection
             If Not Has(ComponentKind.Fabric) Then Return "需要安装 Fabric"
         ElseIf kind = ComponentKind.OptiFabric Then
             If Not Has(ComponentKind.Fabric) OrElse Not Has(ComponentKind.OptiFine) Then Return "需要安装 OptiFine 与 Fabric"
-            If CompareMc(mc, "1.16") < 0 Then Return "老版本需要手动安装 OptiFabric Origins"
+            If MinecraftVersionRules.ReleaseFamily(mc) < 160 Then Return "老版本需要手动安装 OptiFabric Origins"
         ElseIf kind = ComponentKind.OptiFine Then
             If Has(ComponentKind.NeoForge) Then Return "与 NeoForge 不兼容"
             If Has(ComponentKind.Fabric) AndAlso CompareMc(mc, "1.20.4") > 0 Then Return "此版本的 OptiFine 与 Fabric 不兼容"
@@ -91,9 +91,9 @@ Public Class ComponentSelection
         If Has(ComponentKind.Fabric) AndAlso Has(ComponentKind.OptiFine) AndAlso Not Has(ComponentKind.OptiFabric) Then Throw New InvalidDataException("Fabric + OptiFine 需要选择兼容的 OptiFabric。")
     End Sub
     Public Shared Function CompareMc(a As String, b As String) As Integer
-        Dim av As Version = Nothing, bv As Version = Nothing
-        If Version.TryParse(a, av) AndAlso Version.TryParse(b, bv) Then Return av.CompareTo(bv)
-        Return StringComparer.OrdinalIgnoreCase.Compare(a, b)
+        If a Is Nothing OrElse b Is Nothing Then Return StringComparer.OrdinalIgnoreCase.Compare(a, b)
+        ' Reuse the fixed PCL MCUtils comparator, including numeric suffixes and pre/rc ordering.
+        Return PclLibrarySelection.CompareVersion(a, b)
     End Function
     Public Shared Function OptiFineFits(opt As ComponentEntry, forge As ComponentEntry, mc As String) As Boolean
         If CompareMc(mc, "1.13") >= 0 AndAlso CompareMc(mc, "1.14.3") <= 0 Then Return False
@@ -144,7 +144,7 @@ Public Class ComponentCatalog
             Case ComponentKind.OptiFabric
                 ' PCL DlOptiFabricLoader uses CurseForge project 322385, not a
                 ' similarly-named Modrinth project. No upstream API credentials used.
-                If ComponentSelection.CompareMc(mc, "1.16") < 0 OrElse ComponentSelection.CompareMc(mc, "1.20.4") > 0 Then Return result
+                If MinecraftVersionRules.ReleaseFamily(mc) < 160 OrElse ComponentSelection.CompareMc(mc, "1.20.4") > 0 Then Return result
                 Dim offset = 0
                 Dim seen As New HashSet(Of Long)
                 Do

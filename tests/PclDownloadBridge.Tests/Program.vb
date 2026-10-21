@@ -31,7 +31,9 @@ Module Program
             Directory.CreateDirectory(TestRoot)
             If args.Length = 2 AndAlso args(0) = "--regression" Then
                 Dim run As Task(Of List(Of String))
-                If args(1) = "neoforge-versions" Then
+                If args(1) = "component-versions" Then
+                    run = ComponentVersionChecks.RunAsync()
+                ElseIf args(1) = "neoforge-versions" Then
                     run = NeoForgeVersionChecks.RunAsync()
                 ElseIf args(1).StartsWith("folder-", StringComparison.Ordinal) Then
                     run = FolderDiscoveryChecks.RunAsync(TestRoot, args(1))
@@ -93,6 +95,9 @@ Module Program
                 Check(True, label)
             Next
             FolderTests()
+            For Each label In ComponentVersionChecks.RunAsync().GetAwaiter().GetResult()
+                Check(True, label)
+            Next
             For Each label In NeoForgeVersionChecks.RunAsync().GetAwaiter().GetResult()
                 Check(True, label)
             Next

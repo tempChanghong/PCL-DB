@@ -186,14 +186,15 @@ Partial Public Class MainWindow
 
     Private Sub RefreshComponents()
         If _selectedEntry Is Nothing Then Return
+        Dim versionDrop = MinecraftVersionRules.ReleaseFamily(_selectedEntry.Id)
         For Each pair In _componentViews
             Dim kind = pair.Key, view = pair.Value
             ' PCL ReloadSelected only shows dependencies when their parents are selected.
             Dim visible = True
-            If kind = ComponentKind.LiteLoader Then visible = ComponentSelection.CompareMc(_selectedEntry.Id, "1.13") < 0 OrElse _selectedEntry.Kind.StartsWith("old_", StringComparison.Ordinal)
+            If kind = ComponentKind.LiteLoader Then visible = versionDrop < 130 OrElse _selectedEntry.Kind.StartsWith("old_", StringComparison.Ordinal)
             If kind = ComponentKind.Forge Then visible = VersionPresentation.IsStandardFormat(_selectedEntry.Id)
             If kind = ComponentKind.NeoForge Then visible = _selectedEntry.Released >= New DateTimeOffset(2023, 6, 11, 0, 0, 0, TimeSpan.Zero)
-            If kind = ComponentKind.Fabric Then visible = Not _selectedEntry.Kind.StartsWith("old_", StringComparison.Ordinal) AndAlso ComponentSelection.CompareMc(_selectedEntry.Id, "1.13") > 0
+            If kind = ComponentKind.Fabric Then visible = Not _selectedEntry.Kind.StartsWith("old_", StringComparison.Ordinal) AndAlso versionDrop > 130
             If kind = ComponentKind.FabricApi Then visible = _componentSelection.Has(ComponentKind.Fabric)
             If kind = ComponentKind.OptiFabric Then visible = _componentSelection.Has(ComponentKind.Fabric) AndAlso _componentSelection.Has(ComponentKind.OptiFine)
             view.Card.Visibility = If(visible, Visibility.Visible, Visibility.Collapsed)

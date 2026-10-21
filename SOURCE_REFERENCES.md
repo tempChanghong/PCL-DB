@@ -6,6 +6,12 @@
 
 开发时实际阅读了以下代码；以下对应关系说明实际实现依据，并非只参考界面截图。
 
+## 0.55 加载器的版本边界
+
+- 实际通过固定 Git 对象重读 `PCLCS/Minecraft/MCUtils.cs` 的 CompareVersion，以及 `McVersion.cs` 的 NameToVersion / VersionToDrop；对照 PageDownloadInstall 中 VanillaDrop、Fabric/LiteLoader 显示条件及 OptiFine 的 Forge、Fabric 兼容区间。原 CompareMc 遇到预发布后缀退回字符串排序，导致 1.9-pre1、1.20.4-pre1 等边界误判。
+- 组件比较复用项目已有、按固定 MCUtils 移植的比较器，保留 pre、rc、snapshot、experimental 权重与数字后缀排序；不复制第二份排序实现。原有 Nothing 比较作为本项目兼容处理保留。卡片使用按 NameToVersion / VersionToDrop 提取的代际值，1.13 的预发布不误入两边的卡片，愚人节名映射到 PCL 指定的正式代际；保留本项目对 old_ 远古版本的独立保护与超范围整数回退。
+- 代际判断集中于 Core 的 MinecraftVersionRules，页面及 OptiFabric 的 1.16 起点共用；起点按代际、1.20.4 上限按完整版本比较，避免修正排序后误排除 1.16-pre1。新增 21 项核心检查覆盖实际 Validate、OptiFineFits 与回环 ComponentCatalog 请求；18 项实际 WPF 检查覆盖卡片矩阵、真实行点击、OptiFabric 自动选择及清除，不触发真实下载。控件模板、字体、图标和几何保持，本轮不修改来源调度或安装器处理器。
+
 ## 0.54 Forge 卡片的版本格式
 
 - 实际通过固定 Git 对象读取 `PCLCS/Minecraft/McVersion.cs` 的 IsStandardFormat，并重读 `Pages/PageDownload/PageDownloadInstall.xaml.vb` 的 Forge 加载入口及卡片显示条件（约 79、224 行）。原本仅接受完整 `1.x` 数字的正则会隐藏新编号和预发布版的 Forge 卡片，即使列表已有适用项。

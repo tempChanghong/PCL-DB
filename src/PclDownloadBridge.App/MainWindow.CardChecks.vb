@@ -17,6 +17,7 @@ Partial Public Class MainWindow
         VerifyCardMotion(check, artifactDirectory)
         VerifyComponentSummary(check, artifactDirectory)
         VerifyVersionFormatUi(check, artifactDirectory)
+        VerifyLoaderBoundaryUi(check, artifactDirectory)
         Return checks
     End Function
 
