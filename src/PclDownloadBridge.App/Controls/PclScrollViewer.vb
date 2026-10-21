@@ -30,6 +30,15 @@ Namespace Controls
             End Get
         End Property
 
+        Friend ReadOnly Property VerticalBar As ScrollBar
+            Get
+                ApplyTemplate()
+                If ComputedVerticalScrollBarVisibility <> Visibility.Visible Then Return Nothing
+                Dim bar = TryCast(GetTemplateChild("PART_VerticalScrollBar"), ScrollBar)
+                Return If(bar IsNot Nothing AndAlso bar.IsVisible AndAlso bar.ActualWidth > 0 AndAlso bar.ActualHeight > 0, bar, Nothing)
+            End Get
+        End Property
+
         Private Sub ApplyOffset(value As Double)
             If _clock Is Nothing Then Return
             ' Match PCL's incremental AaDouble callback: discard overshoot on

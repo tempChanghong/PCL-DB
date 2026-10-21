@@ -25,6 +25,9 @@ Partial Public Class MainWindow
         fixture.VerifyLiveMotion(directory, check)
         VerifyWheelMotion(directory, check)
         VerifyMotionOwnership(check)
+        Dim secondRound As New MainWindow(True)
+        secondRound.VerifyExitAndBarMotion(directory, check)
+        VerifySnapshotViewport(directory, check)
         Return passed
     End Function
 
@@ -52,18 +55,19 @@ Partial Public Class MainWindow
                                         End Sub)
             Dim clock = _surfaceMotion.Transition
             clock?.Controller.Pause() : layout()
-            IO.File.WriteAllText(IO.Path.Combine(directory, "surface-state.txt"), String.Join(";", {"clock=" & (clock IsNot Nothing), "settings=" & SettingsPage.IsVisible, "download=" & DownloadPage.IsVisible, "ghost=" & PageGhost.Children.Count, "items=" & _surfaceMotion.ItemCount, "loaded=" & PageSurface.IsLoaded, "visible=" & PageSurface.IsVisible}))
-            check(clock IsNot Nothing AndAlso SettingsPage.IsVisible AndAlso Not DownloadPage.IsVisible AndAlso PageGhost.Children.Count = 1,
+            IO.File.WriteAllText(IO.Path.Combine(directory, "surface-state.txt"), String.Join(";", {"clock=" & (clock IsNot Nothing), "settings=" & SettingsPage.IsVisible, "download=" & DownloadPage.IsVisible, "ghost=" & PageGhost.Children.Count, "items=" & _surfaceMotion.ItemCount, "loaded=" & PageSurface.IsLoaded, "visible=" & PageSurface.IsVisible, "time=" & clock?.CurrentTime.ToString(), "parts=" & DirectCast(clock.Timeline, ParallelTimeline).Children.Count}))
+            check(clock IsNot Nothing AndAlso SettingsPage.IsVisible AndAlso Not DownloadPage.IsVisible AndAlso PageGhost.Children.Count > 1,
                 "page ownership changes immediately while an inert outgoing image is retained")
             Dim plan = DirectCast(clock.Timeline, ParallelTimeline)
-            check(_surfaceMotion.ItemCount > 1 AndAlso _surfaceMotion.ItemCount <= 16 AndAlso plan.Children.Count = 2 + _surfaceMotion.ItemCount * 2,
+            check(_surfaceMotion.ItemCount > 1 AndAlso _surfaceMotion.ItemCount <= 16 AndAlso plan.Children.OfType(Of PclPageYAnimation)().Count() = _surfaceMotion.ItemCount,
                 "only bounded visible page units receive entry clocks")
-            check(plan.Children(3).BeginTime.Value.TotalMilliseconds = 140 AndAlso plan.Children(5).BeginTime.Value.TotalMilliseconds = 165,
+            Dim entries = plan.Children.OfType(Of PclPageYAnimation)().ToArray()
+            check(entries(0).BeginTime.Value.TotalMilliseconds = 140 AndAlso entries(1).BeginTime.Value.TotalMilliseconds = 165,
                 "entry follows the PCL 110 plus 30 ms page delay and 25 ms item stagger")
             seek(clock, 20)
             IO.File.AppendAllText(IO.Path.Combine(directory, "surface-state.txt"), ";firstOpacity=" & first.Opacity & ";input=" & PageSurface.IsHitTestVisible & ";clock=" & clock.CurrentTime.ToString())
             check(first.Opacity = 0 AndAlso Not PageSurface.IsHitTestVisible, "incoming content stays hidden during the outgoing fade without a one-frame flash")
-            check(Math.Abs(DirectCast(PageGhost.Children(0), Image).Opacity - (1 - 20.0 / 70)) < 0.01,
+            check(Math.Abs(DirectCast(DirectCast(PageGhost.Children(0), Canvas).Children(0), Image).Opacity - (1 - 20.0 / 70)) < 0.01,
                 "outgoing snapshot opacity follows the PCL seventy millisecond linear exit")
             seek(clock, 120)
             check(PageGhost.Children.Count = 0 AndAlso first.Opacity = 0, "outgoing image is released before incoming cards appear")
