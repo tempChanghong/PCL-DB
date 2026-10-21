@@ -61,6 +61,7 @@ Partial Public Class MainWindow
             check(_appearance.Theme = "custom" AndAlso HueSlider.Value = 285.5 AndAlso SaturationSlider.Value = 62.5 AndAlso LightnessSlider.Value = -3.5 AndAlso Math.Abs(Opacity - 0.85) < 0.0001, "custom colors and opacity survive an atomic settings-file round trip")
             check(existing.ToString() = original AndAlso CInt(restored("source")) = 2 AndAlso CInt(restored("versionSource")) = 1 AndAlso CStr(restored("speed")) = "3.5" AndAlso CBool(restored("unknown")("keep")), "saving appearance preserves persisted download preferences and unknown fields without mutating input JSON")
             check(JToken.DeepEquals(BuildSettings(0)("appearance"), _appearance.ToJson()), "normal preference saves include the current appearance alongside download settings")
+            VerifyAppearanceSaving(check, artifactDirectory)
 
             RestoreAppearance(Nothing)
             SelectVersion(_versions(0))
@@ -143,6 +144,65 @@ Partial Public Class MainWindow
             RestoreDeveloperSettings(savedDeveloper)
             _experimentalThemesUnlocked = wasUnlocked
             RestoreAppearance(saved)
+        End Try
+    End Sub
+
+    Private Sub VerifyAppearanceSaving(check As Action(Of Boolean, String), artifactDirectory As String)
+        Dim savedBaseline = _preferenceBaseline, savedPath = _preferenceBaselinePath, savedAppearance = _appearance.ToJson()
+        Dim file = IO.Path.Combine(artifactDirectory, "appearance-save-" & Guid.NewGuid().ToString("N") & ".json"), legacy = file & ".old"
+        Try
+            RestoreAppearance(Nothing)
+            _preferenceBaseline = BuildSettings(0)
+            _preferenceBaselinePath = IO.Path.GetFullPath(file)
+            DownloadSettingsFile.Save(file, New JObject From {{"source", 2}, {"appearance", _appearance.ToJson()}})
+            DownloadSettingsFile.SaveChanges(file, legacy, New JObject From {{"appearance", New JObject From {{"theme", "deepblue"}, {"publicTheme", "deepblue"}, {"darkMode", True}, {"future", "keep"}}}})
+            OpacitySlider.Value = 450
+            SaveAppearanceValues(file, legacy)
+            Dim result = JObject.Parse(IO.File.ReadAllText(file))
+            check(CStr(result("appearance")("theme")) = "deepblue" AndAlso CStr(result("appearance")("publicTheme")) = "deepblue" AndAlso CBool(result("appearance")("darkMode")) AndAlso CInt(result("appearance")("transparency")) = 450,
+                "an opacity edit preserves another window's newer public theme and dark mode")
+            check(CInt(result("source")) = 2 AndAlso CStr(result("appearance")("future")) = "keep",
+                "appearance edits retain unrelated download settings and future appearance fields")
+            Dim stamp As New DateTime(2001, 2, 3, 4, 5, 6, DateTimeKind.Utc)
+            IO.File.SetLastWriteTimeUtc(file, stamp)
+            SaveAppearanceValues(file, legacy)
+            check(IO.File.GetLastWriteTimeUtc(file) = stamp, "an unchanged appearance writer does not rewrite another window's preferences")
+            SavePreferenceValues(file, legacy, 0)
+            check(IO.File.GetLastWriteTimeUtc(file) = stamp, "closing after an appearance edit does not reapply untouched stale appearance or download values")
+
+            DownloadSettingsFile.SaveChanges(file, legacy, New JObject From {{"appearance", New JObject From {{"theme", "custom"}, {"hue", 237}, {"saturation", 56}}}})
+            SelectAppearanceTheme("lightblue")
+            SaveAppearanceValues(file, legacy)
+            result = JObject.Parse(IO.File.ReadAllText(file))
+            check(CStr(result("appearance")("theme")) = "lightblue" AndAlso CStr(result("appearance")("publicTheme")) = "lightblue" AndAlso CBool(result("appearance")("darkMode")) AndAlso CInt(result("appearance")("hue")) = 237 AndAlso CInt(result("appearance")("saturation")) = 56,
+                "a public theme edit updates its fallback together while retaining untouched dark mode and custom colors")
+
+            Dim baselineBefore = _preferenceBaseline.DeepClone(), rejected = False
+            OpacitySlider.Value = 300
+            Using held As New IO.FileStream(file, IO.FileMode.Open, IO.FileAccess.ReadWrite, IO.FileShare.None)
+                Try
+                    SaveAppearanceValues(file, legacy)
+                Catch ex As IO.IOException
+                    rejected = True
+                End Try
+            End Using
+            check(rejected AndAlso JToken.DeepEquals(baselineBefore, _preferenceBaseline), "a failed appearance save retains its baseline so the pending edit can be retried")
+            SaveAppearanceValues(file, legacy)
+            result = JObject.Parse(IO.File.ReadAllText(file))
+            check(CInt(result("appearance")("transparency")) = 300 AndAlso CBool(result("appearance")("darkMode")), "retrying a blocked appearance edit saves it without reverting untouched remote fields")
+            ResetAppearance(Nothing, Nothing)
+            SaveAppearanceValues(file, legacy, True)
+            result = JObject.Parse(IO.File.ReadAllText(file))
+            check(JToken.DeepEquals(AppearancePreferences.Read(result("appearance")).ToJson(), New AppearancePreferences().ToJson()) AndAlso CStr(result("appearance")("future")) = "keep" AndAlso CInt(result("source")) = 2,
+                "an explicit appearance reset restores all known defaults while retaining unrelated and future preferences")
+            Dim firstFile = file & ".first"
+            SaveAppearanceValues(firstFile, legacy)
+            result = JObject.Parse(IO.File.ReadAllText(firstFile))
+            check(JToken.DeepEquals(result("appearance"), _appearance.ToJson()) AndAlso _preferenceBaselinePath = IO.Path.GetFullPath(file),
+                "a new profile receives complete appearance values without replacing the baseline for another path")
+        Finally
+            _preferenceBaseline = savedBaseline : _preferenceBaselinePath = savedPath
+            RestoreAppearance(savedAppearance)
         End Try
     End Sub
 

@@ -6,6 +6,12 @@
 
 开发时实际阅读了以下代码；以下对应关系说明实际实现依据，并非只参考界面截图。
 
+## 0.50 外观保存与改名复核
+
+- 沿用固定 `PageSetupUI.xaml`、`ModMain.vb` 对应的主题和不透明度表现；本轮不改配色或页面几何。多窗口的字段差异合并属于本项目独立补全，不声称来自 PCL。
+- 原外观自动保存写入整组已知值，导致只改不透明度也撤销另一窗口的新主题/深色模式。改为使用既有偏好基线，只合并本窗口实际修改的字段；失败不推进基线，显式恢复默认仍完整重置已知外观值。保留未知字段及下载偏好。
+- 复核 PclDownloadBridge 的 VB RootNamespace、启动对象、程序集、WPF 资源 URI、VS 调试入口和导入/打包路径。PlainCraftDownloader、VanillaDownloader 的旧设置路径继续只作兼容读取。
+
 ## 0.49 PCL-DB 名称与外观设置
 
 - 仓库与根目录更名为 PCL-DB，解决方案、程序集、命名空间和资源 URI 统一使用 PclDownloadBridge；显示全名为 Plain Craft Launcher (PCL) · Download Bridge（第三方下载补全版）。原固定 PCL 提交、44 份源码参考和 12 项资源保持。

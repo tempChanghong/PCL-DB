@@ -90,24 +90,25 @@ Partial Public Class MainWindow
         If _selectedEntry IsNot Nothing Then RefreshComponents()
     End Sub
 
-    Private Sub SaveAppearance()
+    Private Sub SaveAppearance(Optional resetAll As Boolean = False)
         If _preview OrElse _restoringSettings OrElse _restoringAppearance OrElse _settingsLoadFailed Then Return
         Try
-            SaveAppearanceValues(SettingsFile, LegacySettingsFile)
+            SaveAppearanceValues(SettingsFile, LegacySettingsFile, resetAll)
         Catch ex As Exception
             StatusText.Text = "外观已应用，但未能保存：" & ex.GetBaseException().Message
         End Try
     End Sub
 
-    Private Sub SaveAppearanceValues(path As String, legacyPath As String)
-        DownloadSettingsFile.SaveChanges(path, legacyPath, _appearance.Merge(New JObject))
-        If _preferenceBaseline IsNot Nothing AndAlso String.Equals(IO.Path.GetFullPath(path), _preferenceBaselinePath, StringComparison.OrdinalIgnoreCase) Then
-            _preferenceBaseline("appearance") = _appearance.ToJson()
-        End If
+    Private Sub SaveAppearanceValues(path As String, legacyPath As String, Optional resetAll As Boolean = False)
+        Dim values = _appearance.ToJson(), changes = values
+        Dim samePath = _preferenceBaseline IsNot Nothing AndAlso String.Equals(IO.Path.GetFullPath(path), _preferenceBaselinePath, StringComparison.OrdinalIgnoreCase)
+        If samePath AndAlso Not resetAll Then changes = DownloadSettingsFile.ChangedValues(TryCast(_preferenceBaseline("appearance"), JObject), values)
+        If changes.HasValues Then DownloadSettingsFile.SaveChanges(path, legacyPath, New JObject From {{"appearance", changes}})
+        If samePath Then _preferenceBaseline("appearance") = values
     End Sub
 
     Private Sub ResetAppearance(sender As Object, e As RoutedEventArgs)
         RestoreAppearance(Nothing)
-        SaveAppearance()
+        SaveAppearance(True)
     End Sub
 End Class

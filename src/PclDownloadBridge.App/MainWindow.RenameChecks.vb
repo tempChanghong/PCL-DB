@@ -13,7 +13,7 @@ Partial Public Class MainWindow
                                                  End Sub
         Dim assembly = Reflection.Assembly.GetExecutingAssembly()
         check(assembly.GetName().Name = "PclDownloadBridge" AndAlso GetType(MainWindow).FullName = "PclDownloadBridge.MainWindow" AndAlso
-            Not assembly.GetTypes().Any(Function(t) t.FullName.StartsWith(DownloadSettingsFile.LegacyDirectoryName & ".", StringComparison.Ordinal)),
+            Not assembly.GetTypes().Any(Function(t) t.FullName.StartsWith(DownloadSettingsFile.LegacyDirectoryName & ".", StringComparison.Ordinal) OrElse t.FullName.StartsWith(DownloadSettingsFile.PreviousDirectoryName & ".", StringComparison.Ordinal)),
             "PCL-DB app assembly and every application type use the approved namespace")
         check(GetType(MinecraftInstaller).Assembly.GetName().Name = "PclDownloadBridge.Core" AndAlso GetType(MinecraftInstaller).FullName = "PclDownloadBridge.Core.MinecraftInstaller",
             "PCL-DB loads the renamed Core assembly and namespace")

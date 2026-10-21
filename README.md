@@ -1,6 +1,6 @@
 # PCL-DB · PCL Download Bridge
 
-VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，0.49 预览版，简称 PCL-DB。
+VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，0.50 预览版，简称 PCL-DB。
 
 以 PCL2 限制前代码为主要参照，读取 PCL 使用的 `.minecraft`，安装结果使用 PCL 能读取的版本目录格式。原五个启动器仓库不需要修改。
 
@@ -30,6 +30,8 @@ VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，0.49 �
 默认提供龙猫蓝、浅蓝和深蓝，可独立开启深色模式。开发者设置默认关闭，包含常规下载诊断和实验性外观验证入口。验证码通过后，其他主题直接出现在同一个个性化列表中；关闭开发者设置、重新锁定或重启会话后恢复公开蓝色选择。旧的其他主题偏好保留，锁定时不会自动应用。
 
 代码只保留随机验证码的 SHA-256 摘要；输入及会话解锁状态不写入设置或日志。此入口用于本地功能分组，不作为安全隔离或上游额外授权的证明。
+
+多个窗口同时使用时，外观自动保存只合并本窗口改过的字段，保留其他窗口刚保存的主题、深色模式及自定义颜色；保存失败可重试。恢复默认外观仍完整重置已知外观选项，其他下载偏好与未知字段保留。
 
 ## 功能
 
@@ -116,7 +118,7 @@ OptiFine/OptiFabric 的跨版本兼容性沿用 PCL 检查和上游声明，不�
 
 Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / Any CPU**，将 **PCL-DB** 设为启动项目，选择同名启动配置后按 **F5**。已提供主程序、界面自检、组件页渲染及本地下载回归的启动配置；具体输出、断点建议和复查命令见 [VS2026_DEBUG.md](VS2026_DEBUG.md)。
 
-主应用的 **Appearance Checks** 配置可独立执行 106 项主题/任务状态检查，**Card Checks** 执行 66 项卡片、摘要动画与安装视口检查；**Navigation Checks** 执行 31 项页面切换与状态保留检查；**Settings Compatibility** 执行 49 项更名与设置兼容检查；全量界面检查为 597 项，包含以上各组。检查在离线示例模式运行，失败保留已通过项、失败名称、异常堆栈与诊断，并返回失败退出码。
+主应用的 **Appearance Checks** 配置可独立执行 115 项主题/任务状态检查，**Card Checks** 执行 66 项卡片、摘要动画与安装视口检查；**Navigation Checks** 执行 31 项页面切换与状态保留检查；**Settings Compatibility** 执行 49 项更名与设置兼容检查；全量界面检查为 606 项，包含以上各组。检查在离线示例模式运行，失败保留已通过项、失败名称、异常堆栈与诊断，并返回失败退出码。
 
 需要 .NET SDK 10.0.4xx 与 .NET Framework 4.8 Developer Pack；完整处理器样本检查还需要本机 Java 8 或更高版本。应用运行本身需要 .NET Framework 4.8。两个 Java 桥接/样本 class 已随源码保留，重编译命令为 `javac --release 8`，对应源文件在 `tools/java/`。
 
@@ -133,7 +135,7 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 构建结果会打印本次 ZIP 和 `result.json` 的完整路径，其中记录 ZIP 的 SHA-256 及每个文件的内容哈希。可明确指定候选包，重新核对其内容与当前 Release 输出和文档是否一致：
 
 ```powershell
-.\tools\verify-package.ps1 -PackagePath .\dist\PCL-DB-0.49-preview.zip -DistributionPath .\dist\PclDownloadBridge
+.\tools\verify-package.ps1 -PackagePath .\dist\PCL-DB-0.50-preview.zip -DistributionPath .\dist\PclDownloadBridge
 ```
 
 `-SkipTests` 仅跳过回归检查，打包时仍校验候选 ZIP 的完整文件清单和字节内容；不能据此声称通过完整回归。单独执行 `tools/verify-packaging.ps1` 需要已有 Release 构建。
