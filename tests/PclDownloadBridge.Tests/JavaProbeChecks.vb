@@ -109,7 +109,8 @@ Friend Module JavaProbeChecks
     End Sub
 
     Private Function Fixture(testRoot As String) As String
-        Dim directory = Path.Combine(testRoot, "Java 探测样本")
+        ' Each group gets a fresh image; do not overwrite an executable another group just ran.
+        Dim directory = Path.Combine(testRoot, "Java 探测样本", Guid.NewGuid().ToString("N"))
         System.IO.Directory.CreateDirectory(directory)
         Dim source = Assembly.GetExecutingAssembly().Location, target = Path.Combine(directory, "java.exe")
         For Each name In {Path.GetFileName(source), Path.GetFileName(source) & ".config", "PclDownloadBridge.Core.dll", "Newtonsoft.Json.dll"}

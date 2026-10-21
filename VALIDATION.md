@@ -1,6 +1,16 @@
 # 本地验证记录
 
-日期：2026-10-21（北京时间）。当前交付为 0.53 预览版 PCL-DB（PCL Download Bridge），包含 Visual Studio 2026 开发配置；下方保留先前版本的验证记录。
+日期：2026-10-21（北京时间）。当前交付为 0.54 预览版 PCL-DB（PCL Download Bridge），包含 Visual Studio 2026 开发配置；下方保留先前版本的验证记录。
+
+## 0.54 Forge 卡片版本判断
+
+- 修改前保存 `artifacts/bridge-0.54/source-before.zip`。以实际 WPF 页面和合成 Forge 列表复现：Minecraft 26.1 的 Forge 卡片不可见，新增检查在原 66 项卡片检查后失败，见 `before/checks.json`。旧正则要求完整的 `1.x`，同时错误排除了相应预发布后缀。
+- 对照固定 PCL 的 McVersion.IsStandardFormat 与 PageDownloadInstall 显示条件修正；新增 14 项检查包含新编号、预发布、周快照、愚人节和远古版本，以及实际行选择、自动实例名称和空列表状态。修复后 80 项 Card Checks 通过，见 `after/checks.json`；前后图片为对应目录的 `forge-new-numbering.png`。
+- 首次完整 Release 通过；随后 VS Debug 的 Java Runtime Probe 在各组重复覆盖同一个 java.exe 时遇到文件占用（initial-vs2026.log、initial-probe-stderr.log）。以只读占用前一组样本确定性复现同一 File.Copy 失败，见 probe-fixture-before.json；将测试组隔离到各自目录，不加入重试或吞掉异常，不修改应用的 Java 探测逻辑。
+- 改为独立目录后，只读占用前一组样本的同一检查通过，见 probe-fixture-after.json。最终 Release 构建零警告、零错误；完整核心 621 项、完整界面 634 项（新增 14 项）、PCL 对照 16 项及打包 19 项通过，最终日志为 full-build.log；首次完整日志另存 initial-full-build.log，不重复累加结果。
+- VS 2026 Debug 构建、便携 PDB、关闭优化及现行调试配置通过：核心精选 245 项，完整界面 634 项；外观 129、开发者 36、卡片 80、导航 31、设置兼容 49 为界面子集。日志为 vs2026.log，报告为 vs2026-report.json。首次 Java 探测失败记录保留，不将第二次运行写成首次通过。
+- 最终文档同步后生成 `dist/PCL-DB-0.54-preview.zip`，按显式候选核对 11 个文件，见 final-package.json / final-package-verification.json；旧版 ZIP 保留。七个参考仓库的提交与原有修改状态保持，44 份固定参考源码与 12 项资源检查通过。
+- 本轮为列表显示与操作验证，合成的 Forge 62.0.0 行不代表已确认其真实发布或完成 Minecraft 26.1 的 Forge 安装；未进行完整联网安装、启动游戏或 IDE 内 F5 断点验收。
 
 ## 0.53 NeoForge 版本解析
 

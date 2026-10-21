@@ -16,6 +16,7 @@ Partial Public Class MainWindow
         VerifyInstallViewport(check, artifactDirectory)
         VerifyCardMotion(check, artifactDirectory)
         VerifyComponentSummary(check, artifactDirectory)
+        VerifyVersionFormatUi(check, artifactDirectory)
         Return checks
     End Function
 

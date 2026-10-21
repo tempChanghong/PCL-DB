@@ -94,11 +94,11 @@ F9 切换断点，F10 逐过程，F11 逐语句。`Directory.Build.props` 明确
 
 报告写入 `artifacts/vs2026/report.json`，编译和各配置日志在同一目录。脚本读取上面的真实启动配置，并按其工作目录、参数启动 Debug 产物；只执行离线配置。它验证 VS 所用 MSBuild、符号文件和运行入口，**不等于已在 IDE 中按 F5 并命中断点**，这一项保留为人工验收。
 
-0.49 中全量界面配置包含 597 项检查，Appearance Checks 单独运行其中 106 项，Card Checks 单独运行其中 66 项，Navigation Checks 单独运行其中 31 项，Settings Compatibility 单独运行其中 49 项，不能相加为独立用例数。主题检查不依赖此前显示过任务页；动画检查使用可暂停/定位的实际 WPF 时钟，不以固定睡眠时间判定动画是否完成。失败仍返回非零退出码，JSON 保留 `Succeeded=false`、`Count`、已经通过的 `Passed`、`FailedCheck` 和异常堆栈。检查不自动重跑，调试时可直接在失败位置设置断点。
+0.54 中全量界面配置包含 634 项检查，Appearance Checks 单独运行其中 129 项，Card Checks 单独运行其中 80 项（含 Forge 新编号与预发布版本的显示、选择和空状态），Navigation Checks 单独运行其中 31 项，Settings Compatibility 单独运行其中 49 项，不能相加为独立用例数。主题检查不依赖此前显示过任务页；动画检查使用可暂停/定位的实际 WPF 时钟，不以固定睡眠时间判定动画是否完成。失败仍返回非零退出码，JSON 保留 `Succeeded=false`、`Count`、已经通过的 `Passed`、`FailedCheck` 和异常堆栈。检查不自动重跑，调试时可直接在失败位置设置断点。
 
 Copy Fallback 的文件占用样本使用 Windows NTFS 辅助数据流，默认临时目录需支持 NTFS 数据流。取消样本只在控制台进程内暂时注册受控 SHA-1 提供程序，在真实哈希计算结束处请求取消，并在 Finally 恢复原映射；应用程序与便携包不包含这个提供程序。
 
-当前程序版本为 0.49，已有 `.vs` / `.suo` 用户状态继续保留；共享配置使用源码中的启动配置文件。构建便携版仍运行 `build.ps1`。
+当前程序版本为 0.54，已有 `.vs` / `.suo` 用户状态继续保留；共享配置使用源码中的启动配置文件。构建便携版仍运行 `build.ps1`。
 
 ## 配置依据
 

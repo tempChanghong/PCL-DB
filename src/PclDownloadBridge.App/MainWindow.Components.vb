@@ -191,7 +191,7 @@ Partial Public Class MainWindow
             ' PCL ReloadSelected only shows dependencies when their parents are selected.
             Dim visible = True
             If kind = ComponentKind.LiteLoader Then visible = ComponentSelection.CompareMc(_selectedEntry.Id, "1.13") < 0 OrElse _selectedEntry.Kind.StartsWith("old_", StringComparison.Ordinal)
-            If kind = ComponentKind.Forge Then visible = System.Text.RegularExpressions.Regex.IsMatch(_selectedEntry.Id, "^1\.\d+(\.\d+)?$")
+            If kind = ComponentKind.Forge Then visible = VersionPresentation.IsStandardFormat(_selectedEntry.Id)
             If kind = ComponentKind.NeoForge Then visible = _selectedEntry.Released >= New DateTimeOffset(2023, 6, 11, 0, 0, 0, TimeSpan.Zero)
             If kind = ComponentKind.Fabric Then visible = Not _selectedEntry.Kind.StartsWith("old_", StringComparison.Ordinal) AndAlso ComponentSelection.CompareMc(_selectedEntry.Id, "1.13") > 0
             If kind = ComponentKind.FabricApi Then visible = _componentSelection.Has(ComponentKind.Fabric)

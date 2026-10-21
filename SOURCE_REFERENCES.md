@@ -6,6 +6,12 @@
 
 开发时实际阅读了以下代码；以下对应关系说明实际实现依据，并非只参考界面截图。
 
+## 0.54 Forge 卡片的版本格式
+
+- 实际通过固定 Git 对象读取 `PCLCS/Minecraft/McVersion.cs` 的 IsStandardFormat，并重读 `Pages/PageDownload/PageDownloadInstall.xaml.vb` 的 Forge 加载入口及卡片显示条件（约 79、224 行）。原本仅接受完整 `1.x` 数字的正则会隐藏新编号和预发布版的 Forge 卡片，即使列表已有适用项。
+- 按 PCL 的前缀匹配实现：`1.` 后接数字，或 `[2-9]` 开头的两位主段及小数部分按 InvariantCulture 解析后不少于 26。保留上游对新编号快照、预发布后缀的接受方式，周快照、愚人节特殊名和远古编号继续排除；不改版本浏览器中仅针对 `1.` 的发布分类修正规则。
+- 新增 14 项实际 WPF 卡片回归，核对版本矩阵、已有目录项的选择/自动名称及空列表状态；前后离屏渲染使用合成 Forge 元数据。沿用卡片、字体与原图标，不更改控件尺寸、传输调度或安装器实现，也不以合成行证明真实安装器存在。
+
 ## 0.53 NeoForge 版本映射与分类
 
 - 实际重读固定 `ModDownload.vb` 的 DlNeoForgeListEntry（约 814–878 行）和 GetNeoForgeEntries（约 938–948 行），并通过 Git 固定对象读取 `PCLCS/Minecraft/MCUtils.cs` 的 CompareVersion。原实现仅拼接 `1.` 与前两段，不能对应 1.21、26.1、26.1.2、26.1-snapshot-1 和 25w14craftmine 等上游已处理的名称。

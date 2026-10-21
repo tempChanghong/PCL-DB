@@ -1,4 +1,6 @@
 Imports PclDownloadBridge.Core
+Imports System.Globalization
+Imports System.Text.RegularExpressions
 
 ' Adapted from fixed PCL ShowMinecraftVersionList, McDownloadListItem and GetMcFoolName.
 ' Keep display corrections separate from the manifest identity used for metadata verification.
@@ -7,6 +9,14 @@ Friend NotInheritable Class VersionPresentation
     Public ReadOnly Property Kind As String
     Public ReadOnly Property DisplayId As String
     Public ReadOnly Property Lore As String
+
+    ' PCL McVersion.IsStandardFormat, including its prefix-based pre-release handling.
+    Friend Shared Function IsStandardFormat(value As String) As Boolean
+        If value Is Nothing Then Return False
+        If Regex.IsMatch(value, "^1\.\d") Then Return True
+        Dim number As Double
+        Return Double.TryParse(Regex.Match(value, "^[2-9]\d\.\d+").Value, NumberStyles.Float, CultureInfo.InvariantCulture, number) AndAlso number >= 26
+    End Function
 
     Public Sub New(value As VersionEntry)
         Entry = value
