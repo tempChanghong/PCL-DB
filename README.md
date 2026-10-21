@@ -17,6 +17,8 @@ Beta 1.0 的两个下载入口使用相同的单 EXE，仍需系统安装 .NET F
 
 现有 `PCL/Setup.ini`、PCL 注册表和已有版本配置只读。组件实例在自己的 `PCL/Setup.ini` 中开启版本隔离，模组放在新实例的 `mods/`，共享支持库与资源。本程序偏好和日志位于 `%LOCALAPPDATA%/PclDownloadBridge/`。安装缓存和处理器日志位于所选游戏目录的 `.vanilla-downloader/`。取消保留已校验共享文件及传输续传记录，不会删除存档。
 
+取消时先显示等待退出状态，再通知下载和安装处理器停止。若任务随取消请求立即结束，界面保留最终结果；若实例已成功提交，仍如实显示成功。关闭窗口仅在任务仍未退出时等待，不会把已结束的任务重新显示为“正在取消”。
+
 ## 名称与旧版设置
 
 项目全称为 Plain Craft Launcher - Download Bridge，简称 PCL-DB；仓库与根目录为 PCL-DB，解决方案、程序集和命名空间统一为 PclDownloadBridge。第三方独立项目身份不变。

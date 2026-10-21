@@ -283,7 +283,7 @@ Partial Public Class MainWindow
         VerifyRefreshRebinding(check)
         VerifyRefreshWorkflow(check)
         VerifyCompatibilityWorkflow(check)
-        VerifyTaskLifecycle(check)
+        VerifyTaskLifecycle(check, artifactDirectory)
         VerifyPointerAlignment(check)
         VerifyComponentBodyRetention(check)
         VerifyDefaultNameAlignment(check)
@@ -753,35 +753,40 @@ Partial Public Class MainWindow
 
     Private Sub CancelInstall(sender As Object, e As RoutedEventArgs)
         If Not _busy OrElse _taskFinished OrElse _taskCancelling Then Return
+        Dim cancellation = _cancellation
         _taskCancelling = True
-        _cancellation?.Cancel()
         CancelButton.IsEnabled = False
         TaskTitle.Text = "正在取消…"
         TaskProgress.IsIndeterminate = True
         TaskSpeed.Text = "—" : TaskConnections.Text = "—" : TaskRemaining.Text = "—"
         TaskDetail.Text = "正在等待下载连接与安装处理器退出，请稍候…"
         StatusText.Text = "已请求取消。已完成的共享文件会保留，后续会校验复用。"
+        ' Like PCL LoaderBase.State, publish the state before invoking token
+        ' callbacks. They may finish the awaited install inline on this dispatcher.
+        cancellation?.Cancel()
     End Sub
 
     Private Sub WindowClosing(sender As Object, e As CancelEventArgs)
         If _busy Then
-            e.Cancel = True
             CancelInstall(sender, Nothing)
-            StatusText.Text = "正在停止下载，请稍后关闭窗口。"
-        Else
-            _closing = True
-            _pendingSurfaceFocus = Nothing
-            _focusAfterPageSwitch = False
-            _pageSwitch.Finish()
-            _surfaceMotion.Finish()
-            For Each viewer In MotionViewers()
-                viewer.StopScrolling()
-            Next
-            _versionGeneration += 1
-            _versionCancellation?.Cancel()
-            CancelComponentRequests()
-            If Not _preview Then PersistSettings()
+            If _busy Then
+                e.Cancel = True
+                StatusText.Text = "正在停止下载，请稍后关闭窗口。"
+                Return
+            End If
         End If
+        _closing = True
+        _pendingSurfaceFocus = Nothing
+        _focusAfterPageSwitch = False
+        _pageSwitch.Finish()
+        _surfaceMotion.Finish()
+        For Each viewer In MotionViewers()
+            viewer.StopScrolling()
+        Next
+        _versionGeneration += 1
+        _versionCancellation?.Cancel()
+        CancelComponentRequests()
+        If Not _preview Then PersistSettings()
     End Sub
 
     Private Function PersistSettings(Optional explicitSave As Boolean = False) As Boolean

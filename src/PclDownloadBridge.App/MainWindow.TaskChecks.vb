@@ -17,7 +17,9 @@ Partial Public Class MainWindow
             .CurrentFile = label & ".jar", .Source = "example.org", .Detail = label}
     End Function
 
-    Private Sub VerifyTaskLifecycle(check As Action(Of Boolean, String))
+    Private Sub VerifyTaskLifecycle(check As Action(Of Boolean, String), artifactDirectory As String)
+        Dim reentry = ObserveCancellationReentrancy(artifactDirectory)
+        ApplyAppearance()
         Dim previousContext = SynchronizationContext.Current
         Dim previousCancellation = _cancellation
         Dim previousClosing = _closing
@@ -53,7 +55,7 @@ Partial Public Class MainWindow
                 TaskTitle.Text = "安装完成 · 新的重试任务"
                 FinishTaskView(True, "成功结果")
                 DrainTaskCallbacks()
-                check(TaskTitle.Text.StartsWith("安装完成", StringComparison.Ordinal) AndAlso TaskPercent.Text = "100.00 %" AndAlso TaskProgress.Value = 1 AndAlso TaskSpeed.Text = "0 B/s", "queued progress cannot lower a successful task from its terminal hundred percent state")
+                check(TaskTitle.Text.StartsWith("安装完成", StringComparison.Ordinal) AndAlso TaskPercent.Text = "100.00 %" AndAlso TaskProgress.Value = 1 AndAlso TaskSpeed.Text = "0 B/s" AndAlso CBool(reentry("success")), "queued progress and inline cancellation cannot replace an actually successful terminal result")
 
                 ResetTaskView("取消样本", True)
                 SetBusy(True)
@@ -61,7 +63,7 @@ Partial Public Class MainWindow
                 cancelledProgress.Report(QueuedTaskValue("取消前的文件"))
                 DrainTaskCallbacks()
                 CancelInstall(Nothing, Nothing)
-                check(cancellation.IsCancellationRequested AndAlso Not CancelButton.IsEnabled AndAlso TaskTitle.Text = "正在取消…" AndAlso TaskSpeed.Text = "—" AndAlso TaskConnections.Text = "—", "cancel requests only the owned operation and disables repeated cancellation without displaying stale live statistics")
+                check(cancellation.IsCancellationRequested AndAlso Not CancelButton.IsEnabled AndAlso TaskTitle.Text = "正在取消…" AndAlso TaskSpeed.Text = "—" AndAlso TaskConnections.Text = "—" AndAlso CBool(reentry("cancelled")), "owned cancellation publishes pending UI before callbacks and preserves either deferred or inline completion")
                 Dim cancelDetail = TaskDetail.Text, cancelStatus = StatusText.Text
                 cancelledProgress.Report(QueuedTaskValue("取消后才到达", 0.8, 8888888))
                 DrainTaskCallbacks()
@@ -73,7 +75,7 @@ Partial Public Class MainWindow
                 _busy = False : SetBusy(False)
                 cancelledProgress.Report(QueuedTaskValue("取消完成后晚到", 0.9))
                 DrainTaskCallbacks()
-                check(TaskTitle.Text = "已取消，可重新开始" AndAlso GameFolderCard.IsEnabled AndAlso DownloadSettingsCard.IsEnabled AndAlso Not CancelButton.IsEnabled, "a completed cancellation unlocks settings without accepting more progress")
+                check(TaskTitle.Text = "已取消，可重新开始" AndAlso GameFolderCard.IsEnabled AndAlso DownloadSettingsCard.IsEnabled AndAlso Not CancelButton.IsEnabled AndAlso CBool(reentry("cleanup")), "completed cancellation and inline cleanup failure unlock settings while preserving terminal diagnostics")
                 CancelInstall(Nothing, Nothing)
                 check(TaskTitle.Text = "已取消，可重新开始", "an idle cancel event cannot reopen a terminal task")
 
@@ -90,7 +92,7 @@ Partial Public Class MainWindow
                 WindowClosing(Me, closing)
                 retryProgress.Report(QueuedTaskValue("关闭请求后晚到", 0.9))
                 DrainTaskCallbacks()
-                check(closing.Cancel AndAlso retryCancellation.IsCancellationRequested AndAlso Not CancelButton.IsEnabled AndAlso TaskTitle.Text = "正在取消…" AndAlso StatusText.Text.Contains("稍后关闭"), "closing an active task follows the same stable cancel path and waits for shutdown")
+                check(closing.Cancel AndAlso retryCancellation.IsCancellationRequested AndAlso Not CancelButton.IsEnabled AndAlso TaskTitle.Text = "正在取消…" AndAlso StatusText.Text.Contains("稍后关闭") AndAlso CBool(reentry("close")), "closing waits only while owned work remains and preserves synchronous terminal results")
                 FinishTaskView(False, "关闭前停止完成")
                 _busy = False
                 _closing = True
