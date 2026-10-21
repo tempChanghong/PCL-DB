@@ -2,6 +2,15 @@
 
 日期：2026-10-22（北京时间）。最新发布为 PCL-DB Beta 1.0（`1.0.0-beta.1`），当前主分支另含尚未发布的后续修复；下方保留先前版本的验证记录。
 
+## Beta 1.0 后续开发：Fabric 与 OptiFine 列表的来源校验
+
+- 基线 811ca48，源码、78 个 dist 文件摘要与七个参考仓库状态保存在 `artifacts/beta1-component-catalogue-fallback/`。重读固定 PCL 5ef81e4 的 Fabric 各源必要项检查、OptiFine BMCLAPI 条目解析及 DlSourceLoader；源码片段保存在 pcl-source-excerpts.txt。PCL Fabric 使用全量列表，本项目使用按游戏版本返回加载器的端点，按实际消费的 loader/version/stable 结构适配检查。
+- baseline-fabric.log 与 baseline-optifine.log 分别复现首选源返回 `{}` 后得到零条列表、failure=none、fallback=False，测试均非零退出。Fabric 损坏的 version/stable 字段以及 OptiFine 缺少必要字段的条目也可能在选源成功后才失败，或成为不完整的可选条目。
+- 为通用版本列表请求增加可选的来源解析器，在接受竞速结果前检查 Fabric 数组和加载器字段；OptiFine 镜像复用现有双来源解析入口，检查条目必要文字及可选 Forge 字段。整份来源先解析成功再返回；任一条目损坏可启用备用源，避免发布部分结果。合法 `[]` 继续表示空列表。
+- 新增 46 项独立检查，覆盖三种版本列表源偏好与相反文件源偏好、损坏的根类型/条目/字段、部分列表损坏、合法空列表、两源均失败的诊断、取消等待中的响应、测试版标记、1.8.0/1.9.0 归一化、缺省/null/N/A/数字及完整版本号 Forge 兼容字段。fixed-catalogues.log 全部通过；可用 `--regression component-catalogue-all` 重现，也可分别运行 fabric、optifine、behavior 子组。VS 2026 增加 Component Catalogues 配置并纳入离线验证器。
+- 完整下载/安装核心回归从 761 增至 807 项并全部通过（core-all.log）；Release 构建零警告/零错误，658 项完整界面、328 项动画及 17 项固定源对照通过。VS 2026 Debug/PDB 另通过 431 项精选核心、658 项界面、328 项动画及既有聚焦配置，新配置同样通过 46 项检查。关键报告复制到本轮目录；preservation.json 确认 78 个 dist 文件的内容与修改时间、七个参考仓库的提交与状态保持，Beta 标签仍指向 c1fe250。
+- 样本仅使用回环 HTTP、预览界面和临时目录，不访问真实官方/镜像端点，不作为线上故障或完整游戏启动的证明。本轮只做本地构建、验证及提交，不打包、不发版、不推送。
+
 ## Beta 1.0 后续开发：JSON 类型错误时的选源回退
 
 - 基线 a7628ce，源码、78 个 dist 文件摘要和七个参考仓库状态保存在 `artifacts/beta1-json-source-fallback/`。重读固定 PCL 5ef81e4 的 DlSourceLoader 与各源解析流程：子加载器解析完成后才报告成功，失败会提前启用下一来源；相关片段保存为 pcl-source-excerpts.txt。

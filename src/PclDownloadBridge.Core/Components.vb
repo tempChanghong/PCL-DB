@@ -127,7 +127,7 @@ Public Class ComponentCatalog
         Dim result As New List(Of ComponentEntry)
         Select Case kind
             Case ComponentKind.Fabric
-                Dim data = Await _policy.GetVersionListTokenAsync("https://meta.fabricmc.net/v2/versions/loader/" & Uri.EscapeDataString(mc), token).ConfigureAwait(False)
+                Dim data = Await _policy.GetVersionListTokenAsync("https://meta.fabricmc.net/v2/versions/loader/" & Uri.EscapeDataString(mc), token, AddressOf ParseFabricMetadata).ConfigureAwait(False)
                 For Each item In data
                     result.Add(New ComponentEntry With {.Kind = kind, .Minecraft = mc, .Version = CStr(item("loader")("version")), .Stable = CBool(item("loader")("stable"))})
                 Next
@@ -202,7 +202,7 @@ Public Class ComponentCatalog
                 Next
             Case ComponentKind.OptiFine
                 Dim data = Await _policy.GetVersionListAsync("https://optifine.net/downloads", "https://bmclapi2.bangbang93.com/optifine/versionList",
-                    token, Function(body) ParseOptiFinePage(body)).ConfigureAwait(False)
+                    token, Function(body) ParseOptiFinePage(body), AddressOf ParseOptiFineMirrorMetadata).ConfigureAwait(False)
                 For Each item As JObject In data
                     If CStr(item("mcversion")).Replace("1.8.0", "1.8").Replace("1.9.0", "1.9") <> mc Then Continue For
                     Dim required = If(CStr(item("forge")), "").Replace("Forge ", "").Replace("#", "")
@@ -219,6 +219,42 @@ Public Class ComponentCatalog
         End Select
         Return result
     End Function
+
+    ' PCL's per-source loaders reject missing required fields before reporting
+    ' success. Preserve valid empty arrays and ignore unrelated extra fields.
+    Private Shared Function ParseFabricMetadata(body As String) As JToken
+        Dim entries = JArray.Parse(body)
+        For Each value In entries
+            Dim item = TryCast(value, JObject)
+            Dim loader = If(item Is Nothing, Nothing, TryCast(item("loader"), JObject))
+            If loader Is Nothing Then Throw New InvalidDataException("Fabric 版本条目缺少 loader 对象。")
+            ValidateCatalogueText(loader, "version", "Fabric")
+            Dim stable = loader("stable")
+            If stable Is Nothing OrElse stable.Type <> JTokenType.Boolean Then Throw New InvalidDataException("Fabric 版本条目的 stable 字段无效。")
+        Next
+        Return entries
+    End Function
+
+    Private Shared Function ParseOptiFineMirrorMetadata(body As String) As JToken
+        Dim entries = JArray.Parse(body)
+        For Each value In entries
+            Dim item = TryCast(value, JObject)
+            If item Is Nothing Then Throw New InvalidDataException("OptiFine 版本条目格式无效。")
+            For Each field In {"mcversion", "type", "patch", "filename"}
+                ValidateCatalogueText(item, field, "OptiFine")
+            Next
+            Dim forge = item("forge")
+            ' PCL accepts both dotted Forge versions and legacy numeric builds.
+            If forge IsNot Nothing AndAlso forge.Type <> JTokenType.Null AndAlso forge.Type <> JTokenType.String AndAlso forge.Type <> JTokenType.Integer Then Throw New InvalidDataException("OptiFine 版本条目的 forge 字段无效。")
+        Next
+        Return entries
+    End Function
+
+    Private Shared Sub ValidateCatalogueText(item As JObject, field As String, catalogue As String)
+        Dim value = item(field)
+        If value Is Nothing OrElse value.Type <> JTokenType.String OrElse String.IsNullOrWhiteSpace(CStr(value)) Then Throw New InvalidDataException(catalogue & " 版本条目的 " & field & " 字段无效。")
+    End Sub
+
     Private Shared Function ParseForgeMirrorMetadata(body As String) As JToken
         Dim entries = JArray.Parse(body)
         For Each value In entries

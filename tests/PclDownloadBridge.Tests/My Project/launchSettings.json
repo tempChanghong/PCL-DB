@@ -36,6 +36,12 @@
       "workingDirectory": "$(ProjectDir)",
       "nativeDebugging": false
     },
+    "Component Catalogues": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression component-catalogue-all",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
     "Component Versions": {
       "commandName": "Project",
       "commandLineArgs": "--regression component-versions",

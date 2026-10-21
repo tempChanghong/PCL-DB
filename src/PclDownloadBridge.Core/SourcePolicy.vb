@@ -121,13 +121,15 @@ Public Class SourcePolicy
         Return If(EffectiveVersionPreference = SourcePreference.Automatic, 5000, If(EffectiveVersionPreference = SourcePreference.MirrorFirst, 30000, 60000))
     End Function
 
-    Public Async Function GetVersionListTokenAsync(url As String, token As CancellationToken) As Task(Of JToken)
+    Public Async Function GetVersionListTokenAsync(url As String, token As CancellationToken, Optional parse As Func(Of String, JToken) = Nothing) As Task(Of JToken)
         Dim urls = Candidates(url, "version")
-        Return Await RaceVersionListTokenAsync(urls, token).ConfigureAwait(False)
+        Return Await RaceVersionListTokenAsync(urls, token, parse).ConfigureAwait(False)
     End Function
 
-    Public Async Function RaceVersionListTokenAsync(urls As IEnumerable(Of String), token As CancellationToken) As Task(Of JToken)
-        Return Await RaceValueAsync(urls, token, Nothing, VersionFallbackDelay()).ConfigureAwait(False)
+    Public Async Function RaceVersionListTokenAsync(urls As IEnumerable(Of String), token As CancellationToken, Optional parse As Func(Of String, JToken) = Nothing) As Task(Of JToken)
+        ' Catalogue-specific parsing must succeed before a source can win.
+        Return Await RaceValueAsync(urls, token, Nothing, VersionFallbackDelay(),
+            parse:=Function(source, body) If(parse Is Nothing, JToken.Parse(body), parse(body))).ConfigureAwait(False)
     End Function
 
     ' Some official catalogues are HTML/XML while BMCLAPI returns JSON. Parse each

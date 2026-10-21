@@ -34,6 +34,8 @@ Module Program
                 Dim run As Task(Of List(Of String))
                 If args(1).StartsWith("processor-streams-", StringComparison.Ordinal) Then
                     run = ProcessorStreamChecks.RunAsync(TestRoot, args(1))
+                ElseIf args(1).StartsWith("component-catalogue-", StringComparison.Ordinal) Then
+                    run = ComponentCatalogueChecks.RunAsync(args(1))
                 ElseIf args(1).StartsWith("component-plan-", StringComparison.Ordinal) Then
                     run = ComponentDependencyChecks.RunAsync(TestRoot, args(1))
                 ElseIf args(1) = "neoforge-checksums" Then
@@ -116,6 +118,9 @@ Module Program
                 Check(True, label)
             Next
             For Each label In ComponentVersionChecks.RunAsync().GetAwaiter().GetResult()
+                Check(True, label)
+            Next
+            For Each label In ComponentCatalogueChecks.RunAsync().GetAwaiter().GetResult()
                 Check(True, label)
             Next
             For Each label In NeoForgeVersionChecks.RunAsync().GetAwaiter().GetResult()
