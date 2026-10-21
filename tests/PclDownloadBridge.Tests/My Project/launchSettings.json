@@ -6,6 +6,12 @@
       "workingDirectory": "$(ProjectDir)",
       "nativeDebugging": false
     },
+    "Forge Checksums": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression forge-checksums",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
     "Forge Versions": {
       "commandName": "Project",
       "commandLineArgs": "--regression forge-versions",

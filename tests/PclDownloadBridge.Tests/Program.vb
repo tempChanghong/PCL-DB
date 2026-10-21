@@ -31,7 +31,9 @@ Module Program
             Directory.CreateDirectory(TestRoot)
             If args.Length = 2 AndAlso args(0) = "--regression" Then
                 Dim run As Task(Of List(Of String))
-                If args(1) = "forge-versions" Then
+                If args(1) = "forge-checksums" Then
+                    run = ForgeChecksumChecks.RunAsync(TestRoot)
+                ElseIf args(1) = "forge-versions" Then
                     run = ForgeVersionChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "component-versions" Then
                     run = ComponentVersionChecks.RunAsync()
@@ -97,6 +99,9 @@ Module Program
                 Check(True, label)
             Next
             FolderTests()
+            For Each label In ForgeChecksumChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
+                Check(True, label)
+            Next
             For Each label In ForgeVersionChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
                 Check(True, label)
             Next

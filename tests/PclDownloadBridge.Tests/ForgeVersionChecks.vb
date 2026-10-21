@@ -100,7 +100,7 @@ Friend Module ForgeVersionChecks
     Private Function MirrorEntry(version As String, branch As String, Optional checksum As String = Nothing) As JObject
         Return New JObject From {{"version", version}, {"branch", branch}, {"files", New JArray(New JObject From {{"category", "installer"}, {"format", "jar"}, {"hash", checksum}})}}
     End Function
-    Private Function LegacyInstaller(mc As String) As Byte()
+    Friend Function LegacyInstaller(mc As String) As Byte()
         Dim runtime = Utf8("bundled Forge fixture")
         Dim library As New JObject From {{"name", "fixture:forge:1"}, {"downloads", New JObject From {{"artifact", New JObject From {
             {"path", "fixture/forge/1/forge-1.jar"}, {"url", ""}, {"sha1", Hash(runtime)}, {"size", runtime.Length}}}}}}

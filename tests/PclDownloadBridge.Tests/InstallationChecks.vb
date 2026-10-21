@@ -95,6 +95,7 @@ Friend Module InstallationChecks
                 End Using
                 fixture.Server.Files("/legacy-installer") = buffer.ToArray()
             End Using
+            fixture.Server.Files("/legacy-installer.sha1") = Utf8(Hash(fixture.Server.Files("/legacy-installer")))
             Dim selection As New ComponentSelection()
             selection.Entries(ComponentKind.Forge) = New ComponentEntry With {.Kind = ComponentKind.Forge, .Minecraft = fixture.Entry.Id, .Version = "14.23.5.2859", .Url = fixture.Server.Url & "/legacy-installer"}
             Dim result = Await fixture.InstallAsync("scoped-loader", selection)

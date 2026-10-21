@@ -6,6 +6,13 @@
 
 开发时实际阅读了以下代码；以下对应关系说明实际实现依据，并非只参考界面截图。
 
+## 0.57 Forge 安装器校验信息
+
+- 实际重读固定 ModDownload.vb 的 DlForgeVersionOfficialMain（约 704–728 行）及 DlForgeVersionBmclapiMain，以及 Pages/PageDownload/ModDownloadLib.vb 将 Forge.Hash 传入 FileChecker 的下载路径（约 911、1128 行）：PCL 官方 HTML 提取对应文件 MD5，BMCLAPI 记录 MD5/SHA1。项目现用的 Maven XML 列表不带哈希，因此新增所选文件的校验补全；SHA1/MD5 sidecar 获取是本项目对 Maven 入口的适配，不声称 PCL 采用相同请求路径。
+- ForgeInstallerChecksum 优先验证并使用已有 SHA1/MD5；缺失时先读取所选安装器的 .sha1，来源均不可用再读取 .md5。SourcePolicy 按文件下载源偏好排列候选，复用有大小/超时限制的元数据读取和可取消竞速，在接收有效的十六进制内容后才接受胜者；不逐条扫描整个版本列表，也不修改界面持有的组件元数据。有效 SHA1 下的文件不匹配仍报错，不退回较弱校验或无校验下载。
+- BMCLAPI Forge 列表在参与竞速时验证结构和安装器校验字段，损坏字段不能先赢后失败；合法空列表仍返回空。规范化字段外围空白是本项目适配。所选 Forge 的校验信息全部不可用时明确停止，沿用已有下载引擎完成文件校验、缓存及续传；NeoForge 流程保持现有行为。
+- 22 项检查通过真实 ComponentInstaller 和回环 HTTP 验证字段复用、选源与回退、MD5 兼容、下载门控、取消、不匹配文件和元数据竞速；原有旧 Forge 样本补充其合成安装器的 SHA1 sidecar。页面样式与已有界面检查保持。
+
 ## 0.56 Forge 文件坐标与刷新
 
 - 实际重读固定 ModDownload.vb 的 DlForgeVersionEntry（约 587–640 行）、官方 HTML 分支提取（约 697 行）与 BMCLAPI 文件类型/分支读取（约 743–787 行），并通过固定 Git 对象再次核对构造器。PCL 将 VersionName 与 FileVersion 分开，强制修正 11.15.1.2318、11.15.1.1902、11.15.1.1890 的 1.8.9 分支，并为缺少分支的 1.7.10 revision >=1300 补后缀。

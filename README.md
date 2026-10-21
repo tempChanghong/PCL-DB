@@ -1,6 +1,6 @@
 # PCL-DB · PCL Download Bridge
 
-VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，0.56 预览版，简称 PCL-DB。
+VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，简称 PCL-DB。当前源码为 0.57 开发版，尚未发布；最新公开预览版为 0.56。
 
 以 PCL2 限制前代码为主要参照，读取 PCL 使用的 `.minecraft`，安装结果使用 PCL 能读取的版本目录格式。原五个启动器仓库不需要修改。
 
@@ -8,7 +8,7 @@ VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，0.56 �
 
 从 [Releases](https://github.com/tempChanghong/PCL-DB/releases) 下载预览版，解压后运行 `PclDownloadBridge.exe`。源码构建方法见下文。
 
-运行 `dist/PclDownloadBridge/PclDownloadBridge.exe`。便携使用时保留同目录的 DLL、配置文件与 Markdown 文档。
+便携使用时保留 EXE 同目录的 DLL、配置文件与 Markdown 文档。源码默认构建后运行 `src/PclDownloadBridge.App/bin/Release/net48/PclDownloadBridge.exe`；显式打包后也可运行 `dist/PclDownloadBridge/PclDownloadBridge.exe`。
 
 1. 打开「设置 → 游戏文件夹」，点击「读取 PCL 的目录」选择实际使用的 PCL EXE。读取其旁的游戏目录、`PCL/Setup.ini` 的当前选择，以及 PCL 注册表自定义目录。也可手动选择 `.minecraft`。同页可分别设置「文件下载源」和「版本列表源」：BMCLAPI 优先、自动、官方优先；自动为默认值。切换版本列表源后，返回下载页会按新设置刷新当前列表；安装选项页也可点击「刷新列表」，保留版本、名称与组件选择。
 2. 回到「下载」，顶部显示安装目标；点击版本，填写实例名称。展开卡片选择 Forge、NeoForge、Fabric、Fabric API、OptiFine、OptiFabric 或 LiteLoader，点击「开始下载」。按 PCL 规则显示适用选项及互斥关系，Fabric API 和 OptiFabric 随父组件显示。默认拒绝覆盖同名实例。
@@ -35,6 +35,7 @@ VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，0.56 �
 
 ## 功能
 
+- 所选 Forge 安装器缺少校验值时，按文件下载源设置补取 SHA1，来源失败可回退，SHA1 不可用再尝试 MD5；全部失败则停止安装。已有校验值直接复用，读取过程中可取消。BMCLAPI 的损坏校验字段在选源前拒绝，避免错误响应阻断健康来源。
 - Forge 的显示版本与 Maven 文件坐标按 PCL 分开处理，补齐部分 1.8.9、1.7.10 安装器的历史分支；刷新来源按完整安装器地址保留选择，同版本号的其他分支不会静默替换当前安装方案。
 - 组件兼容判断复用 PCL 的数字及预发布版本比较规则；Fabric、LiteLoader 卡片按 PCL 的版本代际显示，避免将 `1.9-pre1` 当作高于 `1.13`，或将 `1.20.4-pre1` 当作高于 `1.20.4`。保留远古版本的独立保护，不据版本格式推断真实组件已发布。
 - Forge 卡片按 PCL 的标准版本格式判断显示，兼容 `26.1` 等新编号及对应预发布形式；列表没有适用安装器时显示空状态，不据版本格式推断实际可安装性。
@@ -134,14 +135,22 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 
 从仓库获取完整源码后即可运行上述命令；常规构建和界面对照检查不需要在旁边另行克隆 PCL。固定源码快照和 12 项资源的提交哈希清单已包含在仓库中。只有维护者重新执行 `tools/import-pcl-ui.ps1` 导入上游代码时才需要相邻的 PCL 源码仓库。
 
-会构建三个 VB 项目，核对 44 份固定 PCL 源码及内置资源，运行本地下载/安装、界面及 19 项打包回归，然后生成便携目录和 ZIP。下载检查的目录位于系统临时目录 `PclDownloadBridgeTests-<随机ID>`，打包检查使用 `PCL-DB-PackageChecks-<随机ID>`；两者均不接触用户游戏目录。
+默认构建三个 VB 项目，核对 44 份固定 PCL 源码及内置资源，运行本地下载/安装和界面回归。下载检查目录位于系统临时目录 `PclDownloadBridgeTests-<随机ID>`，不接触用户游戏目录。默认不更新 `dist`、生成 ZIP 或执行打包回归；`-SkipTests` 可只构建。
+
+仅在明确要求打包时执行以下命令；发版同样需要明确要求，不作为每轮修复的默认步骤：
+
+```powershell
+.\build.ps1 -Package
+```
+
+此模式另运行 19 项打包回归，再生成便携目录和 ZIP。打包检查使用临时目录 `PCL-DB-PackageChecks-<随机ID>`。
 
 包内固定为 4 个运行文件和 7 份文档（包含 `LICENCE`）。打包先在独立暂存目录复制和校验，旧目录中的其他文件不会被带入新包；替换成功后，旧目录和旧 ZIP 保留在本次报告记录的备份位置。遇到占用等替换失败时会尝试恢复旧输出，失败详情及备份路径保存在 `artifacts/packages/<本次编号>/failure.json`。这是目录和 ZIP 的顺序替换与回滚，不保证断电或强行终止进程时两者同时更新。
 
-构建结果会打印本次 ZIP 和 `result.json` 的完整路径，其中记录 ZIP 的 SHA-256 及每个文件的内容哈希。可明确指定候选包，重新核对其内容与当前 Release 输出和文档是否一致：
+打包结果会打印本次 ZIP 和 `result.json` 的完整路径，其中记录 ZIP 的 SHA-256 及每个文件的内容哈希。可明确指定候选包，重新核对其内容与当前 Release 输出和文档是否一致：
 
 ```powershell
-.\tools\verify-package.ps1 -PackagePath .\dist\PCL-DB-0.56-preview.zip -DistributionPath .\dist\PclDownloadBridge
+.\tools\verify-package.ps1 -PackagePath .\dist\PCL-DB-0.57-preview.zip -DistributionPath .\dist\PclDownloadBridge
 ```
 
 `-SkipTests` 仅跳过回归检查，打包时仍校验候选 ZIP 的完整文件清单和字节内容；不能据此声称通过完整回归。单独执行 `tools/verify-packaging.ps1` 需要已有 Release 构建。

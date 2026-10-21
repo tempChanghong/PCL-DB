@@ -164,6 +164,19 @@ Public Class SourcePolicy
         End Using
     End Function
 
+    ' Checksum sidecars follow file-source preferences. Validate before accepting a
+    ' race winner so an HTML/error response immediately enables the next source.
+    Friend Async Function GetArtifactChecksumAsync(url As String, digits As Integer, token As CancellationToken) As Task(Of String)
+        If digits <> 32 AndAlso digits <> 40 Then Throw New ArgumentOutOfRangeException(NameOf(digits))
+        Dim result = Await RaceValueAsync(Candidates(url, "component"), token, Nothing, If(Preference = SourcePreference.Automatic, 1500, 5000),
+            parse:=Function(source, body)
+                       Dim value = body.Trim()
+                       If Not Text.RegularExpressions.Regex.IsMatch(value, "\A[0-9a-fA-F]{" & digits.ToString(Globalization.CultureInfo.InvariantCulture) & "}\z") Then Throw New IO.InvalidDataException("安装器校验文件格式无效。")
+                       Return New JValue(value.ToLowerInvariant())
+                   End Function).ConfigureAwait(False)
+        Return CStr(result)
+    End Function
+
     ' PCL SendRequest separates headers from body reads. Enforce this tool's byte
     ' bound while streaming, so a known bad response does not delay source fallback.
     Private Async Function ReadMetadataAsync(url As String, token As CancellationToken) As Task(Of ByteArrayContent)
@@ -277,7 +290,7 @@ Public Class SourcePolicy
 
     Public Shared Function CreateClient() As HttpClient
         Dim client As New HttpClient(New HttpClientHandler With {.AutomaticDecompression = Net.DecompressionMethods.None, .MaxConnectionsPerServer = 16}) With {.Timeout = TimeSpan.FromSeconds(45)}
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("PclDownloadBridge/0.56 (local Minecraft installer)")
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("PclDownloadBridge/0.57 (local Minecraft installer)")
         Return client
     End Function
 End Class

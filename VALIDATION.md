@@ -1,6 +1,16 @@
 # 本地验证记录
 
-日期：2026-10-21（北京时间）。当前交付为 0.56 预览版 PCL-DB（PCL Download Bridge），包含 Visual Studio 2026 开发配置；下方保留先前版本的验证记录。
+日期：2026-10-21（北京时间）。当前源码为尚未发布的 0.57 开发版 PCL-DB（PCL Download Bridge），包含 Visual Studio 2026 开发配置；最新公开预览版为 0.56，下方保留先前版本的验证记录。
+
+## 0.57 Forge 校验补全
+
+- 修改前保存 `artifacts/bridge-0.57/source-before.zip`。实际 ComponentInstaller 在无校验字段时直接下载，新增所选文件检查在旧行为下失败，见 checksums-before.log。对照 PCL 官方列表提取 MD5 的行为，补齐 Maven XML 入口缺少的安装器校验信息。
+- 新增 22 项核心检查包含已有 SHA1/MD5 复用、文件源与列表源分别设置、SHA1 坏响应回退、MD5 兼容、校验值全部损坏/缺失、损坏声明拒绝、等待校验的下载门控、取消、不匹配文件及 BMCLAPI 字段竞速。最终专项结果为 checksums-fixed.log。仅在有效校验信息就绪后下载安装器，不修改界面持有的组件对象；有效 SHA1 的文件不匹配不会降级为 MD5。
+- 原有旧 Forge 安装样本补充合成 SHA1 sidecar；新样本在建立失败基线前补齐客户端元数据，并调整 VB 的异步清理写法与数组类型，未改产品逻辑来绕过验证。
+- 完整 Release 构建零警告、零错误；核心 682 项（新增 22 项）、完整界面 658 项及固定 PCL 对照 16 项通过，见 full-build.log。VS 2026 Debug 构建、便携 PDB、关闭优化及各启动配置通过：核心精选 306 项，完整界面 658 项；外观 129、开发者 36、卡片 104、导航 31、设置兼容 49 为界面子集。新增 Forge Checksums 调试配置；报告为 vs2026-report.json，未人工在 IDE 内按 F5 命中断点。
+- 公网验证使用本轮 Release Core 中的校验解析器及真实 DownloadEngine，分别下载 1.21.1 / Forge 52.0.28（6,258,933 字节，SHA1 fbd42d5ea7660c341ffc4459bac920251cd6533b）和 1.8.9 / Forge 11.15.1.2318（4,485,999 字节，SHA1 ec0293ff0776b8831f2ed90511bab76e635dda0c）。按官方优先设置取得 SHA1 并下载，独立计算值一致；两次复用均为 0、重试均为 0。记录及被测 Core SHA256 在 live-checksums.json。只下载校验，未执行安装器、安装整套 Minecraft 或启动游戏，也不作为速度比较。
+- 收到用户要求以后仅在明确指示时打包/发版；本轮旧流程在消息到达前已运行 19 项打包回归并生成本地 ZIP，保留记录但不发布。没有创建 0.57 标签或 GitHub Release。build.ps1 改为默认构建/验证，显式 -Package 才执行打包回归并生成便携包；README 与 VS 说明同步。
+- 运行新默认流程的 -SkipTests 构建，核对 dist 全部文件内容、修改时间及 artifacts/packages 报告目录均未变化，见 default-build.log / default-no-package.json；没有为验证此规则再次打包。七个参考仓库的提交及原有修改状态保持，44 份固定源码和 12 项资源检查通过。
 
 ## 0.56 Forge 分支与安装器
 

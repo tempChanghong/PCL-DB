@@ -173,7 +173,7 @@ Public Class ComponentCatalog
                 Dim data = Await _policy.GetVersionListAsync(
                     "https://maven.minecraftforge.net/net/minecraftforge/forge/maven-metadata.xml",
                     "https://bmclapi2.bangbang93.com/forge/minecraft/" & Uri.EscapeDataString(mc.Replace("-", "_")), token,
-                    Function(body) ParseForgeMetadata(body, mc)).ConfigureAwait(False)
+                    Function(body) ParseForgeMetadata(body, mc), AddressOf ParseForgeMirrorMetadata).ConfigureAwait(False)
                 Dim coordinates As New HashSet(Of String)(StringComparer.Ordinal)
                 If data IsNot Nothing Then
                     For Each item In data
@@ -219,6 +219,26 @@ Public Class ComponentCatalog
         End Select
         Return result
     End Function
+    Private Shared Function ParseForgeMirrorMetadata(body As String) As JToken
+        Dim entries = JArray.Parse(body)
+        For Each value In entries
+            Dim item = TryCast(value, JObject)
+            If item Is Nothing Then Throw New InvalidDataException("Forge 版本条目格式无效。")
+            Dim files = TryCast(item("files"), JArray)
+            If files Is Nothing Then Throw New InvalidDataException("Forge 文件列表格式无效。")
+            For Each file As JObject In files
+                If CStr(file("category")) <> "installer" OrElse CStr(file("format")) <> "jar" Then Continue For
+                Dim hash = file("hash")
+                If hash Is Nothing OrElse hash.Type = JTokenType.Null Then Continue For
+                If hash.Type <> JTokenType.String Then Throw New InvalidDataException("Forge 安装器校验字段格式无效。")
+                Dim checksum = CStr(hash).Trim()
+                If checksum.Length > 0 AndAlso Not ForgeInstallerChecksum.IsChecksum(checksum) Then Throw New InvalidDataException("Forge 安装器校验字段格式无效。")
+                file("hash") = checksum
+            Next
+        Next
+        Return entries
+    End Function
+
     Private Shared Function ParseForgeMetadata(body As String, mc As String) As JToken
         Dim xml = XDocument.Parse(body)
         If xml.Root Is Nothing OrElse xml.Root.Name.LocalName <> "metadata" Then Throw New InvalidDataException("Forge Maven 版本列表无效。")

@@ -39,7 +39,7 @@ Debug 构建输出为 `src/PclDownloadBridge.App/bin/Debug/net48/`。启动配�
 
 | 配置 | 覆盖的流程 |
 |---|---|
-| Offline All | 全部本地下载、安装与处理器回归；当前 660 项检查，处理器样本需要本机 Java 8 或更高版本 |
+| Offline All | 全部本地下载、安装与处理器回归；当前 682 项检查，处理器样本需要本机 Java 8 或更高版本 |
 | Metadata Transfers | 10 项元数据响应、大小上限、备用源及取消回归；仅使用本地 HTTP 样本 |
 | Processor Log Recovery | 12 项真实 Java 样本检查：日志只读/占用、输出进度、失败原因、取消、恢复后重试；不使用真实游戏目录 |
 | Java Runtime Probe | 20 项 Java 检测检查：真实 JVM 长提示，以及模拟子进程的版本格式、双流大输出、错误码和超时；仅改测试进程的临时环境变量 |
@@ -47,6 +47,7 @@ Debug 构建输出为 `src/PclDownloadBridge.App/bin/Debug/net48/`。启动配�
 | NeoForge Versions | 14 项 NeoForge 列表解析检查：经典/新编号、alpha/beta、快照、愚人节、旧 Maven 坐标及 BMCLAPI 包装数据；仅连接本机回环服务器 |
 | Component Versions | 21 项版本排序及兼容边界检查：pre/rc/snapshot 的数字比较、Fabric/OptiFine 组合、Forge 排除区间及 OptiFabric 元数据请求；仅使用临时回环列表 |
 | Forge Versions | 18 项 Forge 版本与安装器检查：官方/BMCLAPI 分支归一化、历史补正、校验字段、原版预发布坐标及实际本地安装；仅使用回环元数据和合成旧版安装器 |
+| Forge Checksums | 22 项所选 Forge 安装器校验检查：SHA1/MD5、文件选源、坏响应回退、校验门控、取消、错误元数据及不匹配文件拒绝；仅使用回环端点和合成安装器 |
 | Download Plan | 重复文件的校验合并、同大小损坏文件修复 |
 | Native Libraries | 实际安装器中的普通/原生库合并、文件复用和最终配置写入 |
 | Cleanup Cancellation | 占用暂存客户端后取消安装、保留取消状态、解除占用后重试 |
@@ -96,11 +97,11 @@ F9 切换断点，F10 逐过程，F11 逐语句。`Directory.Build.props` 明确
 
 报告写入 `artifacts/vs2026/report.json`，编译和各配置日志在同一目录。脚本读取上面的真实启动配置，并按其工作目录、参数启动 Debug 产物；只执行离线配置。它验证 VS 所用 MSBuild、符号文件和运行入口，**不等于已在 IDE 中按 F5 并命中断点**，这一项保留为人工验收。
 
-0.56 中全量界面配置包含 658 项检查，Appearance Checks 单独运行其中 129 项，Card Checks 单独运行其中 104 项（含 Forge 新编号与预发布版本的显示、选择和空状态），Navigation Checks 单独运行其中 31 项，Settings Compatibility 单独运行其中 49 项，不能相加为独立用例数。主题检查不依赖此前显示过任务页；动画检查使用可暂停/定位的实际 WPF 时钟，不以固定睡眠时间判定动画是否完成。失败仍返回非零退出码，JSON 保留 `Succeeded=false`、`Count`、已经通过的 `Passed`、`FailedCheck` 和异常堆栈。检查不自动重跑，调试时可直接在失败位置设置断点。
+0.57 中全量界面配置包含 658 项检查，Appearance Checks 单独运行其中 129 项，Card Checks 单独运行其中 104 项（含 Forge 新编号与预发布版本的显示、选择和空状态），Navigation Checks 单独运行其中 31 项，Settings Compatibility 单独运行其中 49 项，不能相加为独立用例数。主题检查不依赖此前显示过任务页；动画检查使用可暂停/定位的实际 WPF 时钟，不以固定睡眠时间判定动画是否完成。失败仍返回非零退出码，JSON 保留 `Succeeded=false`、`Count`、已经通过的 `Passed`、`FailedCheck` 和异常堆栈。检查不自动重跑，调试时可直接在失败位置设置断点。
 
 Copy Fallback 的文件占用样本使用 Windows NTFS 辅助数据流，默认临时目录需支持 NTFS 数据流。取消样本只在控制台进程内暂时注册受控 SHA-1 提供程序，在真实哈希计算结束处请求取消，并在 Finally 恢复原映射；应用程序与便携包不包含这个提供程序。
 
-当前程序版本为 0.56，已有 `.vs` / `.suo` 用户状态继续保留；共享配置使用源码中的启动配置文件。构建便携版仍运行 `build.ps1`。
+当前源码为尚未发布的 0.57 开发版，已有 `.vs` / `.suo` 用户状态继续保留；共享配置使用源码中的启动配置文件。`build.ps1` 默认构建和验证；明确要求打包时才使用 `build.ps1 -Package`，发布另行处理。
 
 ## 配置依据
 
