@@ -215,7 +215,13 @@ Public Class SourcePolicy
     ' PCL DlSourceLoader starts the preferred loader first, then starts a fallback
     ' after a grace period. Return the first validated result and cancel the rest.
     Public Async Function RaceJsonAsync(urls As IEnumerable(Of String), token As CancellationToken, Optional sha1 As String = Nothing, Optional fallbackDelay As Integer = 1500) As Task(Of JObject)
-        Return DirectCast(Await RaceValueAsync(urls, token, sha1, fallbackDelay).ConfigureAwait(False), JObject)
+        ' As with PCL's source loaders, finish parsing before accepting a source.
+        ' A valid JSON array/scalar is still an invalid object response and must
+        ' enable fallback before the winner cancels the other requests.
+        Return DirectCast(Await RaceValueAsync(urls, token, sha1, fallbackDelay,
+            validate:=Sub(value)
+                          If Not TypeOf value Is JObject Then Throw New IO.InvalidDataException("元数据响应必须是 JSON 对象。")
+                      End Sub).ConfigureAwait(False), JObject)
     End Function
 
     Private Async Function RaceValueAsync(urls As IEnumerable(Of String), token As CancellationToken, sha1 As String, fallbackDelay As Integer, Optional validate As Action(Of JToken) = Nothing, Optional observed As Action(Of String, TimeSpan) = Nothing, Optional parse As Func(Of String, String, JToken) = Nothing) As Task(Of JToken)

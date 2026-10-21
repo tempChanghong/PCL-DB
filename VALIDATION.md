@@ -2,6 +2,15 @@
 
 日期：2026-10-22（北京时间）。最新发布为 PCL-DB Beta 1.0（`1.0.0-beta.1`），当前主分支另含尚未发布的后续修复；下方保留先前版本的验证记录。
 
+## Beta 1.0 后续开发：JSON 类型错误时的选源回退
+
+- 基线 a7628ce，源码、78 个 dist 文件摘要和七个参考仓库状态保存在 `artifacts/beta1-json-source-fallback/`。重读固定 PCL 5ef81e4 的 DlSourceLoader 与各源解析流程：子加载器解析完成后才报告成功，失败会提前启用下一来源；相关片段保存为 pcl-source-excerpts.txt。
+- 本地 HTTP 样本令首选源返回合法 JSON 数组 `[]`、备用源返回正确对象。未修复的 RaceJsonAsync 在选出结果并取消备用请求后才转换 JObject；baseline-shape.log 记录 InvalidCastException、fallback=False 和非零退出码。相同入口用于 Fabric 安装配置、原版版本元数据与资源索引。
+- 复用现有选源前校验回调，在每个来源参与竞速时确认对象类型，类型错误交由现有失败回退与聚合处理。没有改变下载源顺序、等待时间、SHA-1 校验、取消或失败请求收尾；支持数组的通用组件列表入口保持原有行为。
+- 新增 16 项检查：空/非空数组、null、布尔、数字、字符串，三种文件源偏好下的 Fabric 配置请求，全部来源错误的诊断、合法空数组、正常首选源不启动备用 HTTP 及哈希错误回退。`--regression metadata-transfer-shape` 独立运行通过，见 fixed-shape.log；既有 Metadata Transfers 配置自动包含新用例，总数从 10 增至 26。
+- 完整下载/安装核心回归从 745 增至 761 项并全部通过（core-all.log）；Release 构建零警告/零错误，658 项完整界面、328 项动画和 17 项固定源对照通过。VS 2026 Debug/PDB 另通过 385 项精选核心、658 项界面、328 项动画及既有聚焦配置，关键报告已复制到本轮目录。
+- 新样本仅使用回环 HTTP，不访问真实官方/镜像端点，不作为线上故障或完整游戏启动的证明。本轮不打包、不发版、不推送；preservation.json 确认 78 个 dist 文件的内容和修改时间、七个参考仓库状态保持，Beta 标签仍指向 c1fe250。
+
 ## Beta 1.0 后续开发：取消回调同步完成任务
 
 - 基线 40781fa，源码、78 个 dist 文件摘要和七个参考仓库状态保存在 `artifacts/beta1-task-cancel-reentrancy/`。重读固定 PCL LoaderBase.State：先更新状态，再通知取消令牌；同时参考任务卡片按任务状态显示结果的流程。

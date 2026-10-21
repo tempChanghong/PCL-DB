@@ -15,6 +15,7 @@ Friend Module MetadataTransferChecks
         If onlyCase Is Nothing OrElse onlyCase = "metadata-transfer-stream" Then Await StreamingAsync(passed)
         If onlyCase Is Nothing OrElse onlyCase = "metadata-transfer-text" Then Await TextAsync(passed)
         If onlyCase Is Nothing OrElse onlyCase = "metadata-transfer-cancel" Then Await CancelAsync(passed)
+        If onlyCase Is Nothing OrElse onlyCase = "metadata-transfer-shape" Then passed.AddRange(Await MetadataShapeChecks.RunAsync())
         If passed.Count = 0 Then Throw New ArgumentException(onlyCase)
         Return passed
     End Function
