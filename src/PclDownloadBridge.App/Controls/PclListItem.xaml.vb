@@ -42,6 +42,12 @@ Namespace Controls
         Private _selected As Boolean
         Private _down As Boolean
         Private _outlineLogo As Boolean
+        Private ReadOnly _hoverMotion As PclListHoverMotion
+        Friend ReadOnly Property HoverTransition As Animation.ClockGroup
+            Get
+                Return _hoverMotion.Transition
+            End Get
+        End Property
         Public Property OutlineLogo As Boolean
             Get
                 Return _outlineLogo
@@ -51,12 +57,23 @@ Namespace Controls
                 RefreshLogoStyle()
             End Set
         End Property
+        Private _isSidebar As Boolean
         Public Property IsSidebar As Boolean
+            Get
+                Return _isSidebar
+            End Get
+            Set(value As Boolean)
+                If _isSidebar = value Then Return
+                _isSidebar = value
+                RefreshHover(True)
+            End Set
+        End Property
         Public Property Selected As Boolean
             Get
                 Return _selected
             End Get
             Set(value As Boolean)
+                If _selected = value Then Return
                 _selected = value
                 _check.Visibility = If(value, Visibility.Visible, Visibility.Collapsed)
                 SetResourceReference(ForegroundProperty, If(value, If(Height < 40, "ColorBrush3", "ColorBrush2"), "ColorBrush1"))
@@ -113,7 +130,11 @@ Namespace Controls
             SetResourceReference(ForegroundProperty, "ColorBrush1")
             Cursor = Cursors.Hand
             Focusable = IsHitTestVisible
-            AddHandler IsHitTestVisibleChanged, Sub() Focusable = IsHitTestVisible
+            AddHandler IsHitTestVisibleChanged, Sub()
+                                                   Focusable = IsHitTestVisible
+                                                   If Not IsHitTestVisible Then _down = False
+                                                   RefreshHover(True)
+                                               End Sub
             AddHandler GotKeyboardFocus, Sub() RefreshHover()
             AddHandler LostKeyboardFocus, Sub() RefreshHover()
             _background = New Border With {.CornerRadius = New CornerRadius(6), .BorderThickness = New Thickness(1), .Background = Brush("ColorBrush7"), .BorderBrush = Brush("ColorBrush6"), .Opacity = 0, .IsHitTestVisible = False, .RenderTransform = New ScaleTransform(0.75, 0.75), .RenderTransformOrigin = New Point(0.5, 0.5)}
@@ -127,6 +148,7 @@ Namespace Controls
             _check = New Border With {.Width = 5, .CornerRadius = New CornerRadius(2), .Margin = New Thickness(-1, 6, 0, 6), .Background = Brush("ColorBrush3"), .Visibility = Visibility.Collapsed, .IsHitTestVisible = False, .HorizontalAlignment = HorizontalAlignment.Left}
             SetRowSpan(_check, 4)
             Children.Add(_check)
+            _hoverMotion = New PclListHoverMotion(_background, DirectCast(RenderTransform, ScaleTransform))
             PclTheme.Watch(Me, Sub()
                                   _background.BorderBrush = Brush("ColorBrush6")
                                   _check.Background = Brush("ColorBrush3")
@@ -136,33 +158,27 @@ Namespace Controls
                                         ColumnCheck.Width = New GridLength(If(IsSidebar, 6, If(Height < 40, 4, 2)))
                                     End Sub
             AddHandler MouseEnter, Sub() RefreshHover()
+            AddHandler Unloaded, Sub()
+                                     _down = False : RefreshHover(True, True)
+                                 End Sub
+            AddHandler IsVisibleChanged, Sub()
+                                             If Not IsVisible Then _down = False
+                                             RefreshHover(True, Not IsVisible)
+                                         End Sub
             AddHandler IsEnabledChanged, Sub()
                                              _down = False
-                                             RefreshHover()
+                                             RefreshHover(True)
                                          End Sub
         End Sub
-        Private Sub RefreshHover()
-            If _background Is Nothing Then Return
+        Private Sub RefreshHover(Optional immediate As Boolean = False, Optional inactive As Boolean = False)
+            If _hoverMotion Is Nothing Then Return
             _background.CornerRadius = New CornerRadius(If(IsSidebar, 0, 6))
-            Dim scale = DirectCast(_background.RenderTransform, ScaleTransform)
-            Dim active = IsMouseOver OrElse _down OrElse IsKeyboardFocused
-            Dim targetScale = If(active OrElse IsSidebar, 1.0, 0.75)
-            Dim fill = Brush(If(_down, "ColorBrush6", If(active, "ColorBrushBg1", "ColorBrush7"))).Color
-            Dim whole = DirectCast(RenderTransform, ScaleTransform)
-            If Not IsLoaded Then
-                scale.ScaleX = targetScale : scale.ScaleY = targetScale
-                whole.ScaleX = If(_down, 0.98, 1) : whole.ScaleY = whole.ScaleX
-                _background.Background = New SolidColorBrush(fill)
-                _background.Opacity = If(active, 1, 0)
-                Return
-            End If
-            Dim duration = If(active, 120, 180)
-            NumberTo(scale, ScaleTransform.ScaleXProperty, targetScale, CInt(duration * 1.6))
-            NumberTo(scale, ScaleTransform.ScaleYProperty, targetScale, CInt(duration * 1.6))
-            NumberTo(whole, ScaleTransform.ScaleXProperty, If(_down, 0.98, 1), If(_down, 108, 144))
-            NumberTo(whole, ScaleTransform.ScaleYProperty, If(_down, 0.98, 1), If(_down, 108, 144))
-            ColorTo(_background, Border.BackgroundProperty, fill, duration)
-            _background.BeginAnimation(OpacityProperty, New Animation.DoubleAnimation(If(active, 1.0, 0.0), TimeSpan.FromMilliseconds(duration)))
+            Dim interactive = Not inactive AndAlso IsEnabled AndAlso IsHitTestVisible AndAlso (Not IsLoaded OrElse IsVisible)
+            Dim pressed = interactive AndAlso _down
+            Dim active = interactive AndAlso (IsMouseOver OrElse pressed OrElse IsKeyboardFocused)
+            Dim fill = Brush(If(pressed, "ColorBrush6", If(active, "ColorBrushBg1", "ColorBrush7"))).Color
+            _hoverMotion.Update(active, pressed, IsSidebar, fill,
+                Not immediate AndAlso IsLoaded AndAlso IsVisible AndAlso interactive AndAlso Not PclTheme.Changing)
         End Sub
         Protected Overrides Sub OnMouseLeftButtonDown(e As MouseButtonEventArgs)
             MyBase.OnMouseLeftButtonDown(e)

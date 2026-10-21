@@ -29,6 +29,7 @@ Namespace Controls
                 Return _checked
             End Get
             Set(value As Boolean)
+                If _checked = value Then Return
                 _checked = value
                 _down = False
                 Refresh()
@@ -40,18 +41,30 @@ Namespace Controls
             Focusable = True
             AddHandler GotKeyboardFocus, Sub() Refresh()
             AddHandler LostKeyboardFocus, Sub() Refresh()
-            PclTheme.Watch(Me, AddressOf Refresh)
+            PclTheme.Watch(Me, Sub() Refresh())
             AddHandler Loaded, Sub() Refresh()
             AddHandler MouseEnter, Sub() Refresh()
+            AddHandler Unloaded, Sub()
+                                     _down = False : Refresh(True, True)
+                                 End Sub
+            AddHandler IsVisibleChanged, Sub()
+                                             If Not IsVisible Then _down = False
+                                             Refresh(True, Not IsVisible)
+                                         End Sub
+            AddHandler IsHitTestVisibleChanged, Sub()
+                                                    If Not IsHitTestVisible Then _down = False
+                                                    Refresh(True)
+                                                End Sub
             AddHandler IsEnabledChanged, Sub()
                                              _down = False
-                                             Refresh()
+                                             Refresh(True)
                                          End Sub
         End Sub
-        Private Sub Refresh()
+        Private Sub Refresh(Optional immediate As Boolean = False, Optional inactive As Boolean = False)
             If ShapeLogo Is Nothing Then Return
-            Dim backgroundColor = If(Checked, Colors.White, If(_down, Color.FromArgb(120, 255, 255, 255), If(IsMouseOver OrElse IsKeyboardFocused, Color.FromArgb(50, 255, 255, 255), Brush("ColorBrushSemiTransparent").Color)))
-            If Not IsLoaded Then
+            Dim interactive = Not inactive AndAlso IsEnabled AndAlso IsHitTestVisible AndAlso (Not IsLoaded OrElse IsVisible)
+            Dim backgroundColor = If(Checked, Colors.White, If(interactive AndAlso _down, Color.FromArgb(120, 255, 255, 255), If(interactive AndAlso (IsMouseOver OrElse IsKeyboardFocused), Color.FromArgb(50, 255, 255, 255), Brush("ColorBrushSemiTransparent").Color)))
+            If immediate OrElse Not IsLoaded OrElse Not IsVisible OrElse Not interactive OrElse PclTheme.Changing Then
                 Background = New SolidColorBrush(backgroundColor)
                 ShapeLogo.Fill = If(Checked, Brush("ColorBrush3"), Brushes.White)
                 LabText.Foreground = If(Checked, Brush("ColorBrush3"), Brushes.White)

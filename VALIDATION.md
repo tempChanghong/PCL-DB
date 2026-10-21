@@ -2,6 +2,14 @@
 
 日期：2026-10-22（北京时间）。当前源码为尚未发布的 0.57 开发版 PCL-DB（PCL Download Bridge），包含 Visual Studio 2026 开发配置；最新公开预览版为 0.56，下方保留先前版本的验证记录。
 
+## 0.57 列表悬停与顶部选项交接
+
+- 基线 6138efc，修改前保存 `artifacts/bridge-0.57-selection-motion/source-before.zip`、77 个 dist 文件的摘要/时间戳及七个参考仓库状态。重读固定 PCL MyListItem.RefreshColor、MyRadioButton.SetChecked 和 ModAnimation 的组内 After 调度。
+- `baseline/motion.json` 在原 214 项后复现输入屏蔽导致的旧按压残留；selection-lifecycle.json 同时记录隐藏、移除后恢复松开时两类控件各产生一次动作，500 次相同 Selected 写入替换背景画刷，相同 Checked 写入则丢掉正常点击。fixed/motion.json 的前五项新检查通过：三类中断均不触发旧动作，相同状态保留画刷及正在进行的点击。这些输入为离屏夹具的合成路由，未操作桌面指针。
+- 列表悬停组按源码改为三次方淡入，退出背景先接近全宽并淡出，等整行回位后再复位到 0.75；相同状态不重播，选择标记与文字可独立变化。X/Y 共享各自的 WPF 时钟；完成与生命周期中断释放透明度、颜色和缩放时钟，旧回调不能结束替换组。顶部选项和列表行的隐藏、祖先禁用、卸载、页面命中屏蔽均清理按压，Selected/Checked 与只读行语义保留。
+- 新增 40 项动画检查，总计 254 项，expanded/motion.json 首次完整通过，另有 13 帧 row-hover-frames。核对实际 Clock.CurrentTime 的三次方、线性和延后复位样本、快速重入、500 次相同更新、稳定终态、过期回调和恢复后新点击。初版扩展夹具的 Lambda 参数遮蔽编译错误保留于 build-expanded.log，改名后构建通过，没有调整产品时长或放宽断言。
+- 最终 Release 构建零警告、零错误；658 项完整界面、254 项动画、17 项固定 PCL 对照和 VS 2026 Debug/PDB 验证分别记录。未修改下载 Core，不重复完整 745 项核心回归，仅运行 VS 配置的 369 项精选逻辑检查。本轮保持 0.57 开发版，不构建单 EXE 候选、不打包、不发版；dist 与七个参考仓库保留结果见 preservation.json。隔离渲染/合成输入不作为桌面帧率、真实鼠标或触控设备实测。
+
 ## 0.57 按钮曲线与按压中断
 
 - 基线 a1df854，修改前保存 `artifacts/bridge-0.57-input-motion/source-before.zip`、77 个 dist 文件的摘要/时间戳及七个参考仓库状态。重新读取固定 PCL MyButton、MyIconButton 与 ModAnimation 的并行增量和缓动实现。

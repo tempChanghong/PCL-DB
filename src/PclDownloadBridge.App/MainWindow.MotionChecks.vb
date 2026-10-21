@@ -35,6 +35,7 @@ Partial Public Class MainWindow
         VerifyMotionStress(directory, check)
         VerifyMotionLayout(directory, check)
         VerifyPressMotion(directory, check)
+        VerifySelectionMotion(directory, check)
         Return passed
     End Function
 
