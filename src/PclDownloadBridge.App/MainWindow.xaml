@@ -271,53 +271,75 @@
               </StackPanel>
             </ScrollViewer>
             <ScrollViewer x:Name="AboutPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+              <ScrollViewer.Resources>
+                <Style x:Key="AboutPortrait" TargetType="Image">
+                  <Setter Property="Width" Value="34"/><Setter Property="Height" Value="34"/><Setter Property="Margin" Value="3"/>
+                  <Setter Property="VerticalAlignment" Value="Center"/><Setter Property="RenderOptions.BitmapScalingMode" Value="LowQuality"/>
+                  <Setter Property="Clip"><Setter.Value><EllipseGeometry Center="17,17" RadiusX="17" RadiusY="17"/></Setter.Value></Setter>
+                </Style>
+                <Style x:Key="AboutBadge" TargetType="Border">
+                  <Setter Property="Width" Value="34"/><Setter Property="Height" Value="34"/><Setter Property="Margin" Value="3"/>
+                  <Setter Property="CornerRadius" Value="17"/><Setter Property="VerticalAlignment" Value="Center"/>
+                  <Setter Property="Background" Value="{DynamicResource ColorBrush7}"/>
+                </Style>
+              </ScrollViewer.Resources>
               <StackPanel x:Name="AboutContent" Margin="25,10,25,25">
-                <p:PclButton x:Name="AboutBack" Text="返回设置" Width="100" Height="28" HorizontalAlignment="Left" Margin="0,5,0,0" Click="BackFromAbout" />
-                <p:PclCard x:Name="AboutAuthorCard" Title="原作者与来源" BodyMargin="21,40,21,16" Margin="0,15,0,0">
-                  <StackPanel>
-                    <Grid><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="150"/></Grid.ColumnDefinitions>
-                      <p:PclListItem Title="龙腾猫跃 · Plain Craft Launcher 原作者" Info="感谢原作者及贡献者提供的代码、控件与资源。" IsHitTestVisible="False" Margin="-5,0,15,0"/>
-                      <p:PclButton x:Name="AboutPclSponsor" Text="赞助 PCL 原作者" Tag="pcl-sponsor" Height="35" Click="OpenAboutLink"/>
-                    </Grid>
-                    <TextBlock Text="本项目为第三方独立二次创作的下载补全工具，非 PCL 官方发行版。" FontSize="12" TextWrapping="Wrap" Opacity="0.65" Margin="0,8,0,0"/>
-                  </StackPanel>
-                </p:PclCard>
-                <p:PclCard x:Name="AboutProductCard" Title="关于" BodyMargin="21,40,21,16" Margin="0,15,0,15">
+                <StackPanel Orientation="Horizontal" Height="28" Margin="0,5,0,0">
+                  <p:PclIconButton x:Name="AboutBack" Width="24" Height="24" Opacity="0.65" LogoScale="0.87" Click="BackFromAbout" ToolTip="返回设置" AutomationProperties.Name="返回设置" Logo="M1097 584 250 584 562 896C591 925 591 972 562 1001 533 1030 487 1030 458 1001L21 565C6 550-0 531 0 511L0 511 0 511C-0 492 6 472 21 457L458 21C487-7 533-7 562 21 591 50 591 97 562 126L250 438 1097 438C1137 438 1170 471 1170 511 1170 551 1137 584 1097 584L1097 584Z"/>
+                  <TextBlock Text="关于与鸣谢" FontSize="12" Opacity="0.65" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+                <p:PclCard x:Name="AboutAuthorCard" Title="关于" BodyMargin="21,40,21,16" Margin="0,15,0,15">
                   <Grid x:Name="AboutProductGrid">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition/><ColumnDefinition Width="150"/></Grid.ColumnDefinitions>
                     <Grid.RowDefinitions><RowDefinition Height="45"/><RowDefinition Height="45"/><RowDefinition Height="45"/></Grid.RowDefinitions>
-                    <Border Width="34" Height="34" CornerRadius="17" Background="{DynamicResource ColorBrush3}" VerticalAlignment="Center"><TextBlock x:Name="AboutMonogram" Text="DB" Foreground="White" FontSize="12" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
-                    <p:PclListItem x:Name="AboutProductItem" Grid.Column="1" Title="Plain Craft Launcher - Download Bridge" Info="Minecraft Java 原版下载补全工具" Margin="-5,0,15,0" IsHitTestVisible="False"/>
-                    <p:PclButton Grid.Column="2" Text="项目说明" Tag="README.md" Height="35" Click="OpenAboutDocument"/>
-                    <Image Grid.Row="1" Source="Images/Blocks/CommandBlock.png" Width="34" Height="34"><Image.Clip><EllipseGeometry Center="17,17" RadiusX="17" RadiusY="17"/></Image.Clip></Image>
-                    <p:PclListItem x:Name="AboutVersionItem" Grid.Row="1" Grid.Column="1" Title="本地预览版" Margin="-5,0,15,0" IsHitTestVisible="False"/>
-                    <p:PclButton x:Name="AboutCopyVersion" Grid.Row="1" Grid.Column="2" Text="复制版本信息" Height="35" Click="CopyAboutVersion"/>
-                    <Image Grid.Row="2" Source="Images/Blocks/Grass.png" Width="34" Height="34"><Image.Clip><EllipseGeometry Center="17,17" RadiusX="17" RadiusY="17"/></Image.Clip></Image>
-                    <p:PclListItem Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" Title="与 PCL 配合使用" Info="下载完成后，回到 PCL 刷新版本列表即可。" Margin="-5,0,0,0" IsHitTestVisible="False"/>
+                    <Image x:Name="AboutAuthorAvatar" Style="{StaticResource AboutPortrait}" Source="Images/Heads/LTCat.jpg" AutomationProperties.Name="龙腾猫跃头像"/>
+                    <p:PclListItem x:Name="AboutAuthorItem" Grid.Column="1" Title="龙腾猫跃" Info="Plain Craft Launcher 的开发者！" Margin="-5,0,15,0" IsHitTestVisible="False" ClipToBounds="True"/>
+                    <p:PclButton x:Name="AboutPclSponsor" Grid.Column="2" Text="赞助 PCL !" Tag="pcl-sponsor" Height="35" Highlight="True" Click="OpenAboutLink"/>
+                    <Image x:Name="AboutContributorAvatar" Grid.Row="1" Style="{StaticResource AboutPortrait}" Source="Images/Heads/HerobrineXia.png" AutomationProperties.Name="HerobrineXia 头像"/>
+                    <p:PclListItem x:Name="AboutContributorItem" Grid.Row="1" Grid.Column="1" Title="HerobrineXia" Info="Plain Craft Launcher 的协力开发者！" Margin="-5,0,15,0" IsHitTestVisible="False" ClipToBounds="True"/>
+                    <p:PclButton x:Name="AboutPclSource" Grid.Row="1" Grid.Column="2" Text="PCL 源代码" Tag="pcl" Height="35" Click="OpenAboutLink"/>
+                    <Border Grid.Row="2" Style="{StaticResource AboutBadge}" Background="{DynamicResource ColorBrush3}">
+                      <TextBlock x:Name="AboutMonogram" Text="DB" Foreground="White" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <p:PclListItem x:Name="AboutProductItem" Grid.Row="2" Grid.Column="1" Title="Plain Craft Launcher - Download Bridge" Margin="-5,0,15,0" IsHitTestVisible="False" ClipToBounds="True" ToolTip="{Binding Title, RelativeSource={RelativeSource Self}}"/>
+                    <p:PclButton x:Name="AboutCopyVersion" Grid.Row="2" Grid.Column="2" Text="复制版本信息" Height="35" Click="CopyAboutVersion"/>
                   </Grid>
                 </p:PclCard>
-                <p:PclCard x:Name="AboutCreditsCard" Title="来源与致谢" BodyMargin="21,40,21,16">
+                <p:PclCard x:Name="AboutCreditsCard" Title="特别鸣谢" BodyMargin="21,40,21,16" Margin="0,0,0,15">
                   <Grid x:Name="AboutCreditsGrid">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition/><ColumnDefinition Width="150"/></Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions><RowDefinition Height="45"/><RowDefinition Height="45"/><RowDefinition Height="45"/><RowDefinition Height="45"/></Grid.RowDefinitions>
-                    <TextBlock Text="PCL" Foreground="{DynamicResource ColorBrush3}" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    <p:PclListItem Grid.Column="1" Title="龙腾猫跃及 PCL 贡献者" Info="界面、目录读取及下载与安装逻辑的主要代码参照。" Margin="-5,0,15,0" IsHitTestVisible="False"/>
-                    <p:PclButton x:Name="AboutPclSource" Grid.Column="2" Text="PCL 源代码" Tag="pcl" Height="35" Click="OpenAboutLink"/>
-                    <TextBlock Grid.Row="1" Text="BM" Foreground="{DynamicResource ColorBrush3}" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    <p:PclListItem Grid.Row="1" Grid.Column="1" Title="bangbang93 / BMCLAPI" Info="Minecraft 下载镜像服务与开放项目。" Margin="-5,0,15,0" IsHitTestVisible="False"/>
-                    <p:PclButton x:Name="AboutBmclapi" Grid.Row="1" Grid.Column="2" Text="BMCLAPI 项目" Tag="bmclapi" Height="35" Click="OpenAboutLink"/>
-                    <TextBlock Grid.Row="2" Text="MC" Foreground="{DynamicResource ColorBrush3}" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    <p:PclListItem Grid.Row="2" Grid.Column="1" Title="PCL-CE · HMCL · PrismLauncher" Info="下载与实例组织的补充参照，具体范围见代码依据。" Margin="-5,0,15,0" IsHitTestVisible="False"/>
-                    <p:PclButton x:Name="AboutReferences" Grid.Row="2" Grid.Column="2" Text="代码依据" Tag="SOURCE_REFERENCES.md" Height="35" Click="OpenAboutDocument"/>
-                    <TextBlock Grid.Row="3" Text="{}{ }" Foreground="{DynamicResource ColorBrush3}" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    <p:PclListItem Grid.Row="3" Grid.Column="1" Title="Newtonsoft.Json" Info="JSON 解析依赖 · James Newton-King · MIT License。" Margin="-5,0,15,0" IsHitTestVisible="False"/>
-                    <p:PclButton x:Name="AboutNotices" Grid.Row="3" Grid.Column="2" Text="第三方说明" Tag="THIRD_PARTY_NOTICES.md" Height="35" Click="OpenAboutDocument"/>
+                    <Grid.RowDefinitions><RowDefinition Height="45"/><RowDefinition Height="45"/></Grid.RowDefinitions>
+                    <Image x:Name="AboutMirrorAvatar" Style="{StaticResource AboutPortrait}" Source="Images/Heads/bangbang93.png" AutomationProperties.Name="bangbang93 头像"/>
+                    <p:PclListItem Grid.Column="1" Title="bangbang93" Info="提供 BMCLAPI 镜像源与开放项目。" Margin="-5,0,15,0" IsHitTestVisible="False" ClipToBounds="True"/>
+                    <p:PclButton x:Name="AboutBmclapi" Grid.Column="2" Text="BMCLAPI 项目" Tag="bmclapi" Height="35" Click="OpenAboutLink"/>
+                    <Border Grid.Row="1" Style="{StaticResource AboutBadge}">
+                      <Path Width="18" Height="20" Stretch="Uniform" Stroke="{DynamicResource ColorBrush2}" StrokeThickness="1.5" StrokeLineJoin="Round" Data="M 10,1 19,6 19,16 10,21 1,16 1,6 Z M 1,6 10,11 19,6 M 10,11 V 21"/>
+                    </Border>
+                    <p:PclListItem Grid.Row="1" Grid.Column="1" Title="PCL-CE · HMCL · PrismLauncher" Info="下载与实例组织的补充参照。" Margin="-5,0,15,0" IsHitTestVisible="False" ClipToBounds="True"/>
+                    <p:PclButton x:Name="AboutReferences" Grid.Row="1" Grid.Column="2" Text="代码依据" Tag="SOURCE_REFERENCES.md" Height="35" Click="OpenAboutDocument"/>
                   </Grid>
                 </p:PclCard>
-                <p:PclCard Title="项目定位" BodyMargin="25,40,25,17">
-                  <TextBlock TextWrapping="Wrap" TextTrimming="None" LineHeight="20"><Run Text="PCL-DB 是独立的下载补全工具，非 PCL 官方发行版。"/><LineBreak/><Run Text="读取 PCL 使用的 .minecraft 游戏目录，补全原版与加载器安装；启动游戏仍交给 PCL。"/></TextBlock>
+                <p:PclCard x:Name="AboutProjectCard" Title="项目与许可" BodyMargin="21,40,21,16" Margin="0,0,0,15">
+                  <Grid x:Name="AboutProjectGrid">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="40"/><ColumnDefinition/><ColumnDefinition Width="150"/></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="45"/><RowDefinition Height="45"/></Grid.RowDefinitions>
+                    <Border Style="{StaticResource AboutBadge}">
+                      <Path Width="18" Height="18" Stretch="Uniform" Stroke="{DynamicResource ColorBrush2}" StrokeThickness="1.5" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 10,1 V 13 M 5,8 10,13 15,8 M 2,14 V 19 H 18 V 14"/>
+                    </Border>
+                    <p:PclListItem Grid.Column="1" Title="与 PCL 配合使用" Info="补全游戏下载与安装，启动游戏交给 PCL。" Margin="-5,0,15,0" IsHitTestVisible="False" ClipToBounds="True"/>
+                    <p:PclButton Grid.Column="2" Text="项目说明" Tag="README.md" Height="35" Click="OpenAboutDocument"/>
+                    <Border Grid.Row="1" Style="{StaticResource AboutBadge}">
+                      <Path Width="18" Height="18" Stretch="Uniform" Stroke="{DynamicResource ColorBrush2}" StrokeThickness="1.5" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Data="M 7,1 H 5 Q 3,1 3,4 V 7 Q 3,10 1,10 Q 3,10 3,13 V 16 Q 3,19 5,19 H 7 M 13,1 H 15 Q 17,1 17,4 V 7 Q 17,10 19,10 Q 17,10 17,13 V 16 Q 17,19 15,19 H 13"/>
+                    </Border>
+                    <p:PclListItem Grid.Row="1" Grid.Column="1" Title="Newtonsoft.Json" Info="James Newton-King · MIT License" Margin="-5,0,15,0" IsHitTestVisible="False" ClipToBounds="True"/>
+                    <p:PclButton x:Name="AboutNotices" Grid.Row="1" Grid.Column="2" Text="第三方说明" Tag="THIRD_PARTY_NOTICES.md" Height="35" Click="OpenAboutDocument"/>
+                  </Grid>
                 </p:PclCard>
-                <TextBlock x:Name="AboutActionStatus" FontSize="12" Opacity="0.65" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                <StackPanel Margin="0,0,0,15">
+                  <TextBlock x:Name="AboutRuntimeInfo" FontSize="12" Opacity="0.6" Margin="0,0,0,6"/>
+                  <TextBlock Text="本项目为第三方独立二次创作的下载补全工具，非 PCL 官方发行版。" FontSize="12" TextWrapping="Wrap" TextTrimming="None" Opacity="0.6"/>
+                </StackPanel>
+                <TextBlock x:Name="AboutActionStatus" FontSize="12" Opacity="0.65" TextWrapping="Wrap" Margin="0,0,0,10" AutomationProperties.LiveSetting="Polite"/>
               </StackPanel>
             </ScrollViewer>
         </Grid>

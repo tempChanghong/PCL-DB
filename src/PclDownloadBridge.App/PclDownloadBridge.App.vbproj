@@ -23,7 +23,7 @@
     <Reference Include="Microsoft.VisualBasic" />
     <ProjectReference Include="../PclDownloadBridge.Core/PclDownloadBridge.Core.vbproj" />
   </ItemGroup>
-  <ItemGroup><Resource Include="Images/Blocks/*.png"/><Resource Include="Images/Themes/*.png"/><Resource Include="Resources/Font.ttf"/></ItemGroup>
+  <ItemGroup><Resource Include="Images/Blocks/*.png"/><Resource Include="Images/Themes/*.png"/><Resource Include="Images/Heads/*.png;Images/Heads/*.jpg"/><Resource Include="Resources/Font.ttf"/></ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="../../LICENCE;../../README.md;../../SOURCE_REFERENCES.md;../../THIRD_PARTY_NOTICES.md;../../VALIDATION.md;../../PATCH_MECHANISMS.md;../../VS2026_DEBUG.md"
                       LogicalName="PclDownloadBridge.Documents.%(Filename)%(Extension)" />

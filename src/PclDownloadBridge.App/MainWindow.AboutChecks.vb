@@ -36,7 +36,7 @@ Partial Public Class MainWindow
             check(Title = ProductInfo.DisplayName AndAlso ProductTitle.Text = ProductInfo.DisplayName AndAlso AboutMonogram.Text = "DB" AndAlso AboutProductItem.Title = ProductInfo.FullName, "window title and titlebar identify PCL-DB while the about page shows its full name")
             Dim assembly = Reflection.Assembly.GetExecutingAssembly()
             Dim version = assembly.GetName().Version.ToString(3)
-            check(AboutVersionItem.Info.Contains(version) AndAlso DirectCast(assembly.GetCustomAttributes(GetType(Reflection.AssemblyProductAttribute), False).Single(), Reflection.AssemblyProductAttribute).Product = ProductInfo.FullName AndAlso DirectCast(assembly.GetCustomAttributes(GetType(Reflection.AssemblyTitleAttribute), False).Single(), Reflection.AssemblyTitleAttribute).Title = ProductInfo.FullName, "about version and executable product metadata come from the current build")
+            check(AboutProductItem.Info.Contains(version) AndAlso AboutRuntimeInfo.Text.Contains(".NET Framework 4.8") AndAlso DirectCast(assembly.GetCustomAttributes(GetType(Reflection.AssemblyProductAttribute), False).Single(), Reflection.AssemblyProductAttribute).Product = ProductInfo.FullName AndAlso DirectCast(assembly.GetCustomAttributes(GetType(Reflection.AssemblyTitleAttribute), False).Single(), Reflection.AssemblyTitleAttribute).Title = ProductInfo.FullName, "about version and executable product metadata come from the current build")
             click(AboutCopyVersion)
             check(actions.Count = 1 AndAlso actions(0).Key = "copy" AndAlso actions(0).Value.Contains(ProductInfo.DisplayName & " " & version) AndAlso actions(0).Value.Contains(ProductInfo.PclReference) AndAlso Not actions(0).Value.Contains(_settingsDirectory), "copy-version action includes build and source information without personal settings paths")
             click(AboutPclSource) : click(AboutBmclapi)
@@ -88,8 +88,19 @@ Partial Public Class MainWindow
             RestoreAppearance(New JObject From {{"theme", "colorful"}})
             ShowAbout(Nothing, Nothing)
             host.Width = 810 : host.Height = 470 : layout()
-            Dim buttons = AboutCreditsGrid.Children.OfType(Of PclButton)().ToList()
-            check(buttons.All(Function(b) b.ActualWidth = 150 AndAlso b.TranslatePoint(New Point(b.ActualWidth, 0), AboutCreditsGrid).X <= AboutCreditsGrid.ActualWidth + 0.5) AndAlso AboutPage.ScrollableHeight > 0, "about action buttons fit the minimum window with a reachable scrollable body")
+            Dim grids = {AboutProductGrid, AboutCreditsGrid, AboutProjectGrid}
+            Dim rowsFit = grids.All(Function(grid) grid.ColumnDefinitions(0).ActualWidth = 40 AndAlso grid.ColumnDefinitions(2).ActualWidth = 150 AndAlso
+                grid.RowDefinitions.All(Function(row) row.ActualHeight = 45) AndAlso
+                grid.Children.OfType(Of PclButton)().All(Function(button) Grid.GetColumn(button) = 2 AndAlso button.ActualWidth = 150 AndAlso button.ActualHeight = 35 AndAlso
+                    Math.Abs(button.TranslatePoint(New Point(0, 0), grid).X - (grid.ActualWidth - 150)) < 0.5) AndAlso
+                grid.Children.OfType(Of PclListItem)().All(Function(item) item.ClipToBounds AndAlso
+                    item.TranslatePoint(New Point(item.ActualWidth, 0), grid).X <= grid.ActualWidth - 150))
+            Dim portraits = {AboutAuthorAvatar, AboutContributorAvatar, AboutMirrorAvatar}
+            Dim portraitsFit = portraits.All(Function(portrait) portrait.ActualWidth = 34 AndAlso portrait.ActualHeight = 34 AndAlso
+                TypeOf portrait.Clip Is Media.EllipseGeometry AndAlso TypeOf portrait.Source Is Media.Imaging.BitmapSource AndAlso
+                DirectCast(portrait.Source, Media.Imaging.BitmapSource).PixelWidth > 0)
+            check(rowsFit AndAlso portraitsFit AndAlso AboutPclSponsor.Highlight AndAlso AboutPage.ScrollableHeight > 0,
+                "PCL about rows portraits and separate action columns fit the minimum window without overlapping text")
             AboutPage.ScrollToTop() : layout()
             SaveControlVisual(host, Path.Combine(artifactDirectory, "align-about-minimum-after-0.27.png"))
             host.Width = 850 : host.Height = 700 : layout()

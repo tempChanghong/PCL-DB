@@ -10,7 +10,8 @@ Partial Public Class MainWindow
     Private Sub InitializeAbout()
         AboutMonogram.Text = "DB"
         AboutProductItem.Title = ProductInfo.FullName
-        AboutVersionItem.Info = "当前版本：" & ProductInfo.VersionText & " · .NET Framework 4.8"
+        AboutProductItem.Info = "当前版本：" & ProductInfo.VersionText
+        AboutRuntimeInfo.Text = ".NET Framework 4.8 · CLR " & Environment.Version.ToString()
     End Sub
 
     Private Sub ShowAbout(sender As Object, e As RoutedEventArgs)

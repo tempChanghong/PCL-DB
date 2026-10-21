@@ -21,6 +21,8 @@ VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，简称
 
 项目全称为 Plain Craft Launcher - Download Bridge，简称 PCL-DB；仓库与根目录为 PCL-DB，解决方案、程序集和命名空间统一为 PclDownloadBridge。第三方独立项目身份不变。
 
+设置中的「关于与鸣谢」参照 PCL 关于页的三列信息行：首卡列出原作者、协力开发者及本项目版本，下方分为特别鸣谢和项目与许可。三张来源头像使用固定 PCL 提交的原始资源，赞助与项目链接保持各自归属；返回按钮会恢复设置页的滚动位置。
+
 偏好保存在 `%LOCALAPPDATA%/PclDownloadBridge/settings.json`。首次启动先尝试迁移旧 PCD 的 `%LOCALAPPDATA%/PlainCraftDownloader/settings.json`，不存在时再读取最早的 `%LOCALAPPDATA%/VanillaDownloader/settings.json`。迁移验证 JSON 后保留原字节、编码及未知字段，旧文件不改。已有新配置优先；最新旧配置损坏或不可读时报告错误，不静默退回更旧配置。检查和预览模式只用临时样本，不迁移真实用户偏好。
 
 游戏目录内的 `.vanilla-downloader/` 是兼容数据格式，缓存、续传、暂存、日志和安装锁继续使用，避免更名后重复安装或失去已有缓存。旧 ZIP 和历史验证记录保留当时名称。保存设置沿用互斥、深度合并与原子发布；当前配置损坏时暂停自动保存，主动保存才允许修复。
@@ -134,7 +136,7 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 .\build.ps1
 ```
 
-从仓库获取完整源码后即可运行上述命令；常规构建和界面对照检查不需要在旁边另行克隆 PCL。固定源码快照和 12 项资源的提交哈希清单已包含在仓库中。只有维护者重新执行 `tools/import-pcl-ui.ps1` 导入上游代码时才需要相邻的 PCL 源码仓库。
+从仓库获取完整源码后即可运行上述命令；常规构建和界面对照检查不需要在旁边另行克隆 PCL。44 份固定源码快照和 15 项资源的提交哈希清单已包含在仓库中。只有维护者重新执行 `tools/import-pcl-ui.ps1` 导入上游代码时才需要相邻的 PCL 源码仓库。
 
 默认构建三个 VB 项目，核对 44 份固定 PCL 源码及内置资源，运行本地下载/安装和界面回归。下载检查目录位于系统临时目录 `PclDownloadBridgeTests-<随机ID>`，不接触用户游戏目录。默认不更新 `dist`、生成 ZIP 或执行打包回归；`-SkipTests` 可只构建。
 

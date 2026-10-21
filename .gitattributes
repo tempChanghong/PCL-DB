@@ -1,6 +1,7 @@
 * text=auto eol=lf
 *.sln text eol=crlf
 *.png binary
+*.jpg binary
 *.ttf binary
 *.class binary
 # Keep the fixed upstream snapshots unchanged, including their original spacing.

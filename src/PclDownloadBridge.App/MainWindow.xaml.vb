@@ -111,9 +111,14 @@ Partial Public Class MainWindow
                 Dim theme = If(page = "appearance-colorful", "colorful", If(page = "appearance-custom", "custom", "blue"))
                 RestoreAppearance(New JObject From {{"theme", theme}, {"hue", 285}, {"saturation", 65}, {"colorfulBackground", page <> "appearance-flat"}})
                 PreviewPage("settings")
-            Case "about", "about-colorful"
+            Case "about", "about-colorful", "about-dark"
                 PreviewPage("settings")
-                If page = "about-colorful" Then RestoreAppearance(New JObject From {{"theme", "colorful"}})
+                If page = "about-colorful" Then
+                    OpenExperimentalPreview()
+                    RestoreAppearance(New JObject From {{"theme", "colorful"}})
+                ElseIf page = "about-dark" Then
+                    RestoreAppearance(New JObject From {{"theme", "blue"}, {"darkMode", True}})
+                End If
                 ShowAbout(Me, New RoutedEventArgs())
             Case "appearance-download"
                 PreviewPage("components")

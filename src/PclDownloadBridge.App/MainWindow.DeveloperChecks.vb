@@ -77,7 +77,8 @@ Partial Public Class MainWindow
             check(DeveloperTaskInfo.Visibility = Visibility.Visible AndAlso DeveloperTaskInfo.Text.Contains("7") AndAlso DeveloperTaskInfo.Text.Contains("2"), "general developer diagnostics display actual transfer sampling without experimental access")
             DeveloperEnabledBox.IsChecked = False
             check(DeveloperTaskInfo.Visibility = Visibility.Collapsed, "developer diagnostics disappear when developer mode is disabled")
-            check(AboutContent.Children.IndexOf(AboutAuthorCard) < AboutContent.Children.IndexOf(AboutProductCard) AndAlso CStr(AboutPclSponsor.Tag) = "pcl-sponsor", "the original author and sponsorship action precede project information")
+            check(AboutContent.Children.IndexOf(AboutAuthorCard) < AboutContent.Children.IndexOf(AboutCreditsCard) AndAlso
+                Grid.GetRow(AboutAuthorItem) < Grid.GetRow(AboutProductItem) AndAlso CStr(AboutPclSponsor.Tag) = "pcl-sponsor", "the original author and sponsorship action precede project information")
             VerifyDeveloperLayout(check, artifactDirectory)
             VerifyBridgeMigration(check, artifactDirectory)
             VerifyDeveloperSaving(check, artifactDirectory)

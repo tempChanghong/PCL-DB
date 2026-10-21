@@ -93,7 +93,7 @@ Partial Public Class MainWindow
             check(Not _componentSelection.Has(ComponentKind.Fabric) AndAlso Not _componentSelection.Has(ComponentKind.FabricApi) AndAlso fabric.Card.Collapsed, "Space on a header clear button removes its component without bubbling a second fold action")
             PressControlKey(SettingsTab, Key.Enter) : layout()
             PressControlKey(AboutEntry, Key.Enter) : layout()
-            check(Not AboutProductItem.Focusable AndAlso Not AboutVersionItem.Focusable, "read-only about information does not introduce dead Tab stops")
+            check(Not AboutProductItem.Focusable AndAlso Not AboutAuthorItem.Focusable AndAlso Not AboutContributorItem.Focusable, "read-only about information does not introduce dead Tab stops")
             PressControlKey(AboutBack, Key.Escape) : layout()
             check(AboutPage.Visibility = Visibility.Collapsed AndAlso SettingsPage.Visibility = Visibility.Visible, "Escape returns from about to settings through the normal back handler")
             SourceBox.ApplyTemplate()

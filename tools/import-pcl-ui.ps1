@@ -118,6 +118,7 @@ try {
     }
     $assets = @('Grass', 'CommandBlock', 'CobbleStone', 'GoldBlock', 'Anvil', 'NeoForge', 'Fabric', 'GrassPath', 'OptiFabric', 'Egg') | ForEach-Object { "Images/Blocks/$_.png" }
     $assets += @('Resources/Font.ttf', 'Images/Themes/12.png')
+    $assets += @('Images/Heads/LTCat.jpg', 'Images/Heads/HerobrineXia.png', 'Images/Heads/bangbang93.png')
     $assetEntries = @()
     foreach ($relative in $assets) {
         $source = "Plain Craft Launcher 2/$relative"
