@@ -6,6 +6,13 @@
 
 开发时实际阅读了以下代码；以下对应关系说明实际实现依据，并非只参考界面截图。
 
+## 0.57 安装器依赖的重复校验声明
+
+- 实际重读固定 ModDownloadLib.vb 约 1139–1177 行：合并 install_profile.json / version.json，提取 Forge / NeoForge 依赖和 Mojang mappings，再交由下载器处理；ModNet.vb 约 1395–1400 行在启动时按规范化 LocalPath 去重。PCL 此处没有实现本项目的重复摘要合并，不声称两者完全等价。
+- 本项目的常规下载器已有 DownloadPlan.Merge，但 ComponentInstaller.FetchAsync 先按路径取第一条，会使后续重复声明的 SHA1 在进入下载器前丢失；安装器依赖的逐条内嵌检查还会提前丢掉可复用项，使冲突和首选地址不能按完整声明处理。
+- 可下载依赖（包括映射文件）改为先按实际目标位置合并全部已知校验，再过滤已验证的内嵌文件；组件批次统一复用同一 DownloadPlan.Merge，保留第一条地址和类别，大小或同类摘要冲突在该批传输及 Java 执行前停止。生成且没有下载地址的输出仍由处理器和最终启动库校验流程处理。此为本项目稳健性修复，不更改 PCL 原始快照、依赖版本选择、并行调度和界面样式。
+- 24 项检查使用回环 HTTP、合成 Forge / NeoForge 安装器及真实 Java 样本，覆盖同大小错误依赖、完整实例拒绝发布、私有校验缓存与重复安装、大小/SHA1 冲突、内嵌匹配/修复及大小写/斜杠/点路径别名；未运行真实上游安装器。
+
 ## 0.57 NeoForge 安装器校验补全
 
 - 再次通过固定 Git 对象读取 Pages/PageDownload/ModDownloadLib.vb 的 NeoForge 下载分支（约 899–904 行）：安装器沿用 NeoForge.UrlBase 的 neoforge / 旧 forge 坐标，候选为 BMCLAPI Maven 镜像及官方；此处 FileChecker 只设置 64 KiB 最小大小，没有读取 SHA1。本轮补取校验值属于本项目的稳健性增强，不将其描述为 PCL 已有的 NeoForge 校验机制。

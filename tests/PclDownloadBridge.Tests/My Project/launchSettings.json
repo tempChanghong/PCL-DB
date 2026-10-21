@@ -6,6 +6,12 @@
       "workingDirectory": "$(ProjectDir)",
       "nativeDebugging": false
     },
+    "Component Dependencies": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression component-plan-all",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
     "NeoForge Checksums": {
       "commandName": "Project",
       "commandLineArgs": "--regression neoforge-checksums",

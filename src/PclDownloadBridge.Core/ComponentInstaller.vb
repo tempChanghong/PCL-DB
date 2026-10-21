@@ -190,7 +190,7 @@ Public Class ComponentInstaller
             Dim relative = If(CStr(artifact?("path")), MinecraftInstaller.MavenPath(CStr(libraryInfo("name"))))
             Dim url = If(CStr(artifact?("url")), If(CStr(libraryInfo("url")), "https://libraries.minecraft.net/").TrimEnd("/"c) & "/" & relative)
             Dim item As New DownloadFile With {.RelativePath = "libraries/" & relative, .Url = url, .Sha1 = CStr(artifact?("sha1")), .Size = If(artifact?("size") Is Nothing, -1, CLng(artifact("size"))), .Category = "library"}
-            If Not String.IsNullOrWhiteSpace(url) AndAlso Not SafeFiles.Matches(SafeFiles.UnderRoot(work, item.RelativePath), item) Then files.Add(item)
+            If Not String.IsNullOrWhiteSpace(url) Then files.Add(item)
         Next
         Dim variables = ProcessorVariables(profile, work, installerPath, clientJar)
         Dim mappings = TryCast(metadata.SelectToken("downloads.client_mappings"), JObject)
@@ -198,6 +198,9 @@ Public Class ComponentInstaller
             Dim relative = variables("MOJMAPS").Substring(work.TrimEnd("\"c).Length + 1)
             files.Add(New DownloadFile With {.RelativePath = relative, .Url = CStr(mappings("url")), .Sha1 = CStr(mappings("sha1")), .Size = CLng(mappings("size")), .Category = "meta"})
         End If
+        ' Combine all integrity declarations before filtering embedded/reusable files.
+        ' Otherwise an earlier weak match can hide conflicts or change the first URL.
+        files = DownloadPlan.Merge(files, work).Where(Function(item) Not SafeFiles.Matches(SafeFiles.UnderRoot(work, item.RelativePath), item)).ToList()
         Await FetchAsync(work, files, "下载 " & ComponentCatalog.Label(entry.Kind) & " 支持库", token).ConfigureAwait(False)
         Dim processors = If(TryCast(profile("processors"), JArray), New JArray()).OfType(Of JObject)().Where(Function(p) p("sides") Is Nothing OrElse p("sides").Values(Of String)().Contains("client")).ToList()
         If processors.Count > 0 Then
@@ -270,7 +273,7 @@ Public Class ComponentInstaller
     End Function
 
     Private Async Function FetchAsync(root As String, files As IEnumerable(Of DownloadFile), title As String, token As CancellationToken) As Task
-        Dim items = files.GroupBy(Function(f) f.RelativePath, StringComparer.OrdinalIgnoreCase).Select(Function(g) g.First()).ToList()
+        Dim items = DownloadPlan.Merge(files, root)
         If items.Count = 0 Then Return
         Dim reporter As New InlineProgress(Sub(value)
                                               value.Phase = "components" : value.Stage = title

@@ -31,7 +31,9 @@ Module Program
             Directory.CreateDirectory(TestRoot)
             If args.Length = 2 AndAlso args(0) = "--regression" Then
                 Dim run As Task(Of List(Of String))
-                If args(1) = "neoforge-checksums" Then
+                If args(1).StartsWith("component-plan-", StringComparison.Ordinal) Then
+                    run = ComponentDependencyChecks.RunAsync(TestRoot, args(1))
+                ElseIf args(1) = "neoforge-checksums" Then
                     run = ForgeChecksumChecks.RunAsync(TestRoot, ComponentKind.NeoForge)
                 ElseIf args(1) = "forge-checksums" Then
                     run = ForgeChecksumChecks.RunAsync(TestRoot)
@@ -161,6 +163,9 @@ Module Program
                 Check(True, label)
             Next
             For Each label In DownloadPlanChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
+                Check(True, label)
+            Next
+            For Each label In ComponentDependencyChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
                 Check(True, label)
             Next
             For Each label In NativeLibraryChecks.RunAsync(TestRoot).GetAwaiter().GetResult()

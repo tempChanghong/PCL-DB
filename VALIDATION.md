@@ -2,6 +2,15 @@
 
 日期：2026-10-21（北京时间）。当前源码为尚未发布的 0.57 开发版 PCL-DB（PCL Download Bridge），包含 Visual Studio 2026 开发配置；最新公开预览版为 0.56，下方保留先前版本的验证记录。
 
+## 0.57 组件依赖清单校验
+
+- 修改前保存 `artifacts/bridge-0.57-component-plan/source-before.zip`。新增集成检查在原实现下分别失败，见 before-mismatch.log / before-conflict.log / before-embedded.log / before-strength.log：后续 SHA1 被丢失后，同大小的错误依赖仍被 Java 执行且实例成功发布；重复大小声明冲突未阻止安装；过滤内嵌文件后改用了后续地址；丢失摘要的依赖不能进入校验缓存。错误样本仅改动合成 JAR 的额外文本资源，保留可执行的真实 Java 测试类。
+- 可下载安装依赖统一先合并完整校验声明，再过滤已验证的内嵌文件；组件 FetchAsync 不再在进入下载器前取重复项第一条。复用 DownloadPlan.Merge，保留首条地址、补齐后续有效校验，冲突在该依赖批次传输和 Java 执行前停止；没有下载地址的生成输出继续沿用原有处理器和最终库校验。
+- 新增 24 项检查，纳入完整入口及 VS 的 Component Dependencies 配置，见 fixed.log。实际 Forge / NeoForge 安装流程验证错误依赖在执行前被拒绝、不发布实例或生成库，以及正常依赖的缓存和第二次安装复用；另覆盖大小/SHA1 冲突、内嵌匹配/修复和大小写、斜杠、点路径别名。处理器为真实 Java 样本，HTTP 仅用回环端点。
+- 默认 build.ps1 完成 Release 构建，零警告、零错误；完整核心 723 项（原 699 项加本轮 24 项）、完整界面 658 项及固定 PCL 对照 16 项通过，见 full-build.log / artifacts/ui-checks-0.57.json。VS 2026 Debug、便携 PDB、关闭优化及现行离线启动配置通过：核心精选 347 项、完整界面 658 项；外观 129、开发者 36、卡片 104、导航 31、设置兼容 49 为界面子集。证据为 vs2026-report.json，未人工在 IDE 内按 F5 命中断点。
+- 只读检查此前已下载并校验过的四份真实安装器，先重新核对 SHA1，再将可下载库声明交给本轮 Core 的实际 DownloadPlan.Merge。Forge 1.21.1 / 52.0.28 为 69 条合并至 58 个目标，Forge 1.8.9 / 11.15.1.2318 为 19 / 19，NeoForge 21.1.77 为 135 / 80，旧 NeoForge 1.20.1-47.1.106 为 74 / 74，均无校验声明冲突；报告 real-metadata.json 包含被测 Core SHA256。没有为本检查发送网络请求、下载这些依赖或执行真实安装器，不作为整套 Minecraft 安装验收。
+- 保持 0.57 开发版，本轮不打包、不建标签、不创建 Release。dist 的 77 个已有文件内容和修改时间、打包报告目录均未变化，见 no-package.json。七个参考仓库的 HEAD 及原有修改状态保持，见 upstream-state.json；固定参考、界面实现、字体、图标及并行调度未改。
+
 ## 0.57 NeoForge 校验与缓存
 
 - 修改前保存 `artifacts/bridge-0.57-neoforge/source-before.zip`。原 ComponentInstaller 仅对 Forge 补取校验信息；NeoForge 的实际安装路径未请求 sidecar，新增检查在旧行为下失败，见 before.log。再次核对固定 PCL 的 NeoForge 下载分支：这里只设文件最小大小，本轮属于本项目的校验增强。

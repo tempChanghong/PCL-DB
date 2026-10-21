@@ -39,7 +39,7 @@ Debug 构建输出为 `src/PclDownloadBridge.App/bin/Debug/net48/`。启动配�
 
 | 配置 | 覆盖的流程 |
 |---|---|
-| Offline All | 全部本地下载、安装与处理器回归；当前 699 项检查，处理器样本需要本机 Java 8 或更高版本 |
+| Offline All | 全部本地下载、安装与处理器回归；当前 723 项检查，处理器样本需要本机 Java 8 或更高版本 |
 | Metadata Transfers | 10 项元数据响应、大小上限、备用源及取消回归；仅使用本地 HTTP 样本 |
 | Processor Log Recovery | 12 项真实 Java 样本检查：日志只读/占用、输出进度、失败原因、取消、恢复后重试；不使用真实游戏目录 |
 | Java Runtime Probe | 20 项 Java 检测检查：真实 JVM 长提示，以及模拟子进程的版本格式、双流大输出、错误码和超时；仅改测试进程的临时环境变量 |
@@ -49,6 +49,7 @@ Debug 构建输出为 `src/PclDownloadBridge.App/bin/Debug/net48/`。启动配�
 | Forge Versions | 18 项 Forge 版本与安装器检查：官方/BMCLAPI 分支归一化、历史补正、校验字段、原版预发布坐标及实际本地安装；仅使用回环元数据和合成旧版安装器 |
 | Forge Checksums | 22 项所选 Forge 安装器校验检查：SHA1/MD5、文件选源、坏响应回退、校验门控、取消、错误元数据及不匹配文件拒绝；仅使用回环端点和合成安装器 |
 | NeoForge Checksums | 17 项所选 NeoForge 安装器校验检查：SHA1/MD5、文件选源、回退、取消、校验门控、不匹配文件及 1.20.1 旧 Maven 坐标；仅使用回环端点和合成安装器 |
+| Component Dependencies | 24 项 Forge / NeoForge 依赖清单检查：重复校验合并、错误文件拒绝、内嵌文件、冲突提前停止、来源保持及重复安装缓存；回环 HTTP 和真实 Java 样本，不执行真实上游安装器 |
 | Download Plan | 重复文件的校验合并、同大小损坏文件修复 |
 | Native Libraries | 实际安装器中的普通/原生库合并、文件复用和最终配置写入 |
 | Cleanup Cancellation | 占用暂存客户端后取消安装、保留取消状态、解除占用后重试 |
