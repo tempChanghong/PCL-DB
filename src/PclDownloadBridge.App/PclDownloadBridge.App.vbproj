@@ -10,9 +10,9 @@
     <AssemblyTitle>Plain Craft Launcher (PCL) · Download Bridge（第三方下载补全版）</AssemblyTitle>
     <Product>Plain Craft Launcher (PCL) · Download Bridge（第三方下载补全版）</Product>
     <Description>Minecraft Java 原版下载补全工具</Description>
-    <Version>0.50.0</Version>
-    <AssemblyVersion>0.50.0.0</AssemblyVersion>
-    <FileVersion>0.50.0.0</FileVersion>
+    <Version>0.51.0</Version>
+    <AssemblyVersion>0.51.0.0</AssemblyVersion>
+    <FileVersion>0.51.0.0</FileVersion>
     <OptionStrict>On</OptionStrict>
     <StartupObject>PclDownloadBridge.App</StartupObject>
     <ApplicationManifest>app.manifest</ApplicationManifest>

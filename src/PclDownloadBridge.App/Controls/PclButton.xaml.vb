@@ -23,7 +23,7 @@ Namespace Controls
             End Get
             Set(value As Boolean)
                 _highlight = value
-                If PanFore IsNot Nothing Then PanFore.BorderBrush = Brush(If(value, "ColorBrush2", "ColorBrush1"))
+                If PanFore IsNot Nothing Then Refresh(Nothing, Nothing)
             End Set
         End Property
         Private _down As Boolean
@@ -44,10 +44,17 @@ Namespace Controls
                                          End Sub
         End Sub
         Private Sub Refresh(sender As Object, e As RoutedEventArgs)
-            PanFore.SetResourceReference(BackgroundProperty, "ColorBrushHalfWhite")
-            Dim color = Brush(If(IsMouseOver OrElse IsKeyboardFocused, "ColorBrush3", If(Highlight, "ColorBrush2", "ColorBrush1"))).Color
-            ColorTo(PanFore, Border.BorderBrushProperty, color, If(IsMouseOver, 100, 200))
-            Opacity = If(IsEnabled, 1, 0.45)
+            Dim active = IsEnabled AndAlso (IsMouseOver OrElse IsKeyboardFocused)
+            Dim ink = If(Not IsEnabled, "ColorBrushGray4", If(active, "ColorBrush3", If(Highlight, "ColorBrush2", "ColorBrush1")))
+            Dim fill = If(active, "ColorBrush7", "ColorBrushHalfWhite")
+            If Not IsLoaded OrElse PclTheme.Changing Then
+                PanFore.SetResourceReference(Border.BorderBrushProperty, ink)
+                PanFore.SetResourceReference(BackgroundProperty, fill)
+            Else
+                Dim duration = If(active, 100, 200)
+                ColorTo(PanFore, Border.BorderBrushProperty, Brush(ink).Color, duration)
+                ColorTo(PanFore, BackgroundProperty, Brush(fill).Color, duration)
+            End If
         End Sub
         Protected Overrides Sub OnMouseLeftButtonDown(e As MouseButtonEventArgs)
             MyBase.OnMouseLeftButtonDown(e)

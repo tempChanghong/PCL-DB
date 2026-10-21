@@ -44,4 +44,4 @@
 <SolidColorBrush x:Key="ColorBrushTransparent" Color="Transparent" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 <SolidColorBrush x:Key="ColorBrushSemiTransparent" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#01eaf2fe</SolidColorBrush>
 <SolidColorBrush x:Key="ColorBrushBackgroundTransparentSidebar" Color="#F1FFFFFF" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
-<SolidColorBrush x:Key="CardSurfaceBrush" Color="#F5FFFFFF"/><SolidColorBrush x:Key="WindowSurfaceBrush" Color="White"/></ResourceDictionary>
+<SolidColorBrush x:Key="PclIconButtonInk" Color="Black"/><SolidColorBrush x:Key="CardSurfaceBrush" Color="#F5FFFFFF"/><SolidColorBrush x:Key="WindowSurfaceBrush" Color="White"/></ResourceDictionary>

@@ -73,6 +73,7 @@ Namespace Controls
                 Application.Current.Resources("ColorObjectGray" & (index + 1)) = color
             Next
             If appearance.DarkMode Then Application.Current.Resources("ColorBrush1") = New SolidColorBrush(Color.FromRgb(228, 234, 242))
+            Application.Current.Resources("PclIconButtonInk") = New SolidColorBrush(If(appearance.DarkMode, DirectCast(Application.Current.Resources("ColorBrushGray1"), SolidColorBrush).Color, Colors.Black))
             Application.Current.Resources("ColorBrushHalfWhite") = New SolidColorBrush(If(appearance.DarkMode, Color.FromArgb(220, 36, 48, 65), Color.FromArgb(85, 255, 255, 255)))
             Application.Current.Resources("CardSurfaceBrush") = New SolidColorBrush(If(appearance.DarkMode, Color.FromArgb(250, 29, 39, 53), Color.FromArgb(245, 255, 255, 255)))
             Application.Current.Resources("WindowSurfaceBrush") = New SolidColorBrush(If(appearance.DarkMode, Color.FromRgb(19, 27, 38), Colors.White))

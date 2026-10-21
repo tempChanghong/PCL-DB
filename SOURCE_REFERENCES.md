@@ -6,6 +6,12 @@
 
 开发时实际阅读了以下代码；以下对应关系说明实际实现依据，并非只参考界面截图。
 
+## 0.51 普通按钮与图标按钮状态
+
+- 实际重读固定 `Controls/MyButton.xaml.vb` 的 RefreshColor、ColorType setter、Button_MouseEnter/Leave：正常/高亮分别取 ColorBrush1/2，悬停取 ColorBrush3 描边和 ColorBrush7 背景，离开返回 HalfWhite；进入 100ms、离开 200ms，禁用取 Gray4。PclButton 原先只改描边，禁用设整体 0.45 透明度，Highlight setter 直接覆盖当前状态；本轮按这些上游规则修正。键盘焦点沿用本项目既有高亮提示，并使用相同活动底色。
+- 实际重读固定 `Controls/MyIconButton.xaml.vb` 的黑色主题、120/150ms 颜色及离开取消按压行为。明亮模式继续保留黑色 160/230 alpha 和原 XAML。深色中性色、主题刷新订阅及禁用/卸载时取消待点击属于本项目的独立补全，不声称上游已有相同深色模式实现。
+- 14 项独立控件检查使用同一组用例对比解压的原 0.50 与新控件；固定 44 份快照、12 项资源及四种原控件 XAML 不改。本轮不修改文件选源、并行传输和游戏安装流程。
+
 ## 0.50 外观保存与改名复核
 
 - 沿用固定 `PageSetupUI.xaml`、`ModMain.vb` 对应的主题和不透明度表现；本轮不改配色或页面几何。多窗口的字段差异合并属于本项目独立补全，不声称来自 PCL。

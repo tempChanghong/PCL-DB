@@ -133,6 +133,7 @@ Partial Public Class MainWindow
             check(_appearance.Theme = "blue" AndAlso Opacity = 1 AndAlso TitleTexture.Visibility = Visibility.Collapsed AndAlso CustomThemeGrid.Visibility = Visibility.Collapsed AndAlso ColorfulBackgroundBox.IsChecked.GetValueOrDefault(), "reset restores only default appearance values")
             check(InstanceName.Text = "保留外观切换前的名称" AndAlso TaskProgress.Value = progress AndAlso _componentSelection.Has(ComponentKind.Fabric), "resetting appearance retains the installation plan and task progress")
             VerifyTaskAppearanceStates(check, layout, artifactDirectory)
+            VerifyButtonStates(check, artifactDirectory)
         Finally
             SetBusy(False)
             If source IsNot Nothing Then

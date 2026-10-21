@@ -75,10 +75,10 @@ try {
     $runs += Invoke-OfflineProfile $appProject 'Preview Components'
     $uiPath = Join-Path $properties[$appProject].TargetDir 'vs-ui-checks.json'
     $ui = Get-Content -LiteralPath $uiPath -Raw | ConvertFrom-Json
-    if (!$ui.Succeeded -or $ui.Scope -ne 'all' -or $ui.Count -ne 606 -or $ui.Count -ne $ui.Passed.Count) { throw 'The UI profile did not produce a complete report.' }
+    if (!$ui.Succeeded -or $ui.Scope -ne 'all' -or $ui.Count -ne 620 -or $ui.Count -ne $ui.Passed.Count) { throw 'The UI profile did not produce a complete report.' }
     $appearancePath = Join-Path $properties[$appProject].TargetDir 'vs-appearance-checks.json'
     $appearance = Get-Content -LiteralPath $appearancePath -Raw | ConvertFrom-Json
-    if (!$appearance.Succeeded -or $appearance.Scope -ne 'appearance' -or $appearance.Count -ne 115 -or $appearance.Count -ne $appearance.Passed.Count) { throw 'The appearance profile did not produce a complete report.' }
+    if (!$appearance.Succeeded -or $appearance.Scope -ne 'appearance' -or $appearance.Count -ne 129 -or $appearance.Count -ne $appearance.Passed.Count) { throw 'The appearance profile did not produce a complete report.' }
     $developerPath = Join-Path $properties[$appProject].TargetDir 'vs-developer-checks.json'
     $developer = Get-Content -LiteralPath $developerPath -Raw | ConvertFrom-Json
     if (!$developer.Succeeded -or $developer.Scope -ne 'developer' -or $developer.Count -ne 36 -or $developer.Count -ne $developer.Passed.Count) { throw 'The developer profile did not produce a complete report.' }

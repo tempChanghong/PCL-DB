@@ -1,6 +1,6 @@
 # PCL-DB · PCL Download Bridge
 
-VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，0.50 预览版，简称 PCL-DB。
+VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，0.51 预览版，简称 PCL-DB。
 
 以 PCL2 限制前代码为主要参照，读取 PCL 使用的 `.minecraft`，安装结果使用 PCL 能读取的版本目录格式。原五个启动器仓库不需要修改。
 
@@ -35,6 +35,7 @@ VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，0.50 �
 
 ## 功能
 
+- 普通按钮的悬停底色、禁用灰色及高亮优先级按 PCL 源码对齐；返回图标随深色模式调整中性色。图标按钮被禁用或卸载时会清除未完成的按压，重新启用后不会把旧的松开操作当作新点击。
 - Java 版本检测同时读取两路输出，较长的 JVM 环境提示不会堵住管道、误报版本不足；保留检测超时，拒绝以错误码退出的运行环境。兼容旧版 `1.8`、现代版本及 PCL 支持的无引号 OpenJDK 版本行；不会把环境选项中的版本文字当作实际版本。
 - Java 安装处理器的日志被设为只读或被其他程序占用时，继续显示实时输出；日志恢复可写后继续追加。处理器自身失败仍报告退出码和末尾输出，取消仍阻止实例发布，可重新安装；不会覆盖原日志。
 - 版本列表与安装选项按 PCL 的两段横移动画切换：旧页淡出，新页延后淡入并以五次方缓动回位，合计 260ms。切换期间屏蔽内容点击，键盘焦点在结束后恢复；快速返回、设置往返或查看进度会正确收束旧时钟，保留原有选择与任务。
@@ -118,7 +119,7 @@ OptiFine/OptiFabric 的跨版本兼容性沿用 PCL 检查和上游声明，不�
 
 Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / Any CPU**，将 **PCL-DB** 设为启动项目，选择同名启动配置后按 **F5**。已提供主程序、界面自检、组件页渲染及本地下载回归的启动配置；具体输出、断点建议和复查命令见 [VS2026_DEBUG.md](VS2026_DEBUG.md)。
 
-主应用的 **Appearance Checks** 配置可独立执行 115 项主题/任务状态检查，**Card Checks** 执行 66 项卡片、摘要动画与安装视口检查；**Navigation Checks** 执行 31 项页面切换与状态保留检查；**Settings Compatibility** 执行 49 项更名与设置兼容检查；全量界面检查为 606 项，包含以上各组。检查在离线示例模式运行，失败保留已通过项、失败名称、异常堆栈与诊断，并返回失败退出码。
+主应用的 **Appearance Checks** 配置可独立执行 129 项主题/任务状态检查，**Card Checks** 执行 66 项卡片、摘要动画与安装视口检查；**Navigation Checks** 执行 31 项页面切换与状态保留检查；**Settings Compatibility** 执行 49 项更名与设置兼容检查；全量界面检查为 620 项，包含以上各组。检查在离线示例模式运行，失败保留已通过项、失败名称、异常堆栈与诊断，并返回失败退出码。
 
 需要 .NET SDK 10.0.4xx 与 .NET Framework 4.8 Developer Pack；完整处理器样本检查还需要本机 Java 8 或更高版本。应用运行本身需要 .NET Framework 4.8。两个 Java 桥接/样本 class 已随源码保留，重编译命令为 `javac --release 8`，对应源文件在 `tools/java/`。
 
@@ -135,7 +136,7 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 构建结果会打印本次 ZIP 和 `result.json` 的完整路径，其中记录 ZIP 的 SHA-256 及每个文件的内容哈希。可明确指定候选包，重新核对其内容与当前 Release 输出和文档是否一致：
 
 ```powershell
-.\tools\verify-package.ps1 -PackagePath .\dist\PCL-DB-0.50-preview.zip -DistributionPath .\dist\PclDownloadBridge
+.\tools\verify-package.ps1 -PackagePath .\dist\PCL-DB-0.51-preview.zip -DistributionPath .\dist\PclDownloadBridge
 ```
 
 `-SkipTests` 仅跳过回归检查，打包时仍校验候选 ZIP 的完整文件清单和字节内容；不能据此声称通过完整回归。单独执行 `tools/verify-packaging.ps1` 需要已有 Release 构建。

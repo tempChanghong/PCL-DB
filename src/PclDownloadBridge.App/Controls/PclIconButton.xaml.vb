@@ -5,7 +5,8 @@ Imports System.Windows.Media
 Imports System.Windows.Media.Animation
 
 Namespace Controls
-    ' MyIconButton at 5ef81e4: original XAML, black theme used by the install page.
+    ' MyIconButton at 5ef81e4: original XAML and black light-mode ink.
+    ' Dark-mode neutral ink and press cancellation are local adaptations.
     Partial Public Class PclIconButton
         Inherits Border
         Public Event Click As RoutedEventHandler
@@ -32,7 +33,15 @@ Namespace Controls
             InitializeComponent()
             Focusable = True : Cursor = Cursors.Hand
             AddHandler Loaded, Sub() RefreshColor(False)
-            AddHandler IsEnabledChanged, Sub() RefreshColor(IsLoaded)
+            AddHandler IsEnabledChanged, Sub()
+                                             _down = False
+                                             ScaleTo(1, 250)
+                                             RefreshColor(IsLoaded)
+                                         End Sub
+            AddHandler Unloaded, Sub()
+                                     _down = False
+                                     ScaleTo(1, 250)
+                                 End Sub
             AddHandler MouseEnter, Sub() RefreshColor(True)
             AddHandler GotKeyboardFocus, Sub() RefreshColor(True)
             AddHandler LostKeyboardFocus, Sub() RefreshColor(True)
@@ -60,9 +69,11 @@ Namespace Controls
                                     RaiseEvent Click(Me, args)
                                 End Sub
             RefreshColor(False)
+            PclTheme.Watch(Me, Sub() RefreshColor(IsLoaded))
         End Sub
         Private Sub RefreshColor(animate As Boolean)
-            Dim targetColor = If(Not IsEnabled, Brush("ColorBrushGray5").Color, System.Windows.Media.Color.FromArgb(CByte(If(IsMouseOver OrElse IsKeyboardFocused, 230, 160)), 0, 0, 0))
+            Dim ink = Brush("PclIconButtonInk").Color
+            Dim targetColor = If(Not IsEnabled, Brush("ColorBrushGray5").Color, System.Windows.Media.Color.FromArgb(CByte(If(IsMouseOver OrElse IsKeyboardFocused, 230, 160)), ink.R, ink.G, ink.B))
             If animate Then
                 ColorTo(Path, Shapes.Shape.FillProperty, targetColor, If(IsMouseOver OrElse Not IsEnabled, 120, 150))
             Else
@@ -72,8 +83,14 @@ Namespace Controls
         End Sub
         Private Sub ScaleTo(value As Double, milliseconds As Integer)
             Dim scale = DirectCast(PanBack.RenderTransform, ScaleTransform)
-            NumberTo(scale, ScaleTransform.ScaleXProperty, value, milliseconds)
-            NumberTo(scale, ScaleTransform.ScaleYProperty, value, milliseconds)
+            If IsLoaded Then
+                NumberTo(scale, ScaleTransform.ScaleXProperty, value, milliseconds)
+                NumberTo(scale, ScaleTransform.ScaleYProperty, value, milliseconds)
+            Else
+                scale.BeginAnimation(ScaleTransform.ScaleXProperty, Nothing)
+                scale.BeginAnimation(ScaleTransform.ScaleYProperty, Nothing)
+                scale.ScaleX = value : scale.ScaleY = value
+            End If
         End Sub
         Private Sub ReleaseScale()
             Dim animation As New DoubleAnimationUsingKeyFrames()
