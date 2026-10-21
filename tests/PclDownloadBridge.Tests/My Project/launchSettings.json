@@ -6,6 +6,12 @@
       "workingDirectory": "$(ProjectDir)",
       "nativeDebugging": false
     },
+    "Processor Streams": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression processor-streams-all",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
     "Component Dependencies": {
       "commandName": "Project",
       "commandLineArgs": "--regression component-plan-all",

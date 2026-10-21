@@ -570,32 +570,67 @@ Public Module JavaRuntime
         Using process As New Process With {.StartInfo = info, .EnableRaisingEvents = True}
             AddHandler process.Exited, Sub() completion.TrySetResult(True)
             Dim lines As New Queue(Of String)
-            Dim consume As DataReceivedEventHandler = Sub(sender, e)
-                                                         If e.Data Is Nothing Then Return
-                                                         SyncLock lines
-                                                             lines.Enqueue(e.Data)
-                                                             If lines.Count > 12 Then lines.Dequeue()
-                                                         End SyncLock
-                                                         Try
-                                                             report?.Invoke(e.Data)
-                                                         Catch ex As IOException
-                                                             ' A full/removed log destination must not crash a stream callback.
-                                                         End Try
+            Dim outputEnd As New TaskCompletionSource(Of Boolean)(TaskCreationOptions.RunContinuationsAsynchronously)
+            Dim errorEnd As New TaskCompletionSource(Of Boolean)(TaskCreationOptions.RunContinuationsAsynchronously)
+            Dim cancelled As New TaskCompletionSource(Of Boolean)(TaskCreationOptions.RunContinuationsAsynchronously)
+            Dim accepting = True
+            Dim consume As Action(Of String) = Sub(line)
+                                                   SyncLock lines
+                                                       If Not accepting Then Return
+                                                       lines.Enqueue(line)
+                                                       If lines.Count > 12 Then lines.Dequeue()
+                                                       Try
+                                                           report?.Invoke(line)
+                                                       Catch ex As IOException
+                                                           ' A full/removed log destination must not crash a stream callback.
+                                                       End Try
+                                                   End SyncLock
+                                               End Sub
+            Dim output As DataReceivedEventHandler = Sub(sender, e)
+                                                         If e.Data Is Nothing Then outputEnd.TrySetResult(True) Else consume(e.Data)
                                                      End Sub
-            AddHandler process.OutputDataReceived, consume : AddHandler process.ErrorDataReceived, consume
-            token.ThrowIfCancellationRequested()
-            process.Start() : process.BeginOutputReadLine() : process.BeginErrorReadLine()
-            Using registration = token.Register(Sub()
-                                                    Try
-                                                        If Not process.HasExited Then process.Kill()
-                                                    Catch ex As InvalidOperationException
-                                                    End Try
-                                                End Sub)
-                Await completion.Task.ConfigureAwait(False)
-                process.WaitForExit() ' drains both redirected streams before disposal
+            Dim errors As DataReceivedEventHandler = Sub(sender, e)
+                                                         If e.Data Is Nothing Then errorEnd.TrySetResult(True) Else consume(e.Data)
+                                                     End Sub
+            AddHandler process.OutputDataReceived, output : AddHandler process.ErrorDataReceived, errors
+            Try
                 token.ThrowIfCancellationRequested()
-                If process.ExitCode <> 0 Then Throw New IOException("Java 安装处理器失败 (" & process.ExitCode & ")：" & String.Join(vbCrLf, lines))
-            End Using
+                process.Start() : process.BeginOutputReadLine() : process.BeginErrorReadLine()
+                Using registration = token.Register(Sub()
+                                                        cancelled.TrySetResult(True)
+                                                        Try
+                                                            If Not process.HasExited Then process.Kill()
+                                                        Catch ex As InvalidOperationException
+                                                        End Try
+                                                    End Sub)
+                    Await completion.Task.ConfigureAwait(False)
+                    token.ThrowIfCancellationRequested()
+                    ' A descendant can retain these pipes after the owned process exits.
+                    ' Bound EOF draining, and keep cancellation responsive during it.
+                    Dim streams = Task.WhenAll(outputEnd.Task, errorEnd.Task)
+                    Dim finished = Await Task.WhenAny(streams, Task.Delay(5000), cancelled.Task).ConfigureAwait(False)
+                    token.ThrowIfCancellationRequested()
+                    Dim tail As String
+                    SyncLock lines
+                        tail = String.Join(vbCrLf, lines)
+                    End SyncLock
+                    If finished IsNot streams Then Throw New IOException("Java 安装处理器已退出 (" & process.ExitCode & ")，但输出流未在 5 秒内结束，请重试。" & vbCrLf & tail)
+                    If process.ExitCode <> 0 Then Throw New IOException("Java 安装处理器失败 (" & process.ExitCode & ")：" & tail)
+                End Using
+            Finally
+                SyncLock lines
+                    accepting = False
+                End SyncLock
+                RemoveHandler process.OutputDataReceived, output : RemoveHandler process.ErrorDataReceived, errors
+                Try
+                    process.CancelOutputRead()
+                Catch ex As InvalidOperationException
+                End Try
+                Try
+                    process.CancelErrorRead()
+                Catch ex As InvalidOperationException
+                End Try
+            End Try
         End Using
     End Function
     Public Function Quote(value As String) As String

@@ -2,6 +2,15 @@
 
 日期：2026-10-21（北京时间）。当前源码为尚未发布的 0.57 开发版 PCL-DB（PCL Download Bridge），包含 Visual Studio 2026 开发配置；最新公开预览版为 0.56，下方保留先前版本的验证记录。
 
+## 0.57 处理器输出等待与取消恢复
+
+- 修改前保存 `artifacts/bridge-0.57-processor-streams/source-before.zip`。在临时中文/空格目录中，用托管进程模拟 Java 主进程及持有继承管道的辅助进程，原 JavaRuntime.RunAsync 取消后仍卡在无时限的 Process.WaitForExit；before-cancel.log 记录辅助进程仍在且 2.5 秒内任务未完成。真实安装入口的同类检查也失败，见 before-install.log，两个样本均在验证 PID 和实际映像路径后由测试结束已知辅助进程，待原任务收尾后才报告断言。
+- 对照固定 PCL ForgelikeInjector 的逐流有限等待，改用两路 EOF 通知和主进程退出后的共同 5 秒收尾预算，等待中仍监听取消。正常双流结束后保留完整回调和末尾日志；未及时结束时包含主进程退出码及已收到的日志并报错，取消仍返回 OperationCanceledException。只结束所拥有的主进程，收尾时停用并解绑读取回调，不增加处理器总执行时限；异常管道下尚未到达回调的末尾输出可能缺失。
+- 新增 22 项检查，覆盖 stdout/stderr、末尾无换行、退出码 0/7、预先取消、运行中及主进程退出后的取消、继承管道超时，以及取消后不发布实例、释放游戏根目录写锁、同名重试复用已校验下载。fixed.log 记录针对性检查通过；初次模拟样本构建中的括号和 VB 局部变量遮蔽问题在复现前修正，未为迁就样本改变产品行为。PID 文件以原子替换发布，测试进程环境在 finally 恢复。
+- 检查使用模拟 Java 的临时托管进程和回环元数据，不执行真实上游安装器，不作为完整 Minecraft 安装或启动验收。原有真实 JVM 检测、Java 处理器输出/取消和安装回归继续保留。
+- 默认 build.ps1 完成 Release 构建，零警告、零错误；完整核心 745 项（原 723 项加本轮 22 项）、完整界面 658 项、固定 PCL 对照 16 项通过，见 full-build.log / artifacts/ui-checks-0.57.json。VS 2026 增加 Processor Streams 配置，Debug 构建、便携 PDB、关闭优化及离线启动配置通过：核心精选 369 项、完整界面 658 项；外观 129、开发者 36、卡片 104、导航 31、设置兼容 49 为界面子集，见 vs2026-report.json。未人工在 IDE 内按 F5 命中断点。
+- 保持 0.57 开发版，不打包、不建标签、不创建 Release；dist 的 77 个已有文件内容和修改时间、打包报告目录均未变化，见 no-package.json。原七个参考仓库的 HEAD 和修改状态保持，见 upstream-state.json。界面实现、字体、图标和下载调度未改；result.json 汇总检查及被测 Core SHA256。
+
 ## 0.57 组件依赖清单校验
 
 - 修改前保存 `artifacts/bridge-0.57-component-plan/source-before.zip`。新增集成检查在原实现下分别失败，见 before-mismatch.log / before-conflict.log / before-embedded.log / before-strength.log：后续 SHA1 被丢失后，同大小的错误依赖仍被 Java 执行且实例成功发布；重复大小声明冲突未阻止安装；过滤内嵌文件后改用了后续地址；丢失摘要的依赖不能进入校验缓存。错误样本仅改动合成 JAR 的额外文本资源，保留可执行的真实 Java 测试类。

@@ -64,7 +64,7 @@ try {
     if ($Full) {
         $runs += Invoke-OfflineProfile $testProject 'Offline All'
     } else {
-        foreach ($name in @('Download Plan', 'Native Libraries', 'Cleanup Cancellation', 'Final Commit', 'Transfer Completion', 'PCL File Reuse', 'Copy Fallback', 'Library Metadata', 'Library Selection', 'Metadata Transfers', 'Processor Log Recovery', 'Java Runtime Probe', 'Folder Discovery', 'NeoForge Versions', 'Component Versions', 'Forge Versions', 'Forge Checksums', 'NeoForge Checksums', 'Component Dependencies')) { $runs += Invoke-OfflineProfile $testProject $name }
+        foreach ($name in @('Download Plan', 'Native Libraries', 'Cleanup Cancellation', 'Final Commit', 'Transfer Completion', 'PCL File Reuse', 'Copy Fallback', 'Library Metadata', 'Library Selection', 'Metadata Transfers', 'Processor Log Recovery', 'Java Runtime Probe', 'Folder Discovery', 'NeoForge Versions', 'Component Versions', 'Forge Versions', 'Forge Checksums', 'NeoForge Checksums', 'Component Dependencies', 'Processor Streams')) { $runs += Invoke-OfflineProfile $testProject $name }
     }
     $runs += Invoke-OfflineProfile $appProject 'UI Checks'
     $runs += Invoke-OfflineProfile $appProject 'Appearance Checks'

@@ -39,9 +39,10 @@ Debug 构建输出为 `src/PclDownloadBridge.App/bin/Debug/net48/`。启动配�
 
 | 配置 | 覆盖的流程 |
 |---|---|
-| Offline All | 全部本地下载、安装与处理器回归；当前 723 项检查，处理器样本需要本机 Java 8 或更高版本 |
+| Offline All | 全部本地下载、安装与处理器回归；当前 745 项检查，处理器样本需要本机 Java 8 或更高版本 |
 | Metadata Transfers | 10 项元数据响应、大小上限、备用源及取消回归；仅使用本地 HTTP 样本 |
 | Processor Log Recovery | 12 项真实 Java 样本检查：日志只读/占用、输出进度、失败原因、取消、恢复后重试；不使用真实游戏目录 |
+| Processor Streams | 22 项进程输出检查：双流收尾、末尾无换行、错误码、继承管道、取消、输出收尾超时和同名安装重试；用临时托管进程模拟 Java，不执行真实上游安装器 |
 | Java Runtime Probe | 20 项 Java 检测检查：真实 JVM 长提示，以及模拟子进程的版本格式、双流大输出、错误码和超时；仅改测试进程的临时环境变量 |
 | Folder Discovery | 14 项 PCL 目录读取检查：自定义名称/别名去重、盘符根路径、无效或占用的当前目录配置、空列表与后续有效条目；仅写临时样本，盘符根路径只读检查 |
 | NeoForge Versions | 14 项 NeoForge 列表解析检查：经典/新编号、alpha/beta、快照、愚人节、旧 Maven 坐标及 BMCLAPI 包装数据；仅连接本机回环服务器 |

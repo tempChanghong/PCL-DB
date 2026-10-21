@@ -11,6 +11,7 @@ Module Program
     Sub Main(args As String())
         Net.ServicePointManager.SecurityProtocol = Net.SecurityProtocolType.Tls12
         Try
+            If ProcessorStreamChecks.TryRunFixture(args) Then Return
             If JavaProbeChecks.TryRunFixture(args) Then Return
             If args.Length = 2 AndAlso args(0) = "--live-source-selection" Then
                 SourcePreferenceChecks.LiveAsync(args(1)).GetAwaiter().GetResult()
@@ -31,7 +32,9 @@ Module Program
             Directory.CreateDirectory(TestRoot)
             If args.Length = 2 AndAlso args(0) = "--regression" Then
                 Dim run As Task(Of List(Of String))
-                If args(1).StartsWith("component-plan-", StringComparison.Ordinal) Then
+                If args(1).StartsWith("processor-streams-", StringComparison.Ordinal) Then
+                    run = ProcessorStreamChecks.RunAsync(TestRoot, args(1))
+                ElseIf args(1).StartsWith("component-plan-", StringComparison.Ordinal) Then
                     run = ComponentDependencyChecks.RunAsync(TestRoot, args(1))
                 ElseIf args(1) = "neoforge-checksums" Then
                     run = ForgeChecksumChecks.RunAsync(TestRoot, ComponentKind.NeoForge)
@@ -166,6 +169,9 @@ Module Program
                 Check(True, label)
             Next
             For Each label In ComponentDependencyChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
+                Check(True, label)
+            Next
+            For Each label In ProcessorStreamChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
                 Check(True, label)
             Next
             For Each label In NativeLibraryChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
