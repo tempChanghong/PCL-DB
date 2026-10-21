@@ -118,7 +118,17 @@ Visual Studio 2026 可直接打开 `PlainCraftDownloader.sln`，选择 **Debug /
 
 从仓库获取完整源码后即可运行上述命令；常规构建和界面对照检查不需要在旁边另行克隆 PCL。固定源码快照和 12 项资源的提交哈希清单已包含在仓库中。只有维护者重新执行 `tools/import-pcl-ui.ps1` 导入上游代码时才需要相邻的 PCL 源码仓库。
 
-会构建三个 VB 项目、运行本地回环 HTTP 样本检查并生成便携目录和 ZIP。测试目录位于系统临时目录 `PlainCraftDownloaderTests-<随机ID>`，不接触用户游戏目录。
+会构建三个 VB 项目，核对 44 份固定 PCL 源码及内置资源，运行本地下载/安装、界面及 19 项打包回归，然后生成便携目录和 ZIP。下载检查的目录位于系统临时目录 `PlainCraftDownloaderTests-<随机ID>`，打包检查使用 `PCD-PackageChecks-<随机ID>`；两者均不接触用户游戏目录。
+
+包内固定为 4 个运行文件和 7 份文档（包含 `LICENCE`）。打包先在独立暂存目录复制和校验，旧目录中的其他文件不会被带入新包；替换成功后，旧目录和旧 ZIP 保留在本次报告记录的备份位置。遇到占用等替换失败时会尝试恢复旧输出，失败详情及备份路径保存在 `artifacts/packages/<本次编号>/failure.json`。这是目录和 ZIP 的顺序替换与回滚，不保证断电或强行终止进程时两者同时更新。
+
+构建结果会打印本次 ZIP 和 `result.json` 的完整路径，其中记录 ZIP 的 SHA-256 及每个文件的内容哈希。可明确指定候选包，重新核对其内容与当前 Release 输出和文档是否一致：
+
+```powershell
+.\tools\verify-package.ps1 -PackagePath .\dist\PlainCraftDownloader-0.45-preview.zip -DistributionPath .\dist\PlainCraftDownloader
+```
+
+`-SkipTests` 仅跳过回归检查，打包时仍校验候选 ZIP 的完整文件清单和字节内容；不能据此声称通过完整回归。单独执行 `tools/verify-packaging.ps1` 需要已有 Release 构建。
 
 真实下载测试（明确指定独立输出目录）：
 

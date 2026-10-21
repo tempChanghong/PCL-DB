@@ -1,5 +1,15 @@
 ﻿$ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
+$sourceManifest = Get-Content -LiteralPath (Join-Path $root 'reference/PCL/manifest.json') -Raw | ConvertFrom-Json
+if ($sourceManifest.Repository -ne 'Meloong-Git/PCL' -or $sourceManifest.Commit -ne '5ef81e490ae46b1100d61e33d0183094c7a80ca8' -or @($sourceManifest.Files).Count -ne 44) { throw 'Unexpected PCL source baseline.' }
+$sourceFiles = @{}
+foreach ($entry in $sourceManifest.Files) {
+    if ($sourceFiles.ContainsKey($entry.File)) { throw "Duplicate PCL source snapshot: $($entry.File)" }
+    $sourceFiles[$entry.File] = $true
+    $path = Join-Path $root "reference/PCL/$($entry.File)"
+    if ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ne $entry.Hash) { throw "PCL source snapshot bytes mismatch: $($entry.File)" }
+}
+Write-Output 'PASS all 44 fixed PCL source snapshot hashes'
 $assetManifest = Get-Content -LiteralPath (Join-Path $root 'reference/pcl-assets.json') -Raw | ConvertFrom-Json
 if ($assetManifest.Repository -ne 'Meloong-Git/PCL' -or $assetManifest.Commit -ne '5ef81e490ae46b1100d61e33d0183094c7a80ca8' -or @($assetManifest.Files).Count -ne 12) { throw 'Unexpected PCL asset baseline.' }
 function Assert-PclAsset([string]$relative) {
