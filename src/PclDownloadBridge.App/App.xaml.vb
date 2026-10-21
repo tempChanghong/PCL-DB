@@ -7,6 +7,11 @@ Partial Public Class App
     Inherits System.Windows.Application
     <STAThread>
     Public Shared Sub Main()
+        RuntimeBootstrap.Initialize()
+        StartApplication()
+    End Sub
+    <Runtime.CompilerServices.MethodImpl(Runtime.CompilerServices.MethodImplOptions.NoInlining)>
+    Private Shared Sub StartApplication()
         Dim app As New App()
         app.InitializeComponent()
         app.Run()
@@ -14,6 +19,11 @@ Partial Public Class App
     Protected Overrides Sub OnStartup(e As StartupEventArgs)
         MyBase.OnStartup(e)
         Net.ServicePointManager.SecurityProtocol = Net.SecurityProtocolType.Tls12
+        Dim standaloneChecks = Array.IndexOf(e.Args, "--standalone-checks")
+        If standaloneChecks >= 0 AndAlso e.Args.Length > standaloneChecks + 1 Then
+            Shutdown(SingleExecutableChecks.Run(e.Args(standaloneChecks + 1)))
+            Return
+        End If
         AddHandler DispatcherUnhandledException, Sub(sender, args)
                                                     Dim snapshotIndex = Array.IndexOf(e.Args, "--snapshot")
                                                     If snapshotIndex >= 0 AndAlso e.Args.Length > snapshotIndex + 1 Then

@@ -6,6 +6,13 @@
 
 开发时实际阅读了以下代码；以下对应关系说明实际实现依据，并非只参考界面截图。
 
+## 0.57 单 EXE 构建与隔离验证
+
+- 实际读取固定 Application.xaml.vb 约 217–232 行及 My Project/Resources.resx：PCL 在最早构造阶段注册 AssemblyResolve，从资源字节加载依赖，并使用 ConcurrentDictionary / Lazy 缓存。固定 .github/workflows/build.yml 直接上传构建后的 EXE。沿用 .NET Framework 4.8 和资源嵌入思路，没有迁移运行时或引入第三方合并/封装工具。
+- App 可选 PclDbSingleExecutable=true，从实际 ResolveReferences 结果中嵌入 Core 与 Newtonsoft.Json 两个 DLL，校验数量并在 WPF 临时项目重复收集时清理旧项。RuntimeBootstrap 在构造 WPF App 前注册加载器，通过 NoInlining 边界避免过早解析依赖；按明确名称白名单、请求版本、区域和公钥标记核对身份，未知及卫星程序集返回 Nothing，缓存兼容请求的加载结果。这些严格身份检查为本项目补全，不声称 PCL 原先逐项执行同一检查。
+- 程序启动显式设置原 exe.config 的两个长路径开关；正常多文件构建仍保留原配置。七份随附文档作为资源嵌入，原外部文档优先；缺失时只按名称白名单在应用文档缓存生成已知内容，预览走独立临时目录。第三方说明的内嵌回退包含完整 LICENCE。沿用原关于页按钮和文档打开方式，不调整页面布局。
+- 验证器独立构建，仅将 EXE 复制并改名到仓库外的中文/空格目录，在没有 DLL、配置或外部文档时执行 25 项检查及完整 658 项 WPF 检查。另比对两份内嵌 DLL 和七份文档的原始字节 SHA-256，验证真实长路径文件 IO、实际回环下载引擎、Core 的 Java 桥资源以及关于页文档回退；不执行真实游戏安装。工具保留报告和候选，不生成 ZIP 或更新正式分发目录。
+
 ## 0.57 Java 处理器输出收尾与取消
 
 - 实际重读固定 ModDownloadLib.vb 的 ForgelikeInjector（约 940–1025 行）：进程退出后，stdout / stderr 分别通过 AutoResetEvent 最多等待 10 秒，再分析末尾日志。本项目 JavaRuntime.RunAsync 原先在 Exited 后调用无时限的 Process.WaitForExit，辅助进程继承管道时仍会卡住；取消回调只终止已拥有的主进程，无法解除这种输出等待。

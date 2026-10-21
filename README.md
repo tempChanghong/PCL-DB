@@ -8,7 +8,7 @@ VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，简称
 
 从 [Releases](https://github.com/tempChanghong/PCL-DB/releases) 下载预览版，解压后运行 `PclDownloadBridge.exe`。源码构建方法见下文。
 
-便携使用时保留 EXE 同目录的 DLL、配置文件与 Markdown 文档。源码默认构建后运行 `src/PclDownloadBridge.App/bin/Release/net48/PclDownloadBridge.exe`；显式打包后也可运行 `dist/PclDownloadBridge/PclDownloadBridge.exe`。
+现有便携目录版使用时保留 EXE 同目录的 DLL、配置文件与 Markdown 文档。源码默认构建后运行 `src/PclDownloadBridge.App/bin/Release/net48/PclDownloadBridge.exe`；显式打包后也可运行 `dist/PclDownloadBridge/PclDownloadBridge.exe`。新增单 EXE 构建验证入口见下文，暂不替换现有正式打包格式。
 
 1. 打开「设置 → 游戏文件夹」，点击「读取 PCL 的目录」选择实际使用的 PCL EXE。读取其旁的游戏目录、`PCL/Setup.ini` 的当前选择，以及 PCL 注册表自定义目录。也可手动选择 `.minecraft`。同页可分别设置「文件下载源」和「版本列表源」：BMCLAPI 优先、自动、官方优先；自动为默认值。切换版本列表源后，返回下载页会按新设置刷新当前列表；安装选项页也可点击「刷新列表」，保留版本、名称与组件选择。
 2. 回到「下载」，顶部显示安装目标；点击版本，填写实例名称。展开卡片选择 Forge、NeoForge、Fabric、Fabric API、OptiFine、OptiFabric 或 LiteLoader，点击「开始下载」。按 PCL 规则显示适用选项及互斥关系，Fabric API 和 OptiFabric 随父组件显示。默认拒绝覆盖同名实例。
@@ -155,6 +155,18 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 ```
 
 `-SkipTests` 仅跳过回归检查，打包时仍校验候选 ZIP 的完整文件清单和字节内容；不能据此声称通过完整回归。单独执行 `tools/verify-packaging.ps1` 需要已有 Release 构建。
+
+单 EXE 功能可用以下命令独立验证；该命令构建开发候选，不生成 ZIP、不更新 `dist`，不创建 Release：
+
+```powershell
+.\tools\verify-single-exe.ps1
+```
+
+验证器将 App/Core 构建到本次独立 artifacts 目录，只复制一个改名为 `PCL-DB.exe` 的文件到仓库之外、带中文和空格的临时目录。依次运行 25 项单文件检查和 658 项界面检查，并逐项核对内嵌两份 DLL 与本次构建、七份文档与源码的 SHA-256；报告保留候选路径及 EXE 摘要。检查使用回环 HTTP 和预览数据，不修改真实用户设置或安装游戏。
+
+底层开关为 App 项目的 `-p:PclDbSingleExecutable=true`，通过资源嵌入和启动期程序集解析实现；常规构建及 VS Debug 仍使用独立 DLL。单 EXE 不依赖邻接 `.exe.config`，长路径设置由最早启动代码应用；系统仍须安装 .NET Framework 4.8。关于页优先打开随附或开发目录文档；缺失时从程序资源生成内容寻址的文档副本，正常模式位于 `%LOCALAPPDATA%/PclDownloadBridge/documents/`，预览检查只使用随机临时目录。单文件模式的第三方说明同时附带完整 `LICENCE`，不需要在 EXE 旁写出 DLL 或文档。
+
+当前阶段提供单文件构建及成品隔离验证。`build.ps1 -Package` 仍保留原 11 文件便携包，尚未接入新的单 EXE 候选；版本来源清单与正式分发格式将在后续独立处理。
 
 维护固定 PCL 参考时，先执行以下检查（需要本地 PCL Git 对象，可用 `-SourceRoot` 指向没有检出文件的仓库）：
 

@@ -106,6 +106,8 @@ Copy Fallback 的文件占用样本使用 Windows NTFS 辅助数据流，默认�
 
 当前源码为尚未发布的 0.57 开发版，已有 `.vs` / `.suo` 用户状态继续保留；共享配置使用源码中的启动配置文件。`build.ps1` 默认构建和验证；明确要求打包时才使用 `build.ps1 -Package`，发布另行处理。
 
+单 EXE 验证单独执行 `tools/verify-single-exe.ps1`。该工具以 `PclDbSingleExecutable=true` 构建 App，并使用本次独立的 MSBuild artifacts 路径，不覆盖默认 bin/obj 或现有 VS 输出；候选只含一个 EXE，仍依赖系统 .NET Framework 4.8。它运行 25 项单文件检查及 658 项预览界面检查，验证实际资源和字体加载、文档回退、程序集身份与并发加载、长路径及回环下载。普通 F5 继续使用多文件 Debug 与便携 PDB，不需要手动移动 DLL 或修改启动项目；验证器不会生成发布 ZIP 或更新 dist。
+
 ## 配置依据
 
 - [Microsoft：SDK 项目启动配置与 Visual Basic 的 My Project 路径](https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-run#launch-profiles)

@@ -5,6 +5,7 @@ Imports System.Windows
 Partial Public Class MainWindow
     Private _settingsOffsetBeforeAbout As Double
     Private _aboutAction As Action(Of String, String)
+    Private _previewDocumentCache As String
 
     Private Sub InitializeAbout()
         AboutMonogram.Text = "DB"
@@ -41,7 +42,7 @@ Partial Public Class MainWindow
         DispatchAboutAction("link", address)
     End Sub
 
-    Private Shared Function DocumentationPath(name As String) As String
+    Private Function DocumentationPath(name As String) As String
         Dim directory As New DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory)
         For level = 0 To 6
             If directory Is Nothing Then Exit For
@@ -51,7 +52,14 @@ Partial Public Class MainWindow
             If (level = 0 OrElse developmentRoot) AndAlso File.Exists(candidate) Then Return candidate
             directory = directory.Parent
         Next
-        Throw New FileNotFoundException("未找到随附文档：" & name)
+        Dim cache As String
+        If _preview Then
+            If _previewDocumentCache Is Nothing Then _previewDocumentCache = Path.Combine(Path.GetTempPath(), "PclDownloadBridge-PreviewDocuments-" & Guid.NewGuid().ToString("N"))
+            cache = _previewDocumentCache
+        Else
+            cache = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PclDownloadBridge", "documents")
+        End If
+        Return BundledDocuments.Materialize(name, cache)
     End Function
 
     Private Sub OpenAboutDocument(sender As Object, e As RoutedEventArgs)
