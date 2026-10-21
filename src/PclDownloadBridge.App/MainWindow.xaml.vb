@@ -287,6 +287,7 @@ Partial Public Class MainWindow
         VerifyComponentSummary(check, artifactDirectory)
         VerifyVersionFormatUi(check, artifactDirectory)
         VerifyLoaderBoundaryUi(check, artifactDirectory)
+        VerifyForgeRefreshUi(check, artifactDirectory)
         VerifyDeveloper(check, artifactDirectory)
         VerifyAppearance(check, artifactDirectory)
         VerifyAbout(check, artifactDirectory)

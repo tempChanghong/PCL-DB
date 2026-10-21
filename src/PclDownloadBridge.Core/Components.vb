@@ -174,15 +174,16 @@ Public Class ComponentCatalog
                     "https://maven.minecraftforge.net/net/minecraftforge/forge/maven-metadata.xml",
                     "https://bmclapi2.bangbang93.com/forge/minecraft/" & Uri.EscapeDataString(mc.Replace("-", "_")), token,
                     Function(body) ParseForgeMetadata(body, mc)).ConfigureAwait(False)
+                Dim coordinates As New HashSet(Of String)(StringComparer.Ordinal)
                 If data IsNot Nothing Then
                     For Each item In data
                         Dim file = item("files").FirstOrDefault(Function(f) CStr(f("category")) = "installer" AndAlso CStr(f("format")) = "jar")
                         If file Is Nothing Then Continue For
-                        Dim version = CStr(item("version"))
-                        Dim branch = CStr(item("branch"))
-                        Dim coordinate = mc.Replace("-", "_") & "-" & version & If(String.IsNullOrWhiteSpace(branch), "", "-" & branch)
+                        Dim release = ForgeRelease.Parse(CStr(item("version")), CStr(item("branch")), mc)
+                        If release Is Nothing OrElse Not coordinates.Add(release.FileVersion) Then Continue For
+                        Dim coordinate = mc.Replace("-", "_") & "-" & release.FileVersion
                         Dim checksum = CStr(file("hash"))
-                        result.Add(New ComponentEntry With {.Kind = kind, .Minecraft = mc, .Version = version, .Url = "https://maven.minecraftforge.net/net/minecraftforge/forge/" & coordinate & "/forge-" & coordinate & "-installer.jar", .Sha1 = If(checksum?.Length = 40, checksum, Nothing), .Md5 = If(checksum?.Length = 32, checksum, Nothing), .Data = DirectCast(item, JObject)})
+                        result.Add(New ComponentEntry With {.Kind = kind, .Minecraft = mc, .Version = release.VersionName, .Url = "https://maven.minecraftforge.net/net/minecraftforge/forge/" & coordinate & "/forge-" & coordinate & "-installer.jar", .Sha1 = If(checksum?.Length = 40, checksum, Nothing), .Md5 = If(checksum?.Length = 32, checksum, Nothing), .Data = DirectCast(item, JObject)})
                     Next
                 End If
                 result = result.OrderByDescending(Function(v) SortKey(v.Version), StringComparer.Ordinal).ToList()
@@ -224,7 +225,9 @@ Public Class ComponentCatalog
         Dim result As New JArray()
         Dim game = mc.Replace("-", "_")
         For Each value In xml.Descendants("version").Select(Function(x) x.Value).Where(Function(v) v.StartsWith(game & "-", StringComparison.Ordinal))
-            result.Add(New JObject From {{"version", value.Substring(game.Length + 1)}, {"files", New JArray(New JObject From {{"category", "installer"}, {"format", "jar"}})}})
+            Dim release = ForgeRelease.Parse(value.Substring(game.Length + 1), Nothing, mc)
+            If release Is Nothing Then Continue For
+            result.Add(New JObject From {{"version", release.VersionName}, {"branch", release.Branch}, {"files", New JArray(New JObject From {{"category", "installer"}, {"format", "jar"}})}})
         Next
         Return result
     End Function

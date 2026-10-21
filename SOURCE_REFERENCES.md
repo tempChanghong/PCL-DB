@@ -6,6 +6,13 @@
 
 开发时实际阅读了以下代码；以下对应关系说明实际实现依据，并非只参考界面截图。
 
+## 0.56 Forge 文件坐标与刷新
+
+- 实际重读固定 ModDownload.vb 的 DlForgeVersionEntry（约 587–640 行）、官方 HTML 分支提取（约 697 行）与 BMCLAPI 文件类型/分支读取（约 743–787 行），并通过固定 Git 对象再次核对构造器。PCL 将 VersionName 与 FileVersion 分开，强制修正 11.15.1.2318、11.15.1.1902、11.15.1.1890 的 1.8.9 分支，并为缺少分支的 1.7.10 revision >=1300 补后缀。
+- 新增 ForgeRelease，官方 Maven XML 与 BMCLAPI 都通过同一映射生成纯数字显示版本和完整文件坐标；版本排序、OptiFine 要求与自动命名只用显示版本，URL 保留分支。官方仍沿用本项目的 Maven XML 入口，不声称移植了 PCL 的完整 HTML/推荐版本解析；可用 SHA1/MD5 元数据沿用现有校验流程。
+- 按修正后的文件坐标去重，过滤无效数字和不能用于单段 Maven 路径的分支；空白分支视为缺失是本项目适配。Forge 刷新同时匹配版本号和规范化安装器 URL，分支不在新列表时保留选择并阻止安装；这一刷新保护为本项目稳健性补全。仍只列出 installer.jar，不将 universal/client ZIP 加入当前安装流程。
+- 18 项核心用例通过实际 Catalog、下载引擎和旧版安装器解包路径，6 项实际 WPF 用例覆盖命名、OptiFine 选择及刷新、缺失/恢复和清除。全部使用合成文件与回环端点；字体、控件模板和卡片几何保持。
+
 ## 0.55 加载器的版本边界
 
 - 实际通过固定 Git 对象重读 `PCLCS/Minecraft/MCUtils.cs` 的 CompareVersion，以及 `McVersion.cs` 的 NameToVersion / VersionToDrop；对照 PageDownloadInstall 中 VanillaDrop、Fabric/LiteLoader 显示条件及 OptiFine 的 Forge、Fabric 兼容区间。原 CompareMc 遇到预发布后缀退回字符串排序，导致 1.9-pre1、1.20.4-pre1 等边界误判。

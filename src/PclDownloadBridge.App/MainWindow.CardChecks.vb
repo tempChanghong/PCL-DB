@@ -18,6 +18,7 @@ Partial Public Class MainWindow
         VerifyComponentSummary(check, artifactDirectory)
         VerifyVersionFormatUi(check, artifactDirectory)
         VerifyLoaderBoundaryUi(check, artifactDirectory)
+        VerifyForgeRefreshUi(check, artifactDirectory)
         Return checks
     End Function
 

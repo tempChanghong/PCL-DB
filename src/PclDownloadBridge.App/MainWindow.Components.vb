@@ -150,7 +150,9 @@ Partial Public Class MainWindow
         If Not _busy Then
             Dim selected = _componentSelection.Item(kind)
             If selected IsNot Nothing Then
-                Dim replacement = versions.FirstOrDefault(Function(candidate) candidate.Kind = kind AndAlso candidate.Minecraft = entry.Id AndAlso String.Equals(candidate.Version, selected.Version, StringComparison.Ordinal))
+                Dim replacement = versions.FirstOrDefault(Function(candidate) candidate.Kind = kind AndAlso candidate.Minecraft = entry.Id AndAlso
+                    String.Equals(candidate.Version, selected.Version, StringComparison.Ordinal) AndAlso
+                    (kind <> ComponentKind.Forge OrElse String.Equals(candidate.Url, selected.Url, StringComparison.Ordinal)))
                 If replacement Is Nothing Then
                     _unresolvedComponents.Add(kind)
                 Else

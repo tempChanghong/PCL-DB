@@ -1,6 +1,16 @@
 # 本地验证记录
 
-日期：2026-10-21（北京时间）。当前交付为 0.55 预览版 PCL-DB（PCL Download Bridge），包含 Visual Studio 2026 开发配置；下方保留先前版本的验证记录。
+日期：2026-10-21（北京时间）。当前交付为 0.56 预览版 PCL-DB（PCL Download Bridge），包含 Visual Studio 2026 开发配置；下方保留先前版本的验证记录。
+
+## 0.56 Forge 分支与安装器
+
+- 修改前保存 `artifacts/bridge-0.56/source-before.zip`。实际 Catalog 复现历史分支缺失后生成不正确的 URL，见 forge-before.log；实际 WPF 刷新复现同版本号被替换成另一分支，在原 98 项加两项新检查后失败，见 before/checks.json。
+- 对照固定 PCL 构造器补齐历史分支，官方及 BMCLAPI 共用显示版本/文件坐标映射；保留 pre4 到 _pre4 的 Maven 路径与原始 Minecraft 身份。新增 18 项核心检查覆盖归一化、去重、排序、OptiFine 要求、历史分支、SHA1/MD5 字段及实际回环安装与损坏校验。新增 6 项界面检查覆盖真实行点击、自动名称、同号不同分支的刷新保护、恢复和清除；104 项专项卡片检查通过。
+- 第一版本地安装样本未在启动配置声明内嵌运行库，库按当前运行计划未发布，失败保留于 fixture-missing-library.log；补齐合成启动配置的运行库声明及大小/SHA1 后通过，未为迁就样本而改动发布运行库的产品逻辑。最终专项结果为 forge-fixed.log 与 after/checks.json，离屏图为 after/forge-branch-refresh.png。
+- 最终 Release 构建零警告、零错误；完整核心 660 项（新增 18 项）、完整界面 658 项（新增 6 项）、固定 PCL 对照 16 项及打包 19 项通过，日志为 full-build.log。VS 2026 Debug 构建、便携 PDB、关闭优化及现行启动配置通过：核心精选 284 项，完整界面 658 项；外观 129、开发者 36、卡片 104、导航 31、设置兼容 49 为界面子集，不重复累加。新增 Forge Versions 启动配置，最终报告为 vs2026-report.json。
+- 正式候选在提交后重新构建，程序集 ProductVersion 核对为 0.56.0 加实际提交 SHA，见 committed-build.log 和 published.json；相同功能源码的完整回归不重复计数。最终 `dist/PCL-DB-0.56-preview.zip` 按显式候选核对 11 个文件，并核对公开下载 SHA256，见 final-package.json / final-package-verification.json；旧版 ZIP 保留。
+- 七个参考仓库的提交和原有修改状态保持；固定 44 份参考源码、12 项资源及原控件 XAML 检查通过。
+- 本轮使用回环 HTTP 和合成旧版安装器验证真实代码路径，未下载真实 Forge 安装器或启动 Minecraft，不作为历史版本联网安装或性能比较的验收。未人工在 VS IDE 内按 F5 命中断点。
 
 ## 0.55 加载器预发布边界
 
