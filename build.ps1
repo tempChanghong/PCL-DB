@@ -9,13 +9,13 @@ try {
         & '.\tests\PclDownloadBridge.Tests\bin\Release\net48\PclDownloadBridge.Tests.exe'
         if ($LASTEXITCODE -ne 0) { throw 'Fixture checks failed.' }
         New-Item -ItemType Directory -Path artifacts -Force | Out-Null
-        & '.\src\PclDownloadBridge.App\bin\Release\net48\PclDownloadBridge.exe' --ui-checks artifacts/ui-checks-0.57.json | Out-Null
+        & '.\src\PclDownloadBridge.App\bin\Release\net48\PclDownloadBridge.exe' --ui-checks artifacts/ui-checks.json | Out-Null
         if ($LASTEXITCODE -ne 0) { throw 'UI workflow checks failed.' }
-        $uiChecks = Get-Content -LiteralPath artifacts/ui-checks-0.57.json -Raw | ConvertFrom-Json
+        $uiChecks = Get-Content -LiteralPath artifacts/ui-checks.json -Raw | ConvertFrom-Json
         if (!$uiChecks.Succeeded -or $uiChecks.Scope -ne 'all' -or $uiChecks.Count -ne 658) { throw 'UI workflow checks failed.' }
-        & '.\src\PclDownloadBridge.App\bin\Release\net48\PclDownloadBridge.exe' --motion-checks artifacts/motion-checks-0.57.json | Out-Null
+        & '.\src\PclDownloadBridge.App\bin\Release\net48\PclDownloadBridge.exe' --motion-checks artifacts/motion-checks.json | Out-Null
         if ($LASTEXITCODE -ne 0) { throw 'Motion checks failed.' }
-        $motion = Get-Content -LiteralPath artifacts/motion-checks-0.57.json -Raw | ConvertFrom-Json
+        $motion = Get-Content -LiteralPath artifacts/motion-checks.json -Raw | ConvertFrom-Json
         if (!$motion.Succeeded -or $motion.Scope -ne 'motion' -or $motion.Count -ne 328) { throw 'Motion checks failed.' }
     }
     if ($Package) {

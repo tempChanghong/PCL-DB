@@ -100,15 +100,15 @@ F9 切换断点，F10 逐过程，F11 逐语句。`Directory.Build.props` 明确
 
 报告写入 `artifacts/vs2026/report.json`，编译和各配置日志在同一目录。脚本读取上面的真实启动配置，并按其工作目录、参数启动 Debug 产物；只执行离线配置。它验证 VS 所用 MSBuild、符号文件和运行入口，**不等于已在 IDE 中按 F5 并命中断点**，这一项保留为人工验收。
 
-0.57 中全量界面配置包含 658 项检查，Appearance Checks 单独运行其中 129 项，Card Checks 单独运行其中 104 项（含 Forge 新编号与预发布版本的显示、选择和空状态），Navigation Checks 单独运行其中 31 项，Settings Compatibility 单独运行其中 49 项，不能相加为独立用例数。主题检查不依赖此前显示过任务页；动画检查使用可暂停/定位的实际 WPF 时钟，不以固定睡眠时间判定动画是否完成。失败仍返回非零退出码，JSON 保留 `Succeeded=false`、`Count`、已经通过的 `Passed`、`FailedCheck` 和异常堆栈。检查不自动重跑，调试时可直接在失败位置设置断点。
+Beta 1.0 中全量界面配置包含 658 项检查，Appearance Checks 单独运行其中 129 项，Card Checks 单独运行其中 104 项（含 Forge 新编号与预发布版本的显示、选择和空状态），Navigation Checks 单独运行其中 31 项，Settings Compatibility 单独运行其中 49 项，不能相加为独立用例数。独立 Motion Checks 包含 328 项。主题检查不依赖此前显示过任务页；动画检查使用可暂停/定位的实际 WPF 时钟，不以固定睡眠时间判定动画是否完成。失败仍返回非零退出码，JSON 保留 `Succeeded=false`、`Count`、已经通过的 `Passed`、`FailedCheck` 和异常堆栈。检查不自动重跑，调试时可直接在失败位置设置断点。
 
 Copy Fallback 的文件占用样本使用 Windows NTFS 辅助数据流，默认临时目录需支持 NTFS 数据流。取消样本只在控制台进程内暂时注册受控 SHA-1 提供程序，在真实哈希计算结束处请求取消，并在 Finally 恢复原映射；应用程序与便携包不包含这个提供程序。
 
-当前源码为尚未发布的 0.57 开发版，已有 `.vs` / `.suo` 用户状态继续保留；共享配置使用源码中的启动配置文件。`build.ps1` 默认构建和验证；明确要求打包时才使用 `build.ps1 -Package`，发布另行处理。
+当前源码版本为 Beta 1.0（`1.0.0-beta.1`），已有 `.vs` / `.suo` 用户状态继续保留；共享配置使用源码中的启动配置文件。`build.ps1` 默认构建和验证；明确要求打包时才使用 `build.ps1 -Package`，发布另行处理。
 
 单 EXE 验证单独执行 `tools/verify-single-exe.ps1`。该工具以 `PclDbSingleExecutable=true` 构建 App，并使用本次独立的 MSBuild artifacts 路径，不覆盖默认 bin/obj 或现有 VS 输出；候选只含一个 EXE，仍依赖系统 .NET Framework 4.8。它运行 25 项单文件检查及 658 项预览界面检查，验证实际资源和字体加载、文档回退、程序集身份与并发加载、长路径及回环下载。普通 F5 继续使用多文件 Debug 与便携 PDB，不需要手动移动 DLL 或修改启动项目；验证器不会生成发布 ZIP 或更新 dist。
 
-显式 `build.ps1 -Package` 现已接入上述独立候选，生成单 EXE、九文件 ZIP 和构建清单。候选报告包含完整 Git 提交、源码摘要、工作区改动状态、SDK 及 EXE ProductVersion 校验；源码或文档变化后必须重新验证。`-SkipTests -Package` 仍执行 25/658 项候选验收。普通构建/F5 不增加打包动作，具体资产核对命令见 README。
+显式 `build.ps1 -Package` 现已接入上述独立候选，生成单 EXE、九文件 ZIP 和构建清单。候选报告包含完整 Git 提交、源码摘要、工作区改动状态、SDK 及 EXE ProductVersion 校验；源码或文档变化后必须重新验证。`-SkipTests -Package` 仍执行 25/658/328 项单文件、界面及动画候选验收。v2 清单保留 Beta 发布标识和三组验收结果。普通构建/F5 不增加打包动作，具体资产核对命令见 README。
 
 ## 配置依据
 

@@ -49,7 +49,7 @@ try {
     Copy-Item -LiteralPath $executables[0].FullName -Destination $candidate
     $candidateHash = (Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash
     $version = [Reflection.AssemblyName]::GetAssemblyName($candidate).Version.ToString(3)
-    if ([Diagnostics.FileVersionInfo]::GetVersionInfo($candidate).ProductVersion -cne ($version + '+' + $source.Commit)) { throw 'EXE product version does not identify the inspected source commit.' }
+    $releaseVersion = Get-PclDbReleaseVersion $version ([Diagnostics.FileVersionInfo]::GetVersionInfo($candidate).ProductVersion) $source.Commit
     $standalone = Invoke-IsolatedCheck '--standalone-checks' 'standalone' 25
     $embedded = Get-Content -LiteralPath (Join-Path $operation 'embedded-content.json') -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($embedded.Assemblies.Count -ne 2 -or $embedded.Documents.Count -ne 7) { throw 'Incomplete embedded content inventory.' }
@@ -74,7 +74,7 @@ try {
         [pscustomobject]@{Name=$_.Name;Length=$_.Length;SHA256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash}
     })
     Assert-PclDbSourceState $source (Get-PclDbSourceState $root)
-    $result = [ordered]@{Succeeded=$true; PowerShellVersion=$PSVersionTable.PSVersion.ToString(); Version=$version;
+    $result = [ordered]@{Succeeded=$true; PowerShellVersion=$PSVersionTable.PSVersion.ToString(); Version=$version; ReleaseVersion=$releaseVersion;
         StandaloneChecks=$standalone.Count; UiChecks=$ui.Count; MotionChecks=$motion.Count; EmbeddedAssemblies=$embedded.Assemblies; EmbeddedDocuments=$embedded.Documents;
         CandidatePath=$candidate; CandidateSHA256=$candidateHash;
         ColdDirectoryContainsOnlyExe=$true; Source=$source; DotnetSDK=$sdk; PayloadDirectory=$payload; PayloadFiles=$files;

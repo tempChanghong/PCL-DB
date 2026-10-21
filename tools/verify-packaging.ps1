@@ -53,15 +53,14 @@ try {
     Assert-Case (($ordered -join '|') -ceq (($candidate.Source.Files | ForEach-Object Name) -join '|')) 'source inventory uses ordinal ordering across PowerShell hosts'
     $options = @{ProjectRoot=$root;CandidateResultPath=$CandidateResultPath;OutputRoot=$fixture}
     $verify = @{ProjectRoot=$root;CandidateResultPath=$CandidateResultPath}
-    $version = $candidate.Version -replace '\.0$', ''
-    $stem = "PCL-DB-$version-preview"
+    $stem = 'PCL-DB-' + $candidate.ReleaseVersion
     $directory = Join-Path $fixture 'dist/PclDownloadBridge'
     New-Item -ItemType Directory -Path $directory -Force | Out-Null
     [IO.File]::WriteAllText((Join-Path $directory 'legacy-note.txt'), 'previous directory')
     foreach ($suffix in @('.zip','.exe','.build-manifest.json')) { [IO.File]::WriteAllText((Join-Path $fixture ('dist/' + $stem + $suffix)), ('previous ' + $suffix)) }
     $first = New-PclDbPackage @options
     Assert-Case ($first.Succeeded -and $first.FileCount -eq 9) 'package contains one EXE, seven documents and one manifest'
-    Assert-Case ($first.PackagePath -eq (Join-Path $fixture ('dist/' + $stem + '.zip'))) 'zero patch version retains established archive naming'
+    Assert-Case ($first.PackagePath -eq (Join-Path $fixture ('dist/' + $stem + '.zip'))) 'archive naming preserves the complete release version and channel'
     Assert-Case (!(Test-Path -LiteralPath (Join-Path $directory 'legacy-note.txt'))) 'old directory leftovers are excluded'
     Assert-Case ((Get-ChildItem -LiteralPath $first.BackupDirectory -Force).Count -eq 4 -and [IO.File]::ReadAllText((Join-Path $first.BackupDirectory ($stem + '.exe'))) -eq 'previous .exe') 'all four previous outputs are backed up'
     $report = Test-PclDbPackage @verify -PackagePath $first.PackagePath -DistributionPath $directory -StandalonePath $first.StandalonePath -ManifestPath $first.ManifestPath
@@ -70,10 +69,21 @@ try {
     Assert-Case ($report.Build.DotnetSDK -eq $candidate.DotnetSDK -and $report.Build.Framework -eq 'net48') 'manifest identifies SDK and runtime'
     $independent = Test-PclDbPackage -ProjectRoot $root -PackagePath $first.PackagePath
     Assert-Case (!$independent.CandidateVerified -and $independent.Succeeded) 'archive-only verification is explicitly distinguished from candidate provenance validation'
+    Assert-Case ((Get-PclDbReleaseVersion '1.0.0' ('1.0.0-beta.1+' + $candidate.Source.Commit) $candidate.Source.Commit) -ceq '1.0.0-beta.1') 'beta informational identity retains the numeric assembly version'
+    Assert-Rejected { Get-PclDbReleaseVersion '1.0.0' ('1.0.0-beta.1+wrong') $candidate.Source.Commit } 'product version' 'wrong source identity cannot become a release version'
     $zip = [IO.Compression.ZipFile]::OpenRead($first.PackagePath)
     try { Assert-Case (@($zip.Entries | Where-Object { $_.FullName -match '\.(dll|config|pdb)$' }).Count -eq 0) 'archive excludes DLL, config and PDB sidecars' } finally { $zip.Dispose() }
 
     $bad = Join-Path $fixture 'candidate.zip'
+    Copy-Item -LiteralPath $first.PackagePath -Destination $bad
+    Edit-Zip $bad { param($zip) Edit-Manifest $zip { param($manifest) $manifest.Verification.MotionChecks = 0 } }
+    Assert-Rejected { Test-PclDbPackage @verify -PackagePath $bad } 'Invalid build manifest' 'a package with failed motion verification is rejected'
+    Copy-Item -LiteralPath $first.PackagePath -Destination $bad -Force
+    Edit-Zip $bad { param($zip) Edit-Manifest $zip { param($manifest) $manifest.Verification.PSObject.Properties.Remove('MotionChecks') } }
+    Assert-Rejected { Test-PclDbPackage @verify -PackagePath $bad } 'Invalid build manifest' 'a package missing motion verification is rejected'
+    Copy-Item -LiteralPath $first.PackagePath -Destination $bad -Force
+    Edit-Zip $bad { param($zip) Edit-Manifest $zip { param($manifest) $manifest.ReleaseVersion = $manifest.Version + '-beta.999' } }
+    Assert-Rejected { Test-PclDbPackage @verify -PackagePath $bad } 'selected candidate source' 'a package cannot silently change the selected beta release identity'
     Copy-Item -LiteralPath $first.PackagePath -Destination $bad
     Edit-Zip $bad { param($zip) $null = $zip.CreateEntry('PclDownloadBridge/extra.txt') }
     Assert-Rejected { Test-PclDbPackage @verify -PackagePath $bad } 'exactly 9' 'extra ZIP entries are rejected'
@@ -98,7 +108,7 @@ try {
     Edit-Zip $bad { param($zip) Edit-Manifest $zip { param($manifest) $manifest.Files[0] = $manifest.Files[1] } }
     Assert-Rejected { Test-PclDbPackage @verify -PackagePath $bad } 'file inventory' 'duplicate manifest file declarations are rejected'
     Copy-Item -LiteralPath $first.PackagePath -Destination $bad -Force
-    Edit-Zip $bad { param($zip) Edit-Manifest $zip { param($manifest) $manifest.Version = '99.0.0' } }
+    Edit-Zip $bad { param($zip) Edit-Manifest $zip { param($manifest) $manifest.Version = '99.0.0'; $manifest.ReleaseVersion = '99.0.0-beta.1' } }
     Assert-Rejected { Test-PclDbPackage @verify -PackagePath $bad } 'selected candidate source' 'valid-looking but incorrect version provenance is rejected'
     Copy-Item -LiteralPath $first.PackagePath -Destination $bad -Force
     Edit-Zip $bad { param($zip) Edit-Manifest $zip { param($manifest) $manifest.Build.SourceCommit = ('0' * 40) } }
@@ -112,6 +122,18 @@ try {
     Assert-Rejected { Test-PclDbPackage @verify -PackagePath $first.PackagePath -ManifestPath $badExe } 'Separate asset differs' 'separate manifest must match the ZIP byte for byte'
 
     $copy = Join-Path $fixture 'payload-copy'
+    $variantPath = Join-Path $fixture 'invalid-verification.json'
+    foreach ($mode in @('zero','missing','release')) {
+        $invalid = Get-Content -LiteralPath $CandidateResultPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        switch ($mode) {
+            'zero' { $invalid.MotionChecks = 0 }
+            'missing' { $invalid.PSObject.Properties.Remove('MotionChecks') }
+            'release' { $invalid.ReleaseVersion = '99.0.0-beta.1' }
+        }
+        $invalid | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $variantPath -Encoding UTF8
+        $expected = if ($mode -eq 'release') { 'release version mismatch' } else { 'Invalid single EXE' }
+        Assert-Rejected { Test-PclDbCandidate -ProjectRoot $root -CandidateResultPath $variantPath } $expected ('candidate rejects invalid verification identity: ' + $mode)
+    }
     New-Item -ItemType Directory -Path $copy | Out-Null
     foreach ($file in $candidate.PayloadFiles) { Copy-Item -LiteralPath (Join-Path $candidate.PayloadDirectory $file.Name) -Destination $copy }
     $variant = Get-Content -LiteralPath $CandidateResultPath -Raw -Encoding UTF8 | ConvertFrom-Json

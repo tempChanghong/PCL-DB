@@ -64,11 +64,20 @@ function Assert-PclDbSourceState([object]$Expected, [object]$Actual) {
     }
 }
 
+function Get-PclDbReleaseVersion([string]$Version, [string]$ProductVersion, [string]$Commit) {
+    $pattern = '^' + [regex]::Escape($Version) + '(?:-(?:alpha|beta|rc)\.[1-9]\d*)?\+' + [regex]::Escape($Commit) + '$'
+    if ($Version -notmatch '^\d+\.\d+\.\d+$' -or $Commit -notmatch '^[0-9a-f]{40}$' -or $ProductVersion -cnotmatch $pattern) {
+        throw 'EXE product version does not identify the release and inspected source commit.'
+    }
+    return $ProductVersion.Substring(0, $ProductVersion.IndexOf('+'))
+}
+
 function Test-PclDbCandidate {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$ProjectRoot, [Parameter(Mandatory)][string]$CandidateResultPath)
     $result = Get-Content -LiteralPath $CandidateResultPath -Raw -Encoding UTF8 | ConvertFrom-Json
-    if (!$result.Succeeded -or $result.StandaloneChecks -ne 25 -or $result.UiChecks -ne 658 -or
+    if (!$result.PSObject.Properties['MotionChecks'] -or !$result.PSObject.Properties['ReleaseVersion'] -or
+        !$result.Succeeded -or $result.StandaloneChecks -ne 25 -or $result.UiChecks -ne 658 -or $result.MotionChecks -ne 328 -or
         !$result.ColdDirectoryContainsOnlyExe -or $result.Version -notmatch '^\d+\.\d+\.\d+$' -or
         $result.Source.Commit -notmatch '^[0-9a-f]{40}$' -or $result.Source.InventorySHA256 -notmatch '^[0-9A-F]{64}$') { throw 'Invalid single EXE candidate report.' }
     Assert-PclDbSourceState $result.Source (Get-PclDbSourceState $ProjectRoot)
@@ -83,7 +92,8 @@ function Test-PclDbCandidate {
             (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -cne $file.SHA256) { throw "Candidate bytes changed: $($file.Name)" }
         if ($file.Name -eq 'PCL-DB.exe') {
             if ($file.SHA256 -cne $result.CandidateSHA256 -or [Reflection.AssemblyName]::GetAssemblyName($path).Version.ToString(3) -ne $result.Version) { throw 'Candidate EXE identity mismatch.' }
-            if ([Diagnostics.FileVersionInfo]::GetVersionInfo($path).ProductVersion -cne ($result.Version + '+' + $result.Source.Commit)) { throw 'Candidate EXE source commit mismatch.' }
+            $releaseVersion = Get-PclDbReleaseVersion $result.Version ([Diagnostics.FileVersionInfo]::GetVersionInfo($path).ProductVersion) $result.Source.Commit
+            if ($releaseVersion -cne $result.ReleaseVersion) { throw 'Candidate EXE release version mismatch.' }
         } else {
             $embedded = @($result.EmbeddedDocuments | Where-Object Name -CEQ $file.Name)
             if ($embedded.Count -ne 1 -or $embedded[0].SHA256 -cne $file.SHA256) { throw 'Candidate document does not match embedded bytes.' }
@@ -93,4 +103,4 @@ function Test-PclDbCandidate {
     return $result
 }
 
-Export-ModuleMember -Function Get-PclDbSourceState, Assert-PclDbSourceState, Test-PclDbCandidate
+Export-ModuleMember -Function Get-PclDbSourceState, Assert-PclDbSourceState, Get-PclDbReleaseVersion, Test-PclDbCandidate

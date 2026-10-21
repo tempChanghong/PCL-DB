@@ -25,11 +25,15 @@ function Assert-OutputChild([string]$Root, [string]$Path) {
 }
 
 function Assert-BuildManifest([object]$Manifest) {
-    if ($Manifest.Format -cne 'PCL-DB-single-exe/v1' -or $Manifest.Version -notmatch '^\d+\.\d+\.\d+$' -or
+    if ($Manifest.Format -cne 'PCL-DB-single-exe/v2' -or !$Manifest.PSObject.Properties['ReleaseVersion'] -or
+        !$Manifest.Verification.PSObject.Properties['MotionChecks'] -or
+        $Manifest.Version -notmatch '^\d+\.\d+\.\d+$' -or
+        $Manifest.ReleaseVersion -cnotmatch ('^' + [regex]::Escape($Manifest.Version) + '(?:-(?:alpha|beta|rc)\.[1-9]\d*)?$') -or
         $Manifest.Build.SourceCommit -notmatch '^[0-9a-f]{40}$' -or $Manifest.Build.InventorySHA256 -notmatch '^[0-9A-F]{64}$' -or
         $Manifest.Build.Configuration -cne 'Release' -or $Manifest.Build.Framework -cne 'net48' -or
         $Manifest.Build.Dirty -isnot [bool] -or $Manifest.Build.SingleExecutable -isnot [bool] -or !$Manifest.Build.SingleExecutable -or
-        $Manifest.Verification.StandaloneChecks -ne 25 -or $Manifest.Verification.UiChecks -ne 658 -or $Manifest.Files.Count -ne 8) { throw 'Invalid build manifest.' }
+        $Manifest.Verification.StandaloneChecks -ne 25 -or $Manifest.Verification.UiChecks -ne 658 -or
+        $Manifest.Verification.MotionChecks -ne 328 -or $Manifest.Files.Count -ne 8) { throw 'Invalid build manifest.' }
     $seen = @{}
     foreach ($file in $Manifest.Files) {
         if ($file.Name -cnotin $script:PayloadNames -or $seen.ContainsKey($file.Name) -or $file.Length -le 0 -or $file.SHA256 -notmatch '^[0-9A-F]{64}$') { throw 'Invalid build manifest file inventory.' }
@@ -83,7 +87,7 @@ function Test-PclDbPackage {
     } finally { $zip.Dispose() }
     if ($CandidateResultPath) {
         $candidate = Test-PclDbCandidate -ProjectRoot $ProjectRoot -CandidateResultPath $CandidateResultPath
-        if ($manifest.Version -ne $candidate.Version -or $manifest.Build.SourceCommit -cne $candidate.Source.Commit -or
+        if ($manifest.Version -ne $candidate.Version -or $manifest.ReleaseVersion -cne $candidate.ReleaseVersion -or $manifest.Build.SourceCommit -cne $candidate.Source.Commit -or
             $manifest.Build.SourceBranch -cne $candidate.Source.Branch -or $manifest.Build.Dirty -ne $candidate.Source.Dirty -or
             $manifest.Build.InventorySHA256 -cne $candidate.Source.InventorySHA256 -or $manifest.Build.DotnetSDK -cne $candidate.DotnetSDK) { throw 'Manifest differs from the selected candidate source.' }
         foreach ($file in $candidate.PayloadFiles) {
@@ -106,7 +110,7 @@ function Test-PclDbPackage {
         }
     }
     [pscustomobject]@{
-        Succeeded=$true;Version=$manifest.Version;PackagePath=$PackagePath;PackageSHA256=(Get-FileHash -LiteralPath $PackagePath -Algorithm SHA256).Hash
+        Succeeded=$true;Version=$manifest.Version;ReleaseVersion=$manifest.ReleaseVersion;PackagePath=$PackagePath;PackageSHA256=(Get-FileHash -LiteralPath $PackagePath -Algorithm SHA256).Hash
         StandalonePath=$StandalonePath;StandaloneSHA256=$expected['PCL-DB.exe'].SHA256;ManifestPath=$ManifestPath;ManifestSHA256=$manifestHash
         DistributionPath=$DistributionPath;FileCount=9;Files=@($expected.Values | Sort-Object Name);Build=$manifest.Build
         CandidateVerified=[bool]$CandidateResultPath
@@ -145,15 +149,14 @@ function New-PclDbPackage {
         New-Item -ItemType Directory -Path $stage -Force | Out-Null
         foreach ($file in $candidate.PayloadFiles) { Copy-Item -LiteralPath (Join-Path $candidate.PayloadDirectory $file.Name) -Destination (Join-Path $stage $file.Name) }
         $manifest = [ordered]@{
-            Format='PCL-DB-single-exe/v1';Version=$candidate.Version
+            Format='PCL-DB-single-exe/v2';Version=$candidate.Version;ReleaseVersion=$candidate.ReleaseVersion
             Build=[ordered]@{SourceCommit=$candidate.Source.Commit;SourceBranch=$candidate.Source.Branch;Dirty=$candidate.Source.Dirty;InventorySHA256=$candidate.Source.InventorySHA256
                 DotnetSDK=$candidate.DotnetSDK;Configuration='Release';Framework='net48';SingleExecutable=$true}
-            Verification=[ordered]@{StandaloneChecks=$candidate.StandaloneChecks;UiChecks=$candidate.UiChecks}
+            Verification=[ordered]@{StandaloneChecks=$candidate.StandaloneChecks;UiChecks=$candidate.UiChecks;MotionChecks=$candidate.MotionChecks}
             EmbeddedAssemblies=$candidate.EmbeddedAssemblies;Files=$candidate.PayloadFiles
         }
         $manifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $stage 'build-manifest.json') -Encoding UTF8
-        $packageVersion = $candidate.Version -replace '\.0$', ''
-        $stem = "PCL-DB-$packageVersion-preview"
+        $stem = 'PCL-DB-' + $candidate.ReleaseVersion
         $stageZip = Join-Path $operation ($stem + '.zip')
         $stageExe = Join-Path $operation ($stem + '.exe')
         $stageManifest = Join-Path $operation ($stem + '.build-manifest.json')
