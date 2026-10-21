@@ -232,7 +232,7 @@ Public Class ComponentCatalog
                 If hash Is Nothing OrElse hash.Type = JTokenType.Null Then Continue For
                 If hash.Type <> JTokenType.String Then Throw New InvalidDataException("Forge 安装器校验字段格式无效。")
                 Dim checksum = CStr(hash).Trim()
-                If checksum.Length > 0 AndAlso Not ForgeInstallerChecksum.IsChecksum(checksum) Then Throw New InvalidDataException("Forge 安装器校验字段格式无效。")
+                If checksum.Length > 0 AndAlso Not ForgelikeInstallerChecksum.IsChecksum(checksum) Then Throw New InvalidDataException("Forge 安装器校验字段格式无效。")
                 file("hash") = checksum
             Next
         Next

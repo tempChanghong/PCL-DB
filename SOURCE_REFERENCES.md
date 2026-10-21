@@ -6,6 +6,12 @@
 
 开发时实际阅读了以下代码；以下对应关系说明实际实现依据，并非只参考界面截图。
 
+## 0.57 NeoForge 安装器校验补全
+
+- 再次通过固定 Git 对象读取 Pages/PageDownload/ModDownloadLib.vb 的 NeoForge 下载分支（约 899–904 行）：安装器沿用 NeoForge.UrlBase 的 neoforge / 旧 forge 坐标，候选为 BMCLAPI Maven 镜像及官方；此处 FileChecker 只设置 64 KiB 最小大小，没有读取 SHA1。本轮补取校验值属于本项目的稳健性增强，不将其描述为 PCL 已有的 NeoForge 校验机制。
+- 原 Forge 校验解析器统一为 ForgelikeInstallerChecksum，Forge / NeoForge 共用同一套已有值检查、所选文件 sidecar 请求、文件选源偏好、取消与错误处理。NeoForge 列表仍不逐条请求哈希，1.20.1 原始 forge 包坐标保持；只在实际安装时补取校验信息，不回写组件列表对象。
+- 17 项 NeoForge 检查复用真实 ComponentInstaller 与回环 HTTP，覆盖 SHA1/MD5、选源回退、下载门控、取消、错误声明、文件不匹配及旧 Maven 坐标；Forge 原 22 项保持。完整安装缓存样本另验证：已有私有安装器缓存不能绕过缺失校验信息，补取有效摘要后可校验复用，失败期间保留已验证的暂存客户端和依赖，成功后释放客户端缓存副本。界面样式与下载并行调度保持。
+
 ## 0.57 Forge 安装器校验信息
 
 - 实际重读固定 ModDownload.vb 的 DlForgeVersionOfficialMain（约 704–728 行）及 DlForgeVersionBmclapiMain，以及 Pages/PageDownload/ModDownloadLib.vb 将 Forge.Hash 传入 FileChecker 的下载路径（约 911、1128 行）：PCL 官方 HTML 提取对应文件 MD5，BMCLAPI 记录 MD5/SHA1。项目现用的 Maven XML 列表不带哈希，因此新增所选文件的校验补全；SHA1/MD5 sidecar 获取是本项目对 Maven 入口的适配，不声称 PCL 采用相同请求路径。

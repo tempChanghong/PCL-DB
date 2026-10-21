@@ -109,11 +109,13 @@ Module ComponentChecks
             verify(File.Exists(Path.Combine(result.InstancePath, "Fabric 测试.jar")), "Fabric install needs no Java even when saved runtime path is unavailable")
             Dim processor = ProcessorJar()
             server.Files("/forge-installer") = InstallerJar(mc, processor, False)
+            server.Files("/forge-installer.sha1") = Utf8(Hash(server.Files("/forge-installer")))
             Dim neo As New ComponentSelection
             neo.Entries(ComponentKind.NeoForge) = New ComponentEntry With {.Kind = ComponentKind.NeoForge, .Minecraft = mc, .Version = "fixture", .Url = server.Url & "/forge-installer"}
             Dim neoResult = Await installer.InstallAsync(entry, root, "NeoForge 处理器测试", {}, Nothing, CancellationToken.None, components:=neo)
             verify(File.ReadAllText(Path.Combine(root, "libraries", "fixture", "patched", "1", "patched-1.jar")) = "patched" AndAlso File.Exists(Path.Combine(neoResult.InstancePath, "NeoForge 处理器测试.json")), "Forge client processors execute with embedded JAR and validate outputs")
             server.Files("/forge-failed") = InstallerJar(mc, processor, True)
+            server.Files("/forge-failed.sha1") = Utf8(Hash(server.Files("/forge-failed")))
             neo.Entries(ComponentKind.NeoForge).Url = server.Url & "/forge-failed"
             Dim failed As Boolean
             Try : Await installer.InstallAsync(entry, root, "failed-loader", {}, Nothing, CancellationToken.None, components:=neo) : Catch ex As IOException : failed = True : End Try

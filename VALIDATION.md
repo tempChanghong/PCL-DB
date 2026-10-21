@@ -2,6 +2,16 @@
 
 日期：2026-10-21（北京时间）。当前源码为尚未发布的 0.57 开发版 PCL-DB（PCL Download Bridge），包含 Visual Studio 2026 开发配置；最新公开预览版为 0.56，下方保留先前版本的验证记录。
 
+## 0.57 NeoForge 校验与缓存
+
+- 修改前保存 `artifacts/bridge-0.57-neoforge/source-before.zip`。原 ComponentInstaller 仅对 Forge 补取校验信息；NeoForge 的实际安装路径未请求 sidecar，新增检查在旧行为下失败，见 before.log。再次核对固定 PCL 的 NeoForge 下载分支：这里只设文件最小大小，本轮属于本项目的校验增强。
+- Forge / NeoForge 共用 ForgelikeInstallerChecksum，在安装器哈希缺失时按文件下载源设置读取 SHA1，来源失败回退，SHA1 均不可用再尝试 MD5；校验信息全部失败则停止。已有值直接验证使用，不修改组件列表对象，不将文件不匹配降级为弱校验。新增 17 项 NeoForge 检查覆盖门控、取消、错误声明、来源回退及旧包坐标，见 fixed.log；Forge 原 22 项通过，见 forge-regression.log。
+- 完整安装缓存样本验证：即使已有私有安装器缓存，没有有效上游摘要也不能继续安装；补取摘要后可复用已验证的缓存，不重复下载。初版缓存断言误将失败后缓存数预期为 2，修正为包含已验证暂存客户端的 3；成功发布后回到 2，未修改产品清理逻辑来迁就测试。两项针对性检查见 cache-fixed.log，处理器正常执行、失败和取消样本同时纳入完整回归。
+- 默认 build.ps1 完成 Release 构建，零警告、零错误；完整核心 699 项（原 682 项加 NeoForge 17 项）、完整界面 658 项及固定 PCL 对照 16 项通过，见 full-build.log / artifacts/ui-checks-0.57.json。界面实现、字体、图标、控件模板和并行下载调度未改。
+- VS 2026 增加 NeoForge Checksums 调试配置。实际 Debug 构建、便携 PDB、关闭优化及所有现行离线启动配置通过：核心精选 323 项、完整界面 658 项；外观 129、开发者 36、卡片 104、导航 31、设置兼容 49 是界面子集。证据为 vs2026-report.json；未人工在 IDE 内按 F5 命中断点。
+- 公网验证调用本轮 Release Core 的校验解析器和实际 DownloadEngine：NeoForge 21.1.77 下载 6,802,724 字节，SHA1 为 e923c2b163c84baf13027e7abe4ef93a595fc1ff；旧包坐标 1.20.1-47.1.106 下载 7,846,890 字节，SHA1 为 0c6074dd66487388258e1bb5d2a962d52080a22c。均按官方优先设置下载，独立计算摘要一致，复用 0、重试 0；报告与被测 Core SHA256 为 live-checksums.json。只下载校验，未执行真实安装器、安装整套 Minecraft 或启动游戏，不作为速度比较。
+- 本轮保持 0.57 开发版，不打包、不建标签、不创建 Release；最新公开预览版仍为 0.56。核对 dist 的 77 个已有文件，内容、修改时间及打包报告目录均未变化，见 no-package.json；首次核对曾因 JSON 日期自动转型误报，按原始日期字符串逐项比较后通过。七个参考仓库的 HEAD 和原有修改状态与上一轮相同，见 upstream-state.json。
+
 ## 0.57 Forge 校验补全
 
 - 修改前保存 `artifacts/bridge-0.57/source-before.zip`。实际 ComponentInstaller 在无校验字段时直接下载，新增所选文件检查在旧行为下失败，见 checksums-before.log。对照 PCL 官方列表提取 MD5 的行为，补齐 Maven XML 入口缺少的安装器校验信息。

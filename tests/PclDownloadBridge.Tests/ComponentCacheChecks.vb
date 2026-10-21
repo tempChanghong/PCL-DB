@@ -88,11 +88,23 @@ Friend Module ComponentCacheChecks
     Private Async Function UnhashedAsync(testRoot As String, passed As List(Of String)) As Task
         Using fixture As New InstallationChecks.InstallFixture(testRoot, "component-cache-unhashed")
             Dim selected = CreateSelection(fixture)
+            Await fixture.InstallAsync("hashed-first", selected)
             selected.Item(ComponentKind.NeoForge).Sha1 = Nothing
-            Await fixture.InstallAsync("unhashed-first", selected)
+            Dim rejected As Boolean
+            Try
+                Await fixture.InstallAsync("unhashed-first", selected)
+            Catch ex As InvalidDataException
+                rejected = True
+            End Try
+            Assert(rejected AndAlso fixture.Server.Requests("/cached-installer") = 1 AndAlso
+                   Not Directory.Exists(Path.Combine(fixture.Root, "versions", "unhashed-first")) AndAlso CacheFiles(fixture.Root).Count = 3,
+                   "missing installer checksums cannot bypass verification through an existing private cache", passed)
+            fixture.Server.Files("/cached-installer.sha1") = Encoding.UTF8.GetBytes(Hash(fixture.Server.Files("/cached-installer")))
+            Dim first = Await fixture.InstallAsync("unhashed-first", selected)
             Dim second = Await fixture.InstallAsync("unhashed-second", selected)
-            Assert(fixture.Server.Requests("/cached-installer") = 2 AndAlso second.NetworkBytes = fixture.Server.Files("/cached-installer").Length, "unhashed installers are fetched again while their hashed dependencies remain reusable", passed)
-            Assert(CacheFiles(fixture.Root).Count = 1 AndAlso Not CacheFiles(fixture.Root).Any(Function(path) File.ReadAllBytes(path).SequenceEqual(fixture.Server.Files("/cached-installer"))), "an unverified URL or filename alone cannot create a persistent content entry", passed)
+            Assert(first.NetworkBytes = 0 AndAlso second.NetworkBytes = 0 AndAlso fixture.Server.Requests("/cached-installer") = 1 AndAlso
+                   CacheFiles(fixture.Root).Count = 2 AndAlso selected.Item(ComponentKind.NeoForge).Sha1 Is Nothing,
+                   "resolved installer checksums enable verified private reuse without mutating catalogue metadata", passed)
         End Using
     End Function
 

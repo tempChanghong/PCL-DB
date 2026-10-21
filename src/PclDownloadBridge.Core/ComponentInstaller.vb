@@ -149,10 +149,9 @@ Public Class ComponentInstaller
     Private Async Function InstallForgelikeAsync(entry As ComponentEntry, metadata As JObject, work As String, clientJar As String, token As CancellationToken) As Task(Of JObject)
         Dim installerRelative = "installers/" & entry.Kind.ToString().ToLowerInvariant() & ".jar"
         Dim download As New DownloadFile With {.RelativePath = installerRelative, .Url = entry.Url, .Sha1 = entry.Sha1, .Md5 = entry.Md5, .Category = "component"}
-        If entry.Kind = ComponentKind.Forge Then
-            If String.IsNullOrWhiteSpace(download.Sha1) AndAlso String.IsNullOrWhiteSpace(download.Md5) Then Emit("components", "读取 Forge 安装器校验信息", "校验信息就绪后下载安装器", 0.05)
-            Await ForgeInstallerChecksum.ResolveAsync(_policy, download, token).ConfigureAwait(False)
-        End If
+        Dim label = ComponentCatalog.Label(entry.Kind)
+        If String.IsNullOrWhiteSpace(download.Sha1) AndAlso String.IsNullOrWhiteSpace(download.Md5) Then Emit("components", "读取 " & label & " 安装器校验信息", "校验信息就绪后下载安装器", 0.05)
+        Await ForgelikeInstallerChecksum.ResolveAsync(_policy, download, token, label).ConfigureAwait(False)
         Await FetchAsync(work, {download}, "下载 " & ComponentCatalog.Label(entry.Kind) & " 安装器", token).ConfigureAwait(False)
         Dim installerPath = SafeFiles.UnderRoot(work, installerRelative)
         Dim profile As JObject, version As JObject
