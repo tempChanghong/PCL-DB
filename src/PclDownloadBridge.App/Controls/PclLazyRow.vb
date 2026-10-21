@@ -39,12 +39,17 @@ Namespace Controls
             If Not IsVisible OrElse RenderSize.Width <= 0 OrElse Parent Is Nothing Then Return
             Dim ancestor = VisualTreeHelper.GetParent(Me)
             While ancestor IsNot Nothing AndAlso Not TypeOf ancestor Is ScrollViewer
+                Dim card = TryCast(ancestor, PclCard)
+                If card IsNot Nothing AndAlso card.HasDeferredBodyRefresh Then Return
                 ancestor = VisualTreeHelper.GetParent(ancestor)
             End While
             Dim scroll = TryCast(ancestor, ScrollViewer)
             If scroll Is Nothing OrElse scroll.ViewportWidth <= 0 OrElse scroll.ViewportHeight <= 0 Then Return
             Dim bounds = TransformToAncestor(scroll).TransformBounds(New Rect(New Point(), RenderSize))
-            If New Rect(0, 0, scroll.ViewportWidth, scroll.ViewportHeight).IntersectsWith(bounds) Then Materialize()
+            If Not New Rect(0, 0, scroll.ViewportWidth, scroll.ViewportHeight).IntersectsWith(bounds) Then Return
+            ' Keep PCL's first-entry behavior, but respect the card's animated clip
+            ' as well as the scroll viewport. A touching edge has no visible pixels.
+            If Not PclExitSnapshot.VisibleBounds(Me, scroll).IsEmpty Then Materialize()
         End Sub
 
         Friend Function Materialize() As PclListItem

@@ -91,7 +91,7 @@ try {
     if (!$navigation.Succeeded -or $navigation.Scope -ne 'navigation' -or $navigation.Count -ne 31 -or $navigation.Count -ne $navigation.Passed.Count) { throw 'The navigation profile did not produce a complete report.' }
     $motionPath = Join-Path $properties[$appProject].TargetDir 'vs-motion-checks.json'
     $motion = Get-Content -LiteralPath $motionPath -Raw | ConvertFrom-Json
-    if (!$motion.Succeeded -or $motion.Scope -ne 'motion' -or $motion.Count -ne 322 -or $motion.Count -ne $motion.Passed.Count) { throw 'The motion profile did not produce a complete report.' }
+    if (!$motion.Succeeded -or $motion.Scope -ne 'motion' -or $motion.Count -ne 328 -or $motion.Count -ne $motion.Passed.Count) { throw 'The motion profile did not produce a complete report.' }
     $compatibilityPath = Join-Path $properties[$appProject].TargetDir 'vs-compatibility-checks.json'
     $compatibility = Get-Content -LiteralPath $compatibilityPath -Raw | ConvertFrom-Json
     if (!$compatibility.Succeeded -or $compatibility.Scope -ne 'compatibility' -or $compatibility.Count -ne 49 -or $compatibility.Count -ne $compatibility.Passed.Count) { throw 'The settings compatibility profile did not produce a complete report.' }

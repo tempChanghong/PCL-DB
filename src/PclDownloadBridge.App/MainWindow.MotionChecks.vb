@@ -39,6 +39,7 @@ Partial Public Class MainWindow
         VerifyListSelectionMotion(directory, check)
         Dim folding As New MainWindow(True)
         folding.VerifyComponentFoldRefresh(directory, check)
+        VerifyClippedLazyRows(check)
         Return passed
     End Function
 
