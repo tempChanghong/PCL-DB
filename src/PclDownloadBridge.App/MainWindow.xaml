@@ -40,7 +40,7 @@
             </Button>
           </StackPanel>
         </Grid>
-        <Grid Grid.Row="1">
+        <Grid x:Name="PageSurface" Grid.Row="1" ClipToBounds="True">
             <Grid x:Name="DownloadPage">
               <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
               <Grid Margin="25,14,25,0" Height="30">
@@ -58,13 +58,13 @@
               </Grid>
               <Grid x:Name="DownloadViewHost" Grid.Row="1" ClipToBounds="True">
               <Grid x:Name="VersionPage">
-              <ScrollViewer x:Name="VersionScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+              <p:PclScrollViewer x:Name="VersionScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                 <StackPanel x:Name="VersionCards" Margin="25,15,25,25" />
-              </ScrollViewer>
+              </p:PclScrollViewer>
               <TextBlock x:Name="EmptyVersions" Text="正在获取 Minecraft 版本列表…" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.7" />
               </Grid>
               <Grid x:Name="InstallPage" Visibility="Collapsed">
-                <ScrollViewer x:Name="InstallScroll" VerticalScrollBarVisibility="Auto">
+                <p:PclScrollViewer x:Name="InstallScroll" VerticalScrollBarVisibility="Auto">
                   <StackPanel Margin="25,15,25,85">
                     <p:PclCard ShowHeader="False" BodyMargin="0" Margin="0,0,0,15">
                       <Grid Height="62">
@@ -91,7 +91,7 @@
                       </StackPanel>
                     </p:PclCard>
                   </StackPanel>
-                </ScrollViewer>
+                </p:PclScrollViewer>
                 <Button x:Name="InstallButton" HorizontalAlignment="Center" VerticalAlignment="Bottom" Height="52" Margin="20" Click="StartInstall" Cursor="Hand" ToolTipService.ShowOnDisabled="True">
                   <Button.Template><ControlTemplate TargetType="Button">
                     <Grid RenderTransformOrigin="0.5,0.5"><Grid.RenderTransform><ScaleTransform/></Grid.RenderTransform>
@@ -107,7 +107,7 @@
                   </ControlTemplate></Button.Template>
                 </Button>
               </Grid>
-            <ScrollViewer x:Name="DownloadProgress" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+            <p:PclScrollViewer x:Name="DownloadProgress" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
               <StackPanel Margin="25,15,25,10">
               <p:PclCard Title="下载任务" VerticalAlignment="Top" BodyMargin="25,40,15,15" HeaderContentMargin="132,0,15,0">
                 <p:PclCard.HeaderContent><p:PclButton Text="返回安装选项" Width="112" Height="27" HorizontalAlignment="Right" Click="ResumeInstallation" /></p:PclCard.HeaderContent>
@@ -146,10 +146,10 @@
                 </StackPanel>
               </p:PclCard>
               </StackPanel>
-            </ScrollViewer>
+            </p:PclScrollViewer>
             </Grid>
             </Grid>
-            <ScrollViewer x:Name="SettingsPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+            <p:PclScrollViewer x:Name="SettingsPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
               <StackPanel x:Name="SettingsContent" Margin="25" Grid.IsSharedSizeScope="True">
                 <StackPanel.Resources><Style x:Key="SettingLabel" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}"><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="HorizontalAlignment" Value="Left"/><Setter Property="Margin" Value="0,0,25,0"/></Style></StackPanel.Resources>
                 <p:PclButton x:Name="AboutEntry" Text="关于 PCL-DB" Width="140" Height="28" HorizontalAlignment="Right" Margin="0,0,0,15" Click="ShowAbout" />
@@ -269,9 +269,9 @@
                 <p:PclButton Text="打开日志文件夹" Width="140" Height="35" HorizontalAlignment="Left" Click="OpenLogs" />
                 <TextBlock Text="PCL-DB · 基于 PCL2 源代码制作的独立下载补全工具，非 PCL 官方发行版。" TextWrapping="Wrap" FontSize="12" Opacity="0.55" Margin="0,15,0,0" />
               </StackPanel>
-            </ScrollViewer>
-            <ScrollViewer x:Name="AboutPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-              <ScrollViewer.Resources>
+            </p:PclScrollViewer>
+            <p:PclScrollViewer x:Name="AboutPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+              <p:PclScrollViewer.Resources>
                 <Style x:Key="AboutPortrait" TargetType="Image">
                   <Setter Property="Width" Value="34"/><Setter Property="Height" Value="34"/><Setter Property="Margin" Value="3"/>
                   <Setter Property="VerticalAlignment" Value="Center"/><Setter Property="RenderOptions.BitmapScalingMode" Value="LowQuality"/>
@@ -282,7 +282,7 @@
                   <Setter Property="CornerRadius" Value="17"/><Setter Property="VerticalAlignment" Value="Center"/>
                   <Setter Property="Background" Value="{DynamicResource ColorBrush7}"/>
                 </Style>
-              </ScrollViewer.Resources>
+              </p:PclScrollViewer.Resources>
               <StackPanel x:Name="AboutContent" Margin="25,10,25,25">
                 <StackPanel Orientation="Horizontal" Height="28" Margin="0,5,0,0">
                   <p:PclIconButton x:Name="AboutBack" Width="24" Height="24" Opacity="0.65" LogoScale="0.87" Click="BackFromAbout" ToolTip="返回设置" AutomationProperties.Name="返回设置" Logo="M1097 584 250 584 562 896C591 925 591 972 562 1001 533 1030 487 1030 458 1001L21 565C6 550-0 531 0 511L0 511 0 511C-0 492 6 472 21 457L458 21C487-7 533-7 562 21 591 50 591 97 562 126L250 438 1097 438C1137 438 1170 471 1170 511 1170 551 1137 584 1097 584L1097 584Z"/>
@@ -341,7 +341,8 @@
                 </StackPanel>
                 <TextBlock x:Name="AboutActionStatus" FontSize="12" Opacity="0.65" TextWrapping="Wrap" Margin="0,0,0,10" AutomationProperties.LiveSetting="Polite"/>
               </StackPanel>
-            </ScrollViewer>
+            </p:PclScrollViewer>
+            <Canvas x:Name="PageGhost" IsHitTestVisible="False" ClipToBounds="True"/>
         </Grid>
       </Grid>
     </Border>

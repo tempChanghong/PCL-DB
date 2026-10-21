@@ -25,7 +25,7 @@ function Invoke-IsolatedCheck([string]$Mode, [string]$Name, [int]$ExpectedCount)
         if ($null -eq $exitCode -or $exitCode -ne 0) { throw "Isolated check failed: $Name (exit $exitCode). See $path" }
     } finally { $process.Dispose() }
     $report = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
-    $scope = if ($Name -eq 'standalone') { 'standalone' } else { 'all' }
+    $scope = if ($Name -eq 'standalone') { 'standalone' } elseif ($Name -eq 'motion') { 'motion' } else { 'all' }
     if (!$report.Succeeded -or $report.Scope -ne $scope -or $report.Count -ne $ExpectedCount -or $report.Passed.Count -ne $ExpectedCount) { throw "Incomplete check report: $path" }
     return $report
 }
@@ -63,6 +63,7 @@ try {
         if ((Get-FileHash -LiteralPath (Join-Path $root $document.Name) -Algorithm SHA256).Hash -ne $document.SHA256) { throw "Embedded documentation differs from source: $($document.Name)" }
     }
     $ui = Invoke-IsolatedCheck '--ui-checks' 'ui' 658
+    $motion = Invoke-IsolatedCheck '--motion-checks' 'motion' 48
     if (@(Get-ChildItem -LiteralPath $cold -Force).Count -ne 1) { throw 'The isolated run left extra files beside the executable.' }
     if ((Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash -cne $candidateHash) { throw 'Candidate changed during isolated verification.' }
     $payload = Join-Path $operation 'payload'
@@ -74,13 +75,13 @@ try {
     })
     Assert-PclDbSourceState $source (Get-PclDbSourceState $root)
     $result = [ordered]@{Succeeded=$true; PowerShellVersion=$PSVersionTable.PSVersion.ToString(); Version=$version;
-        StandaloneChecks=$standalone.Count; UiChecks=$ui.Count; EmbeddedAssemblies=$embedded.Assemblies; EmbeddedDocuments=$embedded.Documents;
+        StandaloneChecks=$standalone.Count; UiChecks=$ui.Count; MotionChecks=$motion.Count; EmbeddedAssemblies=$embedded.Assemblies; EmbeddedDocuments=$embedded.Documents;
         CandidatePath=$candidate; CandidateSHA256=$candidateHash;
         ColdDirectoryContainsOnlyExe=$true; Source=$source; DotnetSDK=$sdk; PayloadDirectory=$payload; PayloadFiles=$files;
         BuildDirectory=$build; ResultPath=(Join-Path $operation 'result.json'); Published=$false; DistributionUpdated=$false}
     $result | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $result.ResultPath -Encoding UTF8
     if ($PassThru) { [pscustomobject]$result } else {
-        Write-Output "PASS single EXE: $($standalone.Count) standalone checks, $($ui.Count) UI checks; embedded bytes match the fresh build and seven source documents."
+        Write-Output "PASS single EXE: $($standalone.Count) standalone checks, $($ui.Count) UI checks, $($motion.Count) motion checks; embedded bytes match the fresh build and seven source documents."
         Write-Output "Report: $($result.ResultPath)"
     }
 } catch {

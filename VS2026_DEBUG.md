@@ -119,3 +119,7 @@ Copy Fallback 的文件占用样本使用 Windows NTFS 辅助数据流，默认�
 这些 `launchSettings.json` 面向 Visual Studio。当前 .NET 10 CLI 不会像 VS 一样展开其中的 MSBuild 路径宏；命令行验证使用附带的脚本，普通构建也可继续运行 `dotnet build PclDownloadBridge.sln -c Debug`。
 
 开发者设置独立配置 **Developer Checks** 使用 `--developer-checks`，包含 36 项设置、主题隔离、迁移与布局检查。它们属于完整界面及 Appearance Checks 的子集，不重复累计。
+
+页面与滚动动画独立配置 **Motion Checks** 使用 `--motion-checks "$(TargetDir)vs-motion-checks.json"`，额外执行 48 项检查，包含实时运行及暂停/定位时钟、快速切页、滚轮叠加、边界截断、输入归属、卡片变换/折叠共存和卸载清理。它不包含在原有 658 项静态及操作检查中；`verify-vs2026.ps1` 同时运行并单独记录。输出目录包含三段共 90 帧的 `motion-frames/`，可逐帧检查入场，不代表桌面帧率实测。普通预览仍关闭这层页面与滚动动画，保持截图确定性。
+
+`build.ps1` 默认验证和单 EXE 候选验证也增加该 48 项验收；单 EXE 的 25 项内容验收和 658 项完整界面检查保持原计数，候选报告另记 MotionChecks。本轮不生成正式包或发布版本。

@@ -71,6 +71,7 @@ try {
     $runs += Invoke-OfflineProfile $appProject 'Developer Checks'
     $runs += Invoke-OfflineProfile $appProject 'Card Checks'
     $runs += Invoke-OfflineProfile $appProject 'Navigation Checks'
+    $runs += Invoke-OfflineProfile $appProject 'Motion Checks'
     $runs += Invoke-OfflineProfile $appProject 'Settings Compatibility'
     $runs += Invoke-OfflineProfile $appProject 'Preview Components'
     $uiPath = Join-Path $properties[$appProject].TargetDir 'vs-ui-checks.json'
@@ -88,6 +89,9 @@ try {
     $navigationPath = Join-Path $properties[$appProject].TargetDir 'vs-navigation-checks.json'
     $navigation = Get-Content -LiteralPath $navigationPath -Raw | ConvertFrom-Json
     if (!$navigation.Succeeded -or $navigation.Scope -ne 'navigation' -or $navigation.Count -ne 31 -or $navigation.Count -ne $navigation.Passed.Count) { throw 'The navigation profile did not produce a complete report.' }
+    $motionPath = Join-Path $properties[$appProject].TargetDir 'vs-motion-checks.json'
+    $motion = Get-Content -LiteralPath $motionPath -Raw | ConvertFrom-Json
+    if (!$motion.Succeeded -or $motion.Scope -ne 'motion' -or $motion.Count -ne 48 -or $motion.Count -ne $motion.Passed.Count) { throw 'The motion profile did not produce a complete report.' }
     $compatibilityPath = Join-Path $properties[$appProject].TargetDir 'vs-compatibility-checks.json'
     $compatibility = Get-Content -LiteralPath $compatibilityPath -Raw | ConvertFrom-Json
     if (!$compatibility.Succeeded -or $compatibility.Scope -ne 'compatibility' -or $compatibility.Count -ne 49 -or $compatibility.Count -ne $compatibility.Passed.Count) { throw 'The settings compatibility profile did not produce a complete report.' }
@@ -98,8 +102,10 @@ try {
         $consoleCount += @(Get-Content -LiteralPath $run.Stdout | Where-Object { $_ -match '^PASS ' }).Count
     }
     $report = [ordered]@{VisualStudio=$installation.displayName; InstallationVersion=$installation.installationVersion; MSBuild=$msbuild; Sdk=(& dotnet --version); Configuration='Debug|Any CPU'; PortableSymbols=$true; Optimized=$false; FullConsoleRun=[bool]$Full; ConsoleChecks=$consoleCount; UiChecks=$ui.Count; UiReport=$uiPath; AppearanceChecks=$appearance.Count; AppearanceReport=$appearancePath; CardChecks=$cardChecks.Count; CardReport=$cardPath; NavigationChecks=$navigation.Count; NavigationReport=$navigationPath; CompatibilityChecks=$compatibility.Count; CompatibilityReport=$compatibilityPath; Snapshot=$snapshot; IdeF5BreakpointVerified=$false; Runs=$runs}
+    $report['MotionChecks'] = $motion.Count
+    $report['MotionReport'] = $motionPath
     $report | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $output 'report.json') -Encoding UTF8
-    Write-Output "PASS VS 2026 Debug build, portable PDBs, $consoleCount console checks, $($ui.Count) UI checks; focused appearance $($appearance.Count), cards $($cardChecks.Count), navigation $($navigation.Count), compatibility $($compatibility.Count)."
+    Write-Output "PASS VS 2026 Debug build, portable PDBs, $consoleCount console checks, $($ui.Count) UI checks; focused appearance $($appearance.Count), cards $($cardChecks.Count), navigation $($navigation.Count), motion $($motion.Count), compatibility $($compatibility.Count)."
     Write-Output "Report: $(Join-Path $output 'report.json')"
 } finally {
     Pop-Location

@@ -23,6 +23,8 @@ VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，简称
 
 设置中的「关于与鸣谢」参照 PCL 关于页的三列信息行：首卡列出原作者、协力开发者及本项目版本，下方分为特别鸣谢和项目与许可。三张来源头像使用固定 PCL 提交的原始资源，赞助与项目链接保持各自归属；返回按钮会恢复设置页的滚动位置。
 
+下载、设置和关于页切换采用 PCL 源码的淡出、分批淡入和回弹位移；各卡片错开 25ms。滚轮使用 300ms 的六次方缓动，连续输入叠加剩余位移；拖动滚动条、键盘导航或程序定位会结束滚轮动画。独立下拉框、多行文本框及可滚动子控件保留自己的滚轮操作；系统关闭客户端动画时，新页面和滚轮使用即时模式。安装页横移与卡片折叠继续使用各自的动画，不改下载任务状态。
+
 偏好保存在 `%LOCALAPPDATA%/PclDownloadBridge/settings.json`。首次启动先尝试迁移旧 PCD 的 `%LOCALAPPDATA%/PlainCraftDownloader/settings.json`，不存在时再读取最早的 `%LOCALAPPDATA%/VanillaDownloader/settings.json`。迁移验证 JSON 后保留原字节、编码及未知字段，旧文件不改。已有新配置优先；最新旧配置损坏或不可读时报告错误，不静默退回更旧配置。检查和预览模式只用临时样本，不迁移真实用户偏好。
 
 游戏目录内的 `.vanilla-downloader/` 是兼容数据格式，缓存、续传、暂存、日志和安装锁继续使用，避免更名后重复安装或失去已有缓存。旧 ZIP 和历史验证记录保留当时名称。保存设置沿用互斥、深度合并与原子发布；当前配置损坏时暂停自动保存，主动保存才允许修复。
@@ -173,6 +175,8 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 底层开关为 App 项目的 `-p:PclDbSingleExecutable=true`，通过资源嵌入和启动期程序集解析实现；常规构建及 VS Debug 仍使用独立 DLL。单 EXE 不依赖邻接 `.exe.config`，长路径设置由最早启动代码应用；系统仍须安装 .NET Framework 4.8。关于页优先打开随附或开发目录文档；缺失时从程序资源生成内容寻址的文档副本，正常模式位于 `%LOCALAPPDATA%/PclDownloadBridge/documents/`，预览检查只使用随机临时目录。单文件模式的第三方说明同时附带完整 `LICENCE`，不需要在 EXE 旁写出 DLL 或文档。
 
 普通构建、F5 和单 EXE 验证均不会生成正式分发包。只有显式执行 `build.ps1 -Package` 才更新 `dist`；创建 Git 标签、上传资产与 GitHub Release 仍需另行明确要求。
+
+页面与滚动动画另设 48 项 `--motion-checks <报告路径>`，普通默认构建和单 EXE 验证均会执行，报告与上述 658 项界面检查分别记录。VS 可直接选择 Motion Checks；该入口使用隔离预览数据，输出暂停/定位时钟生成的三段切页帧序列，供检查曲线与快速导航，不是桌面帧率测试。
 
 维护固定 PCL 参考时，先执行以下检查（需要本地 PCL Git 对象，可用 `-SourceRoot` 指向没有检出文件的仓库）：
 

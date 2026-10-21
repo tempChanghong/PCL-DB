@@ -63,6 +63,9 @@ Partial Public Class MainWindow
         AddHandler Shell.SizeChanged, Sub() Shell.Clip = New RectangleGeometry(New Rect(0, 0, Shell.ActualWidth, Shell.ActualHeight), 6, 6)
         DownloadTab.Checked = True
         _preview = preview
+        _surfaceMotion = New PclSurfaceMotion(PageSurface, PageGhost,
+            Function() (Not _preview OrElse _motionPreview) AndAlso (SystemParameters.ClientAreaAnimation OrElse _motionPreview), AddressOf SurfaceUnits)
+        InitializeMotion()
         InitializeAppearance()
         InitializeDeveloperSettings()
         InitializeAbout()
@@ -538,22 +541,19 @@ Partial Public Class MainWindow
         PersistSettings()
     End Sub
 
-    Private Sub SwitchMainPage(settings As Boolean)
+    Private Sub SwitchMainPage(settings As Boolean, Optional prepare As Action = Nothing)
         If settings Then
             _focusAfterPageSwitch = False
             If _pageSwitch.Transition IsNot Nothing Then _pageSwitch.Finish()
         End If
-        Dim wasVisible = If(settings, SettingsPage.Visibility, DownloadPage.Visibility) = Visibility.Visible
-        AboutPage.Visibility = Visibility.Collapsed
-        DownloadPage.Visibility = If(settings, Visibility.Collapsed, Visibility.Visible)
-        SettingsPage.Visibility = If(settings, Visibility.Visible, Visibility.Collapsed)
-        DownloadTab.Checked = Not settings
-        SettingsTab.Checked = settings
-        Dim panel As FrameworkElement = If(settings, DirectCast(SettingsPage, FrameworkElement), DownloadPage)
-        If Not wasVisible Then panel.BeginAnimation(OpacityProperty, New DoubleAnimation(0.2, 1, TimeSpan.FromMilliseconds(160)))
+        SelectSurface(If(settings, DirectCast(SettingsPage, FrameworkElement), DownloadPage), prepare)
     End Sub
 
     Private Sub SetDownloadView(view As DownloadView)
+        If view <> _downloadView Then
+            _pendingSurfaceFocus = Nothing
+            _surfaceMotion.Finish()
+        End If
         Dim previous = _downloadView
         _downloadView = view
         If view = DownloadView.Progress Then
@@ -748,6 +748,11 @@ Partial Public Class MainWindow
             StatusText.Text = "正在停止下载，请稍后关闭窗口。"
         Else
             _closing = True
+            _pendingSurfaceFocus = Nothing
+            _surfaceMotion.Finish()
+            For Each viewer In MotionViewers()
+                viewer.StopScrolling()
+            Next
             _versionGeneration += 1
             _versionCancellation?.Cancel()
             CancelComponentRequests()

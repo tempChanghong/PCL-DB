@@ -32,11 +32,18 @@ Partial Public Class MainWindow
     End Sub
 
     Private Sub NavigateToSetting(target As FrameworkElement, Optional focus As Boolean = False)
-        SwitchMainPage(True)
-        ' The settings page may still have the previous (collapsed) layout.
-        SettingsPage.UpdateLayout()
-        target.BringIntoView()
-        If focus Then target.Focus()
+        SwitchMainPage(True, Sub()
+                                 SettingsPage.UpdateLayout()
+                                 target.BringIntoView()
+                                 SettingsPage.UpdateLayout()
+                             End Sub)
+        If focus Then
+            If _surfaceMotion.Transition IsNot Nothing Then
+                _pendingSurfaceFocus = Sub() target.Focus()
+            Else
+                target.Focus()
+            End If
+        End If
     End Sub
 
     Private Shared ReadOnly ConnectionLevels As Integer() = {8, 16, 32, 64}

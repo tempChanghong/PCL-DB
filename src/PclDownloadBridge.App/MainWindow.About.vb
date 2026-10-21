@@ -17,15 +17,18 @@ Partial Public Class MainWindow
     Private Sub ShowAbout(sender As Object, e As RoutedEventArgs)
         If AboutPage.Visibility = Visibility.Visible Then Return
         _settingsOffsetBeforeAbout = SettingsPage.VerticalOffset
-        SwitchMainPage(True)
-        SettingsPage.Visibility = Visibility.Collapsed
-        AboutPage.Visibility = Visibility.Visible
-        AboutPage.ScrollToTop()
+        If _pageSwitch.Transition IsNot Nothing Then _pageSwitch.Finish()
+        SelectSurface(AboutPage, Sub()
+                                     AboutPage.ScrollToTop()
+                                     AboutPage.UpdateLayout()
+                                 End Sub)
     End Sub
 
     Private Sub BackFromAbout(sender As Object, e As RoutedEventArgs)
-        SwitchMainPage(True)
-        SettingsPage.ScrollToVerticalOffset(_settingsOffsetBeforeAbout)
+        SwitchMainPage(True, Sub()
+                                 SettingsPage.ScrollToVerticalOffset(_settingsOffsetBeforeAbout)
+                                 SettingsPage.UpdateLayout()
+                             End Sub)
     End Sub
 
     Private Sub CopyAboutVersion(sender As Object, e As RoutedEventArgs)

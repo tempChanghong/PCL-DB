@@ -1,5 +1,16 @@
 # PCL2 代码依据
 
+## 0.57 页面入场与平滑滚动
+
+继续读取固定提交的 [MyPageRight.vb](https://github.com/Meloong-Git/PCL/blob/5ef81e490ae46b1100d61e33d0183094c7a80ca8/Plain%20Craft%20Launcher%202/Controls/MyPageRight.vb#L392-L460)、[MyScrollViewer.vb](https://github.com/Meloong-Git/PCL/blob/5ef81e490ae46b1100d61e33d0183094c7a80ca8/Plain%20Craft%20Launcher%202/Controls/MyScrollViewer.vb#L7-L32)、FormMain.PageChangeAnim（1503–1553 行）与 ModAnimation.AniEaseOutBack（674 行起）。与本地 PCL 当前提交核对，相关控件源码一致；不修改上游工作目录或既有 44 份固定快照。
+
+- `PclSurfaceMotion` 采用 70ms 线性淡出/上移 6 DIP，110ms 后移除旧画面，再等待 30ms 入场。新卡片透明度 100ms、Weak 次方 2；初始 Y=-16，同时叠加 250ms 位移 +5（Fluent 次方 3）与 350ms 位移 +11（PCL 余弦 Back 曲线），每项错开 25ms。自定义 DoubleAnimationBase 保留相加曲线，未用 WPF BackEase 代替。
+- 适配层以不可交互的旧页面位图退出，逻辑页面立即切换，避免异步回调和键盘路由仍归属旧页；快速反向切换先截取当前合成画面，再移除旧时钟。该退出层整体淡出，尚未实现上游逐项 15ms 退出及滚动条横移动画。位图上限四百万像素，入场只处理视口内最多 16 项，不递归展开卡片或创建列表行。
+- 入场位移追加在控件已有 RenderTransform 之后，结束时只回收本层时钟和变换；卡片高度、悬停与安装页横移各自持有时钟。程序恢复滚动及定位错误字段先于入场单元选择，键盘焦点延后到入场结束；失效时钟不能结束新切换。关闭系统客户端动画时退回即时模式。
+- `PclScrollViewer` 对应 `PerformVerticalOffsetDelta(-e.Delta)`：300ms、Fluent 次方 6，以剩余增量叠加连续输入并逐帧截断边界。滚动条、按键、触摸、程序定位、视口/内容尺寸变化与卸载取消本层滚动；下拉框、多行文本框、弹出项目和有自己滚动范围的子控件不接管。该逻辑使用独立可冻结的 WPF 时钟，未移植 PCL 线程动画循环。
+- 本工具额外跟踪排队滚动命令的回执，区分动画自身位置变化和外部定位；替换滚轮时钟前先应用未完成的滚动布局，避免旧回执取消新输入。这是 WPF 适配的生命周期处理，不宣称上游使用相同的回执队列。
+- 新 `--motion-checks` 为独立隔离验收，真实暂停/定位 WPF 时钟验证参数、输入归属、快速反向、焦点与卸载；与既有 658 项界面检查分别记录。输出 90 帧切页时间线示例，不将该离线帧序列当作桌面帧率证明。
+
 主参考仓库：`../PCL`（Meloong-Git/PCL）。固定基线：
 
 `5ef81e490ae46b1100d61e33d0183094c7a80ca8`（2.14.0.0，下载限制前）。

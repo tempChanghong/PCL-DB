@@ -10,7 +10,11 @@ Partial Public Class MainWindow
         If AboutPage.Visibility = Visibility.Visible Then
             e.Handled = True
             BackFromAbout(Me, e)
-            SettingsPage.Focus()
+            If _surfaceMotion.Transition IsNot Nothing Then
+                _pendingSurfaceFocus = Sub() SettingsPage.Focus()
+            Else
+                SettingsPage.Focus()
+            End If
         ElseIf SettingsPage.Visibility = Visibility.Visible Then
             e.Handled = True
             ShowDownload(Me, e)
@@ -27,6 +31,10 @@ Partial Public Class MainWindow
     End Sub
 
     Private Sub FocusDownloadPage()
+        If _surfaceMotion.Transition IsNot Nothing Then
+            _pendingSurfaceFocus = AddressOf FocusDownloadPage
+            Return
+        End If
         If _pageSwitch.Transition IsNot Nothing Then
             _focusAfterPageSwitch = True
             Return

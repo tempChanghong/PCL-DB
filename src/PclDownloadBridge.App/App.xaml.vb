@@ -40,13 +40,15 @@ Partial Public Class App
         Dim appearanceChecks = Array.IndexOf(e.Args, "--appearance-checks")
         Dim cardChecks = Array.IndexOf(e.Args, "--card-checks")
         Dim navigationChecks = Array.IndexOf(e.Args, "--navigation-checks")
+        Dim motionChecks = Array.IndexOf(e.Args, "--motion-checks")
         Dim compatibilityChecks = Array.IndexOf(e.Args, "--compatibility-checks")
         Dim developerChecks = Array.IndexOf(e.Args, "--developer-checks")
-        Dim window As New MainWindow(preview >= 0 OrElse checks >= 0 OrElse appearanceChecks >= 0 OrElse cardChecks >= 0 OrElse navigationChecks >= 0 OrElse compatibilityChecks >= 0 OrElse developerChecks >= 0)
+        Dim window As New MainWindow(preview >= 0 OrElse checks >= 0 OrElse appearanceChecks >= 0 OrElse cardChecks >= 0 OrElse navigationChecks >= 0 OrElse motionChecks >= 0 OrElse compatibilityChecks >= 0 OrElse developerChecks >= 0)
         MainWindow = window
-        Dim checkIndex = {checks, appearanceChecks, cardChecks, navigationChecks, compatibilityChecks, developerChecks}.Where(Function(value) value >= 0).DefaultIfEmpty(-1).First()
+        Dim checkIndex = {checks, appearanceChecks, cardChecks, navigationChecks, motionChecks, compatibilityChecks, developerChecks}.Where(Function(value) value >= 0).DefaultIfEmpty(-1).First()
         If checkIndex >= 0 AndAlso e.Args.Length > checkIndex + 1 Then
             Dim scope = If(checks >= 0, "all", If(appearanceChecks >= 0, "appearance", If(cardChecks >= 0, "cards", If(navigationChecks >= 0, "navigation", If(compatibilityChecks >= 0, "compatibility", "developer")))))
+            If checkIndex = motionChecks Then scope = "motion"
             Shutdown(UiCheckRunner.Run(e.Args(checkIndex + 1), scope,
                 Sub(directory, passed)
                     If scope = "all" Then
@@ -57,6 +59,8 @@ Partial Public Class App
                         window.VerifyCardUi(directory, passed)
                     ElseIf scope = "navigation" Then
                         window.VerifyNavigationUi(directory, passed)
+                    ElseIf scope = "motion" Then
+                        window.VerifyMotionUi(directory, passed)
                     ElseIf scope = "developer" Then
                         window.VerifyDeveloperUi(directory, passed)
                     Else

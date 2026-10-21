@@ -87,11 +87,10 @@ Partial Public Class MainWindow
         ConnectionsSlider.Value = 8
         Slider.IncreaseSmall.Execute(Nothing, ConnectionsSlider)
         check(ConnectionCount() = 16 AndAlso ConnectionValue.Text = "16", "slider keyboard command steps to the next supported connection count")
-        Dim scrolled = False
-        Dim parent = DirectCast(ConnectionsSlider.Parent, UIElement)
-        AddHandler parent.MouseWheel, Sub() scrolled = True
-        ConnectionsSlider.RaiseEvent(New MouseWheelEventArgs(Mouse.PrimaryDevice, Environment.TickCount, 120) With {.RoutedEvent = Mouse.PreviewMouseWheelEvent})
-        check(ConnectionCount() = 16 AndAlso scrolled, "wheel over the thread slider scrolls settings without changing its value")
+        SettingsPage.ScrollToTop() : arrange(850, 500)
+        ConnectionsSlider.RaiseEvent(New MouseWheelEventArgs(Mouse.PrimaryDevice, Environment.TickCount, -120) With {.RoutedEvent = Mouse.PreviewMouseWheelEvent})
+        arrange(850, 500)
+        check(ConnectionCount() = 16 AndAlso SettingsPage.VerticalOffset > 0, "wheel over the thread slider scrolls settings without changing its value")
         Dim peer = UIElementAutomationPeer.CreatePeerForElement(ConnectionsSlider)
         Dim range = DirectCast(peer.GetPattern(PatternInterface.RangeValue), IRangeValueProvider)
         check(range.Minimum = 8 AndAlso range.Maximum = 64 AndAlso range.Value = 16, "slider accessibility exposes actual connection counts")

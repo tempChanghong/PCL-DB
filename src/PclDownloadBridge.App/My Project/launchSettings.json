@@ -36,6 +36,12 @@
       "workingDirectory": "$(ProjectDir)",
       "nativeDebugging": false
     },
+    "Motion Checks": {
+      "commandName": "Project",
+      "commandLineArgs": "--motion-checks \"$(TargetDir)vs-motion-checks.json\"",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
     "Navigation Checks": {
       "commandName": "Project",
       "commandLineArgs": "--navigation-checks \"$(TargetDir)vs-navigation-checks.json\"",
