@@ -1,6 +1,6 @@
 # PCD · Plain Craft Downloader
 
-VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，本地 0.45 预览版，简称 PCD。
+VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，本地 0.46 预览版，简称 PCD。
 
 以 PCL2 限制前代码为主要参照，读取 PCL 使用的 `.minecraft`，安装结果使用 PCL 能读取的版本目录格式。原五个启动器仓库不需要修改。
 
@@ -53,6 +53,7 @@ VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，本地
 - 独立的文件下载源、版本列表源设置，按 PCL 的镜像/自动/官方顺序排列，明确镜像为 BMCLAPI。可使用官方列表配合 BMCLAPI 文件，或反向搭配。选择表示优先级，首选失败仍会尝试备用来源；两项设置独立保存，旧版单一设置升级后保留原含义。
 - Minecraft 与 Forge、NeoForge、Fabric、OptiFine、LiteLoader 等列表使用版本来源偏好；客户端、支持库、资源和组件文件使用文件偏好，OptiFine 的官方网页解析与镜像文件也按文件偏好切换。第三方资源服务使用实际可用接口，不是所有域名都存在 BMCLAPI 对应入口。
 - 版本与组件列表支持取消旧请求、重复刷新和独立重试；旧来源的晚到结果不会覆盖新列表。组件同版本重新绑定最新的下载地址和校验声明，保留自定义名称及手动取消的依赖。已选组件刷新期间暂停安装；新来源缺少该版本时提示确认，不自动升级或悄悄沿用旧条目。未选组件的获取不阻塞原版安装；原版列表刷新失败时保留上次列表。
+- 版本列表、组件 JSON 与网页元数据先检查 HTTP 状态和 32 MiB 字节上限，已声明过大或 HTTP 失败时立即启动备用来源；没有 Content-Length 的响应也在读取中执行同一上限，避免等待完整错误响应。保留原始字节的 SHA-1 校验、网页字符集/BOM 解码、取消及 45 秒请求时限。
 - 自动选源按 PCL 的会话判定：自动模式版本列表先请求官方，5 秒后启动镜像；有效官方列表在 4 秒内完成后，本次运行的文件下载优先官方。手动优先级始终生效，未通过验证或取消的响应不改变判定；列表刷新、组件列表和安装共享判定。
 - 客户端与支持库、资源分支并行；已校验的客户端和支持库就绪后可安装组件，同时继续下载资源。所有内容引擎共用连接数、每主机上限、速度预算和传输缓存锁；任一分支失败会取消并等待其他分支，全部成功后才发布实例。进度按分支汇总，多个阶段可同时显示进行中。
 - 按 PCL 的文件类别区分 piston-data/piston-meta 镜像路径：资源走 `/assets`，支持库依次使用 `/maven` 和 `/libraries`，客户端及元数据保留根路径；保留官方回退与查询参数。
@@ -125,7 +126,7 @@ Visual Studio 2026 可直接打开 `PlainCraftDownloader.sln`，选择 **Debug /
 构建结果会打印本次 ZIP 和 `result.json` 的完整路径，其中记录 ZIP 的 SHA-256 及每个文件的内容哈希。可明确指定候选包，重新核对其内容与当前 Release 输出和文档是否一致：
 
 ```powershell
-.\tools\verify-package.ps1 -PackagePath .\dist\PlainCraftDownloader-0.45-preview.zip -DistributionPath .\dist\PlainCraftDownloader
+.\tools\verify-package.ps1 -PackagePath .\dist\PlainCraftDownloader-0.46-preview.zip -DistributionPath .\dist\PlainCraftDownloader
 ```
 
 `-SkipTests` 仅跳过回归检查，打包时仍校验候选 ZIP 的完整文件清单和字节内容；不能据此声称通过完整回归。单独执行 `tools/verify-packaging.ps1` 需要已有 Release 构建。

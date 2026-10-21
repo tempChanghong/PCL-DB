@@ -1,6 +1,16 @@
 # 本地验证记录
 
-日期：2026-10-21（北京时间）。当前交付为本地 0.45 预览版 PCD（Plain Craft Downloader），包含 Visual Studio 2026 开发配置；下方保留先前版本的验证记录。
+日期：2026-10-21（北京时间）。当前交付为本地 0.46 预览版 PCD（Plain Craft Downloader），包含 Visual Studio 2026 开发配置；下方保留先前版本的验证记录。
+
+## 0.46 元数据读取与备用源回退
+
+- 本轮起点为本地提交 577ce93，修改前源码保存在 artifacts/transfer-reliability-0.46/source-before.zip。先用真实 net48 下载器核对未知大小/无哈希文件的中途断流，原实现可自动重新请求并获得完整内容，未据此修改文件下载器；探针日志保留为 unknown-before.log。
+- 对元数据另建带正文门控的本地 HTTP 样本：首选响应头声明超过 32 MiB，但正文保持未发送；原 RaceJsonAsync 在等待正文时无法检查上限，也没有请求备用源，8 秒测试取消后返回 OperationCanceledException。metadata-before.log 记录 fallback=False、失败退出为 1；备用源的正常延迟设为 60 秒，确保未因延迟到期误判为修复。
+- ReadMetadataAsync 现先读取响应头并检查 HTTP 状态和声明大小，再限量读取正文；未知长度响应在超过 32 MiB 的第一个字节处拒绝。SHA-1 使用原始字节，GetTextAsync 继续保留字符集/BOM 解码；同一 45 秒时限覆盖响应头和正文，读取期间取消会关闭响应，并统一回调用者的取消状态。文件分段、续传、缓存及会话选源优先级本轮不改。
+- 新增 MetadataTransferChecks 的 10 项检查，纳入完整控制台回归：声明过大/HTTP 503 时不等待正文就启动备用源且不重复请求、未知长度超限、恰为 32 MiB 的合法文本、UTF-16 字符集及 BOM、无 Content-Length 的完整 JSON、直接及竞速读取中的取消。测试仅使用 127.0.0.1 动态端口，不访问真实 Mojang/BMCLAPI 服务。
+- 完整 Release 构建零警告/零错误；561 项下载、安装及元数据检查（原 551 项加本轮 10 项）、561 项 UI、16 项固定 PCL 对照和 19 项打包检查均通过。完整输出为 full-build.log，汇总为 release-result.json。10 项元数据组包含于控制台总数，不重复累加。
+- VS 2026 增加 Metadata Transfers 启动配置；实际 Debug 构建、Portable PDB/关闭优化、185 项短控制台回归（含本轮 10 项）及 561 项 UI 通过。独立主题 70、卡片 66、导航 31、设置兼容 49 属于 UI 子集；报告为 vs2026-report.json。IDE 内 F5 断点仍未人工验收。
+- 应用版本更新为 0.46，HTTP User-Agent 同步为 PlainCraftDownloader/0.46。新包使用 PlainCraftDownloader-0.46-preview.zip，保留原 0.45 ZIP；最终文档随 11 文件清单重新同步并核对。本轮不迁移真实用户配置、不下载整套 Minecraft 或启动游戏；公开建仓和推送继续暂缓。
 
 ## 固定 PCL 来源导入的复查与修复
 

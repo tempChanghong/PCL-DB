@@ -64,7 +64,7 @@ try {
     if ($Full) {
         $runs += Invoke-OfflineProfile $testProject 'Offline All'
     } else {
-        foreach ($name in @('Download Plan', 'Native Libraries', 'Cleanup Cancellation', 'Final Commit', 'Transfer Completion', 'PCL File Reuse', 'Copy Fallback', 'Library Metadata', 'Library Selection')) { $runs += Invoke-OfflineProfile $testProject $name }
+        foreach ($name in @('Download Plan', 'Native Libraries', 'Cleanup Cancellation', 'Final Commit', 'Transfer Completion', 'PCL File Reuse', 'Copy Fallback', 'Library Metadata', 'Library Selection', 'Metadata Transfers')) { $runs += Invoke-OfflineProfile $testProject $name }
     }
     $runs += Invoke-OfflineProfile $appProject 'UI Checks'
     $runs += Invoke-OfflineProfile $appProject 'Appearance Checks'

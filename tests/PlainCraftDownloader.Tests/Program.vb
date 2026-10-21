@@ -32,6 +32,8 @@ Module Program
                 Dim run As Task(Of List(Of String))
                 If args(1).StartsWith("lib-select-", StringComparison.Ordinal) Then
                     run = LibrarySelectionChecks.RunAsync(TestRoot, args(1))
+                ElseIf args(1).StartsWith("metadata-transfer-", StringComparison.Ordinal) Then
+                    run = MetadataTransferChecks.RunAsync(args(1))
                 ElseIf args(1).StartsWith("library-meta-", StringComparison.Ordinal) Then
                     run = LibraryMetadataChecks.RunAsync(TestRoot, args(1))
                 ElseIf args(1).StartsWith("copy-", StringComparison.Ordinal) Then
@@ -84,6 +86,9 @@ Module Program
             MetadataTests()
             TransferTestsAsync().GetAwaiter().GetResult()
             MetadataRaceTestsAsync().GetAwaiter().GetResult()
+            For Each label In MetadataTransferChecks.RunAsync().GetAwaiter().GetResult()
+                Check(True, label)
+            Next
             SlowSourceTestsAsync().GetAwaiter().GetResult()
             InstallTestsAsync().GetAwaiter().GetResult()
             For Each label In BugChecks.RunAsync(TestRoot).GetAwaiter().GetResult()

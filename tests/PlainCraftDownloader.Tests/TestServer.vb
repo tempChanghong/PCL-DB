@@ -14,6 +14,12 @@ Public Class TestServer
     Public ReadOnly Files As New ConcurrentDictionary(Of String, Byte())
     Public ReadOnly Requests As New ConcurrentDictionary(Of String, Integer)
     Public ReadOnly Gates As New ConcurrentDictionary(Of String, ManualResetEventSlim)
+    Public ReadOnly BodyGates As New ConcurrentDictionary(Of String, ManualResetEventSlim)
+    Public ReadOnly BodyPauseAt As New ConcurrentDictionary(Of String, Integer)
+    Public ReadOnly DeclaredLengths As New ConcurrentDictionary(Of String, Long)
+    Public ReadOnly StatusCodes As New ConcurrentDictionary(Of String, Integer)
+    Public ReadOnly ContentTypes As New ConcurrentDictionary(Of String, String)
+    Public ReadOnly OmitLengths As New ConcurrentDictionary(Of String, Boolean)
     Public ReadOnly PathDelayMs As New ConcurrentDictionary(Of String, Integer)
     Public Property RangeRequests As Integer
     Public Property IgnoreRanges As Boolean
@@ -99,8 +105,20 @@ Public Class TestServer
                 If HeaderDelayMs > 0 Then Thread.Sleep(HeaderDelayMs)
                 Dim contentLength = last - first + 1
                 If range IsNot Nothing AndAlso InvalidRange = "length" Then contentLength -= 1
-                Dim header = Encoding.ASCII.GetBytes("HTTP/1.1 " & status & vbCrLf & "Content-Length: " & contentLength & vbCrLf & extra & "Connection: close" & vbCrLf & vbCrLf)
+                Dim declared As Long
+                Dim lengthHeader = "Content-Length: " & If(DeclaredLengths.TryGetValue(path, declared), declared, CLng(contentLength)) & vbCrLf
+                Dim omitLength As Boolean
+                If OmitLengths.TryGetValue(path, omitLength) AndAlso omitLength Then lengthHeader = ""
+                Dim code As Integer
+                If StatusCodes.TryGetValue(path, code) Then status = code.ToString() & " Fixture"
+                Dim contentType As String = Nothing
+                If ContentTypes.TryGetValue(path, contentType) Then extra &= "Content-Type: " & contentType & vbCrLf
+                Dim header = Encoding.ASCII.GetBytes("HTTP/1.1 " & status & vbCrLf & lengthHeader & extra & "Connection: close" & vbCrLf & vbCrLf)
                 stream.Write(header, 0, header.Length)
+                Dim bodyGate As ManualResetEventSlim = Nothing
+                Dim pauseAt As Integer
+                BodyPauseAt.TryGetValue(path, pauseAt)
+                If BodyGates.TryGetValue(path, bodyGate) AndAlso pauseAt = 0 Then bodyGate.Wait(_stop.Token)
                 If TruncateFirstResponseAt > 0 AndAlso Requests(path) = 1 Then last = Math.Min(last, first + TruncateFirstResponseAt - 1)
                 Dim current = first
                 While current <= last
@@ -112,6 +130,7 @@ Public Class TestServer
                         stream.Write(bytes, current, count)
                     End If
                     current += count
+                    If bodyGate IsNot Nothing AndAlso pauseAt > 0 AndAlso current >= pauseAt Then bodyGate.Wait(_stop.Token)
                     If Slow Then Thread.Sleep(8)
                     If SlowFirstRange AndAlso first = 0 Then Thread.Sleep(80)
                 End While

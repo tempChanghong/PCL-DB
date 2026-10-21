@@ -157,11 +157,45 @@ Public Class SourcePolicy
         CandidatesForValidation(url)
         url = MetadataUrl(url)
         CandidatesForValidation(url)
-        Using client = CreateClient(), response = Await client.GetAsync(url, token).ConfigureAwait(False)
-            response.EnsureSuccessStatusCode()
-            Dim value = Await response.Content.ReadAsStringAsync().ConfigureAwait(False)
-            If value.Length > 32 * 1024 * 1024 Then Throw New IO.InvalidDataException("元数据超过大小限制。")
+        Using content = Await ReadMetadataAsync(url, token).ConfigureAwait(False)
+            Dim value = Await content.ReadAsStringAsync().ConfigureAwait(False)
+            token.ThrowIfCancellationRequested()
             Return value
+        End Using
+    End Function
+
+    ' PCL SendRequest separates headers from body reads. Enforce this tool's byte
+    ' bound while streaming, so a known bad response does not delay source fallback.
+    Private Async Function ReadMetadataAsync(url As String, token As CancellationToken) As Task(Of ByteArrayContent)
+        Const maximum As Integer = 32 * 1024 * 1024
+        Using deadline = CancellationTokenSource.CreateLinkedTokenSource(token)
+            deadline.CancelAfter(TimeSpan.FromSeconds(45))
+            Try
+                Using client = CreateClient(), response = Await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(False)
+                    response.EnsureSuccessStatusCode()
+                    If response.Content.Headers.ContentLength.HasValue AndAlso response.Content.Headers.ContentLength.Value > maximum Then Throw New IO.InvalidDataException("元数据超过 32 MiB 大小限制。")
+                    ' net48 stream reads may surface disposal/IO errors on cancellation;
+                    ' close the response and normalize the caller's cancellation below.
+                    Using registration = deadline.Token.Register(Sub() response.Dispose()),
+                          input = Await response.Content.ReadAsStreamAsync().ConfigureAwait(False), output As New IO.MemoryStream()
+                        Dim buffer(16383) As Byte
+                        Do
+                            Dim count = Await input.ReadAsync(buffer, 0, CInt(Math.Min(buffer.Length, maximum - output.Length + 1)), deadline.Token).ConfigureAwait(False)
+                            If count = 0 Then Exit Do
+                            If output.Length + count > maximum Then Throw New IO.InvalidDataException("元数据超过 32 MiB 大小限制。")
+                            output.Write(buffer, 0, count)
+                        Loop
+                        token.ThrowIfCancellationRequested()
+                        Dim content As New ByteArrayContent(output.ToArray())
+                        content.Headers.ContentType = response.Content.Headers.ContentType
+                        Return content
+                    End Using
+                End Using
+            Catch ex As Exception When token.IsCancellationRequested
+                Throw New OperationCanceledException("元数据请求已取消。", ex, token)
+            Catch ex As Exception When deadline.IsCancellationRequested
+                Throw New TaskCanceledException("元数据读取超时。", ex)
+            End Try
         End Using
     End Function
 
@@ -225,10 +259,8 @@ Public Class SourcePolicy
                 Dim clock = Stopwatch.StartNew()
                 Dim url = MetadataUrl(source)
                 CandidatesForValidation(url)
-                Using client = CreateClient(), response = Await client.GetAsync(url, token).ConfigureAwait(False)
-                    response.EnsureSuccessStatusCode()
-                    Dim bytes = Await response.Content.ReadAsByteArrayAsync().ConfigureAwait(False)
-                    If bytes.Length > 32 * 1024 * 1024 Then Throw New IO.InvalidDataException("元数据超过大小限制。")
+                Using content = Await ReadMetadataAsync(url, token).ConfigureAwait(False)
+                    Dim bytes = Await content.ReadAsByteArrayAsync().ConfigureAwait(False)
                     If Not String.IsNullOrWhiteSpace(sha1) Then
                         Using hash = Security.Cryptography.SHA1.Create()
                             If Not String.Equals(BitConverter.ToString(hash.ComputeHash(bytes)).Replace("-", ""), sha1, StringComparison.OrdinalIgnoreCase) Then Throw New IO.InvalidDataException("元数据 SHA-1 校验失败。")
@@ -245,7 +277,7 @@ Public Class SourcePolicy
 
     Public Shared Function CreateClient() As HttpClient
         Dim client As New HttpClient(New HttpClientHandler With {.AutomaticDecompression = Net.DecompressionMethods.None, .MaxConnectionsPerServer = 16}) With {.Timeout = TimeSpan.FromSeconds(45)}
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("PlainCraftDownloader/0.44 (local Minecraft installer)")
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("PlainCraftDownloader/0.46 (local Minecraft installer)")
         Return client
     End Function
 End Class
