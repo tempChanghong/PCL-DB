@@ -9,9 +9,9 @@ try {
         & '.\tests\PclDownloadBridge.Tests\bin\Release\net48\PclDownloadBridge.Tests.exe'
         if ($LASTEXITCODE -ne 0) { throw 'Fixture checks failed.' }
         New-Item -ItemType Directory -Path artifacts -Force | Out-Null
-        & '.\src\PclDownloadBridge.App\bin\Release\net48\PclDownloadBridge.exe' --ui-checks artifacts/ui-checks-0.51.json | Out-Null
+        & '.\src\PclDownloadBridge.App\bin\Release\net48\PclDownloadBridge.exe' --ui-checks artifacts/ui-checks-0.52.json | Out-Null
         if ($LASTEXITCODE -ne 0) { throw 'UI workflow checks failed.' }
-        $uiChecks = Get-Content -LiteralPath artifacts/ui-checks-0.51.json -Raw | ConvertFrom-Json
+        $uiChecks = Get-Content -LiteralPath artifacts/ui-checks-0.52.json -Raw | ConvertFrom-Json
         if (!$uiChecks.Succeeded -or $uiChecks.Scope -ne 'all' -or $uiChecks.Count -ne 620) { throw 'UI workflow checks failed.' }
         & './tools/verify-packaging.ps1'
     }

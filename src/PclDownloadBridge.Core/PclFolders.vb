@@ -10,8 +10,13 @@ Public Class PclFolders
         Warnings.Clear()
         Dim result As New List(Of GameFolder)
         Dim basePath = Path.GetFullPath(pclDirectory)
-        Dim selected = ReadIniValue(Path.Combine(basePath, "PCL", "Setup.ini"), "LaunchFolderSelect")
-        If selected IsNot Nothing Then selected = ExpandPath(selected, basePath)
+        Dim selected As String = Nothing
+        Try
+            Dim stored = ReadIniValue(Path.Combine(basePath, "PCL", "Setup.ini"), "LaunchFolderSelect")
+            If Not String.IsNullOrWhiteSpace(stored) Then selected = NormalizeFolderPath(ExpandPath(stored, basePath))
+        Catch ex As Exception When TypeOf ex Is ArgumentException OrElse TypeOf ex Is IOException OrElse TypeOf ex Is UnauthorizedAccessException OrElse TypeOf ex Is NotSupportedException
+            Warnings.Add("无法读取 PCL 当前目录设置：" & ex.Message)
+        End Try
         AddFolder(result, basePath, "当前游戏目录", "PCL 所在目录", False)
         If Directory.Exists(basePath) Then
             Try
@@ -49,20 +54,28 @@ Public Class PclFolders
     End Function
 
     Public Sub AddCustomFolders(result As List(Of GameFolder), raw As String, basePath As String, origin As String)
+        If String.IsNullOrEmpty(raw) Then Return
         For Each entry In raw.Split("|"c)
             Dim split = entry.IndexOf(">"c)
             If split < 1 Then Continue For
             Dim location = ExpandPath(entry.Substring(split + 1), basePath)
-            AddFolder(result, location, entry.Substring(0, split), origin, True)
+            AddFolder(result, location, entry.Substring(0, split), origin, True, True)
         Next
     End Sub
 
-    Private Sub AddFolder(result As List(Of GameFolder), location As String, name As String, origin As String, allowEmpty As Boolean)
+    Private Sub AddFolder(result As List(Of GameFolder), location As String, name As String, origin As String, allowEmpty As Boolean, Optional customName As Boolean = False)
         Try
-            Dim full = Path.GetFullPath(location).TrimEnd(Path.DirectorySeparatorChar)
+            Dim full = NormalizeFolderPath(location)
             If Not Directory.Exists(full) Then Return
             If Not allowEmpty AndAlso Not Directory.Exists(Path.Combine(full, "versions")) Then Return
-            If Not result.Any(Function(f) SamePath(f.Location, full)) Then result.Add(New GameFolder With {.Name = name, .Location = full, .Origin = origin})
+            Dim existing = result.FirstOrDefault(Function(f) SamePath(f.Location, full))
+            If existing Is Nothing Then
+                result.Add(New GameFolder With {.Name = name, .Location = full, .Origin = origin})
+            ElseIf customName Then
+                ' PCL renames an already scanned directory instead of dropping its custom alias.
+                existing.Name = name
+                existing.Origin = origin
+            End If
         Catch ex As Exception When TypeOf ex Is ArgumentException OrElse TypeOf ex Is IOException OrElse TypeOf ex Is UnauthorizedAccessException OrElse TypeOf ex Is NotSupportedException
             Warnings.Add("忽略无效目录：" & location)
         End Try
@@ -73,7 +86,14 @@ Public Class PclFolders
     End Function
 
     Private Shared Function SamePath(a As String, b As String) As Boolean
-        Return String.Equals(Path.GetFullPath(a).TrimEnd("\"c, "/"c), Path.GetFullPath(b).TrimEnd("\"c, "/"c), StringComparison.OrdinalIgnoreCase)
+        Return String.Equals(NormalizeFolderPath(a), NormalizeFolderPath(b), StringComparison.OrdinalIgnoreCase)
+    End Function
+
+    Private Shared Function NormalizeFolderPath(value As String) As String
+        Dim full = Path.GetFullPath(value), root = Path.GetPathRoot(full)
+        Dim trimmed = full.TrimEnd("\"c, "/"c)
+        ' C:\ is fully qualified; C: instead resolves against that drive's working directory.
+        Return If(trimmed.Length < root.Length, root, trimmed)
     End Function
 
     Public Shared Function ReadIniValue(path As String, name As String) As String

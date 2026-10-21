@@ -6,6 +6,12 @@
 
 开发时实际阅读了以下代码；以下对应关系说明实际实现依据，并非只参考界面截图。
 
+## 0.52 PCL 自定义游戏目录
+
+- 实际重读固定 `Modules/Minecraft/ModMinecraft.vb` 的 SetMcFolder（17–23 行）与 McFolderListLoadSub（58–127 行）：路径保持尾分隔符；自定义目录匹配到已扫描路径后，直接更新目录名称并标记其来源，未匹配才新增；无效自定义项单独处理。PclFolders 原先对重复路径只去重，导致用户别名丢失，本轮补齐相同路径的名称/来源更新。
+- 本项目继续保持读取原 PCL 设置与注册表，不采用上游同步重写 LaunchFolders 或创建默认 .minecraft 的行为。当前选择无效、文件占用和空列表的恢复、14 项临时目录回归及保留盘符根路径是本项目的独立适配，不声称原版已有同样错误处理。
+- 盘符根目录原先在规范化时被截成 `C:`，Windows 会按该驱动器当前工作目录解释；现在保留 `C:\`。选择路径在比较前规范化，失败只记警告，不中断其他可用目录扫描。不改既有游戏内容、下载调度或控件样式。
+
 ## 0.51 普通按钮与图标按钮状态
 
 - 实际重读固定 `Controls/MyButton.xaml.vb` 的 RefreshColor、ColorType setter、Button_MouseEnter/Leave：正常/高亮分别取 ColorBrush1/2，悬停取 ColorBrush3 描边和 ColorBrush7 背景，离开返回 HalfWhite；进入 100ms、离开 200ms，禁用取 Gray4。PclButton 原先只改描边，禁用设整体 0.45 透明度，Highlight setter 直接覆盖当前状态；本轮按这些上游规则修正。键盘焦点沿用本项目既有高亮提示，并使用相同活动底色。

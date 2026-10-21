@@ -1,6 +1,6 @@
 # PCL-DB · PCL Download Bridge
 
-VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，0.51 预览版，简称 PCL-DB。
+VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，0.52 预览版，简称 PCL-DB。
 
 以 PCL2 限制前代码为主要参照，读取 PCL 使用的 `.minecraft`，安装结果使用 PCL 能读取的版本目录格式。原五个启动器仓库不需要修改。
 
@@ -35,6 +35,7 @@ VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，0.51 �
 
 ## 功能
 
+- 读取 PCL 自定义目录时沿用用户设置的名称，并按路径合并重复项；盘符根目录保留完整的 `C:\` 形式。当前目录配置无效或被占用时报告读取问题，仍返回可用游戏目录；读取过程不修改 PCL 配置。
 - 普通按钮的悬停底色、禁用灰色及高亮优先级按 PCL 源码对齐；返回图标随深色模式调整中性色。图标按钮被禁用或卸载时会清除未完成的按压，重新启用后不会把旧的松开操作当作新点击。
 - Java 版本检测同时读取两路输出，较长的 JVM 环境提示不会堵住管道、误报版本不足；保留检测超时，拒绝以错误码退出的运行环境。兼容旧版 `1.8`、现代版本及 PCL 支持的无引号 OpenJDK 版本行；不会把环境选项中的版本文字当作实际版本。
 - Java 安装处理器的日志被设为只读或被其他程序占用时，继续显示实时输出；日志恢复可写后继续追加。处理器自身失败仍报告退出码和末尾输出，取消仍阻止实例发布，可重新安装；不会覆盖原日志。
@@ -136,7 +137,7 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 构建结果会打印本次 ZIP 和 `result.json` 的完整路径，其中记录 ZIP 的 SHA-256 及每个文件的内容哈希。可明确指定候选包，重新核对其内容与当前 Release 输出和文档是否一致：
 
 ```powershell
-.\tools\verify-package.ps1 -PackagePath .\dist\PCL-DB-0.51-preview.zip -DistributionPath .\dist\PclDownloadBridge
+.\tools\verify-package.ps1 -PackagePath .\dist\PCL-DB-0.52-preview.zip -DistributionPath .\dist\PclDownloadBridge
 ```
 
 `-SkipTests` 仅跳过回归检查，打包时仍校验候选 ZIP 的完整文件清单和字节内容；不能据此声称通过完整回归。单独执行 `tools/verify-packaging.ps1` 需要已有 Release 构建。

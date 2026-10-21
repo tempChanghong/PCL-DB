@@ -6,6 +6,12 @@
       "workingDirectory": "$(ProjectDir)",
       "nativeDebugging": false
     },
+    "Folder Discovery": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression folder-all",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
     "Java Runtime Probe": {
       "commandName": "Project",
       "commandLineArgs": "--regression java-probe-all",

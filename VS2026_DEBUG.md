@@ -43,6 +43,7 @@ Debug 构建输出为 `src/PclDownloadBridge.App/bin/Debug/net48/`。启动配�
 | Metadata Transfers | 10 项元数据响应、大小上限、备用源及取消回归；仅使用本地 HTTP 样本 |
 | Processor Log Recovery | 12 项真实 Java 样本检查：日志只读/占用、输出进度、失败原因、取消、恢复后重试；不使用真实游戏目录 |
 | Java Runtime Probe | 20 项 Java 检测检查：真实 JVM 长提示，以及模拟子进程的版本格式、双流大输出、错误码和超时；仅改测试进程的临时环境变量 |
+| Folder Discovery | 14 项 PCL 目录读取检查：自定义名称/别名去重、盘符根路径、无效或占用的当前目录配置、空列表与后续有效条目；仅写临时样本，盘符根路径只读检查 |
 | Download Plan | 重复文件的校验合并、同大小损坏文件修复 |
 | Native Libraries | 实际安装器中的普通/原生库合并、文件复用和最终配置写入 |
 | Cleanup Cancellation | 占用暂存客户端后取消安装、保留取消状态、解除占用后重试 |
