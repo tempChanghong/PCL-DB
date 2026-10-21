@@ -1,6 +1,17 @@
 # 本地验证记录
 
-日期：2026-10-21（北京时间）。当前交付为本地 0.47 预览版 PCD（Plain Craft Downloader），包含 Visual Studio 2026 开发配置；下方保留先前版本的验证记录。
+日期：2026-10-21（北京时间）。当前交付为本地 0.48 预览版 PCD（Plain Craft Downloader），包含 Visual Studio 2026 开发配置；下方保留先前版本的验证记录。
+
+## 0.48 Java 版本检测与输出管道
+
+- 本轮起点为本地提交 cced897，修改前源码保存在 `artifacts/java-probe-0.48/source-before.zip`。先正常发现本机 Java，再仅在测试进程中设置 16 KiB 的 JAVA_TOOL_OPTIONS 属性，原 net48 检测在 5013 ms 后拒绝同一 Java；`before-real-noise.log` 记录失败退出 1。另用模拟进程输出有效版本行但退出 7，原检测仍接受，`before-failures.log` 的拒绝断言失败，退出 1。
+- `JavaRuntime.Major` 改为同时读取 stdout/stderr，再等待退出及读取收尾；共用 5 秒探测预算，超时终止本次探测进程并最多等待 1 秒收尾。每路只保留至多 4096 字符的当前行，超长诊断行丢弃后继续读取；不累计多 MiB 的完整输出。stderr 优先、stdout 备用，退出码非零不作为可用 Java。
+- 对照固定 PCL `PCLCS/Java.cs` 的两类版本格式，支持 `1.8`、现代带引号版本及无引号 OpenJDK 行；行首匹配防止选项回显中的版本文字抢先命中，整数溢出和缺少版本均拒绝，跨块和 EOF 行保持完整解析。安装 Java 的最低要求、自动候选目录与排序、Fabric/LiteLoader 分支及处理器运行流程保持。
+- 新增 20 项检查：1 项真实 JVM 长提示；其余 19 项使用复制到临时中文/空格路径的测试程序模拟版本探测进程，覆盖格式、最低版本、两路各 2 MiB 的输出、错误码、噪声、超时及后代继承管道。`after-probes.log` 的 18 项及 `inherited.log` 的 2 项均通过，完整回归再次覆盖全部 20 项。仅修改测试进程环境并在 finally 恢复，不写系统/用户环境变量；自建继承管道的后代由测试自身核对路径后清理。
+- 完整 Release 构建零警告、零错误；593 项核心检查（原 573 项加上述 20 项）、561 项 UI、16 项 PCL 对照及 19 项打包检查通过，见 `full-build.log`。新检查纳入完整入口，VS 2026 增加 Java Runtime Probe 配置；20 项已包含于核心总数，不重复累加。
+- VS 2026 实际 Debug 构建、Portable PDB/关闭优化、217 项短核心检查及 561 项 UI 通过，报告为 `vs2026-report.json`；独立主题 70、卡片 66、导航 31、兼容 49 仍为 UI 子集，不重复计数。IDE 内 F5 断点未人工验收。
+- 最终交付为 `dist/PlainCraftDownloader-0.48-preview.zip`，在完整构建之后同步最终文档，显式校验该 ZIP 和输出目录的 11 个文件；报告为本轮目录中的 `final-package.json` / `final-package-verification.json`。构建和打包证据在本地留档。
+- 应用及 HTTP User-Agent 更新为 0.48；0.47 ZIP 保留。原七仓库 SHA/状态、44 份固定参考、资源、许可和界面实现保持，原 Patch-PCL.ps1 删除标记不动。本轮没有下载整套 Minecraft、启动游戏或人工验收 IDE 断点；公开建仓和推送继续暂缓。
 
 ## 0.47 Java 处理器日志异常与恢复
 

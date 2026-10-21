@@ -11,6 +11,7 @@ Module Program
     Sub Main(args As String())
         Net.ServicePointManager.SecurityProtocol = Net.SecurityProtocolType.Tls12
         Try
+            If JavaProbeChecks.TryRunFixture(args) Then Return
             If args.Length = 2 AndAlso args(0) = "--live-source-selection" Then
                 SourcePreferenceChecks.LiveAsync(args(1)).GetAwaiter().GetResult()
                 Return
@@ -30,7 +31,9 @@ Module Program
             Directory.CreateDirectory(TestRoot)
             If args.Length = 2 AndAlso args(0) = "--regression" Then
                 Dim run As Task(Of List(Of String))
-                If args(1).StartsWith("lib-select-", StringComparison.Ordinal) Then
+                If args(1).StartsWith("java-probe-", StringComparison.Ordinal) Then
+                    run = JavaProbeChecks.RunAsync(TestRoot, args(1))
+                ElseIf args(1).StartsWith("lib-select-", StringComparison.Ordinal) Then
                     run = LibrarySelectionChecks.RunAsync(TestRoot, args(1))
                 ElseIf args(1).StartsWith("metadata-transfer-", StringComparison.Ordinal) Then
                     run = MetadataTransferChecks.RunAsync(args(1))
@@ -80,6 +83,9 @@ Module Program
                 Return
             End If
             For Each label In ComponentChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
+                Check(True, label)
+            Next
+            For Each label In JavaProbeChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
                 Check(True, label)
             Next
             FolderTests()

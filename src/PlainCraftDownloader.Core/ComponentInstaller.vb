@@ -502,17 +502,60 @@ Public Module JavaRuntime
     Private Function Major(java As String) As Integer
         Try
             Using process As New Process With {.StartInfo = New ProcessStartInfo(java, "-version") With {.UseShellExecute = False, .CreateNoWindow = True, .RedirectStandardError = True, .RedirectStandardOutput = True}}
+                Dim clock = Stopwatch.StartNew()
                 process.Start()
-                If Not process.WaitForExit(5000) Then
-                    process.Kill() : Return 0
-                End If
-                Dim output = process.StandardError.ReadToEnd() & process.StandardOutput.ReadToEnd()
-                Dim match = Regex.Match(output, "version ""(?:1\.)?(\d+)")
-                Return If(match.Success, Integer.Parse(match.Groups(1).Value), 0)
+                Using output = process.StandardOutput, errors = process.StandardError
+                    ' Both pipes must drain before waiting; JVM option notices can fill either.
+                    Dim stdout = ReadMajorAsync(output), stderr = ReadMajorAsync(errors)
+                    If Not process.WaitForExit(CInt(Math.Max(0L, 5000L - clock.ElapsedMilliseconds))) Then
+                        process.Kill()
+                        process.WaitForExit(1000)
+                        Return 0
+                    End If
+                    If Not Task.WhenAll(stdout, stderr).Wait(CInt(Math.Max(0L, 5000L - clock.ElapsedMilliseconds))) Then Return 0
+                    If process.ExitCode <> 0 Then Return 0
+                    Return If(stderr.Result > 0, stderr.Result, stdout.Result)
+                End Using
             End Using
         Catch
             Return 0
         End Try
+    End Function
+    Private Async Function ReadMajorAsync(reader As StreamReader) As Task(Of Integer)
+        Dim buffer(1023) As Char, line As New StringBuilder(), overflow As Boolean, version As Integer
+        Try
+            Do
+                Dim count = Await reader.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(False)
+                If count = 0 Then Exit Do
+                For index = 0 To count - 1
+                    If buffer(index) = ControlChars.Cr OrElse buffer(index) = ControlChars.Lf Then
+                        If version = 0 AndAlso Not overflow Then version = ParseMajor(line.ToString())
+                        line.Clear() : overflow = False
+                    ElseIf version = 0 AndAlso Not overflow Then
+                        If line.Length = 4096 Then
+                            line.Clear() : overflow = True
+                        Else
+                            line.Append(buffer(index))
+                        End If
+                    End If
+                Next
+            Loop
+            If version = 0 AndAlso Not overflow Then version = ParseMajor(line.ToString())
+            Return version
+        Catch ex As IOException
+            Return 0
+        Catch ex As ObjectDisposedException
+            Return 0
+        End Try
+    End Function
+    Private Function ParseMajor(line As String) As Integer
+        ' PCL also recognizes the unquoted OpenJDK banner. Ignore option echoes.
+        Dim match = Regex.Match(line, "\A\s*(?:(?:java|openjdk)(?: full)? version ""(?<version>[0-9][0-9A-Za-z._+\-]{0,127})""|openjdk (?<version>[0-9][0-9A-Za-z._+\-]{0,127})(?=\s|\z))", RegexOptions.IgnoreCase Or RegexOptions.CultureInvariant)
+        If Not match.Success Then Return 0
+        Dim value = match.Groups("version").Value
+        If value.StartsWith("1.", StringComparison.Ordinal) Then value = value.Substring(2)
+        Dim result As Integer
+        Return If(Integer.TryParse(value.Split("."c, "_"c, "+"c, "-"c)(0), result) AndAlso result > 0, result, 0)
     End Function
     Public Async Function RunAsync(java As String, arguments As IEnumerable(Of String), work As String, report As Action(Of String), token As CancellationToken) As Task
         Dim info As New ProcessStartInfo With {.FileName = java, .Arguments = String.Join(" ", arguments.Select(AddressOf Quote)), .WorkingDirectory = work, .UseShellExecute = False, .CreateNoWindow = True, .RedirectStandardOutput = True, .RedirectStandardError = True}

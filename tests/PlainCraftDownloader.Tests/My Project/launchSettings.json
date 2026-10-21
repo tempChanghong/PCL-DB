@@ -1,5 +1,11 @@
 {
   "profiles": {
+    "Java Runtime Probe": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression java-probe-all",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
     "Processor Log Recovery": {
       "commandName": "Project",
       "commandLineArgs": "--regression processor-output-log-all",
