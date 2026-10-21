@@ -1,6 +1,17 @@
 # 本地验证记录
 
-日期：2026-10-21（北京时间）。当前交付为本地 0.46 预览版 PCD（Plain Craft Downloader），包含 Visual Studio 2026 开发配置；下方保留先前版本的验证记录。
+日期：2026-10-21（北京时间）。当前交付为本地 0.47 预览版 PCD（Plain Craft Downloader），包含 Visual Studio 2026 开发配置；下方保留先前版本的验证记录。
+
+## 0.47 Java 处理器日志异常与恢复
+
+- 本轮起点为本地提交 8d83de9，修改前源码保存在 `artifacts/processor-recovery-0.47/source-before.zip`。使用实际 net48 安装器、回环 HTTP 元数据及真实 Java 样本复现：只读 installer.log 导致进程未处理异常退出（-532462766）；以 FileShare.Read 占用日志时，安装完成但 Java 实时输出断言失败，退出 1。分别保留 `before-readonly.log` 和 `before-occupied.log`，没有操作真实游戏目录。
+- `ProcessorLine` 只在日志追加处处理 IOException / UnauthorizedAccessException，不改文件属性、不覆盖已有日志；日志失败后仍执行原有 UI 节流及输出通知。处理器退出码及末尾输出、取消语义、生成文件哈希和实例发布条件保持。不可写期间的记录不会补录，恢复写入后仅追加后续输出；不将日志完整性作为安装成功条件。
+- 新增 12 项检查：只读/占用日志下的实际加载器安装、原字节保留及实时输出、恢复追加及先前实例 JSON 不变，真实 Java 退出码 7 和 stderr 失败原因，失败/取消不发布实例及缓存，以及恢复后用原名称重试。`after-log-checks.log` 记录全部通过，测试程序集的完整入口与 VS 2026 的 Processor Log Recovery 均包含该组。
+- 完整 Release 构建零警告、零错误；573 项下载/安装/元数据检查（原 561 项加上述 12 项）、561 项 UI、16 项固定 PCL 对照及 19 项打包检查通过。日志保存在 `full-build.log`；本轮没有更改界面实现，UI 数量保持。
+- VS 2026 实际 Debug 构建、Portable PDB/关闭优化、197 项短控制台回归（含本轮 12 项）及 561 项 UI 通过，报告为 `vs2026-report.json`；独立主题 70、卡片 66、导航 31、兼容 49 均为 UI 子集。IDE 内 F5 断点未人工验收。
+- 最终便携包为 `dist/PlainCraftDownloader-0.47-preview.zip`；构建后重新同步最终文档，并用显式候选包校验 ZIP 和输出目录的 11 个文件。打包清单及校验结果保存在本轮目录的 `final-package.json` / `final-package-verification.json`，源码与参考仓库状态在本地留档。
+- 对照固定 PCL `ModDownloadLib.vb` 的 Forge/NeoForge 输出回调异常隔离；44 份参考、12 项上游资源及许可文件不改。原七仓库的 SHA/状态保持，`PCL-Re.Download_PATCH` 原有的 Patch-PCL.ps1 删除标记继续保留。
+- 应用版本与 HTTP User-Agent 更新为 0.47，保留 0.46 ZIP。本轮不修改视觉样式、不迁移真实用户偏好，不下载整套 Minecraft 或启动游戏；公开建仓和推送继续暂缓。
 
 ## 0.46 元数据读取与备用源回退
 

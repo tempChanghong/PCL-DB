@@ -1,5 +1,11 @@
 {
   "profiles": {
+    "Processor Log Recovery": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression processor-output-log-all",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
     "Metadata Transfers": {
       "commandName": "Project",
       "commandLineArgs": "--regression metadata-transfer-all",

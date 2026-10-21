@@ -1,6 +1,6 @@
 # PCD · Plain Craft Downloader
 
-VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，本地 0.46 预览版，简称 PCD。
+VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，本地 0.47 预览版，简称 PCD。
 
 以 PCL2 限制前代码为主要参照，读取 PCL 使用的 `.minecraft`，安装结果使用 PCL 能读取的版本目录格式。原五个启动器仓库不需要修改。
 
@@ -27,6 +27,7 @@ VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，本地
 
 ## 功能
 
+- Java 安装处理器的日志被设为只读或被其他程序占用时，继续显示实时输出；日志恢复可写后继续追加。处理器自身失败仍报告退出码和末尾输出，取消仍阻止实例发布，可重新安装；不会覆盖原日志。
 - 版本列表与安装选项按 PCL 的两段横移动画切换：旧页淡出，新页延后淡入并以五次方缓动回位，合计 260ms。切换期间屏蔽内容点击，键盘焦点在结束后恢复；快速返回、设置往返或查看进度会正确收束旧时钟，保留原有选择与任务。
 
 - 组件卡片展开时，版本图标和摘要在 60ms 内淡出并下移 6 DIP；收起时以 60ms 淡入、150ms 三次方缓动返回。清除按钮保持原位；重复列表刷新不重播动画，快速反向切换从当前状态继续。
@@ -126,7 +127,7 @@ Visual Studio 2026 可直接打开 `PlainCraftDownloader.sln`，选择 **Debug /
 构建结果会打印本次 ZIP 和 `result.json` 的完整路径，其中记录 ZIP 的 SHA-256 及每个文件的内容哈希。可明确指定候选包，重新核对其内容与当前 Release 输出和文档是否一致：
 
 ```powershell
-.\tools\verify-package.ps1 -PackagePath .\dist\PlainCraftDownloader-0.46-preview.zip -DistributionPath .\dist\PlainCraftDownloader
+.\tools\verify-package.ps1 -PackagePath .\dist\PlainCraftDownloader-0.47-preview.zip -DistributionPath .\dist\PlainCraftDownloader
 ```
 
 `-SkipTests` 仅跳过回归检查，打包时仍校验候选 ZIP 的完整文件清单和字节内容；不能据此声称通过完整回归。单独执行 `tools/verify-packaging.ps1` 需要已有 Release 构建。

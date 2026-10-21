@@ -19,6 +19,10 @@ Friend Module ProcessorOutputChecks
         If onlyCase Is Nothing OrElse onlyCase = "processor-output-failure" Then Await FailureAsync(testRoot, passed)
         If onlyCase Is Nothing OrElse onlyCase = "processor-output-unavailable" Then Await UnavailableAsync(testRoot, passed)
         If onlyCase Is Nothing OrElse onlyCase = "processor-output-outside" Then Await OutsideAsync(testRoot, passed)
+        If onlyCase Is Nothing OrElse onlyCase = "processor-output-log-all" OrElse onlyCase = "processor-output-log-readonly" Then Await LogUnavailableAsync(testRoot, passed, True)
+        If onlyCase Is Nothing OrElse onlyCase = "processor-output-log-all" OrElse onlyCase = "processor-output-log-occupied" Then Await LogUnavailableAsync(testRoot, passed, False)
+        If onlyCase Is Nothing OrElse onlyCase = "processor-output-log-all" OrElse onlyCase = "processor-output-log-failure" Then Await LogFailureAsync(testRoot, passed)
+        If onlyCase Is Nothing OrElse onlyCase = "processor-output-log-all" OrElse onlyCase = "processor-output-log-cancel" Then Await LogCancelAsync(testRoot, passed)
         If passed.Count = 0 Then Throw New ArgumentException("Unknown processor output case: " & onlyCase)
         Return passed
     End Function
@@ -218,6 +222,97 @@ Friend Module ProcessorOutputChecks
             Assert(rejected AndAlso Executions(fixture.Root) = 0 AndAlso File.ReadAllText(outside) = "keep" AndAlso OutputFiles(fixture.Root).Count = 0, "output declarations outside private work are rejected before execution or caching", passed)
         End Using
     End Function
+    Private Function PrepareLog(root As String) As String
+        Dim log = SafeFiles.UnderRoot(root, ".vanilla-downloader/installer.log")
+        Directory.CreateDirectory(Path.GetDirectoryName(log))
+        File.WriteAllText(log, "existing installation log" & vbCrLf, New UTF8Encoding(False))
+        Return log
+    End Function
+
+    Private Function UncachedProcessor() As JObject
+        Dim result = Processor("patched")
+        result("outputs") = New JObject()
+        Return result
+    End Function
+
+    Private Function LogProgress(onLine As Action) As IProgress(Of TransferProgress)
+        Dim delayed As Integer
+        Return New CallbackProgress(Sub(value)
+                                        ' Let the real installer clock pass its UI throttle before Java starts.
+                                        If value.Phase = "processors" AndAlso value.Stage <> "运行安装处理器" AndAlso Interlocked.Exchange(delayed, 1) = 0 Then Thread.Sleep(150)
+                                        If value.Phase = "processors" AndAlso value.Stage = "运行安装处理器" Then onLine()
+                                    End Sub)
+    End Function
+
+    Private Async Function LogUnavailableAsync(testRoot As String, passed As List(Of String), readOnlyLog As Boolean) As Task
+        Dim mode = If(readOnlyLog, "readonly", "occupied")
+        Using fixture As New InstallationChecks.InstallFixture(testRoot, "processor-output-log-" & mode)
+            Dim log = PrepareLog(fixture.Root), original = File.ReadAllBytes(log)
+            Dim attributes = File.GetAttributes(log), hold As FileStream = Nothing, reported As Integer
+            Dim selected = Selection(fixture, New JArray(UncachedProcessor()))
+            Try
+                If readOnlyLog Then
+                    File.SetAttributes(log, attributes Or FileAttributes.ReadOnly)
+                Else
+                    hold = New FileStream(log, FileMode.Open, FileAccess.Read, FileShare.Read)
+                End If
+                Await fixture.InstallAsync("log-first", selected, progress:=LogProgress(Sub() Interlocked.Increment(reported)))
+                Assert(File.Exists(SafeFiles.UnderRoot(fixture.Root, "versions/log-first/log-first.json")) AndAlso File.ReadAllText(SafeFiles.UnderRoot(fixture.Root, RuntimePath)) = "patched", mode & " log does not prevent verified loader installation", passed)
+                Assert(File.ReadAllBytes(log).SequenceEqual(original) AndAlso Volatile.Read(reported) > 0, mode & " log preserves original bytes while Java output still reaches progress", passed)
+            Finally
+                hold?.Dispose()
+                File.SetAttributes(log, attributes)
+            End Try
+            Dim firstJson = SafeFiles.UnderRoot(fixture.Root, "versions/log-first/log-first.json"), firstBytes = File.ReadAllBytes(firstJson)
+            Await fixture.InstallAsync("log-second", selected)
+            Assert(Executions(fixture.Root) = 1 AndAlso File.ReadAllText(log).StartsWith(Encoding.UTF8.GetString(original), StringComparison.Ordinal) AndAlso File.ReadAllBytes(firstJson).SequenceEqual(firstBytes), mode & " log resumes appending after access recovers without changing the earlier instance", passed)
+        End Using
+    End Function
+
+    Private Async Function LogFailureAsync(testRoot As String, passed As List(Of String)) As Task
+        Using fixture As New InstallationChecks.InstallFixture(testRoot, "processor-output-log-failure")
+            Dim log = PrepareLog(fixture.Root), original = File.ReadAllBytes(log), attributes = File.GetAttributes(log)
+            Dim processorInfo = UncachedProcessor()
+            processorInfo("args") = New JArray("--fail")
+            Dim selected = Selection(fixture, New JArray(processorInfo)), failure As IOException = Nothing
+            Try
+                File.SetAttributes(log, attributes Or FileAttributes.ReadOnly)
+                Try
+                    Await fixture.InstallAsync("log-retry", selected)
+                Catch ex As IOException
+                    failure = ex
+                End Try
+                Assert(failure IsNot Nothing AndAlso failure.Message.Contains("(7)") AndAlso failure.Message.Contains("fixture processor failure"), "readonly log preserves the Java exit code and stderr failure reason", passed)
+                Assert(Not Directory.Exists(SafeFiles.UnderRoot(fixture.Root, "versions/log-retry")) AndAlso OutputFiles(fixture.Root).Count = 0 AndAlso File.ReadAllBytes(log).SequenceEqual(original), "failed Java with readonly log publishes neither an instance nor cached outputs and preserves the log", passed)
+            Finally
+                File.SetAttributes(log, attributes)
+            End Try
+            Await fixture.InstallAsync("log-retry", Selection(fixture, New JArray(Processor("patched"))))
+            Assert(Executions(fixture.Root) = 1 AndAlso OutputFiles(fixture.Root).Count = 1 AndAlso File.Exists(SafeFiles.UnderRoot(fixture.Root, "versions/log-retry/log-retry.json")), "failed Java with unavailable log can retry the same instance name after recovery", passed)
+        End Using
+    End Function
+
+    Private Async Function LogCancelAsync(testRoot As String, passed As List(Of String)) As Task
+        Using fixture As New InstallationChecks.InstallFixture(testRoot, "processor-output-log-cancel"), cancel As New CancellationTokenSource()
+            Dim log = PrepareLog(fixture.Root), original = File.ReadAllBytes(log), attributes = File.GetAttributes(log)
+            Dim selected = Selection(fixture, New JArray(Processor("patched"))), cancelled As Boolean
+            Try
+                File.SetAttributes(log, attributes Or FileAttributes.ReadOnly)
+                Try
+                    Await fixture.InstallAsync("log-retry", selected, progress:=LogProgress(Sub() cancel.Cancel()), token:=cancel.Token)
+                Catch ex As OperationCanceledException
+                    cancelled = True
+                End Try
+                Assert(cancelled, "readonly log still permits cancellation from actual Java output progress", passed)
+                Assert(Not Directory.Exists(SafeFiles.UnderRoot(fixture.Root, "versions/log-retry")) AndAlso OutputFiles(fixture.Root).Count = 0 AndAlso File.ReadAllBytes(log).SequenceEqual(original), "cancelled Java with readonly log publishes no instance or processor cache and preserves the log", passed)
+            Finally
+                File.SetAttributes(log, attributes)
+            End Try
+            Await fixture.InstallAsync("log-retry", selected)
+            Assert(Executions(fixture.Root) = 1 AndAlso OutputFiles(fixture.Root).Count = 1 AndAlso File.Exists(SafeFiles.UnderRoot(fixture.Root, "versions/log-retry/log-retry.json")), "cancelled Java with unavailable log can retry the same instance name after recovery", passed)
+        End Using
+    End Function
+
     Private Class CallbackProgress
         Implements IProgress(Of TransferProgress)
         Private ReadOnly _callback As Action(Of TransferProgress)
