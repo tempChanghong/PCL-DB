@@ -130,6 +130,17 @@ Visual Studio 2026 可直接打开 `PlainCraftDownloader.sln`，选择 **Debug /
 
 `-SkipTests` 仅跳过回归检查，打包时仍校验候选 ZIP 的完整文件清单和字节内容；不能据此声称通过完整回归。单独执行 `tools/verify-packaging.ps1` 需要已有 Release 构建。
 
+维护固定 PCL 参考时，先执行以下检查（需要本地 PCL Git 对象，可用 `-SourceRoot` 指向没有检出文件的仓库）：
+
+```powershell
+pwsh -NoProfile -File .\tools\import-pcl-ui.ps1 -CheckOnly
+pwsh -NoProfile -File .\tools\verify-pcl-import.ps1
+```
+
+导入器的源码、图片、字体和 `LICENCE` 全部取自固定提交 `5ef81e4` 的 Git 对象；上游当前分支和工作目录的变化不会成为导入内容。去掉 `-CheckOnly` 后仅补充缺失文件，已有 7 个控件/配色/图标适配文件始终保留；固定参考或资源与目标不同时，默认报告冲突并停止。确认报告后可使用 `-ReplaceChanged` 替换这些固定文件，原内容保存在本次操作的 `previous/`，写入失败时尝试回滚。有效清单的原始字节、未知字段及本地额外参考文件继续保留。
+
+`-CheckOnly` 不改写源码、参考、资源或许可文件，但会在 `artifacts/pcl-import/` 写入暂存候选与报告。它不判断已有控件适配是否符合界面要求；该部分由 `verify-pcl-ui.ps1` 检查。导入回归使用独立临时项目和共享 Git 对象的临时仓库，不修改上游工作目录；因需要上游 Git 对象，不纳入普通构建的默认检查。导入采用逐文件替换与回滚，不保证断电或强行终止时自动恢复全部文件。
+
 真实下载测试（明确指定独立输出目录）：
 
 ```powershell
