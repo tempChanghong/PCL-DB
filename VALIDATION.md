@@ -1,6 +1,16 @@
 # 本地验证记录
 
-日期：2026-10-21（北京时间）。当前交付为 0.52 预览版 PCL-DB（PCL Download Bridge），包含 Visual Studio 2026 开发配置；下方保留先前版本的验证记录。
+日期：2026-10-21（北京时间）。当前交付为 0.53 预览版 PCL-DB（PCL Download Bridge），包含 Visual Studio 2026 开发配置；下方保留先前版本的验证记录。
+
+## 0.53 NeoForge 版本解析
+
+- 修改前保存 `artifacts/bridge-0.53/source-before.zip`。用实际 ComponentCatalog 和回环 HTTP 元数据复现：21.0.x 映射成 1.21.0，导致 Minecraft 1.21 列表为空，见 `neoforge-before.log`。进一步对照固定源码确认：旧的 `^1.` 筛选排除了新编号、快照和愚人节版本，映射只取两段也丢失新格式的游戏补丁号；alpha 仅因不含 beta 而被误标为稳定版。
+- 新增 NeoForgeRelease，分别保留 API 坐标、显示名、Minecraft 版本、数值排序版本和稳定性。按上游规则去掉游戏版本多余的 .0、处理新编号第三段、精确快照后缀及 0.<游戏名> 格式；旧版 1.20.1 继续使用 forge Maven 包，显示名去前缀而 URL 保留原始坐标。数值版本相同再按版本名排序，alpha/beta 均为测试版；没有 alpha/beta 的显式 snapshot 元数据也作为测试版处理。
+- 14 项回归覆盖实际官方格式/BMCLAPI Maven 详情格式的解析、去重、分类、排序、旧版坐标，以及 PCL 按原始 API 名排除 47.1.82 的规则；不会把显示名相同的另一 Maven 坐标自动纳入黑名单。仅访问本机回环服务器；未请求真实上游文件或执行这些版本的安装器，未启动游戏。新版本列表识别不代表对应游戏已完成安装验收。结果见 `neoforge-fixed.log`。
+- 最终 Release 构建零警告、零错误；完整核心 621 项（原 607 项加本轮 14 项）、完整界面 620 项、PCL 对照 16 项、打包 19 项通过。按原始 API 名复核黑名单规则后重新运行完整构建，最终日志为 `full-build.log`，较早的一轮另存为 `initial-full-build.log`；不重复累加两轮结果。
+- VS 2026 Debug 构建、便携 PDB、关闭优化及所有现行调试配置通过：核心精选 245 项（含新增 NeoForge Versions），界面 620 项、外观 129 项、开发者 36 项、卡片 66 项、导航 31 项、设置兼容 49 项，子集不重复累加。报告为 `vs2026-report.json`，独立 NeoForge 调试配置的最终输出同步为 `neoforge-fixed.log`。未人工在 IDE 内按 F5 或命中断点。
+- 最终便携包为 `dist/PCL-DB-0.53-preview.zip`，最终文档同步后重新生成并按显式候选核对 11 个文件；保留旧版 ZIP。七个参考仓库的 SHA、原有修改状态保持，44 份固定参考快照与 12 项资源保持。
+
 
 ## 0.52 PCL 目录读取
 

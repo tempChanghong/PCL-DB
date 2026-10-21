@@ -31,7 +31,9 @@ Module Program
             Directory.CreateDirectory(TestRoot)
             If args.Length = 2 AndAlso args(0) = "--regression" Then
                 Dim run As Task(Of List(Of String))
-                If args(1).StartsWith("folder-", StringComparison.Ordinal) Then
+                If args(1) = "neoforge-versions" Then
+                    run = NeoForgeVersionChecks.RunAsync()
+                ElseIf args(1).StartsWith("folder-", StringComparison.Ordinal) Then
                     run = FolderDiscoveryChecks.RunAsync(TestRoot, args(1))
                 ElseIf args(1).StartsWith("java-probe-", StringComparison.Ordinal) Then
                     run = JavaProbeChecks.RunAsync(TestRoot, args(1))
@@ -91,6 +93,9 @@ Module Program
                 Check(True, label)
             Next
             FolderTests()
+            For Each label In NeoForgeVersionChecks.RunAsync().GetAwaiter().GetResult()
+                Check(True, label)
+            Next
             For Each label In FolderDiscoveryChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
                 Check(True, label)
             Next

@@ -187,18 +187,18 @@ Public Class ComponentCatalog
                 End If
                 result = result.OrderByDescending(Function(v) SortKey(v.Version), StringComparer.Ordinal).ToList()
             Case ComponentKind.NeoForge
-                If ComponentSelection.CompareMc(mc, "1.20.1") < 0 OrElse Not Regex.IsMatch(mc, "^1\.\d+(\.\d+)?$") Then Return result
+                If ComponentSelection.CompareMc(mc, "1.20.1") < 0 Then Return result
                 Dim package = If(mc = "1.20.1", "forge", "neoforge")
+                Dim parse As Func(Of String, JToken) = Function(body) ParseNeoForgeMetadata(body, package = "forge")
                 Dim data = Await _policy.GetVersionListAsync(
                     "https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/" & package,
                     "https://bmclapi2.bangbang93.com/neoforge/meta/api/maven/details/releases/net/neoforged/" & package,
-                    token, AddressOf ParseNeoForgeMetadata, AddressOf ParseNeoForgeMetadata).ConfigureAwait(False)
-                For Each value In data("versions").Values(Of String)()
-                    Dim game = If(package = "forge", "1.20.1", "1." & String.Join(".", value.Split("."c).Take(2)))
-                    If game <> mc Then Continue For
-                    result.Add(New ComponentEntry With {.Kind = kind, .Minecraft = mc, .Version = If(package = "forge", value.Replace("1.20.1-", ""), value), .Stable = Not value.Contains("beta"), .Url = "https://maven.neoforged.net/releases/net/neoforged/" & package & "/" & value & "/" & package & "-" & value & "-installer.jar"})
+                    token, parse, parse).ConfigureAwait(False)
+                Dim releases = data("versions").Values(Of String)().Select(Function(value) NeoForgeRelease.Parse(value, package = "forge")).Where(Function(value) value IsNot Nothing AndAlso value.Minecraft = mc).
+                    OrderByDescending(Function(value) value.NumericVersion).ThenByDescending(Function(value) SortKey(value.VersionName), StringComparer.OrdinalIgnoreCase)
+                For Each release In releases
+                    result.Add(New ComponentEntry With {.Kind = kind, .Minecraft = mc, .Version = release.VersionName, .Stable = release.Stable, .Url = "https://maven.neoforged.net/releases/net/neoforged/" & package & "/" & release.ApiName & "/" & package & "-" & release.ApiName & "-installer.jar"})
                 Next
-                result = result.OrderByDescending(Function(v) SortKey(v.Version), StringComparer.Ordinal).ToList()
             Case ComponentKind.OptiFine
                 Dim data = Await _policy.GetVersionListAsync("https://optifine.net/downloads", "https://bmclapi2.bangbang93.com/optifine/versionList",
                     token, Function(body) ParseOptiFinePage(body)).ConfigureAwait(False)
@@ -228,11 +228,11 @@ Public Class ComponentCatalog
         Next
         Return result
     End Function
-    Private Shared Function ParseNeoForgeMetadata(body As String) As JToken
+    Private Shared Function ParseNeoForgeMetadata(body As String, Optional legacy As Boolean = False) As JToken
         ' Same version-name extraction as PCL GetNeoForgeEntries, across official
         ' versions arrays and BMCLAPI's Maven details response.
         JToken.Parse(body)
-        Dim values = Regex.Matches(body, "(?<="")(?:1\.20\.1-)?\d+\.\d+\.\d+(?:\.\d+)?(?:-(?:beta|alpha)(?:\.\d+)?)?(?:\+snapshot-\d+)?(?="")").Cast(Of Match)().Select(Function(m) m.Value).Where(Function(v) v <> "47.1.82").Distinct().ToList()
+        Dim values = Regex.Matches(body, "(?<="")" & NeoForgeRelease.Pattern & "(?="")", RegexOptions.IgnoreCase).Cast(Of Match)().Select(Function(m) m.Value).Where(Function(value) NeoForgeRelease.Parse(value, legacy) IsNot Nothing).Distinct().ToList()
         If values.Count = 0 Then Throw New InvalidDataException("NeoForge 版本列表为空或格式无效。")
         Return New JObject From {{"versions", New JArray(values)}}
     End Function

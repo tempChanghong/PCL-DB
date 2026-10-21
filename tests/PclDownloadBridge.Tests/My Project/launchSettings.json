@@ -6,6 +6,12 @@
       "workingDirectory": "$(ProjectDir)",
       "nativeDebugging": false
     },
+    "NeoForge Versions": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression neoforge-versions",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
     "Folder Discovery": {
       "commandName": "Project",
       "commandLineArgs": "--regression folder-all",
