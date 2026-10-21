@@ -18,6 +18,7 @@ Namespace Controls
         Private _surface As FrameworkElement
         Private _surfaceOpacity As Double
         Private _clock As ClockGroup
+        Friend Property PauseForChecks As Boolean
         Friend Event Settled As EventHandler
         Private Class Entry
             Friend Target As FrameworkElement
@@ -143,6 +144,9 @@ Namespace Controls
                         Sub(clock) entry.Offset.ApplyAnimationClock(TranslateTransform.XProperty, clock))
                 End If
                 Dim group = DirectCast(plan.CreateClock(True), ClockGroup)
+                ' Async fixtures must pause at creation, before the dispatcher can
+                ' render away the 110 ms exit layer while awaiting their task.
+                If PauseForChecks Then group.Controller.Pause()
                 _clock = group
                 _host.IsHitTestVisible = False
                 AddHandler group.CurrentTimeInvalidated, Sub()

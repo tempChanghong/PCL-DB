@@ -93,7 +93,7 @@ Partial Public Class MainWindow
                 grid.RowDefinitions.All(Function(row) row.ActualHeight = 45) AndAlso
                 grid.Children.OfType(Of PclButton)().All(Function(button) Grid.GetColumn(button) = 2 AndAlso button.ActualWidth = 150 AndAlso button.ActualHeight = 35 AndAlso
                     Math.Abs(button.TranslatePoint(New Point(0, 0), grid).X - (grid.ActualWidth - 150)) < 0.5) AndAlso
-                grid.Children.OfType(Of PclListItem)().All(Function(item) item.ClipToBounds AndAlso
+                grid.Children.OfType(Of PclListItem)().Concat(If(grid Is AboutProductGrid, {AboutProductItem}, Enumerable.Empty(Of PclListItem)())).All(Function(item) item.ClipToBounds AndAlso
                     item.TranslatePoint(New Point(item.ActualWidth, 0), grid).X <= grid.ActualWidth - 150))
             Dim portraits = {AboutAuthorAvatar, AboutContributorAvatar, AboutMirrorAvatar}
             Dim portraitsFit = portraits.All(Function(portrait) portrait.ActualWidth = 34 AndAlso portrait.ActualHeight = 34 AndAlso

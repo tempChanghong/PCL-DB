@@ -1,6 +1,8 @@
 Imports System.Diagnostics
 Imports System.IO
 Imports System.Windows
+Imports System.Windows.Input
+Imports PclDownloadBridge.Controls
 
 Partial Public Class MainWindow
     Private _settingsOffsetBeforeAbout As Double
@@ -10,6 +12,7 @@ Partial Public Class MainWindow
     Private Sub InitializeAbout()
         AboutMonogram.Text = "DB"
         AboutProductItem.Title = ProductInfo.FullName
+        AboutProductText.ToolTip = ProductInfo.FullName
         AboutProductItem.Info = "当前版本：" & ProductInfo.VersionText
         AboutRuntimeInfo.Text = ".NET Framework 4.8 · CLR " & Environment.Version.ToString()
     End Sub
@@ -23,13 +26,39 @@ Partial Public Class MainWindow
                                      AboutPage.ScrollToTop()
                                      AboutPage.UpdateLayout()
                                  End Sub)
+        FocusAboutTarget(AboutBack)
     End Sub
 
     Private Sub BackFromAbout(sender As Object, e As RoutedEventArgs)
+        If AboutPage.Visibility <> Visibility.Visible Then Return
         SwitchMainPage(True, Sub()
                                  SettingsPage.ScrollToVerticalOffset(_settingsOffsetBeforeAbout)
                                  SettingsPage.UpdateLayout()
                              End Sub)
+        ' A programmatic visit may originate below the entry button. Focusing
+        ' that offscreen button would undo the settings scroll restoration.
+        Dim entryVisible = AboutEntry.ActualHeight > 0 AndAlso
+            PclExitSnapshot.VisibleBounds(AboutEntry, SettingsPage).Height >= AboutEntry.ActualHeight - 0.5
+        FocusAboutTarget(If(entryVisible, DirectCast(AboutEntry, FrameworkElement), SettingsPage))
+    End Sub
+
+    Private Sub FocusAboutTarget(target As FrameworkElement)
+        Dim scope = FocusManager.GetFocusScope(target)
+        Dim previous = FocusManager.GetFocusedElement(scope)
+        Dim focus As Action = Sub()
+                                  If _closing OrElse Not target.IsVisible OrElse Not target.IsEnabled Then Return
+                                  Dim current = TryCast(FocusManager.GetFocusedElement(scope), UIElement)
+                                  ' Entry remains interactive before all card motion ends.
+                                  ' Do not steal a newer pointer/Tab focus choice at completion.
+                                  If current IsNot previous AndAlso current IsNot Nothing AndAlso current.IsVisible Then Return
+                                  FocusManager.SetFocusedElement(scope, target)
+                                  target.Focus()
+                              End Sub
+        If _surfaceMotion.Transition IsNot Nothing Then
+            _pendingSurfaceFocus = focus
+        Else
+            focus()
+        End If
     End Sub
 
     Private Sub CopyAboutVersion(sender As Object, e As RoutedEventArgs)

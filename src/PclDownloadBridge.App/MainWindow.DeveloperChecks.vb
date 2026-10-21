@@ -78,7 +78,7 @@ Partial Public Class MainWindow
             DeveloperEnabledBox.IsChecked = False
             check(DeveloperTaskInfo.Visibility = Visibility.Collapsed, "developer diagnostics disappear when developer mode is disabled")
             check(AboutContent.Children.IndexOf(AboutAuthorCard) < AboutContent.Children.IndexOf(AboutCreditsCard) AndAlso
-                Grid.GetRow(AboutAuthorItem) < Grid.GetRow(AboutProductItem) AndAlso CStr(AboutPclSponsor.Tag) = "pcl-sponsor", "the original author and sponsorship action precede project information")
+                Grid.GetRow(AboutAuthorItem) < Grid.GetRow(AboutProductText) AndAlso CStr(AboutPclSponsor.Tag) = "pcl-sponsor", "the original author and sponsorship action precede project information")
             VerifyDeveloperLayout(check, artifactDirectory)
             VerifyBridgeMigration(check, artifactDirectory)
             VerifyDeveloperSaving(check, artifactDirectory)

@@ -301,7 +301,9 @@
                     <Border Grid.Row="2" Style="{StaticResource AboutBadge}" Background="{DynamicResource ColorBrush3}">
                       <TextBlock x:Name="AboutMonogram" Text="DB" Foreground="White" FontSize="13" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
-                    <p:PclListItem x:Name="AboutProductItem" Grid.Row="2" Grid.Column="1" Title="Plain Craft Launcher - Download Bridge" Margin="-5,0,15,0" IsHitTestVisible="False" ClipToBounds="True" ToolTip="{Binding Title, RelativeSource={RelativeSource Self}}"/>
+                    <Border x:Name="AboutProductText" Grid.Row="2" Grid.Column="1" Margin="-5,0,15,0" Background="Transparent">
+                      <p:PclListItem x:Name="AboutProductItem" Title="Plain Craft Launcher - Download Bridge" IsHitTestVisible="False" ClipToBounds="True"/>
+                    </Border>
                     <p:PclButton x:Name="AboutCopyVersion" Grid.Row="2" Grid.Column="2" Text="复制版本信息" Height="35" Click="CopyAboutVersion"/>
                   </Grid>
                 </p:PclCard>

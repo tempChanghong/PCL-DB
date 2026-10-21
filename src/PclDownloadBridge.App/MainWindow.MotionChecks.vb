@@ -30,6 +30,8 @@ Partial Public Class MainWindow
         VerifySnapshotViewport(directory, check)
         Dim finalization As New MainWindow(True)
         finalization.VerifyMotionFinalization(directory, check)
+        Dim about As New MainWindow(True)
+        about.VerifyAboutMotion(directory, check)
         Return passed
     End Function
 

@@ -24,6 +24,7 @@ Partial Public Class MainWindow
         Using source = PreviewSurface.Attach(host, 850, 600)
             Try
                 layout() : _motionPreview = True
+                _surfaceMotion.PauseForChecks = True
                 SwitchMainPage(True) : _surfaceMotion.Finish() : layout()
                 SwitchMainPage(False)
                 Dim incoming = _surfaceMotion.Transition
@@ -38,7 +39,12 @@ Partial Public Class MainWindow
                 check(PumpMotionUntil(Function() loading.IsCompleted), "a controlled manifest result returns on the UI dispatcher during page entry")
                 loading.GetAwaiter().GetResult()
                 Dim refreshed = _surfaceMotion.Transition
-                refreshed.Controller.Pause() : layout()
+                refreshed?.Controller.Pause() : layout()
+                IO.File.WriteAllText(IO.Path.Combine(directory, "catalogue-accept-state.json"), New JObject From {
+                    {"pausedFromCreation", _surfaceMotion.PauseForChecks},
+                    {"replaced", refreshed IsNot incoming}, {"dataAccepted", _versions Is fresh}, {"ghostLayers", PageGhost.Children.Count},
+                    {"clockOwned", _surfaceMotion.Transition Is refreshed}, {"time", If(refreshed?.CurrentTime?.TotalMilliseconds, -1)},
+                    {"retiredClean", retired.All(Function(card) Not card.HasAnimatedProperties AndAlso Not TypeOf card.RenderTransform Is TransformGroup)}}.ToString())
                 check(refreshed IsNot incoming AndAlso _versions Is fresh AndAlso PageGhost.Children.Count = 1 AndAlso retired.All(Function(card) Not card.HasAnimatedProperties AndAlso Not TypeOf card.RenderTransform Is TransformGroup),
                     "accepted catalogue content releases detached card clocks and enters its own fresh animation group")
                 incoming.Controller.SkipToFill() : layout()
@@ -150,6 +156,7 @@ Partial Public Class MainWindow
                 check(_pageSwitch.Transition Is Nothing AndAlso _surfaceMotion.Transition Is Nothing,
                     "closing state prevents a late navigation callback from starting a new animation")
             Finally
+                _surfaceMotion.PauseForChecks = False
                 _closing = False : _pendingSurfaceFocus = Nothing
                 _versionProvider = Nothing
                 _pageSwitch.Finish() : _surfaceMotion.Finish()
