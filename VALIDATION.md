@@ -2,6 +2,14 @@
 
 日期：2026-10-22（北京时间）。当前源码为尚未发布的 0.57 开发版 PCL-DB（PCL Download Bridge），包含 Visual Studio 2026 开发配置；最新公开预览版为 0.56，下方保留先前版本的验证记录。
 
+## 0.57 选中标记弹出与颜色衔接
+
+- 基线 6bfa51c，修改前保存 `artifacts/bridge-0.57-selected-marker/source-before.zip`、77 个 dist 文件的摘要/时间戳及七个参考仓库状态。重新读取固定 PCL MyListItem.SetChecked 的两条并行高度曲线、延迟透明度、文字颜色及即时布局分支。
+- `baseline/motion.json` 在原 254 项后失败；selected-marker-baseline.json 记录标记未建立动画、文字直接跳到选中色，以及选中行从 42 改为 36 DIP 并隐藏后仍使用普通行强调色。fixed/motion.json 的两项新检查通过，标记和文字从当前状态进入，紧凑行颜色正确且逻辑选择保留。
+- 新增独立选中时钟组：200/300ms 并行弹出、30ms 进入透明度、200ms 文字渐变；取消为 120ms 二次方收缩、40ms 延后加 70ms 淡出、120ms 文字回位。与悬停组互不替换，快速反向保留显示值，过期完成不能清理新组。动画完成恢复 Auto/Stretch 和上下 6 DIP，行高变化重定向活动高度或直接更新稳定布局及强调色，不为未选中布局或已稳定选择创建空动画。
+- 新增 41 项动画验收，总计 295 项，expanded/motion.json 首次完整通过；覆盖独立公式及冻结副本、实际时钟和延迟、500 次相同写入、悬停共存、快速反选、行高变化、生命周期和真实主题替换，另有 13 帧 selected-marker-frames。上一轮的一项悬停断言相应改为确认新选中时钟及原悬停时钟同时存在，原检查计数保留；只读行及未加载控件仍直接选择终态。输入为合成路由，渲染为离屏采样，不作为桌面 FPS 或真实输入设备验收。
+- 最终 Release 构建、658 项完整界面、295 项动画、17 项固定源对照和 VS 2026 Debug/PDB 验证分别记录于本轮日志/JSON。下载 Core 未改，不重复完整 745 项核心回归，仅运行 VS 配置中的 369 项精选逻辑检查。保持 0.57 开发版，未构建单 EXE 候选、打包或发版；dist 与七个参考仓库保留结果见 preservation.json。
+
 ## 0.57 列表悬停与顶部选项交接
 
 - 基线 6138efc，修改前保存 `artifacts/bridge-0.57-selection-motion/source-before.zip`、77 个 dist 文件的摘要/时间戳及七个参考仓库状态。重读固定 PCL MyListItem.RefreshColor、MyRadioButton.SetChecked 和 ModAnimation 的组内 After 调度。

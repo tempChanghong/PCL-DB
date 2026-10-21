@@ -63,7 +63,7 @@ try {
         if ((Get-FileHash -LiteralPath (Join-Path $root $document.Name) -Algorithm SHA256).Hash -ne $document.SHA256) { throw "Embedded documentation differs from source: $($document.Name)" }
     }
     $ui = Invoke-IsolatedCheck '--ui-checks' 'ui' 658
-    $motion = Invoke-IsolatedCheck '--motion-checks' 'motion' 254
+    $motion = Invoke-IsolatedCheck '--motion-checks' 'motion' 295
     if (@(Get-ChildItem -LiteralPath $cold -Force).Count -ne 1) { throw 'The isolated run left extra files beside the executable.' }
     if ((Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash -cne $candidateHash) { throw 'Candidate changed during isolated verification.' }
     $payload = Join-Path $operation 'payload'

@@ -43,6 +43,12 @@ Namespace Controls
         Private _down As Boolean
         Private _outlineLogo As Boolean
         Private ReadOnly _hoverMotion As PclListHoverMotion
+        Private ReadOnly _selectionMotion As PclListSelectionMotion
+        Friend ReadOnly Property SelectionTransition As Animation.ClockGroup
+            Get
+                Return _selectionMotion.Transition
+            End Get
+        End Property
         Friend ReadOnly Property HoverTransition As Animation.ClockGroup
             Get
                 Return _hoverMotion.Transition
@@ -75,8 +81,7 @@ Namespace Controls
             Set(value As Boolean)
                 If _selected = value Then Return
                 _selected = value
-                _check.Visibility = If(value, Visibility.Visible, Visibility.Collapsed)
-                SetResourceReference(ForegroundProperty, If(value, If(Height < 40, "ColorBrush3", "ColorBrush2"), "ColorBrush1"))
+                _selectionMotion?.Update(value, AllowSelectionMotion())
                 RefreshHover()
             End Set
         End Property
@@ -134,6 +139,7 @@ Namespace Controls
                                                    Focusable = IsHitTestVisible
                                                    If Not IsHitTestVisible Then _down = False
                                                    RefreshHover(True)
+                                                   _selectionMotion?.Update(_selected, False)
                                                End Sub
             AddHandler GotKeyboardFocus, Sub() RefreshHover()
             AddHandler LostKeyboardFocus, Sub() RefreshHover()
@@ -145,31 +151,40 @@ Namespace Controls
             SetColumn(_info, 3)
             SetRow(_info, 2)
             Children.Add(_info)
-            _check = New Border With {.Width = 5, .CornerRadius = New CornerRadius(2), .Margin = New Thickness(-1, 6, 0, 6), .Background = Brush("ColorBrush3"), .Visibility = Visibility.Collapsed, .IsHitTestVisible = False, .HorizontalAlignment = HorizontalAlignment.Left}
+            _check = New Border With {.Width = 5, .Height = 0, .Opacity = 0, .CornerRadius = New CornerRadius(2), .Margin = New Thickness(-1, 0, 0, 0), .Background = Brush("ColorBrush3"), .IsHitTestVisible = False, .HorizontalAlignment = HorizontalAlignment.Left, .VerticalAlignment = VerticalAlignment.Center}
             SetRowSpan(_check, 4)
             Children.Add(_check)
             _hoverMotion = New PclListHoverMotion(_background, DirectCast(RenderTransform, ScaleTransform))
+            _selectionMotion = New PclListSelectionMotion(Me, _check)
             PclTheme.Watch(Me, Sub()
                                   _background.BorderBrush = Brush("ColorBrush6")
                                   _check.Background = Brush("ColorBrush3")
                                   RefreshHover()
+                                  _selectionMotion.Update(_selected, False)
                               End Sub)
-            AddHandler SizeChanged, Sub()
+            AddHandler SizeChanged, Sub(sender, args)
                                         ColumnCheck.Width = New GridLength(If(IsSidebar, 6, If(Height < 40, 4, 2)))
+                                        If args.HeightChanged Then _selectionMotion.Update(_selected, AllowSelectionMotion())
                                     End Sub
             AddHandler MouseEnter, Sub() RefreshHover()
             AddHandler Unloaded, Sub()
                                      _down = False : RefreshHover(True, True)
+                                     _selectionMotion.Update(_selected, False)
                                  End Sub
             AddHandler IsVisibleChanged, Sub()
                                              If Not IsVisible Then _down = False
                                              RefreshHover(True, Not IsVisible)
+                                             _selectionMotion?.Update(_selected, False)
                                          End Sub
             AddHandler IsEnabledChanged, Sub()
                                              _down = False
                                              RefreshHover(True)
+                                             _selectionMotion?.Update(_selected, False)
                                          End Sub
         End Sub
+        Private Function AllowSelectionMotion() As Boolean
+            Return IsLoaded AndAlso IsVisible AndAlso IsEnabled AndAlso IsHitTestVisible AndAlso ActualHeight > 0 AndAlso Not PclTheme.Changing
+        End Function
         Private Sub RefreshHover(Optional immediate As Boolean = False, Optional inactive As Boolean = False)
             If _hoverMotion Is Nothing Then Return
             _background.CornerRadius = New CornerRadius(If(IsSidebar, 0, 6))

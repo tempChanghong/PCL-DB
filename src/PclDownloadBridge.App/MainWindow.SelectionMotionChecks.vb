@@ -102,8 +102,8 @@ Partial Public Class MainWindow
         check(row.HoverTransition Is entry AndAlso background.Background Is retained,
             "unchanged list state preserves the same live clock and brush across five hundred updates")
         row.Selected = True
-        check(row.HoverTransition Is entry AndAlso DirectCast(row.Foreground, SolidColorBrush).Color = PclAnimation.Brush("ColorBrush2").Color,
-            "changing the selected marker and ink does not restart a separate hover animation")
+        check(row.HoverTransition Is entry AndAlso row.Selected AndAlso row.SelectionTransition IsNot Nothing,
+            "changing the selected marker and ink starts its own transition without restarting hover")
         row.Selected = False
         Dim initialBack = back.ScaleX, initialOpacity = background.Opacity
         PointerEvent(row, Mouse.MouseDownEvent)
