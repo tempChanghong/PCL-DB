@@ -1,5 +1,12 @@
 # PCL2 代码依据
 
+## 审查第三批：归档兼容、搜索验收与 VS 入口
+
+- 再次从固定 `Meloong-Git/PCL@5ef81e490ae46b1100d61e33d0183094c7a80ca8` 读取 `Plain Craft Launcher 2.vbproj`、`Application.xaml.vb:217–232` 和 `.github/workflows/build.yml`：上游以 net48 WPF EXE 为交付主体，分别构建 Debug/Release，并保留资源嵌入、启动期 AssemblyResolve / Lazy 缓存及构建版本身份。本项目继续使用现有资源解析器和独立单 EXE 候选；不复制上游私有配置、账号字段或发布流程，也不据工程的签名开关推断正式发行版签名状态。
+- v3 候选、四组实际 EXE 摘要绑定回执、v2 历史归档兼容与统一验证策略，是针对本项目审查 F-04/F-05/G-01 的独立修正，并非声称 PCL 已有同一套清单格式。归档完整性与当前源码候选验收分开；原 Beta 及其历史验收数字保留原字节。搜索检查在 Windows 动画关闭时核对静态状态，避免少执行一项而迫使验证脚本放宽门槛。
+- B-03 的 `Images/ReleaseTypes/{Release,Beta,Alpha}.png` 与 `Images/Icons/NoIcon.png` 再次逐字节核对固定 Git blob，补入 `reference/pcl-assets.json`，总计 19 项资源。它们在本仓继续位于 `Images/Blocks/`，导入器显式记录原路径到目标路径的映射；原图未改写，44 份源码快照保持不变。
+- 本批只修改构建/验证入口、调试配置、来源清单与检查回执；不修改下载、版本隔离、共享 Mods、实例发布、搜索排序和生产动画机制。新候选与发行实测留待明确要求打包时执行。
+
 ## 审查第二批：标题栏、滚动条和个性化单选框动画
 
 本轮再次直接读取 `Meloong-Git/PCL@5ef81e490ae46b1100d61e33d0183094c7a80ca8`，原 44 份固定源码快照保持原字节。新增依据包括同提交的 `Controls/MyScrollBar.vb`，通过本地 PCL Git 对象读取；原启动器工作区不修改。

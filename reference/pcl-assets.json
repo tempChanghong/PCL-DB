@@ -77,6 +77,26 @@
       "File": "Images/Heads/bangbang93.png",
       "Source": "Plain Craft Launcher 2/Images/Heads/bangbang93.png",
       "Hash": "B7163DEEB19EBC2CC1BFF075D9CBE42E934139A98B7184043F63543E88F6A7FF"
+    },
+    {
+      "File": "Images/Blocks/Release.png",
+      "Source": "Plain Craft Launcher 2/Images/ReleaseTypes/Release.png",
+      "Hash": "F915B878E00BD8DD4ED7019ECDCB7DDB8BCBF0C8CF27054DE91D41079E4ED1EA"
+    },
+    {
+      "File": "Images/Blocks/Beta.png",
+      "Source": "Plain Craft Launcher 2/Images/ReleaseTypes/Beta.png",
+      "Hash": "29481182A8FC6F3700C081CF0443B74990596198FD2653C40B41207C96E59D0F"
+    },
+    {
+      "File": "Images/Blocks/Alpha.png",
+      "Source": "Plain Craft Launcher 2/Images/ReleaseTypes/Alpha.png",
+      "Hash": "AFCE6A2CD3D931CC162B7F843D29A8D07BBCD5446074E86FF89626D7CE3B5394"
+    },
+    {
+      "File": "Images/Blocks/NoIcon.png",
+      "Source": "Plain Craft Launcher 2/Images/Icons/NoIcon.png",
+      "Hash": "9FC701416380CCE10945DA27D152811954B20A9BB52613644B1767F0F95D84D1"
     }
   ]
 }

@@ -78,12 +78,12 @@ try {
     [IO.File]::WriteAllText($notes, 'Unrelated local reference notes must be retained.')
     $before = Snapshot -Times
     $first = Invoke-Import
-    Assert-Case ($first.ExitCode -eq 0 -and $first.Report.Succeeded -and $first.Report.PlannedFiles -eq 69) 'all 69 planned files can be checked using a bare upstream repository with spaces and Unicode paths'
+    Assert-Case ($first.ExitCode -eq 0 -and $first.Report.Succeeded -and $first.Report.PlannedFiles -eq 73) 'all 73 planned files can be checked using a bare upstream repository with spaces and Unicode paths'
     Assert-Case (@($first.Report.WrittenFiles).Count -eq 0 -and (Snapshot -Times) -eq $before) 'an unchanged import preserves every target byte and modification timestamp'
     Assert-Case (@($first.Report.PreservedAdapters).Count -eq 7 -and [Convert]::ToBase64String([IO.File]::ReadAllBytes($adapter)) -eq [Convert]::ToBase64String($adapterBytes)) 'existing local control adaptations are preserved'
     $assets = Get-Content -LiteralPath (Join-Path $fixture 'reference/pcl-assets.json') -Raw | ConvertFrom-Json
     $incorrect = @($assets.Files | Where-Object { (Get-FileHash -LiteralPath (Join-Path $fixture "src/PclDownloadBridge.App/$($_.File)") -Algorithm SHA256).Hash -ne $_.Hash })
-    Assert-Case ($incorrect.Count -eq 0 -and $assets.Files.Count -eq 15) 'all 15 binary resources match pinned hashes despite loose upstream resource contamination'
+    Assert-Case ($incorrect.Count -eq 0 -and $assets.Files.Count -eq 19) 'all 19 binary resources match pinned hashes despite loose upstream resource contamination'
     $manifest = Get-Content -LiteralPath (Join-Path $fixture 'reference/PCL/manifest.json') -Raw | ConvertFrom-Json
     Assert-Case (@($manifest.Files).Count -eq 44 -and (Test-Path -LiteralPath $notes)) 'unrelated reference files are retained and excluded from the fixed source manifest'
     $again = Invoke-Import -Options @('-CheckOnly')

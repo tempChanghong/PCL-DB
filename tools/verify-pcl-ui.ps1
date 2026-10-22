@@ -11,7 +11,7 @@ foreach ($entry in $sourceManifest.Files) {
 }
 Write-Output 'PASS all 44 fixed PCL source snapshot hashes'
 $assetManifest = Get-Content -LiteralPath (Join-Path $root 'reference/pcl-assets.json') -Raw | ConvertFrom-Json
-if ($assetManifest.Repository -ne 'Meloong-Git/PCL' -or $assetManifest.Commit -ne '5ef81e490ae46b1100d61e33d0183094c7a80ca8' -or @($assetManifest.Files).Count -ne 15) { throw 'Unexpected PCL asset baseline.' }
+if ($assetManifest.Repository -ne 'Meloong-Git/PCL' -or $assetManifest.Commit -ne '5ef81e490ae46b1100d61e33d0183094c7a80ca8' -or @($assetManifest.Files).Count -ne 19) { throw 'Unexpected PCL asset baseline.' }
 function Assert-PclAsset([string]$relative) {
     $entry = @($assetManifest.Files | Where-Object File -eq $relative)
     if ($entry.Count -ne 1) { throw "Missing or duplicate PCL asset hash: $relative" }
@@ -28,6 +28,8 @@ foreach ($image in @('Grass', 'CommandBlock', 'CobbleStone', 'GoldBlock', 'Anvil
     Assert-PclAsset "Images/Blocks/$image.png"
 }
 Write-Output 'PASS original PCL block-image bytes'
+foreach ($name in @('Release','Beta','Alpha','NoIcon')) { Assert-PclAsset "Images/Blocks/$name.png" }
+Write-Output 'PASS original PCL release-type and fallback artwork bytes'
 foreach ($name in @('LTCat.jpg', 'HerobrineXia.png', 'bangbang93.png')) { Assert-PclAsset "Images/Heads/$name" }
 Write-Output 'PASS three original PCL about-page portraits'
 [xml]$sourceApplication = Get-Content -LiteralPath (Join-Path $root 'reference/PCL/Application.xaml') -Raw

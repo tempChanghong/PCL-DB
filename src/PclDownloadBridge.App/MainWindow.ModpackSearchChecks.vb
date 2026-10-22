@@ -55,8 +55,9 @@ Partial Public Class MainWindow
         PackResultsCard.HorizontalAlignment = HorizontalAlignment.Center
         PackProjectRows.Children.Clear() : PackProjectRows.Children.Add(loader) : layout()
         check(Math.Abs(PclPickaxeAnimation.Sample(250) - 55) < 0.0001 AndAlso Math.Abs(PclPickaxeAnimation.Sample(600) + 20) < 0.0001 AndAlso Math.Abs(PclPickaxeAnimation.Sample(1500) - 55) < 0.0001, "PCL loading pickaxe preserves its pause, backswing and parallel-return endpoints")
-        If SystemParameters.ClientAreaAnimation Then
-            check(loader.Transition IsNot Nothing, "visible PCL loading view owns its repeating animation clock")
+        ' Both Windows preference branches contribute an assertion to the same suite.
+        check(If(SystemParameters.ClientAreaAnimation, loader.Transition IsNot Nothing, loader.Transition Is Nothing), "visible PCL loading view follows the Windows client-area animation preference")
+        If loader.Transition IsNot Nothing Then
             loader.Transition.Controller.Pause()
             loader.Transition.Controller.SeekAlignedToLastTick(TimeSpan.FromMilliseconds(600), System.Windows.Media.Animation.TimeSeekOrigin.BeginTime)
         End If

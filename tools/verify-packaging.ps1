@@ -4,6 +4,7 @@ Set-StrictMode -Version Latest
 $root = Split-Path $PSScriptRoot -Parent
 Import-Module (Join-Path $PSScriptRoot 'PackageTools.psm1')
 Import-Module (Join-Path $PSScriptRoot 'PackageCandidateTools.psm1')
+Import-Module (Join-Path $PSScriptRoot 'VerificationTools.psm1')
 if (!$ReportPath) { $ReportPath = Join-Path $root 'artifacts/package-checks.json' }
 $fixture = Join-Path ([IO.Path]::GetTempPath()) ('PCL-DB PackageChecks ' + [char]0x6D4B + [char]0x8BD5 + ' ' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $fixture | Out-Null
@@ -48,6 +49,8 @@ try {
         $CandidateResultPath = $fresh.ResultPath
     }
     $candidate = Test-PclDbCandidate -ProjectRoot $root -CandidateResultPath $CandidateResultPath
+    Assert-PclDbVerification $candidate.Verification $candidate.CandidateSHA256 -Current
+    Assert-Case ($candidate.Verification.Reports.Count -eq 4 -and $candidate.PackSearchChecks -eq (Get-PclDbCheckPolicy 'pack-search').Count) 'the exact candidate includes a complete search receipt bound to its single EXE'
     [string[]]$ordered = @($candidate.Source.Files | ForEach-Object Name)
     [Array]::Sort($ordered, [StringComparer]::Ordinal)
     Assert-Case (($ordered -join '|') -ceq (($candidate.Source.Files | ForEach-Object Name) -join '|')) 'source inventory uses ordinal ordering across PowerShell hosts'
@@ -81,6 +84,18 @@ try {
     Copy-Item -LiteralPath $first.PackagePath -Destination $bad -Force
     Edit-Zip $bad { param($zip) Edit-Manifest $zip { param($manifest) $manifest.Verification.PSObject.Properties.Remove('MotionChecks') } }
     Assert-Rejected { Test-PclDbPackage @verify -PackagePath $bad } 'Invalid build manifest' 'a package missing motion verification is rejected'
+    foreach ($mode in @('missing','failed','scope','exe')) {
+        Copy-Item -LiteralPath $first.PackagePath -Destination $bad -Force
+        Edit-Zip $bad { param($zip) Edit-Manifest $zip { param($manifest)
+            switch ($mode) {
+                'missing' { $manifest.Verification.Reports=@($manifest.Verification.Reports | Where-Object Scope -CNE 'pack-search') }
+                'failed' { $manifest.Verification.Reports[3].Succeeded=$false }
+                'scope' { $manifest.Verification.Reports[3].Scope='all' }
+                'exe' { $manifest.Verification.Reports[3].ExecutableSHA256=('0'*64) }
+            }
+        } }
+        Assert-Rejected { Test-PclDbPackage @verify -PackagePath $bad } 'Invalid build manifest' ('archive rejects invalid search evidence: ' + $mode)
+    }
     Copy-Item -LiteralPath $first.PackagePath -Destination $bad -Force
     Edit-Zip $bad { param($zip) Edit-Manifest $zip { param($manifest) $manifest.ReleaseVersion = $manifest.Version + '-beta.999' } }
     Assert-Rejected { Test-PclDbPackage @verify -PackagePath $bad } 'selected candidate source' 'a package cannot silently change the selected beta release identity'
@@ -123,15 +138,27 @@ try {
 
     $copy = Join-Path $fixture 'payload-copy'
     $variantPath = Join-Path $fixture 'invalid-verification.json'
-    foreach ($mode in @('zero','missing','release')) {
+    foreach ($mode in @('zero','missing','release','search-total','search-receipt','search-failed','search-exe','search-multifile')) {
         $invalid = Get-Content -LiteralPath $CandidateResultPath -Raw -Encoding UTF8 | ConvertFrom-Json
         switch ($mode) {
             'zero' { $invalid.MotionChecks = 0 }
             'missing' { $invalid.PSObject.Properties.Remove('MotionChecks') }
             'release' { $invalid.ReleaseVersion = '99.0.0-beta.1' }
+            'search-total' { $invalid.PSObject.Properties.Remove('PackSearchChecks') }
+            'search-receipt' { $invalid.Verification.Reports=@($invalid.Verification.Reports | Select-Object -First 3) }
+            'search-failed' { $invalid.Verification.Reports[3].Succeeded=$false }
+            'search-exe' { $invalid.Verification.Reports[3].ExecutableSHA256=('0'*64) }
+            'search-multifile' { $invalid.Verification.Reports[3].Standalone=$false }
         }
         $invalid | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $variantPath -Encoding UTF8
-        $expected = if ($mode -eq 'release') { 'release version mismatch' } else { 'Invalid single EXE' }
+        $expected = switch ($mode) {
+            'release' { 'release version mismatch' }
+            'search-receipt' { 'verification evidence' }
+            'search-failed' { 'check report' }
+            'search-exe' { 'different executable' }
+            'search-multifile' { 'single EXE' }
+            default { 'Invalid single EXE' }
+        }
         Assert-Rejected { Test-PclDbCandidate -ProjectRoot $root -CandidateResultPath $variantPath } $expected ('candidate rejects invalid verification identity: ' + $mode)
     }
     New-Item -ItemType Directory -Path $copy | Out-Null

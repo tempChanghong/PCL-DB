@@ -42,6 +42,12 @@
       "workingDirectory": "$(ProjectDir)",
       "nativeDebugging": false
     },
+    "Pack Search Checks": {
+      "commandName": "Project",
+      "commandLineArgs": "--pack-search-checks \"$(TargetDir)vs-pack-search-checks.json\"",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
     "Navigation Checks": {
       "commandName": "Project",
       "commandLineArgs": "--navigation-checks \"$(TargetDir)vs-navigation-checks.json\"",

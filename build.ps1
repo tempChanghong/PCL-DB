@@ -1,27 +1,29 @@
 param([switch]$SkipTests, [switch]$Package)
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'tools/VerificationTools.psm1')
 Push-Location -LiteralPath $PSScriptRoot
 try {
     dotnet build PclDownloadBridge.sln -c Release --nologo
     if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
     if (!$SkipTests) {
         & './tools/verify-pcl-ui.ps1'
+        & './tools/verify-validation-contracts.ps1'
         & '.\tests\PclDownloadBridge.Tests\bin\Release\net48\PclDownloadBridge.Tests.exe'
         if ($LASTEXITCODE -ne 0) { throw 'Fixture checks failed.' }
         New-Item -ItemType Directory -Path artifacts -Force | Out-Null
+        $appHash = (Get-FileHash -LiteralPath '.\src\PclDownloadBridge.App\bin\Release\net48\PclDownloadBridge.exe' -Algorithm SHA256).Hash
         & '.\src\PclDownloadBridge.App\bin\Release\net48\PclDownloadBridge.exe' --ui-checks artifacts/ui-checks.json | Out-Null
         if ($LASTEXITCODE -ne 0) { throw 'UI workflow checks failed.' }
         $uiChecks = Get-Content -LiteralPath artifacts/ui-checks.json -Raw | ConvertFrom-Json
-        if (!$uiChecks.Succeeded -or $uiChecks.Scope -ne 'all' -or $uiChecks.Count -ne 754) { throw 'UI workflow checks failed.' }
+        Assert-PclDbCheckReport $uiChecks 'all' -ExecutableSHA256 $appHash
         & '.\src\PclDownloadBridge.App\bin\Release\net48\PclDownloadBridge.exe' --motion-checks artifacts/motion-checks.json | Out-Null
         if ($LASTEXITCODE -ne 0) { throw 'Motion checks failed.' }
         $motion = Get-Content -LiteralPath artifacts/motion-checks.json -Raw | ConvertFrom-Json
-        if (!$motion.Succeeded -or $motion.Scope -ne 'motion' -or $motion.Count -ne 503) { throw 'Motion checks failed.' }
+        Assert-PclDbCheckReport $motion 'motion' -ExecutableSHA256 $appHash
         & '.\src\PclDownloadBridge.App\bin\Release\net48\PclDownloadBridge.exe' --pack-search-checks artifacts/pack-search-checks.json | Out-Null
         if ($LASTEXITCODE -ne 0) { throw 'Pack search UI checks failed.' }
         $packSearch = Get-Content -LiteralPath artifacts/pack-search-checks.json -Raw | ConvertFrom-Json
-        # One loading-clock assertion is skipped when Windows disables client-area animations.
-        if (!$packSearch.Succeeded -or $packSearch.Scope -ne 'pack-search' -or $packSearch.Count -lt 146) { throw 'Pack search UI checks failed.' }
+        Assert-PclDbCheckReport $packSearch 'pack-search' -ExecutableSHA256 $appHash
     }
     if ($Package) {
         Import-Module (Join-Path $PSScriptRoot 'tools/PackageTools.psm1') -Force

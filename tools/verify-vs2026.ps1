@@ -2,6 +2,7 @@ param([switch]$Full)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $root = Split-Path $PSScriptRoot -Parent
+Import-Module (Join-Path $PSScriptRoot 'VerificationTools.psm1')
 $output = Join-Path $root 'artifacts\vs2026'
 New-Item -ItemType Directory -Path $output -Force | Out-Null
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
@@ -83,29 +84,34 @@ try {
     $runs += Invoke-OfflineProfile $appProject 'Card Checks'
     $runs += Invoke-OfflineProfile $appProject 'Navigation Checks'
     $runs += Invoke-OfflineProfile $appProject 'Motion Checks'
+    $runs += Invoke-OfflineProfile $appProject 'Pack Search Checks'
     $runs += Invoke-OfflineProfile $appProject 'Settings Compatibility'
     $runs += Invoke-OfflineProfile $appProject 'Preview Components'
     $uiPath = Join-Path $properties[$appProject].TargetDir 'vs-ui-checks.json'
+    $appHash = (Get-FileHash -LiteralPath $properties[$appProject].TargetPath -Algorithm SHA256).Hash
     $ui = Get-Content -LiteralPath $uiPath -Raw | ConvertFrom-Json
-    if (!$ui.Succeeded -or $ui.Scope -ne 'all' -or $ui.Count -ne 754 -or $ui.Count -ne $ui.Passed.Count) { throw 'The UI profile did not produce a complete report.' }
+    Assert-PclDbCheckReport $ui 'all' -ExecutableSHA256 $appHash
     $appearancePath = Join-Path $properties[$appProject].TargetDir 'vs-appearance-checks.json'
     $appearance = Get-Content -LiteralPath $appearancePath -Raw | ConvertFrom-Json
-    if (!$appearance.Succeeded -or $appearance.Scope -ne 'appearance' -or $appearance.Count -ne 129 -or $appearance.Count -ne $appearance.Passed.Count) { throw 'The appearance profile did not produce a complete report.' }
+    Assert-PclDbCheckReport $appearance 'appearance' -ExecutableSHA256 $appHash
     $developerPath = Join-Path $properties[$appProject].TargetDir 'vs-developer-checks.json'
     $developer = Get-Content -LiteralPath $developerPath -Raw | ConvertFrom-Json
-    if (!$developer.Succeeded -or $developer.Scope -ne 'developer' -or $developer.Count -ne 36 -or $developer.Count -ne $developer.Passed.Count) { throw 'The developer profile did not produce a complete report.' }
+    Assert-PclDbCheckReport $developer 'developer' -ExecutableSHA256 $appHash
     $cardPath = Join-Path $properties[$appProject].TargetDir 'vs-card-checks.json'
     $cardChecks = Get-Content -LiteralPath $cardPath -Raw | ConvertFrom-Json
-    if (!$cardChecks.Succeeded -or $cardChecks.Scope -ne 'cards' -or $cardChecks.Count -ne 104 -or $cardChecks.Count -ne $cardChecks.Passed.Count) { throw 'The card profile did not produce a complete report.' }
+    Assert-PclDbCheckReport $cardChecks 'cards' -ExecutableSHA256 $appHash
     $navigationPath = Join-Path $properties[$appProject].TargetDir 'vs-navigation-checks.json'
     $navigation = Get-Content -LiteralPath $navigationPath -Raw | ConvertFrom-Json
-    if (!$navigation.Succeeded -or $navigation.Scope -ne 'navigation' -or $navigation.Count -ne 31 -or $navigation.Count -ne $navigation.Passed.Count) { throw 'The navigation profile did not produce a complete report.' }
+    Assert-PclDbCheckReport $navigation 'navigation' -ExecutableSHA256 $appHash
     $motionPath = Join-Path $properties[$appProject].TargetDir 'vs-motion-checks.json'
     $motion = Get-Content -LiteralPath $motionPath -Raw | ConvertFrom-Json
-    if (!$motion.Succeeded -or $motion.Scope -ne 'motion' -or $motion.Count -ne 503 -or $motion.Count -ne $motion.Passed.Count) { throw 'The motion profile did not produce a complete report.' }
+    Assert-PclDbCheckReport $motion 'motion' -ExecutableSHA256 $appHash
+    $packSearchPath = Join-Path $properties[$appProject].TargetDir 'vs-pack-search-checks.json'
+    $packSearch = Get-Content -LiteralPath $packSearchPath -Raw | ConvertFrom-Json
+    Assert-PclDbCheckReport $packSearch 'pack-search' -ExecutableSHA256 $appHash
     $compatibilityPath = Join-Path $properties[$appProject].TargetDir 'vs-compatibility-checks.json'
     $compatibility = Get-Content -LiteralPath $compatibilityPath -Raw | ConvertFrom-Json
-    if (!$compatibility.Succeeded -or $compatibility.Scope -ne 'compatibility' -or $compatibility.Count -ne 49 -or $compatibility.Count -ne $compatibility.Passed.Count) { throw 'The settings compatibility profile did not produce a complete report.' }
+    Assert-PclDbCheckReport $compatibility 'compatibility' -ExecutableSHA256 $appHash
     $snapshot = Join-Path $properties[$appProject].TargetDir 'vs-components.png'
     if (!(Test-Path -LiteralPath $snapshot)) { throw 'The preview profile did not produce its image.' }
     $consoleCount = 0
@@ -115,8 +121,11 @@ try {
     $report = [ordered]@{VisualStudio=$installation.displayName; InstallationVersion=$installation.installationVersion; MSBuild=$msbuild; Sdk=(& dotnet --version); Configuration='Debug|Any CPU'; PortableSymbols=$true; Optimized=$false; FullConsoleRun=[bool]$Full; ConsoleChecks=$consoleCount; UiChecks=$ui.Count; UiReport=$uiPath; AppearanceChecks=$appearance.Count; AppearanceReport=$appearancePath; CardChecks=$cardChecks.Count; CardReport=$cardPath; NavigationChecks=$navigation.Count; NavigationReport=$navigationPath; CompatibilityChecks=$compatibility.Count; CompatibilityReport=$compatibilityPath; Snapshot=$snapshot; IdeF5BreakpointVerified=$false; Runs=$runs}
     $report['MotionChecks'] = $motion.Count
     $report['MotionReport'] = $motionPath
+    $report['PackSearchChecks'] = $packSearch.Count
+    $report['PackSearchReport'] = $packSearchPath
+    $report['ExecutableSHA256'] = $appHash
     $report | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $output 'report.json') -Encoding UTF8
-    Write-Output "PASS VS 2026 Debug build, portable PDBs, $consoleCount console checks, $($ui.Count) UI checks; focused appearance $($appearance.Count), cards $($cardChecks.Count), navigation $($navigation.Count), motion $($motion.Count), compatibility $($compatibility.Count)."
+    Write-Output "PASS VS 2026 Debug build, portable PDBs, $consoleCount console checks, $($ui.Count) UI checks; focused appearance $($appearance.Count), cards $($cardChecks.Count), navigation $($navigation.Count), motion $($motion.Count), pack search $($packSearch.Count), compatibility $($compatibility.Count)."
     Write-Output "Report: $(Join-Path $output 'report.json')"
 } finally {
     Pop-Location

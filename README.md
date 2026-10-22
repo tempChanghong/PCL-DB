@@ -224,9 +224,9 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 .\build.ps1
 ```
 
-从仓库获取完整源码后即可运行上述命令；常规构建和界面对照检查不需要在旁边另行克隆 PCL。44 份固定源码快照和 15 项资源的提交哈希清单已包含在仓库中。只有维护者重新执行 `tools/import-pcl-ui.ps1` 导入上游代码时才需要相邻的 PCL 源码仓库。
+从仓库获取完整源码后即可运行上述命令；常规构建和界面对照检查不需要在旁边另行克隆 PCL。44 份固定源码快照和 19 项资源的提交哈希清单已包含在仓库中。只有维护者重新执行 `tools/import-pcl-ui.ps1` 导入上游代码时才需要相邻的 PCL 源码仓库。
 
-默认构建三个 VB 项目，核对 44 份固定 PCL 源码及内置资源，运行本地下载/安装和界面回归。下载检查目录位于系统临时目录 `PclDownloadBridgeTests-<随机ID>`，不接触用户游戏目录。默认不更新 `dist`、生成 ZIP 或执行打包回归；`-SkipTests` 可只构建。
+默认构建三个 VB 项目，核对 44 份固定 PCL 源码及内置资源，运行本地下载/安装、界面、动画和搜索回归，并检查验证器的回执/归档兼容规则。下载检查目录位于系统临时目录 `PclDownloadBridgeTests-<随机ID>`，不接触用户游戏目录。验证器检查只用受控回执和微型 ZIP 解析样本（其中 EXE 为文本样本），不构建单文件候选或发行包。默认不更新 `dist`，不执行完整打包回归；`-SkipTests` 可只构建。
 
 仅在明确要求打包时执行以下命令；发版同样需要明确要求，不作为每轮修复的默认步骤：
 
@@ -234,9 +234,9 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 .\build.ps1 -Package
 ```
 
-此模式独立构建单 EXE，并执行 25 项单文件、754 项界面和 503 项动画候选检查；完整模式另运行临时目录中的 54 项打包回归，再生成便携目录、ZIP、可单独分发的版本号 EXE 与独立构建清单。不会读取旧 bin 作为打包候选。
+此模式独立构建单 EXE，并执行 25 项单文件、754 项界面、503 项动画和 171 项搜索候选检查；完整模式另运行临时目录中的打包回归，再生成便携目录、ZIP、可单独分发的版本号 EXE 与独立构建清单。不会读取旧 bin 作为打包候选。
 
-新 ZIP 内固定为 `PclDownloadBridge/` 下的 `PCL-DB.exe`、7 份文档（包含 `LICENCE`）和 `build-manifest.json`，共 9 个文件，无相邻 DLL、config 或 PDB。独立资产使用完整发布版本，例如 `PCL-DB-1.0.0-beta.1.exe` 及 `.build-manifest.json`。清单记录数字程序集版本、包含 Beta 标识的发布版本、完整提交、分支、工作区是否有改动、源码清单 SHA-256、SDK、运行时、两份内嵌依赖、25/754/503 项候选验收及每个载荷文件的 SHA-256；EXE ProductVersion 必须同时包含发布版本和提交。构建前后和打包前均核对源码，旧候选不能混入新源码或文档。
+新 ZIP 内固定为 `PclDownloadBridge/` 下的 `PCL-DB.exe`、7 份文档（包含 `LICENCE`）和 `build-manifest.json`，共 9 个文件，无相邻 DLL、config 或 PDB。独立资产使用完整发布版本。v3 清单记录数字程序集版本、发布版本、完整提交、分支、工作区是否有改动、源码清单 SHA-256、SDK、运行时、两份内嵌依赖及每个载荷文件的 SHA-256。四组验收各自保留 Scope、Succeeded、Count、Passed、实际 EXE 摘要和单文件模式标识；当前要求由 `tools/VerificationTools.psm1` 集中维护。EXE ProductVersion 必须包含发布版本和提交；源码、文档或候选改变后需重新验证。下一次发行另定新版本，不能以新增功能覆盖既有 Beta 身份。
 
 打包先复制已验证候选到独立暂存目录，校验四种输出后再顺序替换；旧目录、ZIP、EXE 和清单保留在报告记录的备份位置。文件占用或替换失败时逆序恢复，失败详情、回滚问题和备份位置写入 `artifacts/packages/<本次编号>/failure.json`。文件锁阻止并发打包，输出路径经过目录联接检查。这是顺序替换与尽力回滚，不保证断电或强制终止时的多文件原子性。
 
@@ -246,9 +246,11 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 .\tools\verify-package.ps1 -PackagePath .\dist\PCL-DB-1.0.0-beta.1.zip -DistributionPath .\dist\PclDownloadBridge -StandalonePath .\dist\PCL-DB-1.0.0-beta.1.exe -ManifestPath .\dist\PCL-DB-1.0.0-beta.1.build-manifest.json
 ```
 
-如需同时核对当前源码和已测试候选，追加 `-CandidateResultPath <本次单EXE验证打印的result.json完整路径>`，结果的 `CandidateVerified` 才为 true；未指定时只验证清单与文件内容的一致性，不证明构建来源或签名。Beta 使用 `PCL-DB-single-exe/v2` 格式，强制检查动画验收与发布版本；旧版 v1 清单不满足本版验收条件，旧 ZIP 不会被重写。
+上面的旧 Beta 命令执行历史归档完整性检查，返回 `VerificationLevel=ArchiveIntegrity`、`CandidateVerified=false`。v2 保留当时的 25/658/328 记录，仅校验其结构、非零整数计数及实际文件摘要；不套用当前套件数量。新 v3 归档还核对四组完整回执及其 EXE 摘要。两种归档检查都不证明源码来源、签名或通过当前验收，v1/未知格式仍拒绝；旧 ZIP 不会被重写。
 
-`-SkipTests -Package` 跳过核心、常规界面及打包回归，仍强制独立构建、25 项单文件、754 项界面与 503 项动画候选验收、源码及全部分发资产校验；不能据此声称通过完整回归。单独执行 `tools/verify-packaging.ps1` 会创建全新候选，仅在随机临时目录生成测试 ZIP，不更新项目 `dist`。可用 `-CandidateResultPath` 显式复用当前源码对应的候选，避免重复构建。
+以后验证新发行候选时，使用该次四项资产的实际路径，并追加 `-CandidateResultPath <该次单EXE验证打印的result.json完整路径>`。只有当前 v3 候选通过全部套件、源码、载荷及清单证据一致性核对，才返回 `VerificationLevel=CurrentCandidate`、`CandidateVerified=true`。历史回执或普通多文件 EXE 的回执不能用来通过当前候选验收。
+
+`-SkipTests -Package` 跳过核心、常规构建回归及打包回归，仍强制独立构建并在同一个单 EXE 上执行 25/754/503/171 四组候选验收，以及源码和全部分发资产校验；不能据此声称通过完整回归。单独执行 `tools/verify-packaging.ps1` 会创建全新候选，仅在随机临时目录生成测试 ZIP，不更新项目 `dist`。可用 `-CandidateResultPath` 显式复用当前源码对应的候选，避免重复构建。
 
 单 EXE 功能可用以下命令独立验证；该命令构建开发候选，不生成 ZIP、不更新 `dist`，不创建 Release：
 
@@ -256,7 +258,7 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 .\tools\verify-single-exe.ps1
 ```
 
-验证器将 App/Core 构建到本次独立 artifacts 目录，只复制一个改名为 `PCL-DB.exe` 的文件到仓库之外、带中文和空格的临时目录。依次运行 25 项单文件、754 项界面及 503 项动画检查，并逐项核对内嵌两份 DLL 与本次构建、七份文档与源码的 SHA-256；报告保留候选路径、载荷快照、EXE 摘要、源码逐文件清单及完整提交。检查使用回环 HTTP 和预览数据，不修改真实用户设置或安装游戏。
+验证器将 App/Core 构建到本次独立 artifacts 目录，只复制一个改名为 `PCL-DB.exe` 的文件到仓库之外、带中文和空格的临时目录。依次运行单文件、界面、动画和搜索检查，并逐项核对内嵌两份 DLL 与本次构建、七份文档与源码的 SHA-256；报告保留候选路径、载荷快照、四组完整回执、EXE 摘要、源码逐文件清单及完整提交。检查使用回环 HTTP 和预览数据，不修改真实用户设置或安装游戏。
 
 底层开关为 App 项目的 `-p:PclDbSingleExecutable=true`，通过资源嵌入和启动期程序集解析实现；常规构建及 VS Debug 仍使用独立 DLL。单 EXE 不依赖邻接 `.exe.config`，长路径设置由最早启动代码应用；系统仍须安装 .NET Framework 4.8。关于页优先打开随附或开发目录文档；缺失时从程序资源生成内容寻址的文档副本，正常模式位于 `%LOCALAPPDATA%/PclDownloadBridge/documents/`，预览检查只使用随机临时目录。单文件模式的第三方说明同时附带完整 `LICENCE`，不需要在 EXE 旁写出 DLL 或文档。
 

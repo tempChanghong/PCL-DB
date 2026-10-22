@@ -119,9 +119,12 @@ try {
     $assets = @('Grass', 'CommandBlock', 'CobbleStone', 'GoldBlock', 'Anvil', 'NeoForge', 'Fabric', 'GrassPath', 'OptiFabric', 'Egg') | ForEach-Object { "Images/Blocks/$_.png" }
     $assets += @('Resources/Font.ttf', 'Images/Themes/12.png')
     $assets += @('Images/Heads/LTCat.jpg', 'Images/Heads/HerobrineXia.png', 'Images/Heads/bangbang93.png')
+    $mappedAssets = @{'Images/Blocks/Release.png'='Images/ReleaseTypes/Release.png'; 'Images/Blocks/Beta.png'='Images/ReleaseTypes/Beta.png';
+        'Images/Blocks/Alpha.png'='Images/ReleaseTypes/Alpha.png'; 'Images/Blocks/NoIcon.png'='Images/Icons/NoIcon.png'}
+    $assets += @('Images/Blocks/Release.png','Images/Blocks/Beta.png','Images/Blocks/Alpha.png','Images/Blocks/NoIcon.png')
     $assetEntries = @()
     foreach ($relative in $assets) {
-        $source = "Plain Craft Launcher 2/$relative"
+        $source = 'Plain Craft Launcher 2/' + $(if ($mappedAssets.ContainsKey($relative)) { $mappedAssets[$relative] } else { $relative })
         $bytes = Read-GitBlob $source
         Add-Candidate "src/PclDownloadBridge.App/$relative" $bytes
         $assetEntries += [pscustomobject]@{File=$relative; Source=$source; Hash=(Get-ByteHash $bytes)}

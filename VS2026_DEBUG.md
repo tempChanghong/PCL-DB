@@ -24,8 +24,11 @@
 | PCL-DB | 正常启动可操作的主窗口，可在启动、交互和下载流程中断点 | 使用应用原有设置和日志路径 |
 | UI Checks | 用示例数据执行全部界面检查，完成后退出 | 当前构建输出目录的 `vs-ui-checks.json` 和检查图像 |
 | Appearance Checks | 单独检查主题切换、任务页首次显示以及任务显示/隐藏和终止状态 | 当前构建输出目录的 `vs-appearance-checks.json`、`appearance-task-states.json` 和 `appearance-revealed.png` |
+| Developer Checks | 开发者开关、主题解锁、设置保存和迁移检查 | 当前构建输出目录的 `vs-developer-checks.json` |
 | Card Checks | 短/长列表动画、组件摘要淡入/位移、反向切换、卸载恢复、视口及选择保留 | 当前构建输出目录的 `vs-card-checks.json`、`card-motion-plans.json`、`live-card-motion.json`、`component-summary-motion.json` 和检查图像 |
 | Navigation Checks | 版本列表/安装选项转场、快速返回、设置/进度往返、卸载及焦点延后恢复 | 当前构建输出目录的 `vs-navigation-checks.json`、`page-switch-motion.json` 和检查图像 |
+| Motion Checks | 页面、滚动、标题栏、单选框等控件动画及中断/输入归属检查 | 当前构建输出目录的 `vs-motion-checks.json` 和采样图像 |
+| Pack Search Checks | 搜索、分页、项目详情、版本选择、名称确认、安装交接、取消重试和相关动画 | 当前构建输出目录的 `vs-pack-search-checks.json` 和检查图像 |
 | Settings Compatibility | 更名后的程序集、旧偏好迁移、保存冲突与配置损坏保护 | 当前构建输出目录的 `vs-compatibility-checks.json`、`settings-compatibility.json` |
 | Preview Components | 离屏渲染组件选择页，完成后退出；不会出现交互窗口 | 当前构建输出目录的 `vs-components.png` |
 
@@ -39,7 +42,7 @@ Debug 构建输出为 `src/PclDownloadBridge.App/bin/Debug/net48/`。启动配�
 
 | 配置 | 覆盖的流程 |
 |---|---|
-| Offline All | 全部本地下载、安装与处理器回归；当前 1859 项检查，处理器样本需要本机 Java 8 或更高版本 |
+| Offline All | 全部本地下载、安装与处理器回归；当前 2175 项检查，处理器样本需要本机 Java 8 或更高版本 |
 | Modrinth Import | 128 项 MRPACK 清单、双哈希、多地址/重定向、覆盖层、隔离、路径冲突及取消重试检查；使用回环 HTTP，不连接真实 CDN |
 | CurseForge Import | 135 项 ZIP 清单、文件查询/身份/远端校验、可选项、隔离、路径冲突、取消与缓存重试检查；使用回环载荷和受控 HTTP 元数据，不连接真实 CDN |
 | Install Inputs | 71 项安装参数检查：组件标量/嵌套 JSON 复制、安装中修改文件名/校验/加载器/版本与来源、一次性或变化的复用目录、损坏源回退、直接组件构造、取消后更新参数重试、已有实例补全及非法参数无副作用；仅使用临时文件、回环 HTTP 与同步进度回调 |
@@ -105,7 +108,7 @@ F9 切换断点，F10 逐过程，F11 逐语句。`Directory.Build.props` 明确
 在项目根目录执行：
 
 ```powershell
-# 使用本机 VS 2026 的 MSBuild，检查 Debug/PDB，并运行九个短回归及界面配置
+# 使用本机 VS 2026 的 MSBuild，检查 Debug/PDB，并运行默认 32 个控制台配置和 9 个 App 检查/预览配置
 .\tools\verify-vs2026.ps1
 
 # 改为执行完整控制台回归，再运行同样的界面配置
@@ -114,15 +117,15 @@ F9 切换断点，F10 逐过程，F11 逐语句。`Directory.Build.props` 明确
 
 报告写入 `artifacts/vs2026/report.json`，编译和各配置日志在同一目录。脚本读取上面的真实启动配置，并按其工作目录、参数启动 Debug 产物；只执行离线配置。它验证 VS 所用 MSBuild、符号文件和运行入口，**不等于已在 IDE 中按 F5 并命中断点**，这一项保留为人工验收。
 
-当前源码中全量界面配置包含 754 项检查，Appearance Checks 单独运行其中 129 项，Card Checks 单独运行其中 104 项（含 Forge 新编号与预发布版本的显示、选择和空状态），Navigation Checks 单独运行其中 31 项，Settings Compatibility 单独运行其中 49 项，不能相加为独立用例数。独立 Motion Checks 包含 503 项。主题检查不依赖此前显示过任务页；动画检查使用可暂停/定位的实际 WPF 时钟，不以固定睡眠时间判定动画是否完成。失败仍返回非零退出码，JSON 保留 `Succeeded=false`、`Count`、已经通过的 `Passed`、`FailedCheck` 和异常堆栈。检查不自动重跑，调试时可直接在失败位置设置断点。
+当前源码中全量界面配置包含 754 项检查，Appearance Checks 单独运行其中 129 项，Card Checks 单独运行其中 104 项（含 Forge 新编号与预发布版本的显示、选择和空状态），Navigation Checks 单独运行其中 31 项，Settings Compatibility 单独运行其中 49 项，不能相加为独立用例数。独立 Motion Checks 为 503 项，Pack Search Checks 为 171 项；系统开启或关闭客户端动画时，搜索套件分别检查动态或静态状态，数量相同。当前门槛集中在 `tools/VerificationTools.psm1`，默认构建、VS 与候选验证共用。主题检查不依赖此前显示过任务页；动画检查使用可暂停/定位的实际 WPF 时钟，不以固定睡眠时间判定动画是否完成。失败返回非零退出码，JSON 保留 `Succeeded=false`、`Count`、已经通过的 `Passed`、`FailedCheck` 和异常堆栈；成功回执还核对 Scope、Passed 数量及实际 EXE 摘要。检查不自动重跑，调试时可直接在失败位置设置断点。
 
 Copy Fallback 的文件占用样本使用 Windows NTFS 辅助数据流，默认临时目录需支持 NTFS 数据流。取消样本只在控制台进程内暂时注册受控 SHA-1 提供程序，在真实哈希计算结束处请求取消，并在 Finally 恢复原映射；应用程序与便携包不包含这个提供程序。
 
-当前源码基于 Beta 1.0（`1.0.0-beta.1`），另含尚未发布的标题按压交接、取消回调状态、元数据类型错误及组件列表字段损坏时的选源回退修复；已发布标签及工件保持原样。已有 `.vs` / `.suo` 用户状态继续保留；共享配置使用源码中的启动配置文件。`build.ps1` 默认构建和验证；明确要求打包时才使用 `build.ps1 -Package`，发布另行处理。
+当前源码基于 Beta 1.0（`1.0.0-beta.1`），另含补充版本、隔离选项、本地整合包导入、在线搜索及其后续修复，尚未重新发行；已发布标签及工件保持原样。已有 `.vs` / `.suo` 用户状态继续保留；共享配置使用源码中的启动配置文件。`build.ps1` 默认构建和验证；明确要求打包时才使用 `build.ps1 -Package`，发布另行处理。
 
-单 EXE 验证单独执行 `tools/verify-single-exe.ps1`。该工具以 `PclDbSingleExecutable=true` 构建 App，并使用本次独立的 MSBuild artifacts 路径，不覆盖默认 bin/obj 或现有 VS 输出；候选只含一个 EXE，仍依赖系统 .NET Framework 4.8。它运行 25 项单文件检查及 754 项预览界面检查，验证实际资源和字体加载、文档回退、程序集身份与并发加载、长路径及回环下载。普通 F5 继续使用多文件 Debug 与便携 PDB，不需要手动移动 DLL 或修改启动项目；验证器不会生成发布 ZIP 或更新 dist。
+单 EXE 验证单独执行 `tools/verify-single-exe.ps1`。该工具以 `PclDbSingleExecutable=true` 构建 App，并使用本次独立的 MSBuild artifacts 路径，不覆盖默认 bin/obj 或现有 VS 输出；候选只含一个 EXE，仍依赖系统 .NET Framework 4.8。它运行 25 项单文件、754 项界面、503 项动画与 171 项搜索检查，验证资源、字体、文档回退、程序集加载、长路径、回环下载及界面流程。普通 F5 继续使用多文件 Debug 与便携 PDB，不需要手动移动 DLL 或修改启动项目；验证器不会生成发布 ZIP 或更新 dist。
 
-显式 `build.ps1 -Package` 现已接入上述独立候选，生成单 EXE、九文件 ZIP 和构建清单。候选报告包含完整 Git 提交、源码摘要、工作区改动状态、SDK 及 EXE ProductVersion 校验；源码或文档变化后必须重新验证。`-SkipTests -Package` 仍执行 25/754/503 项单文件、界面及动画候选验收。v2 清单保留 Beta 发布标识和三组验收结果。普通构建/F5 不增加打包动作，具体资产核对命令见 README。
+显式 `build.ps1 -Package` 接入上述独立候选，生成单 EXE、九文件 ZIP 和 v3 构建清单。候选报告包含完整 Git 提交、源码摘要、工作区状态、SDK、EXE ProductVersion 及四组完整回执；源码或文档变化后必须重新验证。`-SkipTests -Package` 仍执行 25/754/503/171 四组候选验收。旧 Beta v2 清单可独立核对历史载荷完整性，不能充当当前候选。普通构建/F5 不增加打包动作，具体资产核对命令见 README。
 
 ## 配置依据
 
@@ -144,8 +147,8 @@ Copy Fallback 的文件占用样本使用 Windows NTFS 辅助数据流，默认�
 
 组件收起刷新检查调用实际列表接受和选择入口，验证旧正文保留显示、旧输入取消、只构建最新响应、提前展开、过期回调、隐藏/卸载和祖先禁用；额外输出 13 帧 `fold-refresh-frames/`，并在 `disabled-retirement.json` 记录恢复后的父级禁用关系。
 
-`build.ps1` 默认验证和单 EXE 候选验证也执行该 503 项验收；单 EXE 候选另有 25 项内容验收及 754 项完整界面检查，候选报告另记 MotionChecks。普通默认构建不生成正式包或发布版本。
+`build.ps1` 默认验证和单 EXE 候选验证也执行该 503 项验收；单 EXE 候选另有 25 项内容验收、754 项完整界面检查及 171 项搜索检查，候选报告分别记录。普通默认构建不生成正式包或发布版本。
 
 ### 局部控件动画定位（当前源码）
 
-Motion Checks 现含 503 项，其中 145 项专门覆盖标题栏、滚动条本体和个性化单选框。需要只调试这一组时，可将启动参数改为 `--control-motion-checks "$(TargetDir)vs-control-motion-checks.json"`；使用隔离预览与隐藏呈现源，不改用户设置。它包含蓝/深色、快速反向、模板重建、输入与辅助功能门控、系统减少动画分支、源曲线采样和父容器布局计数。该组已包含在完整 Motion Checks 内，普通 F5/打包动作保持原流程；本次只更新候选计数，没有执行打包。
+Motion Checks 现含 503 项，其中 145 项专门覆盖标题栏、滚动条本体和个性化单选框。需要只调试这一组时，可将启动参数改为 `--control-motion-checks "$(TargetDir)vs-control-motion-checks.json"`；使用隔离预览与隐藏呈现源，不改用户设置。它包含蓝/深色、快速反向、模板重建、输入与辅助功能门控、系统减少动画分支、源曲线采样和父容器布局计数。该组已包含在完整 Motion Checks 内，不单独触发打包或发行。
