@@ -87,19 +87,20 @@ Partial Public Class MainWindow
 
     Private Function BuildPackVersionRows(releases As List(Of ModpackRelease)) As UIElement
         Dim rows As New StackPanel
-        For Each release In releases
-            Dim selected = release
-            Dim row As New PclListItem With {.Height = 42, .Title = PackReleaseTitle(release.Name), .Info = String.Join("、", release.Loaders) & If(release.Loaders.Length > 0, "，", "") & release.Published.ToLocalTime().ToString("yyyy/MM/dd") & "，" & release.ReleaseType, .Tag = release,
-                .Logo = "pack://application:,,,/Images/Blocks/" & If(release.ReleaseType = "release", "Release", If(release.ReleaseType = "beta", "Beta", "Alpha")) & ".png"}
-            Dim blocked = ModpackCompatibility.GetInstallBlockReason(release)
+        Dim titles = PackReleaseTitles(releases)
+        For index = 0 To releases.Count - 1
+            Dim selected = releases(index), title = titles(index)
+            Dim row As New PclListItem With {.Height = 42, .Title = title, .Info = PackReleaseInfo(selected, title), .ToolTip = PackReleaseToolTip(selected), .Tag = selected,
+                .Logo = "pack://application:,,,/Images/Blocks/" & If(selected.ReleaseType = "release", "Release", If(selected.ReleaseType = "beta", "Beta", "Alpha")) & ".png"}
+            Dim blocked = ModpackCompatibility.GetInstallBlockReason(selected)
             If blocked IsNot Nothing Then
                 row.IsEnabled = False : row.Focusable = False : row.Cursor = Input.Cursors.Arrow
-                row.Info &= "，暂不支持自动安装" : row.ToolTip = blocked
+                row.Info &= "，暂不支持自动安装" : row.ToolTip = blocked & vbCrLf & vbCrLf & row.ToolTip.ToString()
                 ToolTipService.SetShowOnDisabled(row, True)
                 row.SetResourceReference(PclListItem.ForegroundProperty, "ColorBrushGray4")
             End If
             AddHandler row.Click, Sub()
-                                      If PackVersionCards.Children.OfType(Of PclCard)().Any(Function(card) Not card.Collapsed AndAlso card.Body Is rows) Then InstallOnlinePack(selected)
+                                      If PackVersionCards.Children.OfType(Of PclCard)().Any(Function(card) Not card.Collapsed AndAlso card.Body Is rows) Then InstallOnlinePack(selected, title)
                                   End Sub
             rows.Children.Add(row)
         Next

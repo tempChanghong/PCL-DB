@@ -24,7 +24,8 @@ Partial Public Class MainWindow
             Using surface = PreviewSurface.Attach(host, 850, 600)
                 SynchronizationContext.SetSynchronizationContext(New DispatcherSynchronizationContext(owner.Dispatcher))
                 Dim work = owner.VerifyPackSearchAsync(directory, host, check)
-                If Not work.IsCompleted AndAlso Not PumpMotionUntil(Function() work.IsCompleted) Then Throw New TimeoutException("Pack search UI exceeded its deadline.")
+                ' This pumps the entire search/install suite, not a single animation.
+                If Not work.IsCompleted AndAlso Not PumpMotionUntil(Function() work.IsCompleted, timeoutMilliseconds:=15000) Then Throw New TimeoutException("Pack search UI exceeded its deadline.")
                 work.GetAwaiter().GetResult()
             End Using
         Finally
@@ -260,6 +261,7 @@ Partial Public Class MainWindow
 
         Await VerifyPackRecoveryAsync(directory, host, layout, check)
         Await VerifyPackCompatibilityUiAsync(directory, host, layout, check)
+        Await VerifyPackReleaseLabelsAsync(directory, host, layout, check)
 
         ChangePackMode(PackBrowserMode.Search) : layout() : _motionPreview = True : _categoryMotion.PauseForChecks = True
         ChangePackMode(PackBrowserMode.Detail) : layout()

@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## Beta 1.0 后续修复：整合包发布版本的辨识与确认
+
+- 对照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadCompDetail.InitializeStackResourceVersions`：每张卡片按发布时间排列，存在相同 Display 时以 IsBadDisplay 要求版本行显示文件名。本工具按去除 ZIP/MRPACK 扩展名及首尾空白后的可见标题检查重名，使用大小写不敏感比较；文件名仍重复时再追加声明版本号、平台版本 ID，最后防止生成的标签互相碰撞。这些额外兜底属于本工具的展示适配，不替代真实版本身份。
+- `ResourceVersion.ToListItem` 的 42 DIP 行、发布类型图标、加载器、不同于标题的文件名、纯快照/预发布版本的游戏目标、更新时间和 ReleaseTypeDisplay 是信息层级依据。正式版省略英文 release，测试版/早期测试版按上游中文文案显示。继续使用静态本地日期，尚未复制上游相对时间和版本下载次数；完整文件信息放在 ToolTip，不增加行高，也不将整合包内的 Mods 当作项目依赖数。
+- 名称确认仍使用已有 PCL 风格弹窗和入退场时钟，补入可见版本标题及完整文件名；任务的可复制信息保留相同内容。平台、项目、版本 ID 与文件元数据在弹窗前复制，名称记忆也使用此副本 ID，避免 Await 期间目录对象变化后将名称归属到另一个版本。显示标签只用于展示，不传给归档缓存、文件校验或实例发布作为身份键。
+
 ## Beta 1.0 后续修复：在线整合包的加载器兼容性
 
 - 继续读取固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModModpack.InstallPackCurseForge`、`InstallPackModrinth`、`NotifyIncompatibleLoader`，核对从包内清单选择固定 Forge、NeoForge、Fabric 依赖的顺序；详情行继续以 `ResourceVersion.ToListItem` 的 42 DIP 行、标题、次要说明及发布类型图标呈现。上游提供不兼容时跳过加载器的手动选项，本工具保留原有“所需加载器不能跳过”的自动安装约束。

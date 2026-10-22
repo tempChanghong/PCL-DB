@@ -2,7 +2,15 @@
 
 日期：2026-10-22（北京时间）。最新发布为 PCL-DB Beta 1.0（`1.0.0-beta.1`），当前主分支另含尚未发布的后续修复；下方保留先前版本的验证记录。
 
-## 当前源码：在线整合包的加载器兼容性
+## 当前源码：整合包重名版本辨识与确认
+
+- 从干净的 `cdc35a6` 继续，对照固定 PCL 的 `InitializeStackResourceVersions` / `ResourceVersion.ToListItem`。先以相同名称、不同 Forge/Fabric 归档复现两行完全同名的问题，失败回执为 `artifacts/pack-release-labels-before.json`。同卡片重名改用文件名，文件名复用时再用版本号、平台 ID 区分；保留 `2.3` 等带小数点的版本号，并覆盖扩展名大小写、空标题、生成标签再次冲突的情况。
+- 版本行保留 42 DIP 和原图标；加载器采用通常的大小写，更新说明和测试类型使用中文，纯快照/预发布的游戏目标显示在次要说明中。ToolTip 补齐名称、文件、版本号、MC、加载器、归档大小及版本 ID，禁用行仍保留兼容性原因；不复制下载 URL。已复看 `pack-search-release-labels.png`、`pack-search-release-confirmation.png` 的离屏示例。
+- 命名弹窗与任务信息包含同一份文件名。受控安装委托确认取消 Forge 后选择同名 Fabric 只提交一次，弹窗期间修改原对象的 ID、文件名、加载器和 MC 数组不改变已复制任务；名称记忆也绑定复制后的 ID。任务返回保留原卡片及行，重选不同版本不串用自定义名称，重选同一版本保留名称。
+- 最终搜索、详情、命名、任务及动画流程 **107 项**通过（本轮新增 17 项），回执为 `artifacts/pack-release-labels-final.json`。扩展后的整套流程曾在末尾超过原先供单个动画使用的 2 秒外层等待；仅为这套完整流程设置 15 秒上限，各异步步骤仍保留 5 秒限制，动画本身时长及其他动画检查的默认上限不变。构建检查同步更新最低项数，仍允许 Windows 关闭客户端动画时跳过一项加载时钟断言。
+- 既有界面 **754 项**、动画 **358 项**及固定 PCL 源码/资源比对 **17 项**通过，回执为 `artifacts/ui-pack-release-labels.json`、`motion-pack-release-labels.json`。Release 构建零警告、零错误，`git diff --check` 通过。本轮只调整应用展示和确认身份，不修改下载/隔离/原子发布内核；未新增真实网络安装或桌面帧率测量，不把受控安装当作实包安装证据。只本地 Commit，暂不打包、发版或推送。
+
+## Beta 1.0 后续修复：在线整合包的加载器兼容性
 
 - 从干净的 `b9e8471` 继续，参照固定 PCL 的 `InstallPackCurseForge` / `InstallPackModrinth` / `NotifyIncompatibleLoader`，并核对 Modrinth 版本接口的 `loaders` 支持列表。分别以 `artifacts/pack-compatibility-ui-before.json`、`pack-compatibility-core-before.log` 复现不支持的 Quilt 版本仍能点击，以及列表标注 Fabric 却成功发布原版清单的问题。
 - 已知且全部不受自动安装支持的加载器标签在页面保留为禁用行，说明和禁用状态 ToolTip 显示原因；安装入口及核心均复查。空标签、未知标签不提前判为不兼容，混合 Fabric/Quilt 标签仍可继续。实际依赖、固定版本和必要加载器始终来自包内清单，不跳过或以标签生成依赖。

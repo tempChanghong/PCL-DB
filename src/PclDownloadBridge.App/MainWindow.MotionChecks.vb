@@ -293,12 +293,12 @@ Partial Public Class MainWindow
         End Using
     End Sub
 
-    Private Shared Function PumpMotionUntil(done As Func(Of Boolean)) As Boolean
+    Private Shared Function PumpMotionUntil(done As Func(Of Boolean), Optional timeoutMilliseconds As Integer = 2000) As Boolean
         Dim frame As New Threading.DispatcherFrame()
         Dim watch = System.Diagnostics.Stopwatch.StartNew()
         Dim timer As New Threading.DispatcherTimer(Threading.DispatcherPriority.Background) With {.Interval = TimeSpan.FromMilliseconds(10)}
         AddHandler timer.Tick, Sub()
-                                   If done() OrElse watch.ElapsedMilliseconds >= 2000 Then frame.Continue = False
+                                   If done() OrElse watch.ElapsedMilliseconds >= timeoutMilliseconds Then frame.Continue = False
                                End Sub
         Try
             timer.Start() : Threading.Dispatcher.PushFrame(frame)

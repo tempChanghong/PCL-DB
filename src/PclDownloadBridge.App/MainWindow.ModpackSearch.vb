@@ -306,8 +306,9 @@ Partial Public Class MainWindow
         Return If(value.StartsWith("全部", StringComparison.Ordinal), "", value)
     End Function
     Private Shared Function PackReleaseTitle(value As String) As String
+        value = If(value, "").Trim()
         For Each extension In {".zip", ".mrpack"}
-            If value.EndsWith(extension, StringComparison.OrdinalIgnoreCase) Then Return value.Substring(0, value.Length - extension.Length)
+            If value.EndsWith(extension, StringComparison.OrdinalIgnoreCase) Then Return value.Substring(0, value.Length - extension.Length).TrimEnd()
         Next
         Return value
     End Function
@@ -319,7 +320,7 @@ Partial Public Class MainWindow
         If _packProject IsNot Nothing Then Clipboard.SetText(_packProject.Name)
     End Sub
 
-    Private Async Sub InstallOnlinePack(release As ModpackRelease)
+    Private Async Sub InstallOnlinePack(release As ModpackRelease, Optional displayedTitle As String = Nothing)
         If _busy OrElse _choosingOnline OrElse _readingPack OrElse _closing OrElse _packProject Is Nothing OrElse _packMode <> PackBrowserMode.Detail OrElse _downloadView <> DownloadView.Modpacks OrElse Not DownloadPage.IsVisible OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible Then Return
         Dim project = _packProject, snapshot = release.Copy()
         If snapshot.Platform <> project.Platform OrElse snapshot.ProjectId <> project.Id Then Return
@@ -331,11 +332,11 @@ Partial Public Class MainWindow
         Dim root = _selectedFolder.Location
         _choosingOnline = True
         Try
-            Dim proposed = If(_onlineLastRelease = project.Key & ":" & release.Id, _onlineLastName, SuggestedPackName(project.Name))
-            Dim name = Await PromptOnlinePackAsync("输入版本名称", project.Name & " · " & release.Name, root, proposed, False, CancellationToken.None)
+            Dim proposed = If(_onlineLastRelease = project.Key & ":" & snapshot.Id, _onlineLastName, SuggestedPackName(project.Name))
+            Dim name = Await PromptOnlinePackAsync("输入版本名称", project.Name & " · " & PackReleaseConfirmation(snapshot, displayedTitle), root, proposed, False, CancellationToken.None)
             If String.IsNullOrEmpty(name) OrElse _closing Then Return
-            _onlineLastName = name : _onlineLastRelease = project.Key & ":" & release.Id
-            Await RunOnlinePackInstallationAsync(snapshot, root, name, CLng(limit * 1024 * 1024))
+            _onlineLastName = name : _onlineLastRelease = project.Key & ":" & snapshot.Id
+            Await RunOnlinePackInstallationAsync(snapshot, root, name, CLng(limit * 1024 * 1024), displayedTitle)
         Catch ex As Exception
             If Not _closing Then StatusText.Text = ex.GetBaseException().Message
             If Not _preview Then Log(ex)
@@ -466,7 +467,7 @@ Partial Public Class MainWindow
         Next
         Return selected
     End Function
-    Private Async Function RunOnlinePackInstallationAsync(release As ModpackRelease, root As String, name As String, limit As Long) As Task
+    Private Async Function RunOnlinePackInstallationAsync(release As ModpackRelease, root As String, name As String, limit As Long, Optional displayedTitle As String = Nothing) As Task
         InstallPreflight.ValidateDestination(root, name, False)
         CancelPackRead()
         _packSearchRequest?.Cancel() : _packDetailRequest?.Cancel() : _packResultMotion.Finish()
@@ -475,7 +476,7 @@ Partial Public Class MainWindow
         Dim request As New CancellationTokenSource : _cancellation = request : _busy = True
         SetBusy(True) : PersistSettings() : TaskPanel.Visibility = Visibility.Visible
         ResetTaskView(name, True, root, hasArchive:=True)
-        _taskMinecraft = String.Join("、", release.GameVersions) : _taskComponents = release.Platform.ToString() & " " & release.Name
+        _taskMinecraft = String.Join("、", release.GameVersions) : _taskComponents = release.Platform.ToString() & " " & PackReleaseConfirmation(release, displayedTitle).Replace(vbCrLf, " · ")
         _taskRows("metadata").Label.Text = "读取整合包清单与游戏版本信息" : _taskRows("files").Label.Text = "下载游戏、资源与整合包文件"
         ShowProgress(Nothing, Nothing)
         Try
