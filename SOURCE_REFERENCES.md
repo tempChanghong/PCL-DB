@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## Beta 2.0 后续：CurseForge 目录接口与空值
+
+- 再读固定 `Meloong-Git/PCL@5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `Modules/Minecraft/ModDownload.vb`：`DlModRequest` 通过 `DlSourceModGet` 在 Core API 与 MCIM 之间选源，`Resource/ResourceVersion.vb` 的 `FromProjectId` 消费该格式并检查列表完整性。PCL-DB 保留现有分页、取消和身份校验，移除目录请求中错误混入的网页 API 通道。
+- [CurseForge Core API 文档](https://docs.curseforge.com/rest-api/#get-mod-files) 的文件结构含 `modId/fileDate/hashes/downloadUrl`。2026-10-23 真实网站文件列表返回 `projectId/dateCreated/status` 且缺少下载与摘要字段；它需要独立适配，不能直接按 Core API 解析。本次只修正整合包目录，现有单文件导入适配器继续保留。
+- MCIM 当日实际响应中的 `isEarlyAccessContent` 为 JSON null；三个可选布尔标志按本项目原有缺失字段的默认语义读取，并保留显式布尔值及类型检查。这是对实际响应的兼容修正，不声称上游已有完全相同的辅助函数。目录回归同时验证 ID、摘要、密钥主机绑定和取消重试。
+
 ## 审查第三批：归档兼容、搜索验收与 VS 入口
 
 - 再次从固定 `Meloong-Git/PCL@5ef81e490ae46b1100d61e33d0183094c7a80ca8` 读取 `Plain Craft Launcher 2.vbproj`、`Application.xaml.vb:217–232` 和 `.github/workflows/build.yml`：上游以 net48 WPF EXE 为交付主体，分别构建 Debug/Release，并保留资源嵌入、启动期 AssemblyResolve / Lazy 缓存及构建版本身份。本项目继续使用现有资源解析器和独立单 EXE 候选；不复制上游私有配置、账号字段或发布流程，也不据工程的签名开关推断正式发行版签名状态。

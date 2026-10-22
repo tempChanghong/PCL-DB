@@ -14,11 +14,15 @@ Friend Module ModpackCatalogChecks
     Private Class Handler
         Inherits HttpMessageHandler
         Friend ReadOnly Addresses As New List(Of String)
+        Friend ReadOnly KeyHosts As New List(Of String)
         Friend Property Route As Func(Of Uri, JToken)
         Friend Property Delay As Integer
         Protected Overrides Async Function SendAsync(request As HttpRequestMessage, token As CancellationToken) As Task(Of HttpResponseMessage)
             If Delay > 0 Then Await Task.Delay(Delay, token)
-            SyncLock Addresses : Addresses.Add(request.RequestUri.AbsoluteUri) : End SyncLock
+            SyncLock Addresses
+                Addresses.Add(request.RequestUri.AbsoluteUri)
+                If request.Headers.Contains("x-api-key") Then KeyHosts.Add(request.RequestUri.Host)
+            End SyncLock
             Dim data = Route(request.RequestUri)
             Return New HttpResponseMessage(If(data Is Nothing, HttpStatusCode.ServiceUnavailable, HttpStatusCode.OK)) With {.Content = New StringContent(If(data Is Nothing, "{}", data.ToString()), Encoding.UTF8, "application/json")}
         End Function
@@ -80,6 +84,8 @@ Friend Module ModpackCatalogChecks
         Dim cf As New ModpackProject With {.Platform = ModpackPlatform.CurseForge, .Id = "12"}
         Dim cfJson As New JObject From {{"id", 1234567}, {"modId", 12}, {"displayName", "Client pack"}, {"fileName", "client.zip"}, {"downloadUrl", "https://edge.forgecdn.net/files/1234/567/client.zip"}, {"fileLength", 100}, {"isServerPack", False}, {"isAvailable", True}, {"releaseType", 1}, {"fileDate", "2026-10-01T00:00:00Z"}, {"gameVersions", New JArray("1.20.1", "Forge")}, {"hashes", New JArray(New JObject From {{"algo", 1}, {"value", New String("a"c, 40)}})}}
         Check(ModpackCatalogClient.ParseRelease(cf, cfJson).GameVersions.SequenceEqual({"1.20.1"}), "CF client archive binds IDs, CDN path, checksum and exact game versions", passed)
+        CurseForgeFlagChecks(cf, cfJson, passed)
+        Await CurseForgeSourceChecksAsync(cfJson, passed)
         Await CurseForgeGameVersionChecksAsync(root, cf, cfJson, passed)
         Dim quiltJson = DirectCast(cfJson.DeepClone(), JObject) : quiltJson("gameVersions") = New JArray("1.20.1", "Quilt")
         Check(ModpackCompatibility.GetInstallBlockReason(ModpackCatalogClient.ParseRelease(cf, quiltJson)).Contains("Quilt"), "CF Quilt labels retain the same automatic-install compatibility guard", passed)
@@ -173,6 +179,82 @@ Friend Module ModpackCatalogChecks
         Await ArchiveChecksAsync(root, passed)
         Await CurseForgeArchiveCheckAsync(root, passed)
         Return passed
+    End Function
+    Private Sub CurseForgeFlagChecks(project As ModpackProject, original As JObject, passed As List(Of String))
+        For Each field In {"isServerPack", "isAvailable", "isEarlyAccessContent"}
+            For Each missing In {False, True}
+                Dim json = DirectCast(original.DeepClone(), JObject)
+                If missing Then json.Remove(field) Else json(field) = JValue.CreateNull()
+                Dim release = ModpackCatalogClient.ParseRelease(project, json)
+                Check(release IsNot Nothing AndAlso release.Id = "1234567" AndAlso release.Sha1 = New String("a"c, 40), "CF optional flag keeps identity and digest when " & If(missing, "omitted: ", "null: ") & field, passed)
+            Next
+            For Each invalid As JToken In New JToken() {New JValue("false"), New JValue(0), New JObject()}
+                Dim json = DirectCast(original.DeepClone(), JObject) : json(field) = invalid.DeepClone()
+                Dim rejected = False
+                Try
+                    ModpackCatalogClient.ParseRelease(project, json)
+                Catch ex As InvalidDataException
+                    rejected = True
+                End Try
+                Check(rejected, "CF optional flags reject non-boolean values: " & field & "/" & invalid.Type.ToString(), passed)
+            Next
+            Dim restricted = DirectCast(original.DeepClone(), JObject) : restricted(field) = (field <> "isAvailable")
+            Check(ModpackCatalogClient.ParseRelease(project, restricted) Is Nothing, "CF explicit server/unavailable/early-access flag still excludes the archive: " & field, passed)
+        Next
+    End Sub
+    Private Async Function CurseForgeSourceChecksAsync(file As JObject, passed As List(Of String)) As Task
+        ' The website answers HTTP 200 with projectId/dateCreated/status and no
+        ' hashes/downloadUrl. That is not the Core API file schema used by PCL.
+        Dim websiteFile As New JObject From {{"id", 1234567}, {"projectId", 12}, {"displayName", "Client pack"}, {"fileName", "client.zip"},
+            {"dateCreated", "2026-10-01T00:00:00Z"}, {"status", 4}, {"fileLength", 100}, {"releaseType", 1}, {"gameVersions", New JArray("1.20.1", "Forge")}, {"isCompatibleWithClient", True}}
+        Dim route As Func(Of Uri, JToken) = Function(uri)
+                                               If uri.AbsolutePath.EndsWith("/files", StringComparison.Ordinal) Then
+                                                   Return New JObject From {{"data", New JArray(If(uri.Host = "www.curseforge.com", websiteFile.DeepClone(), file.DeepClone()))}, {"pagination", New JObject From {{"totalCount", 1}}}}
+                                               End If
+                                               If uri.AbsolutePath.EndsWith("/search", StringComparison.Ordinal) Then Return New JObject From {{"data", New JArray(CfProject(12))}, {"pagination", New JObject From {{"totalCount", 1}}}}
+                                               Return New JObject From {{"data", CfProject(12)}}
+                                           End Function
+        For Each mode In {"keyless", "official", "official-fallback"}
+            Dim handler As New Handler With {.Route = Function(uri) If(mode = "official-fallback" AndAlso uri.Host = "api.curseforge.com", Nothing, route(uri))}
+            Using client As New ModpackCatalogClient(handler, If(mode = "keyless", "", "fixture-api-key"))
+                Dim page = Await client.SearchAsync(ModpackPlatform.CurseForge, New ModpackQuery(), 0, CancellationToken.None)
+                Dim project = Await client.GetProjectAsync(page.Projects.Single().Platform, page.Projects.Single().Id, CancellationToken.None)
+                Dim releases = Await client.GetVersionsAsync(project, CancellationToken.None)
+                Check(releases.Count = 1 AndAlso releases(0).ProjectId = "12" AndAlso releases(0).Id = "1234567" AndAlso releases(0).Sha1 = New String("a"c, 40) AndAlso releases(0).Url = CStr(file("downloadUrl")),
+                      "CF search-to-project-to-files retains the Core API identity and checksum: " & mode, passed)
+                Check(handler.Addresses.All(Function(address) New Uri(address).Host <> "www.curseforge.com"), "CF catalogue does not consume incompatible HTTP-200 website file summaries: " & mode, passed)
+                Dim expected = If(mode = "keyless", "mod.mcimirror.top", "api.curseforge.com")
+                Check(New Uri(handler.Addresses(0)).Host = expected AndAlso If(mode = "official-fallback", handler.Addresses.Count = 6 AndAlso handler.Addresses.Where(Function(address) New Uri(address).Host = "mod.mcimirror.top").Count() = 3, handler.Addresses.Count = 3),
+                      "CF catalogue uses the expected authenticated or keyless PCL-compatible route: " & mode, passed)
+                Check(handler.KeyHosts.Count = If(mode = "keyless", 0, 3) AndAlso handler.KeyHosts.All(Function(host) host = "api.curseforge.com"), "CF catalogue credentials remain bound to the official host: " & mode, passed)
+            End Using
+        Next
+        Dim failMirror = True
+        Dim retryHandler As New Handler With {.Route = Function(uri) If(failMirror, Nothing, route(uri))}
+        Dim selected As New ModpackProject With {.Platform = ModpackPlatform.CurseForge, .Id = "12"}
+        Using client As New ModpackCatalogClient(retryHandler, "")
+            Dim rejected = False
+            Try
+                Await client.GetVersionsAsync(selected, CancellationToken.None)
+            Catch ex As IOException
+                rejected = ex.Message.Contains("mod.mcimirror.top")
+            End Try
+            Check(rejected AndAlso retryHandler.Addresses.Count = 1, "CF mirror outage produces a retryable source error without using incomplete website metadata", passed)
+            failMirror = False
+            Check((Await client.GetVersionsAsync(selected, CancellationToken.None)).Count = 1 AndAlso retryHandler.Addresses.Count = 2, "CF version retry uses a fresh response after the mirror recovers", passed)
+        End Using
+        Dim cancelHandler As New Handler With {.Delay = 2000, .Route = route}
+        Using client As New ModpackCatalogClient(cancelHandler, ""), cancel As New CancellationTokenSource(20)
+            Dim cancelled = False
+            Try
+                Await client.GetVersionsAsync(selected, cancel.Token)
+            Catch ex As OperationCanceledException
+                cancelled = True
+            End Try
+            Check(cancelled, "CF version cancellation is propagated without publishing or starting fallback requests", passed)
+            cancelHandler.Delay = 0
+            Check((Await client.GetVersionsAsync(selected, CancellationToken.None)).Count = 1, "CF cancelled version request can retry without retaining partial results", passed)
+        End Using
     End Function
     Private Sub CompatibilityChecks(original As ModpackRelease, passed As List(Of String))
         Dim aliases As New Dictionary(Of String, ComponentKind?) From {{"Forge", ComponentKind.Forge}, {"NeoForge", ComponentKind.NeoForge}, {"neo-forge", ComponentKind.NeoForge}, {" FABRIC ", ComponentKind.Fabric}, {"fabric-loader", ComponentKind.Fabric}, {"minecraft", Nothing}, {"vanilla", Nothing}}

@@ -2,6 +2,13 @@
 
 日期：2026-10-23（北京时间）。当前发行版本为 PCL-DB Beta 2.0（`2.0.0-beta.1`）；下方保留各开发阶段的验证记录，其中的“未打包/未发布”描述对应当时的检查范围。
 
+## Beta 2.0 后续：CurseForge 版本列表修复（尚未发行）
+
+- 基线 `1aa10d622485e97bd78cacfda6835c3dd0782cde`。用同一 net48 Core 实际复现 ATM10 / Prominence II 打开版本列表失败：网站 `/api/v1/mods/{id}/files` 虽返回 HTTP 200，但使用 `projectId/dateCreated/status` 且缺少 Core API 的 `modId/fileDate/downloadUrl/hashes`；先前请求层提前接受该响应，解析异常后未进入 MCIM。仅修正通道后，又复现 MCIM 的 `isEarlyAccessContent:null` 被直接转为布尔值而失败。
+- 对照固定 PCL `5ef81e4` 的 `ModDownload.DlModRequest` / `DlSourceModGet` 和 `ResourceVersion.FromProjectId`，整合包目录改用 Core API / MCIM 通道；单文件导入查询仍使用其独立的网站格式适配器。可选布尔字段的 null 与缺失使用相同缺省值，非布尔值拒绝，明确不可用、服务端、提前访问仍过滤。项目/文件 ID、归档 URL、摘要及隔离安装校验保留。
+- 新增 **34 项**目录回归，分别在修复前重现缺少 `modId` 和 null 转 Boolean 的失败；覆盖无密钥、有密钥、官方失败后切源、密钥主机绑定、镜像故障恢复、取消重试和各布尔标志。目录套件 **178 项**、搜索界面联动 **171 项**通过；Release 构建零警告/零错误，固定 PCL 源码及资源检查通过。未重跑全仓核心/动画套件，未打包、未更新发行附件。
+- 新增只读联机入口：`PclDownloadBridge.Tests.exe --live-curseforge-catalogue <报告目录>`。2026-10-23 实测按搜索→项目→完整版本列表读取两项目，分别返回 **144 / 124** 个带摘要的客户端版本；不下载归档、不安装游戏。记录在 `artifacts/curseforge-versions-fix/`，含旧失败、修复后回归、真实响应及 `live-catalogue/report.json`。这些结果不代表整合包完整安装或游戏启动验收。
+
 ## Beta 2.0 发行验证
 
 - 发版以干净提交为来源，重新生成独立单 EXE 候选；候选、便携目录、ZIP 和独立 EXE 必须绑定同一次 `result.json`，并核对版本 `2.0.0-beta.1`、源码提交、文档、两份依赖和所有载荷摘要。现有 Beta 1.0 标签和命名资产保留，当前便携目录通过有备份的打包流程更新。

@@ -184,9 +184,9 @@ Public NotInheritable Class ModpackCatalogClient
             result.ReleaseType = Text(data, "version_type") : result.GameVersions = Strings(data, "game_versions") : result.Loaders = Strings(data, "loaders")
         Else
             If Text(data, "modId") <> project.Id Then Throw New InvalidDataException("CurseForge 文件所属项目不匹配。")
-            If data("isServerPack") IsNot Nothing AndAlso CBool(data("isServerPack")) Then Return Nothing
-            If data("isAvailable") IsNot Nothing AndAlso Not CBool(data("isAvailable")) Then Return Nothing
-            If data("isEarlyAccessContent") IsNot Nothing AndAlso CBool(data("isEarlyAccessContent")) Then Return Nothing
+            If Flag(data, "isServerPack", False) Then Return Nothing
+            If Not Flag(data, "isAvailable", True) Then Return Nothing
+            If Flag(data, "isEarlyAccessContent", False) Then Return Nothing
             If data("fileStatus") IsNot Nothing AndAlso Number(data, "fileStatus") <> 4 Then Return Nothing
             result.FileName = Text(data, "fileName")
             If Not result.FileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) Then Return Nothing
@@ -281,7 +281,9 @@ Public NotInheritable Class ModpackCatalogClient
         If url.StartsWith("https://api.curseforge.com/", StringComparison.Ordinal) Then
             urls.Clear()
             If Not String.IsNullOrWhiteSpace(_key) Then urls.Add(url)
-            urls.Add(url.Replace("https://api.curseforge.com/", "https://www.curseforge.com/api/"))
+            ' PCL DlModRequest / DlSourceModGet use the Core API and its MCIM
+            ' mirror. Website /api/v1 file lists have projectId/dateCreated and
+            ' omit downloadUrl/hashes, so HTTP 200 there is not a Core response.
             urls.Add(url.Replace("https://api.curseforge.com/", "https://mod.mcimirror.top/curseforge/"))
         End If
         Dim failures As New List(Of String)
@@ -337,6 +339,14 @@ Public NotInheritable Class ModpackCatalogClient
         Dim result As Long
         If Not Long.TryParse(Text(data, field), result) OrElse result < 0 Then Throw New InvalidDataException("平台数值字段无效：" & field)
         Return result
+    End Function
+    Private Shared Function Flag(data As JObject, field As String, fallback As Boolean) As Boolean
+        ' MCIM can serialize an optional Core API flag as explicit JSON null.
+        ' Give it the same default as an omitted flag; preserve explicit values.
+        Dim value = data(field)
+        If value Is Nothing OrElse value.Type = JTokenType.Null Then Return fallback
+        If value.Type <> JTokenType.Boolean Then Throw New InvalidDataException("平台布尔字段无效：" & field)
+        Return CBool(value)
     End Function
     Private Shared Function ObjectValue(data As JObject, field As String) As JObject
         Dim result = TryCast(data(field), JObject)

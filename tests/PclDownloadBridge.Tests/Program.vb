@@ -12,6 +12,10 @@ Module Program
         Net.ServicePointManager.SecurityProtocol = Net.SecurityProtocolType.Tls12
         Try
             If ProcessorStreamChecks.TryRunFixture(args) Then Return
+            If args.Length = 2 AndAlso args(0) = "--live-curseforge-catalogue" Then
+                CurseForgeCatalogLiveChecks.RunAsync(args(1)).GetAwaiter().GetResult()
+                Return
+            End If
             If args.Length >= 2 AndAlso args(0) = "--live-modpack-search" Then
                 ModpackCatalogChecks.LiveAsync(args(1), args.Contains("--install")).GetAwaiter().GetResult()
                 Return
