@@ -243,7 +243,8 @@ Partial Public Class MainWindow
         If _busy OrElse _choosingOnline OrElse _closing OrElse Not DownloadViewHost.IsHitTestVisible OrElse Not PackSearchResultsHost.IsHitTestVisible Then Return
         If _packProject Is Nothing OrElse _packProject.Key <> project.Key Then
             _packProject = project : _packReleases.Clear() : _packDetailScroll = 0
-            _packGameFilter = PackSearchGameValue()
+            _packTargetGame = If(_packSearchSession?.Query.Minecraft, "")
+            _packVersionCache.Clear()
         End If
         PackProjectTitle.Text = project.Name : PackProjectDescription.Text = project.Summary
         If PackProjectIdentity.Children.Count = 0 OrElse DirectCast(PackProjectIdentity.Children(0), PclResourceItem).Tag IsNot project Then
@@ -274,7 +275,7 @@ Partial Public Class MainWindow
                 If _closing OrElse request.IsCancellationRequested OrElse _packDetailRequest IsNot request OrElse _packProject IsNot project Then Return
                 PackProjectDescription.Text = verified.Summary : _packReleases = releases
             End Using
-            PackDetailHint.Visibility = Visibility.Collapsed : RenderPackVersions()
+            PackDetailHint.Visibility = Visibility.Collapsed : InitializePackVersions()
         Catch ex As OperationCanceledException
         Catch ex As Exception
             If Not _closing AndAlso Not request.IsCancellationRequested AndAlso _packDetailRequest Is request AndAlso _packProject Is project Then
@@ -286,45 +287,6 @@ Partial Public Class MainWindow
             request.Dispose()
         End Try
     End Function
-    Private Sub RenderPackVersions()
-        PackVersionFilters.Children.Clear() : PackVersionCards.Children.Clear()
-        PackVersionFilterCard.Visibility = Visibility.Visible
-        Dim games = _packReleases.SelectMany(Function(release) release.GameVersions).Distinct(StringComparer.OrdinalIgnoreCase).OrderByDescending(Function(value) value, New MinecraftGameComparer()).ToList()
-        For Each game In New String() {""}.Concat(games)
-            Dim filter = game
-            Dim button As New PclButton With {.Text = If(game = "", "全部", game), .Height = 28, .MinWidth = 66, .Margin = New Thickness(0, 0, 8, 6), .Highlight = game = _packGameFilter}
-            AddHandler button.Click, Sub()
-                                         If _busy OrElse _choosingOnline Then Return
-                                         _packGameFilter = filter : RenderPackVersions()
-                                     End Sub
-            PackVersionFilters.Children.Add(button)
-        Next
-        Dim visible = _packReleases.Where(Function(release) _packGameFilter = "" OrElse release.GameVersions.Contains(_packGameFilter, StringComparer.OrdinalIgnoreCase)).ToList()
-        Dim groups = visible.GroupBy(Function(release) If(release.GameVersions.FirstOrDefault(), "其他版本")).ToList()
-        For Each group In groups
-            Dim versions = group.ToList()
-            Dim card As New PclCard With {.Title = group.Key & "（" & versions.Count & "）", .Collapsible = True, .BodyMargin = New Thickness(15, 40, 15, 15)}
-            card.Collapsed = groups.Count > 1
-            card.Builder = Function()
-                               Dim rows As New StackPanel
-                               For Each release In versions
-                                   Dim selected = release
-                                   Dim row As New PclListItem With {.Height = 42, .Title = PackReleaseTitle(release.Name), .Info = String.Join("、", release.Loaders) & If(release.Loaders.Length > 0, "，", "") & release.Published.ToLocalTime().ToString("yyyy/MM/dd") & "，" & release.ReleaseType, .Tag = release,
-                                       .Logo = "pack://application:,,,/Images/Blocks/" & If(release.ReleaseType = "release", "Release", If(release.ReleaseType = "beta", "Beta", "Alpha")) & ".png"}
-                                   AddHandler row.Click, Sub() InstallOnlinePack(selected)
-                                   rows.Children.Add(row)
-                               Next
-                               Return rows
-                           End Function
-            If Not card.Collapsed Then card.Body = card.Builder.Invoke()
-            PackVersionCards.Children.Add(card)
-        Next
-        If visible.Count = 0 Then
-            PackDetailHint.Text = "没有适用于当前筛选条件、且具备下载地址及校验信息的客户端整合包。" : PackDetailHint.Visibility = Visibility.Visible
-        Else
-            PackDetailHint.Visibility = Visibility.Collapsed
-        End If
-    End Sub
     Private Function PackSearchGameValue() As String
         Dim value = PackSearchGame.Text.Trim()
         Return If(value.StartsWith("全部", StringComparison.Ordinal), "", value)
@@ -335,14 +297,6 @@ Partial Public Class MainWindow
         Next
         Return value
     End Function
-    Private Class MinecraftGameComparer
-        Implements IComparer(Of String)
-        Public Function Compare(x As String, y As String) As Integer Implements IComparer(Of String).Compare
-            Dim a As Version = Nothing, b As Version = Nothing
-            If Version.TryParse(x, a) AndAlso Version.TryParse(y, b) Then Return a.CompareTo(b)
-            Return StringComparer.OrdinalIgnoreCase.Compare(x, y)
-        End Function
-    End Class
     Private Sub OpenPackProjectWebsite(sender As Object, e As RoutedEventArgs)
         If _packProject Is Nothing OrElse _preview Then Return
         System.Diagnostics.Process.Start(New System.Diagnostics.ProcessStartInfo(_packProject.Website) With {.UseShellExecute = True})

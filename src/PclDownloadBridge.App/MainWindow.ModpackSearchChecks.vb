@@ -81,9 +81,12 @@ Partial Public Class MainWindow
         project = DirectCast(DirectCast(PackProjectRows.Children(0), PclResourceItem).Tag, ModpackProject)
         ModpackPage.ScrollToVerticalOffset(250) : layout()
         Dim remembered = ModpackPage.VerticalOffset
+        PackSearchGame.Text = "1.18.2" ' An unsubmitted edit must not change the displayed result's query.
         OpenPackDetails(project)
         Await WaitPackUiAsync(Function() _packDetailRequest Is Nothing)
         layout()
+        check(_packTargetGame = "" AndAlso _packGameFilter = "", "project details inherit the committed search instead of an unsubmitted Minecraft edit")
+        check(Not PackVersionFilterCard.IsVisible, "a single compatible Minecraft version needs no redundant filter card")
         check(PackDetailSurface.IsVisible AndAlso PackVersionCards.Children.Count = 1 AndAlso _packReleases.Count = 2, "project selection loads a separate native version detail page")
         Dim versions = DirectCast(PackVersionCards.Children(0), PclCard), body = DirectCast(versions.Body, StackPanel), row = DirectCast(body.Children(0), PclListItem)
         check(row.Title.EndsWith("2.3", StringComparison.Ordinal) AndAlso row.Height = 42, "release labels retain dotted display versions and PCL's 42px row")
@@ -171,6 +174,80 @@ Partial Public Class MainWindow
             check(cancelled AndAlso _onlinePrompt IsNot Nothing AndAlso Not replacement.IsCompleted AndAlso OnlinePackName.Text = "New-Prompt", "an obsolete optional cancellation callback cannot close a newer name prompt")
             CompleteOnlinePrompt(Nothing)
         End Using
+
+        Dim originalReleases = _packReleases
+        Dim multi = originalReleases(0).Copy()
+        multi.GameVersions = {"1.20.1", "1.20.2", "1.20.2"}
+        _packReleases = New List(Of ModpackRelease) From {multi, originalReleases(1)}
+        InitializePackVersions() : layout()
+        check(PackVersionCards.Children.Count = 2, "an unfiltered multi-game release appears in each compatible Minecraft card")
+        Dim secondFilter = PackVersionFilters.Children.OfType(Of PclButton)().Single(Function(button) button.Text = "1.20.2")
+        SelectPackVersionFilter(secondFilter) : layout()
+        check(PackVersionCards.Children.Count = 1 AndAlso DirectCast(PackVersionCards.Children(0), PclCard).Title.StartsWith("1.20.2", StringComparison.Ordinal), "filtering a multi-game release uses the matching Minecraft card rather than its first advertised version")
+        Dim multiCard = DirectCast(PackVersionCards.Children(0), PclCard), multiRows = DirectCast(multiCard.Body, StackPanel)
+        check(multiRows.Children.Count = 1 AndAlso DirectCast(multiRows.Children(0), PclListItem).Tag Is multi, "repeated compatibility declarations produce one install action per release and game card")
+        SelectPackVersionFilter(DirectCast(PackVersionFilters.Children(0), PclButton)) : layout()
+        check(PackVersionCards.Children.Contains(multiCard) AndAlso multiCard.Body Is multiRows AndAlso Not multiCard.Collapsed AndAlso PackVersionFilters.Children.Contains(secondFilter), "filter changes retain button identity, expansion state and already built release rows")
+        multiCard.Collapsed = True : layout()
+        Dim obsoleteFold = multiCard.HeightTransition
+        SelectPackVersionFilter(PackVersionFilters.Children.OfType(Of PclButton)().Single(Function(button) button.Text = "1.20.1")) : layout()
+        Dim generationBeforeHiddenRow = _taskGeneration
+        DirectCast(multiRows.Children(0), PclListItem).Activate() : layout()
+        check(_onlinePrompt Is Nothing AndAlso Not _choosingOnline AndAlso _taskGeneration = generationBeforeHiddenRow, "a filtered-away cached row cannot start a name prompt or install task")
+        SelectPackVersionFilter(secondFilter) : layout()
+        obsoleteFold?.Controller.SkipToFill() : layout()
+        Await WaitPackUiAsync(Function() multiCard.HeightTransition Is Nothing)
+        check(PackVersionCards.Children(0) Is multiCard AndAlso multiCard.Body Is multiRows AndAlso Not multiCard.Collapsed AndAlso Double.IsNaN(multiCard.Height), "filtering during a fold cannot let an obsolete clock collapse the restored release card")
+
+        Dim many As New List(Of ModpackRelease)
+        For Each game In {"1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.20.5", "1.20.6", "1.21", "1.21.1", "1.21.2", "1.21.3"}
+            Dim item = multi.Copy() : item.Id = "game-" & game : item.Name = "Fixture " & game : item.GameVersions = {game}
+            many.Add(item)
+        Next
+        _packReleases = many : _packTargetGame = "1.20.4" : InitializePackVersions() : layout()
+        check(PackVersionFilters.Children.OfType(Of PclButton)().Select(Function(button) button.Text).SequenceEqual({"全部", "1.21", "1.20"}) AndAlso _packGameFilter = "1.20", "nine or more exact version filters fold into PCL release families while retaining the requested family")
+        Dim targetCard = DirectCast(PackVersionCards.Children(0), PclCard)
+        check(CStr(targetCard.Tag) = "1.20.4（所选版本）" AndAlso Not targetCard.Collapsed AndAlso Not PackVersionCards.Children.OfType(Of PclCard)().Any(Function(card) CStr(card.Tag) = "1.20.4"), "the requested Minecraft version is expanded first without a duplicate ordinary card")
+        check(PackVersionCards.Children.OfType(Of PclCard)().All(Function(card) card.Title.StartsWith("1.20", StringComparison.Ordinal)), "a grouped version filter excludes other families but retains exact patch cards")
+        SelectPackVersionFilter(DirectCast(PackVersionFilters.Children(0), PclButton)) : layout()
+        check(PackVersionCards.Children.Count = 11 AndAlso PackVersionCards.Children(0) Is targetCard, "the all filter restores every exact version while preserving the selected-version card")
+        Await Task.Delay(220) : layout() ' Capture the settled filter colors, not their 200ms transition.
+        SaveControlVisual(host, Path.Combine(directory, "pack-search-version-families.png"))
+        _packTargetGame = "1.19.4" : InitializePackVersions() : layout()
+        check(_packGameFilter = "" AndAlso PackVersionCards.Children.Count = 11, "a requested version with no downloadable file falls back to all instead of an empty phantom filter")
+        SelectPackVersionFilter(secondFilter)
+        check(_packGameFilter = "", "an obsolete filter button cannot change a refreshed project's version selection")
+        Dim oldVersions As New List(Of ModpackRelease)
+        For Each game In {"1.4.7", "1.5.2", "1.6.4", "1.7.2", "1.7.10", "1.8", "1.8.9", "1.9", "1.10.2", "1.11.2", "1.20.1", "1.20.2", "26.1", "26.2", "25w01a", "25w02a"}
+            Dim item = multi.Copy() : item.Id = "old-" & game : item.GameVersions = {game}
+            oldVersions.Add(item)
+        Next
+        _packReleases = oldVersions : _packTargetGame = "" : InitializePackVersions() : layout()
+        Dim folded = PackVersionFilters.Children.OfType(Of PclButton)().Select(Function(button) button.Text).ToList()
+        check(folded.SequenceEqual({"全部", "26.2", "26.1", "1.20.2", "1.20.1", "快照版", "远古版"}), "old releases fold only after minor grouping is insufficient, while new numbering and snapshot groups remain distinct")
+        SelectPackVersionFilter(PackVersionFilters.Children.OfType(Of PclButton)().Single(Function(button) button.Text = "远古版")) : layout()
+        check(PackVersionCards.Children.Count = 10 AndAlso PackVersionCards.Children.OfType(Of PclCard)().All(Function(card) MinecraftVersionRules.ReleaseFamily(CStr(card.Tag)) < 120), "the old-version filter retains every exact old release card without newer or snapshot files")
+        SelectPackVersionFilter(PackVersionFilters.Children.OfType(Of PclButton)().Single(Function(button) button.Text = "快照版")) : layout()
+        Dim snapshots = DirectCast(DirectCast(PackVersionCards.Children(0), PclCard).Body, StackPanel)
+        check(PackVersionCards.Children.Count = 1 AndAlso snapshots.Children.Count = 2, "snapshot compatibility labels share one expanded card without losing either file")
+        Dim unlabelled = multi.Copy() : unlabelled.GameVersions = {}
+        _packReleases = New List(Of ModpackRelease) From {unlabelled} : InitializePackVersions() : layout()
+        check(PackVersionCards.Children.Count = 1 AndAlso CStr(DirectCast(PackVersionCards.Children(0), PclCard).Tag) = "其他" AndAlso Not PackVersionFilterCard.IsVisible, "files with no declared game versions remain accessible in the other card")
+        _packReleases = New List(Of ModpackRelease)
+        PackDetailHint.Theme = PclHintTheme.Red : PackDetailHint.ToolTip = "obsolete retry error"
+        _packTargetGame = "" : InitializePackVersions() : layout()
+        check(PackVersionCards.Children.Count = 0 AndAlso Not PackVersionFilterCard.IsVisible AndAlso PackDetailHint.IsVisible AndAlso PackDetailHint.Theme = PclHintTheme.Blue AndAlso PackDetailHint.ToolTip Is Nothing, "an empty usable-file list shows a neutral hint without stale retry details or filters")
+        _packReleases = originalReleases : InitializePackVersions()
+
+        Dim olderProject As New ModpackProject With {.Platform = ModpackPlatform.Modrinth, .Id = "older", .Name = "older"}
+        Dim currentProject As New ModpackProject With {.Platform = ModpackPlatform.Modrinth, .Id = "current", .Name = "current"}
+        _packProject = olderProject
+        _packCatalogFactory = Function() New ModpackCatalogClient(New PackSearchFixtureHandler With {.Delay = 60}, "")
+        Dim olderDetails = LoadPackDetailsAsync(olderProject)
+        _packProject = currentProject
+        _packCatalogFactory = Function() New ModpackCatalogClient(New PackSearchFixtureHandler(), "")
+        Await LoadPackDetailsAsync(currentProject) : Await olderDetails : layout()
+        check(_packProject Is currentProject AndAlso _packReleases.All(Function(release) release.ProjectId = "current") AndAlso PackVersionCards.Children.Count = 1, "a delayed older project's details cannot replace the current project's version cards")
 
         ' Query replacement must win even if an earlier handler ignores cancellation.
         _packCatalogFactory = Function() New ModpackCatalogClient(New PackSearchFixtureHandler With {.Delay = 60}, "")

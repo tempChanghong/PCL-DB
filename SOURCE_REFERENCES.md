@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## Beta 1.0 后续修复：整合包版本筛选与卡片状态
+
+- 继续读取固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `Resource/MyResourceItem.xaml.vb`：整合包详情的目标 MC 版本来自 `FrmDownloadPack.Content.Loader.Input.GameVersion`，不是尚未提交的搜索编辑框。`ModpackSearchSession.Query` 现在只返回已提交条件的副本，详情据此固定目标版本。
+- `PageDownloadCompDetail.xaml.vb` 的 `Load_OnFinish`、`UpdateFilterResult`、`GetGroupedVersionName`、`CardSorter` 是本轮依据。按“精确版本 → 主版本 → 远古版本合并 → 两者同时”的顺序，在筛选项达到九项时收拢；只有一个筛选组时隐藏筛选卡。文件按所有兼容版本逐一归类，同一张卡内去重；命中的目标版本置顶展开，没有匹配文件则选择“全部”。继续使用已依据 `PCLCS/Minecraft/McVersion.cs` 移植的 `MinecraftVersionRules.ReleaseFamily`，保留新版本编号及快照分类。
+- 每个项目的版本卡片和筛选按钮保留实例，切换筛选只改变显示和高亮；展开状态、已构造的版本行及原有 PCL 折叠动画继续使用。筛选后隐藏的旧行、已被替换的旧按钮不能触发安装或修改新详情。新项目或重新取得版本清单时重建缓存，旧请求仍受项目和请求所有权校验。没有为筛选增加整页退场动画，卡片内容边距对照上游 `20,40,18,18`，标题保持原版版本标签。
+
 ## Beta 1.0 后续开发：整合包搜索与在线安装
 
 - 主参照仍固定为 `5ef81e490ae46b1100d61e33d0183094c7a80ca8`。读取 `Resource/PageDownloadPack.xaml`、`PageResource.xaml/.vb`、`ResourceSearcher.vb`、`ResourceProject.vb`、`ResourceVersion.vb` 和 `PageDownloadCompDetail.xaml/.vb`，按搜索、项目选择、版本选择、名称确认、下载原始包、统一安装的顺序接入。当前 PCL 只在安装动作上增加限制判断，搜索和另存路径仍保留；未把当前受限点击行为作为在线安装依据。

@@ -2,7 +2,15 @@
 
 日期：2026-10-22（北京时间）。最新发布为 PCL-DB Beta 1.0（`1.0.0-beta.1`），当前主分支另含尚未发布的后续修复；下方保留先前版本的验证记录。
 
-## 当前源码：整合包搜索、版本选择与在线安装
+## 当前源码：整合包版本筛选与返回状态修复
+
+- 从干净的 `432ce7f` 继续，对照固定 PCL 的 `MyResourceItem` 和 `PageDownloadCompDetail`。先分别复现“未提交的 MC 编辑影响旧结果详情”和“兼容多个 MC 的文件只按第一个版本归类”，报告为 `artifacts/pack-filter-before.json`、`pack-multigame-before.json`；前者局部修复后，后者仍失败，随后一起纳入回归。
+- 详情读取已提交搜索条件的独立副本。筛选项达到九项时按 PCL 顺序尝试主版本/远古分组；仍保留每个精确 MC 版本的卡片和下载身份，多版本重复声明不产生重复行。命中所选版本时置顶展开，无匹配文件回到全部；单一筛选组隐藏冗余筛选卡。卡片和按钮在筛选中保留实例，已展开的版本行继续复用；旧控件及已隐藏的行不能改变新页面或启动下载。
+- 搜索、版本、命名、任务和动画离屏回归 **63 项**通过（本轮新增 20 项，包含折叠中切换筛选、旧时钟完成、远古/新编号/快照、空列表与延迟详情返回），见 `artifacts/pack-version-final.json`。搜索与归档的针对性核心回归 **34 项**通过，新增检查查询副本不会反向改写会话。离屏截图 `pack-search-version-families.png` 已检查，不将此作为真实桌面帧率或像素一致性证明。
+- 无 `Package` 参数的 `build.ps1` 完整通过，核心 **2025 项**、既有界面 **754 项**、既有动画 **358 项**、搜索流程 **63 项**；固定 PCL 源码/资源比对 **17 项**通过，包含 44 份源码快照摘要。Release 构建零警告、零错误，完整日志为 `artifacts/build-pack-versions.log`，界面报告为 `ui-checks.json`、`motion-checks.json`、`pack-search-checks.json`。这些检查与上述针对性用例有重叠，不累计。
+- 本轮没有改安装内核和归档传输，没有重复此前 Zombie 的真实网络安装，也没有新增 CurseForge 在线成功的结论。只做本地构建与提交，未打包、未发版、未推送。
+
+## Beta 1.0 后续开发：整合包搜索、版本选择与在线安装
 
 - 本轮依据限制前固定 PCL 源码接通搜索、项目详情、版本选择、名称确认、获取归档和现有导入安装内核。原版/整合包两个侧栏入口、本地 ZIP/MRPACK 导入、已有实例与隔离设置保持既有行为。搜索结果和详情使用原生 WPF 控件，镐子加载、结果切换和页间交接按源代码时序实现；离屏检查不能替代真实桌面帧率或逐像素还原验收。
 - 实际在线查找 Zombie Invade 100 Days，选中 Modrinth 项目 `l9m9tuPN`、版本 ID `6OMYdNAO`、显示版本 `2.3`，下载归档通过声明摘要后解析为 Minecraft `1.20.1`、Forge `47.4.10`、129 个索引文件。首次在 `artifacts/modpack-search-live/.minecraft/versions/Zombie-Search-2.3` 完成 **5,017 个文件**的隔离安装，记录见 `artifacts/modpack-search-live/result.json` 和 `artifacts/modpack-search-live.log`；没有启动游戏或在 PCL UI 中进行人工启动验收。

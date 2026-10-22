@@ -139,8 +139,10 @@ Friend Module ModpackCatalogChecks
         End Using
         handler = New Handler With {.Route = Function(uri) New JObject From {{"hits", New JArray(MrProject("one"))}, {"total_hits", 999}}}
         Using client As New ModpackCatalogClient(handler, "")
-            query = New ModpackQuery With {.Category = "/optimization", .Text = "original"}
+            query = New ModpackQuery With {.Category = "/optimization", .Text = "original", .Minecraft = "1.20.1"}
             Dim session As New ModpackSearchSession(query) : query.Text = "changed"
+            Dim editorCopy = session.Query : editorCopy.Minecraft = "1.18.2" : editorCopy.Text = "draft"
+            Check(session.Query.Minecraft = "1.20.1" AndAlso session.Query.Text = "original", "detail query snapshots are independent of both caller and returned editor copies", passed)
             Await session.GetPageAsync(0, client, CancellationToken.None)
             Check(handler.Addresses.All(Function(value) New Uri(value).Host = "api.modrinth.com") AndAlso handler.Addresses(0).Contains("original"), "single-platform categories and query snapshots do not leak into the other platform", passed)
             Check(Not session.HasMore AndAlso handler.Addresses.Count = 2, "repeated result pages cannot loop indefinitely while filling a page", passed)

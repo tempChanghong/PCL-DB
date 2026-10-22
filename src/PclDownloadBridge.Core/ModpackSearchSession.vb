@@ -21,6 +21,12 @@ Public NotInheritable Class ModpackSearchSession
             _offsets(platform) = 0
         Next
     End Sub
+    ' PCL opens details with Loader.Input.GameVersion, not the editable form.
+    Public ReadOnly Property Query As ModpackQuery
+        Get
+            Return _query.Copy()
+        End Get
+    End Property
     Public ReadOnly Property HasMore As Boolean
         Get
             Return _offsets.Keys.Any(Function(platform) Not _ended.Contains(platform) AndAlso Not _errors.ContainsKey(platform))
