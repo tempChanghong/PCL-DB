@@ -3,8 +3,11 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $root = Split-Path $PSScriptRoot -Parent
 Import-Module (Join-Path $PSScriptRoot 'VerificationTools.psm1')
+Import-Module (Join-Path $PSScriptRoot 'VerificationProcessTools.psm1')
 $output = Join-Path $root 'artifacts\vs2026'
 New-Item -ItemType Directory -Path $output -Force | Out-Null
+$summaryPath = Join-Path $output 'report.json'
+if (Test-Path -LiteralPath $summaryPath -PathType Leaf) { Remove-Item -LiteralPath $summaryPath -Force }
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
 if (!(Test-Path -LiteralPath $vswhere)) { throw 'Visual Studio Installer / vswhere.exe was not found.' }
 $installation = (& $vswhere -latest -products '*' -version '[18.0,19.0)' -requires Microsoft.VisualStudio.Workload.ManagedDesktop Microsoft.Net.Component.4.8.TargetingPack -format json -utf8 | ConvertFrom-Json | Select-Object -First 1)
@@ -35,15 +38,16 @@ function Invoke-OfflineProfile([string]$project, [string]$name) {
     $stem = $prefix + ($name -replace '[^A-Za-z0-9_-]', '_')
     $stdout = Join-Path $output ($stem + '.stdout.log')
     $stderr = Join-Path $output ($stem + '.stderr.log')
-    $options = @{FilePath=$evaluated.TargetPath; WorkingDirectory=$working; WindowStyle='Hidden'; Wait=$true; PassThru=$true; RedirectStandardOutput=$stdout; RedirectStandardError=$stderr}
-    if ($arguments) { $options.ArgumentList = $arguments }
-    $process = Start-Process @options
-    if ($process.ExitCode -ne 0) {
-        Get-Content -LiteralPath $stderr -Tail 20
-        Get-Content -LiteralPath $stdout -Tail 12
-        throw "Profile failed: $name (exit $($process.ExitCode))"
+    $expected = @()
+    if ($project -eq $appProject) {
+        # Read the output from the actual launch profile; do not silently change
+        # its arguments or accept a stale JSON/image from an earlier F5 run.
+        if ($arguments -notmatch '^--(?:[a-z-]+-checks|snapshot) "([^"]+)"(?: |$)') { throw "No diagnostic output in App profile: $name" }
+        $expected = @($Matches[1])
     }
-    return [pscustomobject]@{Project=$project; Profile=$name; ExitCode=$process.ExitCode; WorkingDirectory=$working; Arguments=$arguments; Stdout=$stdout; Stderr=$stderr}
+    $timeout = if ($project -eq $appProject) { 180 } else { 900 }
+    $run = Invoke-PclDbVerificationProcess -Name $name -FilePath $evaluated.TargetPath -Arguments $arguments -WorkingDirectory $working -StdoutPath $stdout -StderrPath $stderr -ExpectedOutputPaths $expected -TimeoutSeconds $timeout
+    return [pscustomobject]@{Project=$project; Profile=$name; ExitCode=$run.ExitCode; DurationMilliseconds=$run.DurationMilliseconds; ExecutableSHA256=$run.ExecutableSHA256; WorkingDirectory=$working; Arguments=$arguments; Stdout=$stdout; Stderr=$stderr}
 }
 
 Push-Location -LiteralPath $root

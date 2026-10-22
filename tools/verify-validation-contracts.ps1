@@ -121,7 +121,7 @@ try {
     Assert-Rejected { Assert-PclDbVerification $bad $hash -Current } 'check count' 'renaming an old policy does not promote its incomplete suite'
 
     $candidate = [pscustomobject]@{Format='PCL-DB-candidate/v3';CandidateSHA256=$hash;Verification=$verification
-        StandaloneChecks=25;UiChecks=754;MotionChecks=503;PackSearchChecks=171;Version='0.0.0';ReleaseVersion='0.0.0-alpha.1'
+        StandaloneChecks=$verification.StandaloneChecks;UiChecks=$verification.UiChecks;MotionChecks=$verification.MotionChecks;PackSearchChecks=$verification.PackSearchChecks;Version='0.0.0';ReleaseVersion='0.0.0-alpha.1'
         Source=[pscustomobject]@{Commit=('1'*40);Branch='fixture';Dirty=$false;InventorySHA256=('2'*64)};DotnetSDK='fixture'
         PayloadFiles=@($payload.Keys | ForEach-Object { [pscustomobject]@{Name=$_;Length=$payload[$_].Length;SHA256=(Hash-Bytes $payload[$_])} })
         EmbeddedAssemblies=@([pscustomobject]@{Name='PclDownloadBridge.Core';SHA256=('3'*64)},[pscustomobject]@{Name='Newtonsoft.Json';SHA256=('4'*64)})}

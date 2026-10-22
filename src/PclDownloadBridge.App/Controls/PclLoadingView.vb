@@ -11,6 +11,7 @@ Namespace Controls
         Private ReadOnly _pick As RotateTransform
         Private ReadOnly _left As Shapes.Path
         Private ReadOnly _right As Shapes.Path
+        Private ReadOnly _motionPolicy As PclControlMotionPolicy
         Private _clock As ClockGroup
         Friend ReadOnly Property Transition As ClockGroup
             Get
@@ -23,25 +24,28 @@ Namespace Controls
             _pick = New RotateTransform(55, 30, 30)
             Dim pickaxe As New Shapes.Path With {.Data = Geometry.Parse("M 963.6 858.2 410.816 305.504 C 508.116 213.304 609.204 196.8 711.104 128.6 837.11367 49.573762 879.34045 50.334062 751.5 49.5 611.3 52 471.8 96.2 353.3 182.4 309.8 155.7 252.1 161.2 214.5 198.9 176.9 236.6 171.3 294.2 198 337.7 111.8 456.3 67.6 595.8 65.1 735.9 63.315254 883.82034 65.077966 837.29308 144.2 695.488 212.4 593.588 228.888 492.4 321.088 395.2 L 873.9 948 c 0.60001 0.59999 1.6 0.6 2.2 0 l 87.5 -87.5 c 0.6 -0.7 0.6 -1.6 0 -2.3 z"),
                 .Height = 35, .Stretch = Stretch.Uniform, .StrokeThickness = 2, .Margin = New Thickness(10, 6, 0, 0), .HorizontalAlignment = HorizontalAlignment.Left, .VerticalAlignment = VerticalAlignment.Top, .RenderTransform = _pick}
-            pickaxe.SetResourceReference(Shapes.Path.StrokeProperty, "ColorBrush1") : graphic.Children.Add(pickaxe)
+            pickaxe.SetResourceReference(Shapes.Path.StrokeProperty, "ColorBrush3") : graphic.Children.Add(pickaxe)
             _left = Debris(7, -45) : _right = Debris(14, 45) : graphic.Children.Add(_left) : graphic.Children.Add(_right)
             Dim ground As New Shapes.Rectangle With {.Width = 25, .Height = 2, .VerticalAlignment = VerticalAlignment.Bottom, .HorizontalAlignment = HorizontalAlignment.Left}
-            ground.SetResourceReference(Shapes.Rectangle.FillProperty, "ColorBrush1") : graphic.Children.Add(ground) : Children.Add(graphic)
+            ground.SetResourceReference(Shapes.Rectangle.FillProperty, "ColorBrush3") : graphic.Children.Add(ground) : Children.Add(graphic)
             Dim label As New TextBlock With {.Text = text, .FontSize = 16, .TextWrapping = TextWrapping.Wrap, .HorizontalAlignment = HorizontalAlignment.Center, .Margin = New Thickness(0, 10, 0, 0)}
-            label.SetResourceReference(TextBlock.ForegroundProperty, "ColorBrush1") : Children.Add(label)
-            AddHandler Loaded, Sub() Refresh()
-            AddHandler IsVisibleChanged, Sub() Refresh()
-            AddHandler Unloaded, Sub() StopMotion()
+            label.SetResourceReference(TextBlock.ForegroundProperty, "ColorBrush3") : Children.Add(label)
+            ' Loading is decorative: page input gates must not pause its loop.
+            ' The shared policy unsubscribes on unload and observes live Windows changes.
+            _motionPolicy = New PclControlMotionPolicy(Me, AddressOf Refresh, requiresInteraction:=False)
         End Sub
         Private Shared Function Debris(left As Double, rotation As Double) As Shapes.Path
             Dim result As New Shapes.Path With {.Data = Geometry.Parse("M0,0L2,0L1,4"), .Stretch = Stretch.Fill, .Width = 3, .Height = 5, .Opacity = 0, .Margin = New Thickness(left, 41, 0, 0), .HorizontalAlignment = HorizontalAlignment.Left, .VerticalAlignment = VerticalAlignment.Top, .RenderTransformOrigin = New Point(0.5, 0.5)}
-            result.SetResourceReference(Shapes.Path.FillProperty, "ColorBrush1")
+            result.SetResourceReference(Shapes.Path.FillProperty, "ColorBrush3")
             Dim group As New TransformGroup() : group.Children.Add(New RotateTransform(rotation)) : group.Children.Add(New TranslateTransform()) : result.RenderTransform = group
             Return result
         End Function
         Private Sub Refresh()
-            StopMotion()
-            If Not IsLoaded OrElse Not IsVisible OrElse Not SystemParameters.ClientAreaAnimation Then Return
+            If Not _motionPolicy.CanAnimate Then
+                StopMotion()
+                Return
+            End If
+            If _clock IsNot Nothing Then Return
             Dim timeline As New ParallelTimeline With {.Duration = New Duration(TimeSpan.FromMilliseconds(1500)), .RepeatBehavior = RepeatBehavior.Forever}
             timeline.Children.Add(New PclPickaxeAnimation())
             For Each direction In {-1.0, 1.0}

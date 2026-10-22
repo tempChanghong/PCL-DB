@@ -23,6 +23,7 @@ Partial Public Class MainWindow
             VerifyScrollChromeMotion(directory, check)
             VerifyRadioBoxMotion(directory, check)
             VerifyAppearanceRadioIntegration(directory, check)
+            VerifyLoadingMotionUi(directory, check)
         Finally
             RestoreAppearance(saved)
         End Try

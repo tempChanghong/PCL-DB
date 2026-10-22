@@ -52,18 +52,19 @@ Namespace Controls
         End Sub
     End Class
 
-    ' Used by the three local-control families. Never retains unloaded controls in
+    ' Shared by local controls and decorative loaders. Never retains unloaded controls in
     ' the static Windows preference event. A preference change settles immediately.
     Friend NotInheritable Class PclControlMotionPolicy
         Private ReadOnly _owner As FrameworkElement
         Private ReadOnly _settle As Action
         Private ReadOnly _changed As PropertyChangedEventHandler
+        Private ReadOnly _requiresInteraction As Boolean
         Private _watching As Boolean
         Private _override As Boolean?
         Friend Property PauseForChecks As Boolean
 
-        Friend Sub New(owner As FrameworkElement, settle As Action)
-            _owner = owner : _settle = settle
+        Friend Sub New(owner As FrameworkElement, settle As Action, Optional requiresInteraction As Boolean = True)
+            _owner = owner : _settle = settle : _requiresInteraction = requiresInteraction
             _changed = Sub(sender, args)
                            If args.PropertyName <> NameOf(SystemParameters.ClientAreaAnimation) AndAlso Not String.IsNullOrEmpty(args.PropertyName) Then Return
                            If owner.Dispatcher.CheckAccess() Then
@@ -95,7 +96,8 @@ Namespace Controls
 
         Friend ReadOnly Property CanAnimate As Boolean
             Get
-                Return _watching AndAlso Interactive AndAlso _override.GetValueOrDefault(SystemParameters.ClientAreaAnimation)
+                Return _watching AndAlso _owner.IsLoaded AndAlso _owner.IsVisible AndAlso
+                    (Not _requiresInteraction OrElse Interactive) AndAlso _override.GetValueOrDefault(SystemParameters.ClientAreaAnimation)
             End Get
         End Property
 

@@ -1,6 +1,7 @@
 param([switch]$SkipTests, [switch]$Package)
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'tools/VerificationTools.psm1')
+Import-Module (Join-Path $PSScriptRoot 'tools/VerificationProcessTools.psm1')
 Push-Location -LiteralPath $PSScriptRoot
 try {
     dotnet build PclDownloadBridge.sln -c Release --nologo
@@ -8,22 +9,22 @@ try {
     if (!$SkipTests) {
         & './tools/verify-pcl-ui.ps1'
         & './tools/verify-validation-contracts.ps1'
-        & '.\tests\PclDownloadBridge.Tests\bin\Release\net48\PclDownloadBridge.Tests.exe'
-        if ($LASTEXITCODE -ne 0) { throw 'Fixture checks failed.' }
+        & './tools/verify-verification-process.ps1'
         New-Item -ItemType Directory -Path artifacts -Force | Out-Null
-        $appHash = (Get-FileHash -LiteralPath '.\src\PclDownloadBridge.App\bin\Release\net48\PclDownloadBridge.exe' -Algorithm SHA256).Hash
-        & '.\src\PclDownloadBridge.App\bin\Release\net48\PclDownloadBridge.exe' --ui-checks artifacts/ui-checks.json | Out-Null
-        if ($LASTEXITCODE -ne 0) { throw 'UI workflow checks failed.' }
-        $uiChecks = Get-Content -LiteralPath artifacts/ui-checks.json -Raw | ConvertFrom-Json
-        Assert-PclDbCheckReport $uiChecks 'all' -ExecutableSHA256 $appHash
-        & '.\src\PclDownloadBridge.App\bin\Release\net48\PclDownloadBridge.exe' --motion-checks artifacts/motion-checks.json | Out-Null
-        if ($LASTEXITCODE -ne 0) { throw 'Motion checks failed.' }
-        $motion = Get-Content -LiteralPath artifacts/motion-checks.json -Raw | ConvertFrom-Json
-        Assert-PclDbCheckReport $motion 'motion' -ExecutableSHA256 $appHash
-        & '.\src\PclDownloadBridge.App\bin\Release\net48\PclDownloadBridge.exe' --pack-search-checks artifacts/pack-search-checks.json | Out-Null
-        if ($LASTEXITCODE -ne 0) { throw 'Pack search UI checks failed.' }
-        $packSearch = Get-Content -LiteralPath artifacts/pack-search-checks.json -Raw | ConvertFrom-Json
-        Assert-PclDbCheckReport $packSearch 'pack-search' -ExecutableSHA256 $appHash
+        $core = Invoke-PclDbVerificationProcess -Name 'core fixtures' -FilePath (Join-Path $PSScriptRoot 'tests/PclDownloadBridge.Tests/bin/Release/net48/PclDownloadBridge.Tests.exe') -WorkingDirectory $PSScriptRoot -StdoutPath (Join-Path $PSScriptRoot 'artifacts/core-checks.stdout.log') -StderrPath (Join-Path $PSScriptRoot 'artifacts/core-checks.stderr.log') -TimeoutSeconds 900
+        Get-Content -LiteralPath $core.Stdout -Tail 2
+        $app = Join-Path $PSScriptRoot 'src/PclDownloadBridge.App/bin/Release/net48/PclDownloadBridge.exe'
+        $appHash = (Get-FileHash -LiteralPath $app -Algorithm SHA256).Hash
+        foreach ($scope in @('all','motion','pack-search')) {
+            $policy = Get-PclDbCheckPolicy $scope
+            $stem = if ($scope -eq 'all') { 'ui' } else { $scope }
+            $path = Join-Path $PSScriptRoot ('artifacts/' + $stem + '-checks.json')
+            $run = Invoke-PclDbVerificationProcess -Name ($scope + ' checks') -FilePath $app -Arguments ($policy.Mode + ' "' + $path + '"') -WorkingDirectory $PSScriptRoot -StdoutPath ($path + '.stdout.log') -StderrPath ($path + '.stderr.log') -ExpectedOutputPaths @($path)
+            if ($run.ExecutableSHA256 -cne $appHash) { throw 'Application changed between verification scopes.' }
+            $report = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
+            Assert-PclDbCheckReport $report $scope -ExecutableSHA256 $appHash
+            Write-Output "PASS $scope checks: $($report.Count)."
+        }
     }
     if ($Package) {
         Import-Module (Join-Path $PSScriptRoot 'tools/PackageTools.psm1') -Force

@@ -4,6 +4,7 @@ Set-StrictMode -Version Latest
 $root = Split-Path $PSScriptRoot -Parent
 Import-Module (Join-Path $PSScriptRoot 'PackageCandidateTools.psm1')
 Import-Module (Join-Path $PSScriptRoot 'VerificationTools.psm1')
+Import-Module (Join-Path $PSScriptRoot 'VerificationProcessTools.psm1')
 if (!$ReportDirectory) { $ReportDirectory = Join-Path $root 'artifacts/single-exe' }
 $operation = Join-Path ([IO.Path]::GetFullPath($ReportDirectory)) ((Get-Date -Format 'yyyyMMdd-HHmmss') + '-' + [Guid]::NewGuid().ToString('N'))
 $build = Join-Path $operation 'build'
@@ -12,20 +13,9 @@ New-Item -ItemType Directory -Path $operation -Force | Out-Null
 function Invoke-IsolatedCheck([string]$Scope, [string]$Name) {
     $policy = Get-PclDbCheckPolicy $Scope
     $path = Join-Path $operation ($Name + '.json')
-    $options = @{FilePath=$candidate; WorkingDirectory=$cold; WindowStyle='Hidden'; PassThru=$true;
-        ArgumentList=@($policy.Mode, ('"' + $path + '"')); RedirectStandardOutput=(Join-Path $operation ($Name + '.stdout.log')); RedirectStandardError=(Join-Path $operation ($Name + '.stderr.log'))}
-    $process = Start-Process @options
-    try {
-        # Retain the handle before exit; Windows PowerShell can otherwise lose ExitCode.
-        $null = $process.Handle
-        $clock = [Diagnostics.Stopwatch]::StartNew()
-        while (!$process.WaitForExit(250)) {
-            if ($clock.ElapsedMilliseconds -gt 180000) { $process.Kill(); $null = $process.WaitForExit(2000); throw "Isolated check timed out: $Name" }
-        }
-        $process.Refresh()
-        $exitCode = $process.ExitCode
-        if ($null -eq $exitCode -or $exitCode -ne 0) { throw "Isolated check failed: $Name (exit $exitCode). See $path" }
-    } finally { $process.Dispose() }
+    $expected = @($path)
+    if ($Scope -eq 'standalone') { $expected += Join-Path $operation 'embedded-content.json' }
+    $null = Invoke-PclDbVerificationProcess -Name $Name -FilePath $candidate -Arguments ($policy.Mode + ' "' + $path + '"') -WorkingDirectory $cold -StdoutPath (Join-Path $operation ($Name + '.stdout.log')) -StderrPath (Join-Path $operation ($Name + '.stderr.log')) -ExpectedOutputPaths $expected
     $report = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-PclDbCheckReport $report $Scope -ExecutableSHA256 $candidateHash -RequireStandalone
     return $report
