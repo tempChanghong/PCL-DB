@@ -36,7 +36,9 @@ Module Program
             Directory.CreateDirectory(TestRoot)
             If args.Length = 2 AndAlso args(0) = "--regression" Then
                 Dim run As Task(Of List(Of String))
-                If args(1) = "supplemental-versions" Then
+                If args(1) = "supplemental-indexes" Then
+                    run = SupplementalAssetIndexChecks.RunAsync(TestRoot)
+                ElseIf args(1) = "supplemental-versions" Then
                     run = SupplementalVersionChecks.RunAsync(TestRoot)
                 ElseIf args(1).StartsWith("processor-streams-", StringComparison.Ordinal) Then
                     run = ProcessorStreamChecks.RunAsync(TestRoot, args(1))

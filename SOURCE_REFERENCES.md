@@ -2,6 +2,8 @@
 
 ## Beta 1.0 后续开发：补充版本清单
 
+- 安装后续检查阅读固定 `ModMinecraft.vb` 的 `McAssetsGetIndex/McAssetsGetIndexName`，以及固定 `ModLaunch.vb` 生成 `${assets_index_name}` 的路径：PCL 优先读取 `assetIndex.id`，该名称与索引 URL 相互独立。同一上游资源索引 ID 在不同战斗测试版中可能对应不同 SHA-1；本工具因此仅为新补充实例改写索引名为 `pcldb-` 加完整小写 SHA-1，仍保留原 URL、摘要、大小、assets 字段及客户端身份，普通实例不改名，资源对象库继续共享。旧补充实例的补全保留 JSON；遇到已有共享索引内容不匹配时拒绝覆盖。独立命名及旧格式保护属于本工具的冲突处理适配，不宣称 PCL 上游采取相同命名。
+
 - 后续恢复检查再次阅读下述 PCL 合并及 PCL-CE 忽略 UVMC 异常的路径。补充来源的响应解码失败同样属于可选来源失败：核心层处理 net48 对无效字符编码的异常包装；界面层单独隔离整个补充完成过程，保留普通清单成功状态并记录意外异常，过期、安装中与关闭中的失败不覆盖当前状态。数量与分类提示以合并后的实际补充项为准。这些错误隔离及提示属于本工具适配，不改变上游版本身份或文件校验要求。
 
 - 重读固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `Modules/Minecraft/ModDownload.vb` 中 `DlClientListBmclapiMain`：读取正常列表后合并 `Cache/download.json`。`Pages/PageDownload/ModDownloadLib.vb` 的 `McDownloadListItem` 使用原条目 Tag、42 DIP 行、分类方块图标、说明文字及来源前缀，安装继续进入正常客户端/支持库/资源流程；`PageDownloadInstall.xaml.vb` 按 release/snapshot/special/历史版本分类，并避免把 combat、experimental 名称误改成正式版。

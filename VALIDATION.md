@@ -2,6 +2,16 @@
 
 日期：2026-10-22（北京时间）。最新发布为 PCL-DB Beta 1.0（`1.0.0-beta.1`），当前主分支另含尚未发布的后续修复；下方保留先前版本的验证记录。
 
+## Beta 1.0 后续开发：补充版本资源索引冲突
+
+- 基线 `4a1ee81cb21d5682f5b96cfae7a7487ca9743fd5`，源码备份及保护快照位于 `artifacts/beta1-supplemental-asset-index/`。重读固定 PCL 的 `McAssetsGetIndex/McAssetsGetIndexName` 和 `ModLaunch.vb` 的 `${assets_index_name}` 替换，片段保存在 pcl-asset-index.txt；其资源索引路径优先来自 `assetIndex.id`，不要求文件名与 URL 相同。
+- 上轮保存的真实元数据显示，1.16_combat-0 与 1.16_combat-6 共用资源索引 ID `1.16`，摘要分别为 `17cc2f37d6eaa3cd36e7165e2c66dbe85209083a`、`bdb68de96a44ec1e9ed6d9cfcd2ee973be618c3a`，证据见 observed-index-conflict.json。baseline-indexes.log 使用实际安装器和回环端点复现 `originalPreserved=False`：补充安装覆盖了普通实例已有的同名索引。
+- 新补充实例将索引名设为 `pcldb-` 加完整小写 SHA-1，不改上游 URL/大小/摘要、assets 或 clientVersion。不同内容分别保存，相同内容复用已有验证文件，普通实例仍使用原索引名，实际资源对象继续共享。旧格式补充实例的补全保持 JSON 字节不变；旧索引缺失可补回，已有内容不符则在传输前停止并提示新名称安装，避免覆盖可能供其他实例使用的文件。新格式实例损坏的独立索引可正常修复。
+- 新增 **21 项**实际安装检查（indexes-final.log），覆盖普通/补充交替安装、相同上游 ID 不同内容、普通索引内容与修改时间保持、实例 JSON 保持、同内容复用且不发生第二次索引传输、摘要大小写、独立索引损坏修复、旧格式正常/冲突/缺失索引、取消及客户端哈希失败后的重试、原始索引路径非法/保留名称/过长仍拒绝。最初的失败客户端样本被合法复用的已有客户端绕过，现用不同的预期客户端摘要和同大小错误响应确保确实进入网络哈希拒绝，没有为此修改下载复用逻辑。
+- 核对上轮留存的全部 20 份版本元数据，均使用 `${assets_index_name}`；pcl-index-argument-compatibility.json 记录对应名称和新独立名称。这是固定 PCL 代码与已保存元数据的兼容性证据，不作为本轮真实端点可用性或游戏启动实测。
+- 完整核心 **1125 项**、VS 2026 Debug/PDB 精选核心 **749 项**通过，补充配置共 **111 项**。Release/Debug 的 **658 项界面、328 项动画**及 **17 项固定源码对照**通过，Release 构建零警告/零错误。样本只使用回环 HTTP、临时目录和隔离 WPF。
+- preservation.json 核对 78 个 dist 文件内容和修改时间、七个参考仓库与 Beta 标签保持。本轮只本地验证与 Commit，不打包、不发版、不推送。
+
 ## Beta 1.0 后续开发：补充响应失败隔离与刷新恢复
 
 - 基线 `fc3cb1807e4aadd9bfd3a19e0fc0561b57bc6725`，源码备份及保护快照保存在 `artifacts/beta1-supplemental-recovery/`。再次阅读固定 PCL 的补充清单合并、PCL-CE 的可选来源异常隔离；片段见 pcl-extra-source.txt。

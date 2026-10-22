@@ -42,8 +42,10 @@ Public Class MinecraftInstaller
             metadata = PreparePclLibraryPaths(metadata)
             Report(progress, "准备安装", "检查组件安装所需的 Java 环境")
             InstallPreflight.VerifyJava(components, metadata)
+            Dim existing As JObject = Nothing
+            If repairExisting Then existing = JObject.Parse(File.ReadAllText(jsonTarget))
+            Dim legacySupplementalIndex = entry.IsSupplemental AndAlso PrepareSupplementalAssetIndex(metadata, existing)
             If repairExisting Then
-                Dim existing = JObject.Parse(File.ReadAllText(jsonTarget))
                 If existing("inheritsFrom") IsNot Nothing OrElse CStr(existing("mainClass")) <> CStr(metadata("mainClass")) OrElse CStr(existing.SelectToken("downloads.client.sha1")) <> CStr(metadata.SelectToken("downloads.client.sha1")) OrElse String.IsNullOrEmpty(CStr(metadata.SelectToken("downloads.client.sha1"))) Then Throw New InvalidDataException("只支持校验同版本的原版实例；不会修改加载器或继承版本。")
                 If Not JToken.DeepEquals(existing("libraries"), metadata("libraries")) Then Throw New InvalidDataException("现有实例支持库经过修改，请使用新名称安装原版。")
                 If existing("clientVersion") IsNot Nothing AndAlso CStr(existing("clientVersion")) <> entry.Id Then Throw New InvalidDataException("现有实例的 PCL 游戏版本与所选版本不一致，请使用新名称安装。")
@@ -57,9 +59,13 @@ Public Class MinecraftInstaller
             Dim indexId = CStr(index("id"))
             If entry.IsSupplemental Then SupplementalVersions.ValidatePlan({ToFile(index, "assets/indexes/index.json", "meta")})
             SafeFiles.ValidateInstanceName(indexId)
+            Dim indexRelative = "assets/indexes/" & indexId & ".json"
+            If legacySupplementalIndex Then
+                Dim indexTarget = SafeFiles.UnderRoot(root, indexRelative)
+                If File.Exists(indexTarget) AndAlso Not SafeFiles.Matches(indexTarget, ToFile(index, indexRelative, "meta")) Then Throw New InvalidDataException("旧补充实例的共享资源索引与当前文件不一致。请使用新名称重新安装，以免覆盖其他版本的索引。")
+            End If
             Report(progress, "准备安装", "解析资源索引与支持库")
             Dim assets = Await _policy.GetJsonAsync(CStr(index("url")), token, CStr(index("sha1"))).ConfigureAwait(False)
-            Dim indexRelative = "assets/indexes/" & indexId & ".json"
             plan.Add(New DownloadFile With {.RelativePath = indexRelative, .Url = CStr(index("url")), .Size = If(index("size") Is Nothing, -1, CLng(index("size"))), .Sha1 = CStr(index("sha1"))})
             plan.AddRange(BuildAssetsPlan(assets))
             If entry.IsSupplemental Then SupplementalVersions.ValidatePlan(plan)
@@ -277,6 +283,20 @@ Public Class MinecraftInstaller
             DirectCast(libraryInfo("natives"), JObject)("windows") = nativeName
         Next
         Return result
+    End Function
+
+    ' PCL McAssetsGetIndexName and ${assets_index_name} prefer assetIndex.id.
+    ' Supplemental releases can reuse one upstream ID for different index contents;
+    ' keep their content-addressed names separate from the ordinary shared index.
+    Private Shared Function PrepareSupplementalAssetIndex(metadata As JObject, existing As JObject) As Boolean
+        Dim index = DirectCast(metadata("assetIndex"), JObject)
+        SafeFiles.ValidateInstanceName(CStr(index("id")))
+        Dim isolated = "pcldb-" & CStr(index("sha1")).ToLowerInvariant()
+        ' Repair preserves existing JSON bytes. Keep legacy names, but the caller
+        ' refuses to overwrite an existing index that no longer matches this version.
+        If existing IsNot Nothing AndAlso CStr(existing.SelectToken("assetIndex.id")) <> isolated Then Return True
+        index("id") = isolated
+        Return False
     End Function
 
     Private Shared Sub CompletePclArtifactPath(libraryInfo As JObject, data As JObject, classifier As String)

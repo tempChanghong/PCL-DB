@@ -46,6 +46,7 @@ Friend Module SupplementalVersionChecks
         Await ResponseRecoveryAsync(passed)
         Await OptionalSourceAsync(passed)
         Await InstallationAsync(root, passed)
+        passed.AddRange(Await SupplementalAssetIndexChecks.RunAsync(root))
         Return passed
     End Function
 
