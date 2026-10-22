@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## Beta 1.0 后续修复：整合包重读状态与页面键盘输入
+
+- 继续依据固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModModpack.InstallPackCurseForge` / `InstallPackModrinth`：可选文件身份与用户选择分离，安装仍查询指定文件并校验。CurseForge 卡片现在按原包 SHA-256 保留名称、选择及已解析的显示名称，新的查询失败仍允许取消已选项；不同内容不继承。它是独立导入卡片的状态管理修复，不把保留的显示数据交给安装解析器或缓存为可信下载元数据。
+- 读取 `PageDownloadLeft.PageChangeRun` 和 `MyPageRight.TriggerExitAnimation/TriggerEnterAnimation`：保留退场时停止内容命中、110 + 30 ms 交接和 25 ms 逐项入场。本工具的 WPF 文本框及原生 CheckBox 能在 IsHitTestVisible 为 False 时继续收到键盘，因此在 Shell 的预览路由中拦截受限内容的按键、组合文本和新焦点请求；Escape 仍交给既有导航。复选框在 OnClick 中额外复核，防止入场前按下、退场后释放的空格触发选项。这是 WPF 适配补充，未声称上游有同样的键盘事件实现。
+- `MyCheckBox.xaml` 的 13 DIP 文本及 MyListItem / 安装页的标题与次要说明作为样式依据，CurseForge 的标题、12 DIP 统计和可选项标题与 Modrinth 卡片一致。切换选项同时更新当前表单归属；旧控件回调不能覆盖重读后的选择或夺走另一张卡片的归属。保留原动画曲线和下载边界，未重写侧栏或引入新页面。
+
 ## Beta 1.0 后续修复：Modrinth 选择状态、页面与隔离复核
 
 - 再次核对固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModModpack.InstallPackModrinth`（361–485 行）：先跳过客户端不支持或未选择的可选文件，再检查实际下载路径。清单读取仍校验所有条目的格式、摘要、地址和路径；文件与目录冲突按必需文件及实际选中项判断，在请求元数据或写入游戏目录前拒绝互相冲突的选择，未勾选项不阻止有效安装。

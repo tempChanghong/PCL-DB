@@ -88,6 +88,13 @@ Partial Public Class MainWindow
         InitializeAbout()
         InitializeSettingsFeedback()
         AddHandler Shell.KeyDown, AddressOf ShellKeyDown
+        AddHandler Shell.PreviewKeyDown, AddressOf ShellPreviewKeyDown
+        AddHandler Shell.PreviewTextInput, Sub(sender, args)
+                                             If GatedKeyboardSource(args.OriginalSource) Then args.Handled = True
+                                         End Sub
+        AddHandler Shell.PreviewGotKeyboardFocus, Sub(sender, args)
+                                                    If GatedKeyboardSource(args.NewFocus) Then args.Handled = True
+                                                End Sub
         AddHandler VersionSourceBox.SelectionChanged, AddressOf VersionSourceChanged
         AddHandler InstanceName.TextChanged, AddressOf InstanceNameChanged
         AddHandler InstanceName.KeyDown, AddressOf InstanceNameKeyDown

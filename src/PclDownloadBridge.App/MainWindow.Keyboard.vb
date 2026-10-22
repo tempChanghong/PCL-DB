@@ -5,6 +5,23 @@ Imports PclDownloadBridge.Controls
 Partial Public Class MainWindow
     Private _keyboardVersionReturn As WeakReference(Of PclListItem)
 
+    Private Shared Function GatedKeyboardSource(source As Object) As Boolean
+        Dim target = TryCast(source, DependencyObject)
+        While target IsNot Nothing
+            Dim element = TryCast(target, UIElement)
+            If element IsNot Nothing Then Return Not element.IsHitTestVisible
+            target = LogicalTreeHelper.GetParent(target)
+        End While
+        Return False
+    End Function
+    Private Sub ShellPreviewKeyDown(sender As Object, e As KeyEventArgs)
+        If e.Handled OrElse Not GatedKeyboardSource(e.OriginalSource) Then Return
+        ' PCL gates exiting content by hit testing. WPF text editors and selectors
+        ' can still receive keyboard input; navigation remains owned by the shell.
+        If e.Key = Key.Escape Then ShellKeyDown(sender, e)
+        e.Handled = True
+    End Sub
+
     Private Sub ShellKeyDown(sender As Object, e As KeyEventArgs)
         If e.Key <> Key.Escape OrElse e.IsRepeat OrElse e.Handled Then Return
         If AboutPage.Visibility = Visibility.Visible Then

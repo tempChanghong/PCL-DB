@@ -107,12 +107,19 @@ Partial Public Class MainWindow
         ResumeInstallation(Me, New RoutedEventArgs()) : _categoryMotion.Finish() : layout()
         Dim cfSource = Path.Combine(directory, "ui-dual-" & Guid.NewGuid().ToString("N") & ".zip")
         Using zip = ZipFile.Open(cfSource, ZipArchiveMode.Create), writer As New StreamWriter(zip.CreateEntry("manifest.json").Open())
-            writer.Write(New JObject From {{"manifestType", "minecraftModpack"}, {"manifestVersion", 1}, {"name", "CF independent"}, {"version", "1"}, {"minecraft", New JObject From {{"version", "1.20.1"}, {"modLoaders", New JArray()}}}, {"files", New JArray()}}.ToString())
+            writer.Write(New JObject From {{"manifestType", "minecraftModpack"}, {"manifestVersion", 1}, {"name", "CF independent"}, {"version", "1"}, {"minecraft", New JObject From {{"version", "1.20.1"}, {"modLoaders", New JArray()}}},
+                {"files", New JArray(New JObject From {{"projectID", 2}, {"fileID", 2002}, {"required", False}})}}.ToString())
         End Using
         SelectCurseForgePackage(CurseForgePackage.Read(cfSource)) : PackInstanceName.Text = "cf-custom"
         check(Not _activeModrinth AndAlso ModrinthInstanceName.Text = "mr-custom" AndAlso _modrinthSelection IsNot Nothing, "CF selection preserves the independent MR form")
         SelectModrinthPackage(_modrinthSelection) : ModrinthInstanceName.Text = "mr-custom"
         check(_activeModrinth AndAlso PackInstanceName.Text = "cf-custom" AndAlso _packSelection.Name = "CF independent", "MR selection preserves the independent CF form")
+        Dim cfChoice = DirectCast(PackOptionalFiles.Children(0), PclCheckBox)
+        cfChoice.Content = "optional.jar（可选）" : cfChoice.IsEnabled = True : cfChoice.IsChecked = True
+        check(Not _activeModrinth AndAlso PackSummary.Text.Contains("已选 1 / 1") AndAlso ModrinthInstanceName.Text = "mr-custom", "choosing a CF optional file makes its form active without changing the MR plan")
+        SelectCurseForgePackage(CurseForgePackage.Read(cfSource)) : SelectModrinthPackage(_modrinthSelection)
+        cfChoice.IsChecked = False
+        check(_activeModrinth AndAlso DirectCast(PackOptionalFiles.Children(0), PclCheckBox).IsChecked.GetValueOrDefault(), "a retired CF checkbox cannot change the replacement choices or take focus ownership from MR")
         Dim disguised = Path.ChangeExtension(source, ".zip") : File.Copy(source, disguised)
         Dim currentBox = DirectCast(ModrinthOptionalFiles.Children(0), PclCheckBox) : currentBox.IsChecked = True
         Await ReadLocalPackAsync(disguised)

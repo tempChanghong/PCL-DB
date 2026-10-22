@@ -143,12 +143,14 @@
                       </Grid>
                       <TextBlock x:Name="PackReadStatus" Text="也可以将整合包文件直接拖入窗口。" TextWrapping="Wrap" FontSize="12" Opacity="0.65" Margin="0,12,0,0"/>
                       <StackPanel x:Name="PackOptionsCard" Visibility="Collapsed" Margin="0,18,0,0">
-                        <TextBlock x:Name="PackSummary" TextWrapping="Wrap"/>
+                        <TextBlock x:Name="PackTitle" FontSize="14" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock x:Name="PackSummary" FontSize="12" Foreground="{DynamicResource ColorBrushGray3}" TextWrapping="Wrap" LineHeight="16" Margin="0,6,0,0"/>
                         <TextBlock x:Name="PackSource" FontSize="12" Opacity="0.6" TextTrimming="CharacterEllipsis" Margin="0,7,0,15"/>
                         <TextBlock Text="实例名称" Margin="0,0,0,7"/>
                         <p:PclTextBox x:Name="PackInstanceName" Height="30" MaxLength="70" ShowValidateResult="False" ToolTip="整合包实例名称"/>
                         <p:PclHint x:Name="PackNameHint" Visibility="Collapsed" Margin="0,9,0,0"/>
-                        <StackPanel x:Name="PackOptionalFiles" Margin="0,12,0,0"/>
+                        <TextBlock x:Name="PackOptionalHeader" Text="可选文件" FontSize="13" Margin="0,12,0,7" Visibility="Collapsed"/>
+                        <StackPanel x:Name="PackOptionalFiles"/>
                         <TextBlock Text="按清单指定版本安装，并开启版本隔离。文件缺失、校验失败或同名实例冲突时停止；取消后可重试。" TextWrapping="Wrap" FontSize="12" Opacity="0.6" Margin="0,10,0,15"/>
                         <p:PclButton x:Name="PackInstallButton" Text="开始安装" Width="120" Height="32" HorizontalAlignment="Right" Click="StartInstall" ToolTipService.ShowOnDisabled="True"/>
                       </StackPanel>

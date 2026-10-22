@@ -23,7 +23,14 @@ Partial Public Class MainWindow
                 work.GetAwaiter().GetResult()
             End Using
         Finally
-            owner._packReadCancellation?.Cancel()
+            Dim pending = owner._packReadCancellation : owner._packReadCancellation = Nothing
+            If pending IsNot Nothing Then
+                Try
+                    pending.Cancel()
+                Catch ex As ObjectDisposedException
+                    ' A failed query fixture may already have disposed its source.
+                End Try
+            End If
             owner._categoryMotion.Finish() : owner._pageSwitch.Finish() : owner._surfaceMotion.Finish()
             host.Child = Nothing : owner.Content = content
             SynchronizationContext.SetSynchronizationContext(previous)
@@ -60,11 +67,21 @@ Partial Public Class MainWindow
         SelectCurseForgePackage(package) : layout()
         check(_downloadView = DownloadView.Modpacks AndAlso PackOptionsCard.IsVisible AndAlso PackSummary.Text.Contains("47.2.0"), "CF selection remains in its card with the exact loader")
         check(PackInstanceName.Text = "BetterMC preview" AndAlso _selectedEntry Is entry AndAlso InstanceName.Text = "保留原版方案", "pack identity and name do not replace the vanilla form")
+        check(PackTitle.Text = "BetterMC preview · 1.5" AndAlso PackTitle.FontSize = 14 AndAlso PackSummary.FontSize = 12 AndAlso PackOptionalHeader.IsVisible, "CF import separates its PCL-style title statistics and optional heading")
         check(_componentSelection Is selection AndAlso selection.Item(ComponentKind.Fabric) Is fabric AndAlso card.Body Is body AndAlso Not card.Collapsed, "import retains vanilla components and expanded row bodies")
         check(IsolationBox.SelectedIndex = 2 AndAlso RepairBox.IsChecked.GetValueOrDefault(), "import retains vanilla isolation and repair preferences")
         Dim box = DirectCast(PackOptionalFiles.Children(0), PclCheckBox)
         check(PackOptionalFiles.Children.Count = 1 AndAlso Not box.IsChecked.GetValueOrDefault() AndAlso Not box.IsEnabled, "optional files start unselected until metadata is available")
+        box.Content = "optional.jar（可选）" : box.ToolTip = "mods/optional.jar"
         box.IsEnabled = True : box.IsChecked = True : PackInstanceName.Text = "custom-pack"
+        check(PackSummary.Text.Contains("已选 1 / 1"), "CF optional choices immediately update the selected count")
+        Await ReadCurseForgePackAsync(source)
+        check(PackInstanceName.Text = "custom-pack" AndAlso DirectCast(PackOptionalFiles.Children(0), PclCheckBox).IsChecked.GetValueOrDefault() AndAlso DirectCast(PackOptionalFiles.Children(0), PclCheckBox).IsEnabled AndAlso CStr(DirectCast(PackOptionalFiles.Children(0), PclCheckBox).Content) = "optional.jar（可选）", "CF rereading the same archive retains the custom name and chosen optional file")
+        package = _packSelection : box = DirectCast(PackOptionalFiles.Children(0), PclCheckBox)
+        Dim copied = Path.Combine(directory, "copied-cf-" & Guid.NewGuid().ToString("N") & ".zip") : File.Copy(source, copied)
+        Await ReadCurseForgePackAsync(copied)
+        check(PackInstanceName.Text = "custom-pack" AndAlso PackSource.Text = copied AndAlso DirectCast(PackOptionalFiles.Children(0), PclCheckBox).IsChecked.GetValueOrDefault(), "CF an identical archive at another path retains choices while updating its source")
+        package = _packSelection : box = DirectCast(PackOptionalFiles.Children(0), PclCheckBox)
         ShowSettings(Me, New RoutedEventArgs()) : ShowDownload(Me, New RoutedEventArgs()) : layout()
         check(_packSelection Is package AndAlso PackInstanceName.Text = "custom-pack" AndAlso box.IsChecked.GetValueOrDefault() AndAlso _downloadView = DownloadView.Modpacks, "settings navigation retains the package name and optional choices")
         VanillaNav.Activate() : _pageSwitch.Finish() : layout()
@@ -84,7 +101,7 @@ Partial Public Class MainWindow
         Dim reading = ReadCurseForgePackAsync(source)
         check(_readingPack AndAlso Not ImportPackButton.IsEnabled AndAlso Not PackInstallButton.IsEnabled AndAlso Not PackOptionsCard.IsEnabled, "replacement parsing freezes the old package form before asynchronous work")
         ShowVanillaDownloads(Me, New RoutedEventArgs()) : Await reading
-        check(_downloadView = DownloadView.Versions AndAlso Not _readingPack AndAlso PackInstanceName.Text = "BetterMC preview", "late ZIP parsing updates the hidden card without hijacking navigation")
+        check(_downloadView = DownloadView.Versions AndAlso Not _readingPack AndAlso PackInstanceName.Text = "custom-pack", "late ZIP parsing updates the hidden card without hijacking navigation or replacing its edited name")
         Dim loaded = _packSelection, invalid = Path.Combine(directory, "invalid-cf-" & Guid.NewGuid().ToString("N") & ".zip")
         PackInstanceName.Text = "keep-on-failure" : File.WriteAllText(invalid, "not a zip")
         Await ReadCurseForgePackAsync(invalid)
@@ -155,12 +172,19 @@ Partial Public Class MainWindow
         cold._installRunner = Function(game, gameRoot, name, components, isolation, token) Task.FromResult(New InstallResult With {.InstancePath = Path.Combine(gameRoot, "versions", name), .FileCount = 1})
         cold.StartInstall(cold, New RoutedEventArgs()) : Await cold.WaitForNameInstallAsync()
         check(cold._taskOutcome = TaskOutcome.Succeeded AndAlso cold._taskMinecraft = package.Minecraft AndAlso cold._selectedEntry Is Nothing AndAlso cold._taskRows.Count = 3 AndAlso Not cold._taskHasComponents, "a pack without loaders works on a cold window without a vanilla selection or phantom processor phases")
+        Dim changed = Path.Combine(directory, "changed-cf-" & Guid.NewGuid().ToString("N") & ".zip")
+        manifest("version") = "1.6"
+        Using archive = ZipFile.Open(changed, ZipArchiveMode.Create), writer As New StreamWriter(archive.CreateEntry("manifest.json").Open())
+            writer.Write(manifest.ToString())
+        End Using
+        SelectCurseForgePackage(CurseForgePackage.Read(changed))
+        check(PackInstanceName.Text = "BetterMC preview" AndAlso PackOptionalFiles.Children.OfType(Of PclCheckBox)().All(Function(item) Not item.IsChecked.GetValueOrDefault() AndAlso Not item.IsEnabled) AndAlso PackSummary.Text.Contains("已选 0 / 1"), "CF changed archive content resets the previous name choices and display metadata")
     End Function
     Private Async Function VerifyStalePackMetadataAsync(check As Action(Of Boolean, String)) As Task
         For Each obsolete In {False, True}
         Using handler As New DeferredPackHandler(), client As New HttpClient(handler), resolver As New CurseForgeFileResolver(Policy(), client, ""), slots As New SemaphoreSlim(4), old As New CancellationTokenSource(), replacement As New CancellationTokenSource()
             Dim optionalBox = DirectCast(PackOptionalFiles.Children(0), PclCheckBox)
-            optionalBox.Content = "等待查询" : optionalBox.IsEnabled = False
+            optionalBox.Content = "等待查询" : optionalBox.IsEnabled = False : optionalBox.IsChecked = False
             Dim package = _packSelection, box = DirectCast(PackOptionalFiles.Children(0), PclCheckBox), content = box.Content
             _packReadCancellation = old
             Dim query = QueryPackOptionalAsync(package, box, resolver, slots, old)
@@ -175,6 +199,17 @@ Partial Public Class MainWindow
             _packReadCancellation = Nothing
         End Using
         Next
+        Using handler As New DeferredPackHandler(), client As New HttpClient(handler), resolver As New CurseForgeFileResolver(Policy(), client, ""), slots As New SemaphoreSlim(4), request As New CancellationTokenSource()
+            Dim box = DirectCast(PackOptionalFiles.Children(0), PclCheckBox)
+            box.Content = "optional.jar（可选）" : box.IsEnabled = True : box.IsChecked = True
+            _packReadCancellation = request
+            handler.Response.TrySetException(New HttpRequestException("受控文件信息查询失败"))
+            Await QueryPackOptionalAsync(_packSelection, box, resolver, slots, request)
+            check(box.IsEnabled AndAlso box.IsChecked.GetValueOrDefault() AndAlso box.Content.ToString().Contains("暂时无法查询"), "CF a failed fresh query preserves an already available choice for deselection without trusting cached download metadata")
+            box.IsChecked = False
+            check(PackSummary.Text.Contains("已选 0 / 1"), "CF an unavailable optional file can be removed from a restored selection")
+            _packReadCancellation = Nothing
+        End Using
     End Function
     Private Class DeferredPackHandler
         Inherits HttpMessageHandler

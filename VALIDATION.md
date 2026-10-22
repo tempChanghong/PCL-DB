@@ -2,6 +2,18 @@
 
 日期：2026-10-22（北京时间）。最新发布为 PCL-DB Beta 1.0（`1.0.0-beta.1`），当前主分支另含尚未发布的后续修复；下方保留先前版本的验证记录。
 
+## Beta 1.0 后续修复：导入状态、侧栏与动画输入复查（2026-10-22）
+
+- 起点为干净的 `025757c9dbf707eee47032254ddbcddf4bda8d2c`；修改前源码快照、七个参考仓库状态、dist 和两份原包摘要保存在 `artifacts/import-navigation-review/before.zip` / before.json。继续读取固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的两种整合包安装、MyCheckBox、PageDownloadLeft 和 MyPageRight，摘录为 pcl-reference.txt。
+- 复现 CurseForge 重读同一 ZIP 清空自定义名称和可选项（ui-before.json）；现在按原包 SHA-256 保留名称、选择及已解析的显示名称，相同副本更换路径也保留，不同内容重置。新的元数据查询失败时，原先可选择的文件仍可取消勾选；安装器继续重新查询指定文件及校验，未把显示缓存作为可信下载信息。标题、次要统计和可选项标题与 Modrinth 卡片对齐，选择数量实时更新；旧控件事件不能修改重读后的表单或切换当前卡片归属。
+- 复现动画仅关闭命中时仍可通过键盘勾选选项（motion-before.json；当时 download-keyboard-gate.json 为 PreviewHandled=false、OptionalSelected=true）。Shell 现在拦截受限内容的按键、组合文本和新焦点请求；复选框在 OnClick 中防止跨切页释放空格造成误选，并正常清除按压状态。Escape 仍调用原导航，动画结束恢复输入，不修改原动画曲线或用禁用整页改变颜色。
+- 界面新增 **9 项**，当前 **754 项**（ui-integrated.json）；动画新增 **9 项**，当前 **358 项**（motion-integrated.json）。覆盖相同/复制/变化原包、失败查询后取消选择、两种卡片交互与过期控件，以及键盘阻挡、组合文本、焦点、恢复输入、空格跨切页释放和 Escape。原滚动条检查改为先确认退场输入被阻挡，再定位到允许交互的入场阶段验证其独立变换交接，未取消或跳过该断言。既有快速反向、旧时钟完成、隐藏列表刷新、设置交接、任务往返、取消重试和缩放清理随完整界面/动画检查通过。
+- 检查用例原先依赖重读清空选择，已在独立元数据样本中明确初始化未选择状态；清理先释放字段引用，避免已释放 CancellationTokenSource 掩盖原始断言或在退出测试窗口时阻塞。期间一个失败的测试进程及其已核实的测试专用 shell 已停止；后续未自动重试失败用例，修复并重新构建后检查通过。
+- 默认 `build.ps1` 无 Package 参数通过：核心 **1991 项**（含 CurseForge 135、Modrinth 128）、界面 **754 项**、动画 **358 项**和固定 PCL 源码比对 **17 项**；Release 零警告、零错误（build-full.log、ui-default.json、motion-default.json）。下载内核未改动，未放宽隔离、摘要、路径、取消重试或实例发布检查。
+- VS 2026 Debug / portable PDB 验证通过精选控制台 **1615 项**、界面 **754 项**、动画 **358 项**；外观 129、卡片 104、导航 31、设置兼容 49 为独立配置子集，不重复累计（vs2026-report.json）。本轮无人工 IDE F5、桌面键盘或设备帧率验收。
+- 实包离屏预览分别为 bettermc-light.png（850×600）和 zombie-dark.png（810×470），另核对 download-curseforge-minimum.png、download-modrinth-optional-minimum.png、任务结果最小窗口，以及 download-category-exit.png / download-category-settled.png。原包只读，预览不查询真实 CurseForge 文件信息，也不执行安装或启动游戏；未将上一轮完整 Zombie 安装报告当作本轮重新实测。
+- 默认构建、VS、单 EXE 及打包候选的门槛同步为界面 754 / 动画 358，五份相关 PowerShell 解析和门槛核对通过（script-contracts.json）。未执行单 EXE、打包或发布验收。dist **78 个文件**内容、长度、修改时间、七个参考仓库提交/工作区状态及 **2 份原包**摘要保持（preservation.json）；只本地 Commit，未打包、发版或推送。机器证据位于忽略目录 `artifacts/import-navigation-review/`。
+
 ## Beta 1.0 后续修复：Modrinth 页面、选择状态与隔离检查（2026-10-22）
 
 - 再读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 InstallPackModrinth、CopyOverrideDirectory、MyCheckBox、MyListItem 和安装页 XAML，摘录见 `artifacts/modrinth-polish/pcl-reference.txt`。页面仍使用现有 PCL 卡片、控件与动画；本地导入卡片的信息层级属于独立适配，没有把它称为上游已有的相同页面。

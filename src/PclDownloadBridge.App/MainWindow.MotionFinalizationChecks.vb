@@ -83,6 +83,11 @@ Partial Public Class MainWindow
                     "a hidden catalogue refresh preserves the visible settings entry group")
                 Dim bar = SettingsPage.VerticalBar
                 Dim originalBar = DirectCast(bar.RenderTransform, TransformGroup).Children(0)
+                Dim barKey As New KeyEventArgs(Keyboard.PrimaryDevice, source, Environment.TickCount, Key.PageDown) With {.RoutedEvent = Keyboard.PreviewKeyDownEvent}
+                bar.RaiseEvent(barKey)
+                check(barKey.Handled AndAlso bar.RenderTransform IsNot originalBar AndAlso _surfaceMotion.Transition Is settingsClock,
+                    "keyboard input to a gated scrollbar cannot disturb its incoming animation")
+                settingsClock.Controller.SeekAlignedToLastTick(TimeSpan.FromMilliseconds(160), TimeSeekOrigin.BeginTime) : layout()
                 bar.RaiseEvent(New KeyEventArgs(Keyboard.PrimaryDevice, source, Environment.TickCount, Key.PageDown) With {.RoutedEvent = Keyboard.PreviewKeyDownEvent})
                 check(bar.RenderTransform Is originalBar AndAlso _surfaceMotion.Transition Is settingsClock,
                     "scrollbar keyboard input settles only its horizontal entry transform")

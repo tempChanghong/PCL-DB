@@ -55,7 +55,12 @@ Namespace Controls
         End Sub
 
         Friend Sub Activate()
-            If IsEnabled Then MyBase.OnClick()
+            OnClick()
+        End Sub
+        Protected Overrides Sub OnClick()
+            ' A key pressed before page exit may be released after the gate closes.
+            ' Let ButtonBase clear its pressed state, but do not toggle this option.
+            If IsEnabled AndAlso IsHitTestVisible AndAlso (Not IsLoaded OrElse IsVisible) Then MyBase.OnClick()
         End Sub
     End Class
 End Namespace

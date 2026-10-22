@@ -147,24 +147,48 @@ Partial Public Class MainWindow
     End Function
     Private Sub SelectCurseForgePackage(package As CurseForgePackage, Optional request As CancellationTokenSource = Nothing, Optional navigate As Boolean = True)
         If _packReadCancellation IsNot request Then CancelPackRead()
+        Dim sameArchive = _packSelection IsNot Nothing AndAlso _packSelection.Sha256 = package.Sha256
+        Dim editedName = PackInstanceName.Text
+        Dim prior = If(sameArchive, PackOptionalFiles.Children.OfType(Of PclCheckBox)().ToDictionary(Function(box) CLng(box.Tag)), New Dictionary(Of Long, PclCheckBox)())
         _packSelection = package : _activeModrinth = False
-        PackInstanceName.Text = package.Name
-        PackSummary.Text = package.Name & " · " & package.Version & vbCrLf & "Minecraft " & package.Minecraft &
-            If(package.LoaderKind.HasValue, " + " & package.LoaderKind.ToString() & " " & package.LoaderVersion, "") & vbCrLf &
-            package.References.Where(Function(item) item.Required).Count() & " 个必需文件 · " & package.References.Where(Function(item) Not item.Required).Count() & " 个可选文件 · " & package.OverrideFiles.Count & " 个附带配置文件"
+        PackInstanceName.Text = If(sameArchive, editedName, package.Name)
+        PackTitle.Text = package.Name & " · " & package.Version : PackTitle.ToolTip = PackTitle.Text
         PackSource.Text = package.SourcePath : PackSource.ToolTip = package.SourcePath
         PackOptionalFiles.Children.Clear()
         For Each reference In package.References.Where(Function(item) Not item.Required)
-            PackOptionalFiles.Children.Add(New PclCheckBox With {.Content = "正在查询可选文件 " & reference.FileId & "…", .Tag = reference.FileId, .IsEnabled = False, .Margin = New Thickness(0, 0, 0, 6)})
+            Dim previous As PclCheckBox = Nothing
+            prior.TryGetValue(reference.FileId, previous)
+            Dim resolved = previous IsNot Nothing AndAlso CBool(previous.ReadLocalValue(IsEnabledProperty))
+            ' Retain display information only. Installation always resolves again.
+            ' A previously selectable option must remain possible to deselect if
+            ' its fresh query fails; inherited form freezing is not metadata state.
+            Dim box As New PclCheckBox With {.Content = If(resolved, previous?.Content, "正在查询可选文件 " & reference.FileId & "…"), .Tag = reference.FileId,
+                .IsChecked = previous IsNot Nothing AndAlso previous.IsChecked.GetValueOrDefault(), .IsEnabled = resolved, .ToolTip = If(resolved, previous?.ToolTip, Nothing), .Margin = New Thickness(0, 0, 0, 6)}
+            Dim update As RoutedEventHandler = Sub()
+                                                  If _packSelection IsNot package Then Return
+                                                  _activeModrinth = False : RefreshCurseForgeSummary()
+                                              End Sub
+            AddHandler box.Checked, update : AddHandler box.Unchecked, update
+            PackOptionalFiles.Children.Add(box)
         Next
+        PackOptionalHeader.Visibility = If(PackOptionalFiles.Children.Count > 0, Visibility.Visible, Visibility.Collapsed)
+        RefreshCurseForgeSummary()
         PackOptionsCard.Visibility = Visibility.Visible
         RefreshPackAvailability()
-        ModpackPage.ScrollToHome()
         If navigate Then
             SetDownloadView(DownloadView.Modpacks)
             SwitchMainPage(False)
+            If Not sameArchive Then CurseForgeCard.BringIntoView()
         End If
         PackReadStatus.Text = "清单已读取。开始安装时将重新查询并校验指定文件。"
+    End Sub
+    Private Sub RefreshCurseForgeSummary()
+        Dim package = _packSelection
+        If package Is Nothing Then Return
+        Dim count = package.References.Where(Function(item) Not item.Required).Count()
+        Dim selected = PackOptionalFiles.Children.OfType(Of PclCheckBox)().Count(Function(box) box.IsChecked.GetValueOrDefault())
+        PackSummary.Text = "Minecraft " & package.Minecraft & If(package.LoaderKind.HasValue, " + " & package.LoaderKind.ToString() & " " & package.LoaderVersion, "") & vbCrLf &
+            package.References.Where(Function(item) item.Required).Count() & " 个必需文件 · " & If(count > 0, "已选 " & selected & " / " & count & " 个可选文件", "无可选文件") & " · " & package.OverrideFiles.Count & " 个附带文件"
     End Sub
     Private Sub PackDragOver(sender As Object, e As DragEventArgs)
         If Not e.Data.GetDataPresent(DataFormats.FileDrop) Then Return

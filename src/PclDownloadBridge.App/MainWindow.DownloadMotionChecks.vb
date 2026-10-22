@@ -23,14 +23,35 @@ Partial Public Class MainWindow
                 layout() : _motionPreview = True : _categoryMotion.PauseForChecks = True
                 Dim gate As New Grid With {.IsHitTestVisible = False}, action As New PclButton(), icon As New PclIconButton(), keyClicks = 0
                 gate.Width = 1 : gate.Height = 1 : gate.Opacity = 0
-                Dim root = DirectCast(content, Grid)
+                Dim root = Shell
                 root.Children.Add(gate)
                 gate.Children.Add(action) : gate.Children.Add(icon)
                 AddHandler action.Click, Sub() keyClicks += 1
                 AddHandler icon.Click, Sub() keyClicks += 1
                 PressControlKey(action, Key.Enter) : PressControlKey(icon, Key.Space)
                 check(keyClicks = 0, "animated input gating blocks action and icon keyboard activation inherited from the page")
+                Dim optionalBox As New PclCheckBox With {.Content = "可选文件"}
+                gate.Children.Add(optionalBox)
+                Dim pressed = RouteDownloadKey(optionalBox, Key.Space)
+                IO.File.WriteAllText(IO.Path.Combine(directory, "download-keyboard-gate.json"), Newtonsoft.Json.JsonConvert.SerializeObject(New With {.PreviewHandled = pressed, .OptionalSelected = optionalBox.IsChecked.GetValueOrDefault()}))
+                check(pressed AndAlso Not optionalBox.IsChecked.GetValueOrDefault(), "page input gate blocks keyboard toggles of optional pack files during animation")
+                Dim editor As New PclTextBox With {.Text = "保留名称"}
+                gate.Children.Add(editor)
+                Dim text As New TextCompositionEventArgs(Keyboard.PrimaryDevice, New TextComposition(InputManager.Current, editor, "x")) With {.RoutedEvent = TextCompositionManager.PreviewTextInputEvent}
+                editor.RaiseEvent(text)
+                check(text.Handled AndAlso editor.Text = "保留名称", "page input gate blocks composed text input while preserving the edited instance name")
+                Dim focus As New KeyboardFocusChangedEventArgs(Keyboard.PrimaryDevice, Environment.TickCount, Nothing, editor) With {.RoutedEvent = Keyboard.PreviewGotKeyboardFocusEvent}
+                editor.RaiseEvent(focus)
+                check(focus.Handled, "page input gate rejects keyboard focus into hidden incoming content")
                 gate.IsHitTestVisible = True
+                check(Not RouteDownloadKey(optionalBox, Key.Space) AndAlso optionalBox.IsChecked.GetValueOrDefault(), "optional pack keyboard selection resumes when the input gate opens")
+                optionalBox.IsChecked = False
+                RouteDownloadKey(optionalBox, Key.Space, Sub() gate.IsHitTestVisible = False)
+                check(Not optionalBox.IsChecked.GetValueOrDefault() AndAlso Not optionalBox.IsPressed, "a space released after page exit cannot change the selection or leave the checkbox pressed")
+                gate.IsHitTestVisible = True
+                text = New TextCompositionEventArgs(Keyboard.PrimaryDevice, New TextComposition(InputManager.Current, editor, "x")) With {.RoutedEvent = TextCompositionManager.PreviewTextInputEvent}
+                editor.RaiseEvent(text)
+                check(Not text.Handled, "composed text input is available again after page entry")
                 PressControlKey(action, Key.Enter) : PressControlKey(icon, Key.Space)
                 check(keyClicks = 2, "action and icon keyboard activation resumes after the page input gate opens")
                 root.Children.Remove(gate)
@@ -96,6 +117,11 @@ Partial Public Class MainWindow
                 ShowModpackDownloads(Me, New RoutedEventArgs())
                 check(PumpMotionUntil(Function() _categoryMotion.Transition Is Nothing) AndAlso ModpackPage.IsVisible AndAlso DownloadGhost.Children.Count = 0 AndAlso DownloadViewHost.IsHitTestVisible, "unpaused category motion completes and restores input without a manual seek")
                 SaveControlVisual(host, IO.Path.Combine(directory, "download-category-settled.png"))
+                ShowVanillaDownloads(Me, New RoutedEventArgs()) : _categoryMotion.Finish()
+                SelectVersion(_versions(0)) : layout()
+                check(_pageSwitch.Transition IsNot Nothing AndAlso Not DownloadViewHost.IsHitTestVisible, "Escape fixture starts inside a gated vanilla transition")
+                RouteDownloadKey(InstanceName, Key.Escape) : layout()
+                check(_downloadView = DownloadView.Versions AndAlso Not _closing AndAlso Not _busy, "Escape still reverses page navigation while content keyboard editing is gated")
             End Using
         Finally
             _motionPreview = False : _focusAfterPageSwitch = False
@@ -103,6 +129,21 @@ Partial Public Class MainWindow
             host.Child = Nothing : Me.Content = content
         End Try
     End Sub
+    Private Shared Function RouteDownloadKey(control As UIElement, key As Key, Optional beforeRelease As Action = Nothing) As Boolean
+        Dim down As New KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(control), Environment.TickCount, key) With {.RoutedEvent = Keyboard.PreviewKeyDownEvent}
+        control.RaiseEvent(down)
+        Dim blocked = down.Handled
+        If Not down.Handled Then
+            down.RoutedEvent = Keyboard.KeyDownEvent : control.RaiseEvent(down)
+        End If
+        beforeRelease?.Invoke()
+        Dim up As New KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(control), Environment.TickCount, key) With {.RoutedEvent = Keyboard.PreviewKeyUpEvent}
+        control.RaiseEvent(up)
+        If Not up.Handled Then
+            up.RoutedEvent = Keyboard.KeyUpEvent : control.RaiseEvent(up)
+        End If
+        Return blocked
+    End Function
     Private Shared Function SameDownloadFrame(frame As PclExitSnapshot, actual As BitmapSource, region As Rect) As Boolean
         Dim expected = frame.Bitmap
         If expected.PixelWidth <> actual.PixelWidth OrElse expected.PixelHeight <> actual.PixelHeight Then Return False
