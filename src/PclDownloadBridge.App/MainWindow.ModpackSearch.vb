@@ -321,11 +321,14 @@ Partial Public Class MainWindow
 
     Private Async Sub InstallOnlinePack(release As ModpackRelease)
         If _busy OrElse _choosingOnline OrElse _readingPack OrElse _closing OrElse _packProject Is Nothing OrElse _packMode <> PackBrowserMode.Detail OrElse _downloadView <> DownloadView.Modpacks OrElse Not DownloadPage.IsVisible OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible Then Return
+        Dim project = _packProject, snapshot = release.Copy()
+        If snapshot.Platform <> project.Platform OrElse snapshot.ProjectId <> project.Id Then Return
+        Dim blocked = ModpackCompatibility.GetInstallBlockReason(snapshot)
+        If blocked IsNot Nothing Then StatusText.Text = blocked : Return
         If _selectedFolder Is Nothing Then ChooseInstallFolder(Nothing, Nothing) : StatusText.Text = "请先选择游戏目录。" : Return
         Dim limit As Double
         If Not TryGetSpeedLimit(limit) Then NavigateToSetting(SpeedLimitBox, True) : Return
-        Dim project = _packProject, snapshot = release.Copy(), root = _selectedFolder.Location
-        If snapshot.Platform <> project.Platform OrElse snapshot.ProjectId <> project.Id Then Return
+        Dim root = _selectedFolder.Location
         _choosingOnline = True
         Try
             Dim proposed = If(_onlineLastRelease = project.Key & ":" & release.Id, _onlineLastName, SuggestedPackName(project.Name))

@@ -44,6 +44,7 @@ Friend Module ModpackCatalogChecks
         Dim mr As New ModpackProject With {.Platform = ModpackPlatform.Modrinth, .Id = "pack1"}
         Dim json = MrRelease(), release = ModpackCatalogClient.ParseRelease(mr, json)
         Check(release.FileName = "pack.mrpack" AndAlso release.Sha512 IsNot Nothing, "MR chooses the primary installable archive instead of files(0)", passed)
+        CompatibilityChecks(release, passed)
         Dim longName = DirectCast(json.DeepClone(), JObject)
         longName("files")(1)("filename") = New String("x"c, 180) & ".mrpack"
         Check(ModpackCatalogClient.ParseRelease(mr, longName).FileName.Length > 100, "remote archive filenames do not inherit the shorter instance-name limit", passed)
@@ -70,6 +71,8 @@ Friend Module ModpackCatalogChecks
         Dim cf As New ModpackProject With {.Platform = ModpackPlatform.CurseForge, .Id = "12"}
         Dim cfJson As New JObject From {{"id", 1234567}, {"modId", 12}, {"displayName", "Client pack"}, {"fileName", "client.zip"}, {"downloadUrl", "https://edge.forgecdn.net/files/1234/567/client.zip"}, {"fileLength", 100}, {"isServerPack", False}, {"isAvailable", True}, {"releaseType", 1}, {"fileDate", "2026-10-01T00:00:00Z"}, {"gameVersions", New JArray("1.20.1", "Forge")}, {"hashes", New JArray(New JObject From {{"algo", 1}, {"value", New String("a"c, 40)}})}}
         Check(ModpackCatalogClient.ParseRelease(cf, cfJson).GameVersions.SequenceEqual({"1.20.1"}), "CF client archive binds IDs, CDN path, checksum and exact game versions", passed)
+        Dim quiltJson = DirectCast(cfJson.DeepClone(), JObject) : quiltJson("gameVersions") = New JArray("1.20.1", "Quilt")
+        Check(ModpackCompatibility.GetInstallBlockReason(ModpackCatalogClient.ParseRelease(cf, quiltJson)).Contains("Quilt"), "CF Quilt labels retain the same automatic-install compatibility guard", passed)
         cfJson("isServerPack") = True
         Check(ModpackCatalogClient.ParseRelease(cf, cfJson) Is Nothing, "CF server packs cannot be installed as client packs", passed)
         cfJson("isServerPack") = False : cfJson("downloadUrl") = "https://edge.forgecdn.net/files/1234/568/client.zip"
@@ -161,6 +164,40 @@ Friend Module ModpackCatalogChecks
         Await CurseForgeArchiveCheckAsync(root, passed)
         Return passed
     End Function
+    Private Sub CompatibilityChecks(original As ModpackRelease, passed As List(Of String))
+        Dim aliases As New Dictionary(Of String, ComponentKind?) From {{"Forge", ComponentKind.Forge}, {"NeoForge", ComponentKind.NeoForge}, {"neo-forge", ComponentKind.NeoForge}, {" FABRIC ", ComponentKind.Fabric}, {"fabric-loader", ComponentKind.Fabric}, {"minecraft", Nothing}, {"vanilla", Nothing}}
+        For Each pair In aliases
+            Dim release = original.Copy() : release.Loaders = {pair.Key}
+            ModpackCompatibility.ValidateManifest(release, "1.20.1", pair.Value)
+            Check(ModpackCompatibility.GetInstallBlockReason(release) Is Nothing, "supported catalogue loader aliases bind to the actual manifest: " & pair.Key, passed)
+        Next
+        For Each value In {"quilt", "Quilt-Loader", "liteloader", "rift"}
+            Dim release = original.Copy() : release.Loaders = {value}
+            Check(ModpackCompatibility.GetInstallBlockReason(release) IsNot Nothing, "known unsupported pack loaders are identified before acquisition: " & value, passed)
+        Next
+        For Each labels In {New String() {}, New String() {"future-loader"}, New String() {"quilt", "future-loader"}}
+            Dim release = original.Copy() : release.Loaders = labels
+            ModpackCompatibility.ValidateManifest(release, "1.20.1", ComponentKind.Fabric)
+            Check(ModpackCompatibility.GetInstallBlockReason(release) Is Nothing, "missing or unfamiliar loader labels defer to the validated archive: " & String.Join(",", labels), passed)
+        Next
+        Dim mixed = original.Copy() : mixed.Loaders = {"fabric", "quilt"}
+        ModpackCompatibility.ValidateManifest(mixed, "1.20.1", ComponentKind.Fabric)
+        Check(ModpackCompatibility.GetInstallBlockReason(mixed) Is Nothing, "multiple loader tags are alternatives and do not reject a supported Fabric pack", passed)
+        Dim rejected = False
+        Try
+            ModpackCompatibility.ValidateManifest(mixed, "1.20.1", ComponentKind.Forge)
+        Catch ex As InvalidDataException
+            rejected = True
+        End Try
+        Check(rejected, "a fully recognized catalogue label set cannot substitute a different loader", passed)
+        mixed.Loaders = {"future-loader"} : rejected = False
+        Try
+            ModpackCompatibility.ValidateManifest(mixed, "1.20.2", ComponentKind.Fabric)
+        Catch ex As InvalidDataException
+            rejected = True
+        End Try
+        Check(rejected, "unfamiliar loader labels do not bypass exact Minecraft version validation", passed)
+    End Sub
     Private Async Function CurseForgeArchiveCheckAsync(root As String, passed As List(Of String)) As Task
         Using fixture As New InstallationChecks.InstallFixture(root, "catalogue-cf")
             Dim manifest As New JObject From {{"manifestType", "minecraftModpack"}, {"manifestVersion", 1}, {"name", "CF online"}, {"version", "1"}, {"author", "fixture"}, {"minecraft", New JObject From {{"version", "1.20.1"}, {"modLoaders", New JArray()}}}, {"files", New JArray()}, {"overrides", "overrides"}}
@@ -177,6 +214,15 @@ Friend Module ModpackCatalogChecks
             For i = 0 To 199 : versions.Add(New JObject From {{"id", If(i = 0, "1.20.1", "fixture-" & i)}, {"type", "release"}, {"url", fixture.Entry.Url}, {"sha1", fixture.Entry.Sha1}, {"releaseTime", "2023-01-01T00:00:00Z"}}) : Next
             fixture.Server.Files("/mc/game/version_manifest_v2.json") = Encoding.UTF8.GetBytes(New JObject From {{"versions", versions}}.ToString())
             Dim release As New ModpackRelease With {.Platform = ModpackPlatform.CurseForge, .ProjectId = "12", .Id = "1234567", .Name = "CF online", .FileName = "client.zip", .Url = "https://edge.forgecdn.net/files/1234/567/client.zip", .Size = bytes.Length, .Sha1 = ModrinthChecks.Hash(bytes), .GameVersions = {"1.20.1"}}
+            Dim mismatch = release.Copy() : mismatch.Loaders = {"Fabric"}
+            Dim rejected = False
+            Try
+                Await ModpackArchiveInstaller.InstallAsync(mismatch, fixture.Root, "cf-mismatch", New ModrinthChecks.Policy(fixture.Server.Url), Nothing, {}, Nothing, CancellationToken.None)
+            Catch ex As InvalidDataException
+                rejected = True
+            End Try
+            Check(rejected AndAlso Not Directory.Exists(Path.Combine(fixture.Root, "versions", "cf-mismatch")) AndAlso fixture.Server.Requests.Keys.All(Function(path) path = "/files/1234/567/client.zip"), "CF loader mismatch stops before game transfers and atomic instance publication", passed)
+            release.Loaders = {"minecraft"}
             Dim result = Await ModpackArchiveInstaller.InstallAsync(release, fixture.Root, "cf-online", New ModrinthChecks.Policy(fixture.Server.Url), Nothing, {}, Nothing, CancellationToken.None)
             Check(File.ReadAllText(Path.Combine(result.InstancePath, "config", "cf.txt")) = "CF online preserved" AndAlso File.Exists(Path.Combine(result.InstancePath, "cf-online.json")), "CF ZIP acquisition enters the existing isolated importer and publishes atomically", passed)
         End Using
@@ -193,6 +239,44 @@ Friend Module ModpackCatalogChecks
             Dim release As New ModpackRelease With {.Platform = ModpackPlatform.Modrinth, .ProjectId = "pack1", .Id = "remoteVersion", .Name = "Online fixture", .FileName = "archive.mrpack", .Url = "https://cdn.modrinth.com/archive.mrpack", .Size = bytes.Length, .Sha1 = ModrinthChecks.Hash(bytes), .Sha512 = ModrinthChecks.Hash(bytes, True), .GameVersions = {"1.20.1"}}
             Dim policy As New ModrinthChecks.Policy(fixture.Server.Url), archive = Await ModpackArchiveInstaller.AcquireAsync(release, fixture.Root, policy, Nothing, CancellationToken.None)
             Check(Not Directory.Exists(Path.Combine(fixture.Root, "versions")) AndAlso File.ReadAllBytes(archive).SequenceEqual(bytes), "archive acquisition verifies both hashes without creating a final instance", passed)
+            Dim mismatched = release.Copy() : mismatched.Loaders = {"fabric"}
+            Dim loaderRejected = False, requestsBeforeLoaderCheck = fixture.Server.Requests.Values.Sum()
+            Try
+                Await ModpackArchiveInstaller.InstallAsync(mismatched, fixture.Root, "loader-mismatch", policy, Nothing, {}, Nothing, CancellationToken.None)
+            Catch ex As InvalidDataException
+                loaderRejected = True
+            End Try
+            Check(loaderRejected AndAlso Not Directory.Exists(Path.Combine(fixture.Root, "versions", "loader-mismatch")) AndAlso fixture.Server.Requests.Values.Sum() = requestsBeforeLoaderCheck, "a loader-labelled release cannot silently publish a vanilla archive or start game downloads", passed)
+            Dim unsupported = release.Copy() : unsupported.Loaders = {"quilt"}
+            Dim blockedRoot = Path.Combine(fixture.Root, "unsupported-destination"), blocked = False
+            Try
+                Await ModpackArchiveInstaller.InstallAsync(unsupported, blockedRoot, "quilt", policy, Nothing, {}, Nothing, CancellationToken.None)
+            Catch ex As NotSupportedException
+                blocked = True
+            End Try
+            Check(blocked AndAlso Not Directory.Exists(blockedRoot) AndAlso fixture.Server.Requests.Values.Sum() = requestsBeforeLoaderCheck, "known unsupported installation makes no archive request, cache directory or instance", passed)
+            Using cancelled As New CancellationTokenSource()
+                cancelled.Cancel() : blocked = False
+                Try
+                    Await ModpackArchiveInstaller.InstallAsync(unsupported, blockedRoot, "quilt", policy, Nothing, {}, Nothing, cancelled.Token)
+                Catch ex As OperationCanceledException
+                    blocked = True
+                End Try
+                Check(blocked AndAlso Not Directory.Exists(blockedRoot), "explicit cancellation keeps cancellation semantics before compatibility preflight", passed)
+            End Using
+            Dim unsupportedManifest = DirectCast(manifest.DeepClone(), JObject)
+            unsupportedManifest("dependencies")("quilt-loader") = "0.27.0"
+            Dim unsupportedBytes = File.ReadAllBytes(ModrinthChecks.Pack(root, "catalogue-unsupported", unsupportedManifest))
+            fixture.Server.Files("/unsupported.mrpack") = unsupportedBytes
+            unsupported = release.Copy() : unsupported.Id = "unsupported-manifest" : unsupported.Loaders = {"fabric"} : unsupported.Url = "https://cdn.modrinth.com/unsupported.mrpack"
+            unsupported.Size = unsupportedBytes.Length : unsupported.Sha1 = ModrinthChecks.Hash(unsupportedBytes) : unsupported.Sha512 = ModrinthChecks.Hash(unsupportedBytes, True)
+            blocked = False
+            Try
+                Await ModpackArchiveInstaller.InstallAsync(unsupported, fixture.Root, "unsupported-manifest", policy, Nothing, {}, Nothing, CancellationToken.None)
+            Catch ex As NotSupportedException
+                blocked = True
+            End Try
+            Check(blocked AndAlso Not Directory.Exists(Path.Combine(fixture.Root, "versions", "unsupported-manifest")) AndAlso fixture.Server.Requests.Keys.All(Function(path) path.EndsWith(".mrpack", StringComparison.Ordinal)), "a supported catalogue tag cannot skip an unsupported required loader inside the archive", passed)
             Dim before = fixture.Server.Requests("/archive.mrpack")
             Await Task.WhenAll(ModpackArchiveInstaller.AcquireAsync(release, fixture.Root, policy, Nothing, CancellationToken.None), ModpackArchiveInstaller.AcquireAsync(release, fixture.Root, policy, Nothing, CancellationToken.None))
             Check(fixture.Server.Requests("/archive.mrpack") = before, "simultaneous retries reuse one verified archive without new requests", passed)
@@ -238,6 +322,19 @@ Friend Module ModpackCatalogChecks
                 rejected = True
             End Try
             Check(rejected AndAlso File.ReadAllText(Path.Combine(result.InstancePath, "config", "online.txt")) = "preserved", "same-name online installs preserve the existing instance", passed)
+
+            fixture.Fabric()
+            fixture.Server.Files("/v2/versions/loader/1.20.1/0.16.9/profile/json") = fixture.Server.Files("/v2/versions/loader/1.20.1/fixture/profile/json")
+            fixture.Server.Files("/v2/versions/loader/1.20.1") = Encoding.UTF8.GetBytes(New JArray(New JObject From {{"loader", New JObject From {{"version", "0.16.9"}, {"stable", True}}}}).ToString())
+            Dim fabricManifest = DirectCast(manifest.DeepClone(), JObject) : fabricManifest("dependencies")("fabric-loader") = "0.16.9"
+            Dim fabricBytes = File.ReadAllBytes(ModrinthChecks.Pack(root, "catalogue-fabric", fabricManifest))
+            fixture.Server.Files("/fabric.mrpack") = fabricBytes
+            Dim fabric = release.Copy() : fabric.Id = "mixed-fabric" : fabric.Loaders = {"fabric", "quilt"} : fabric.Url = "https://cdn.modrinth.com/fabric.mrpack"
+            fabric.Size = fabricBytes.Length : fabric.Sha1 = ModrinthChecks.Hash(fabricBytes) : fabric.Sha512 = ModrinthChecks.Hash(fabricBytes, True)
+            Dim fabricResult = Await ModpackArchiveInstaller.InstallAsync(fabric, fixture.Root, "mixed-fabric", policy, Nothing, {}, New ModrinthChecks.Progress(Sub(value)
+                                                                                                                                                                If value.Phase = "archive" Then fabric.Loaders(0) = "forge" : fabric.GameVersions(0) = "1.19.4"
+                                                                                                                                                            End Sub), CancellationToken.None)
+            Check(File.ReadAllText(Path.Combine(fabricResult.InstancePath, "mixed-fabric.json")).Contains("fixture.FabricLoader") AndAlso fabric.Loaders(0) = "forge", "mixed Fabric/Quilt labels install the exact Fabric manifest while caller mutations cannot change its snapshot", passed)
         End Using
     End Function
 

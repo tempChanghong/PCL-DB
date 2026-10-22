@@ -2,7 +2,16 @@
 
 日期：2026-10-22（北京时间）。最新发布为 PCL-DB Beta 1.0（`1.0.0-beta.1`），当前主分支另含尚未发布的后续修复；下方保留先前版本的验证记录。
 
-## 当前源码：搜索异常恢复与安装重试
+## 当前源码：在线整合包的加载器兼容性
+
+- 从干净的 `b9e8471` 继续，参照固定 PCL 的 `InstallPackCurseForge` / `InstallPackModrinth` / `NotifyIncompatibleLoader`，并核对 Modrinth 版本接口的 `loaders` 支持列表。分别以 `artifacts/pack-compatibility-ui-before.json`、`pack-compatibility-core-before.log` 复现不支持的 Quilt 版本仍能点击，以及列表标注 Fabric 却成功发布原版清单的问题。
+- 已知且全部不受自动安装支持的加载器标签在页面保留为禁用行，说明和禁用状态 ToolTip 显示原因；安装入口及核心均复查。空标签、未知标签不提前判为不兼容，混合 Fabric/Quilt 标签仍可继续。实际依赖、固定版本和必要加载器始终来自包内清单，不跳过或以标签生成依赖。
+- 已校验归档解析后，MC 版本和可完整识别的加载器候选集合须与清单一致，早于可选文件询问、游戏/组件下载及实例发布。MRPACK 与 CurseForge ZIP 的不一致用例均在游戏传输前拒绝；预先取消保留取消语义，已知不支持的安装不发归档请求、不创建目标缓存。回环 Fabric 安装确认混合标签正常、调用方在进度回调中修改标签和游戏版本也不能改变任务副本。
+- 搜索/归档核心针对性回归 **58 项**通过（本轮新增 24 项），日志为 `artifacts/pack-compatibility-core-after.log`。查看兼容性快照时另发现首次展开的版本卡箭头仍朝下，已统一初始折叠状态；最终界面流程 **90 项**检查通过（新增 7 项），报告为 `pack-compatibility-ui-final.json`，涵盖禁用行、原因提示、直接入口防护、取消后重选和展开态箭头。
+- 无 `Package` 参数的 `build.ps1` 完整通过：核心 **2049 项**、既有界面 **754 项**、既有动画 **358 项**、搜索流程 **90 项**，固定 PCL 源码/资源比对 **17 项**通过。完整日志为 `artifacts/build-pack-compatibility.log`，另存 `ui-pack-compatibility.json`、`motion-pack-compatibility.json`；Release 构建零警告、零错误，`git diff --check` 通过。这些用例与针对性检查有重叠，不累计。
+- 已复看 `pack-search-compatibility.png` 的禁用提示、行高和展开态箭头。均为离线、回环或离屏验证，没有新增真实网络安装或桌面帧率结论；本轮只本地 Commit，不打包、发版或推送。
+
+## Beta 1.0 后续修复：搜索异常恢复与安装重试
 
 - 从干净的 `dc7ff9f` 继续，对照固定 PCL 的搜索启动、60 秒查询缓存、右页加载状态和详情安装流程。分别在 `artifacts/pack-recovery-invalid-before.json`、`pack-recovery-layout-before.json` 复现无效条件取消原查询后卡在加载状态，以及请求失败后只留下空白居中卡片。
 - 新条件验证通过后才取得请求所有权；表单的输入错误使用独立红色提示，不覆盖仍在执行的有效查询及其平台结果。相同的在途查询不重复取消/发起；缓存命中不续期，过期重新获取。查询键改为结构化内容，版本和名称中的 `|` 不再发生身份碰撞。当前请求的意外取消进入可重试错误状态，被替换/关闭的请求仍禁止提交界面。

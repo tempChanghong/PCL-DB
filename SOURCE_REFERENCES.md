@@ -1,5 +1,12 @@
 # PCL2 代码依据
 
+## Beta 1.0 后续修复：在线整合包的加载器兼容性
+
+- 继续读取固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModModpack.InstallPackCurseForge`、`InstallPackModrinth`、`NotifyIncompatibleLoader`，核对从包内清单选择固定 Forge、NeoForge、Fabric 依赖的顺序；详情行继续以 `ResourceVersion.ToListItem` 的 42 DIP 行、标题、次要说明及发布类型图标呈现。上游提供不兼容时跳过加载器的手动选项，本工具保留原有“所需加载器不能跳过”的自动安装约束。
+- [Modrinth 版本接口](https://docs.modrinth.com/api/operations/getversion/) 将 `loaders` 定义为该版本支持的加载器列表。本工具据此把多个已识别标签当作兼容候选集合，而非同时安装的依赖：Fabric/Quilt 混合标签允许继续核对 Fabric 清单；只有已识别且全部不受本工具支持的标签集合才在自动安装前阻止。缺失或出现未知标签时交给已有包解析器判断，不以目录标签生成依赖或绕过包内必需加载器。
+- 新增 `ModpackCompatibility` 供页面与安装入口共同使用；已知不支持的版本保留为灰色行，并在说明与禁用状态下的 ToolTip 中展示原因。安装核心在下载/创建缓存前复查，并在校验归档、解析清单后核对 MC 版本及已完整识别的加载器候选集合，早于可选文件询问、游戏与组件传输及原子发布。标签别名归一化仅用于兼容性核对，实际依赖版本仍完全来自包内清单。
+- 兼容性页面快照另发现首次展开的版本卡片仍显示向下箭头。建立卡片时先确定折叠态，再设置最终展开态，使懒加载内容、箭头角度与高度状态一致；继续沿用既有 `PclCard` 和动画曲线。箭头方向依据固定 PCL 的 `SwapLogoRight` / `IsSwapped` 规则，展开态为 180°。
+
 ## Beta 1.0 后续修复：搜索异常恢复与安装重试
 
 - 继续读取固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageResource.xaml.vb`（`StartNewSearch` / `ResetFilter`）、`ResourceSearcher.GetLoader`（60 秒 ReloadTimeout）和 `MyPageRight.vb`（`PageLoaderState` / `PageLoaderRestart`）。本工具先验证新条件，再替换旧请求；无效编辑留在搜索表单内，以既有 PCL 红色提示控件呈现，不取消有效查询或覆盖平台状态。重复提交相同的在途条件复用请求，缓存命中不再把有效期向后延长；结构化条件键避免名称和版本中的分隔符产生身份碰撞。这些为本工具异步实现的适配修复，没有移植上游 Loader 类。

@@ -99,7 +99,10 @@ Public NotInheritable Class ModpackArchiveInstaller
     End Function
     Public Shared Async Function InstallAsync(release As ModpackRelease, root As String, name As String, policy As SourcePolicy, pclDirectory As String, reuse As IEnumerable(Of String), progress As IProgress(Of TransferProgress), token As CancellationToken, Optional connections As Integer = 16, Optional limit As Long = 0, Optional javaPath As String = Nothing, Optional chooseOptional As Func(Of ModrinthPackage, CancellationToken, Task(Of IEnumerable(Of String))) = Nothing) As Task(Of InstallResult)
         release = release.Copy()
+        token.ThrowIfCancellationRequested()
         InstallPreflight.ValidateDestination(root, name, False)
+        Dim blocked = ModpackCompatibility.GetInstallBlockReason(release)
+        If blocked IsNot Nothing Then Throw New NotSupportedException(blocked)
         Dim archiveBytes As Long, archiveReused As Integer, archiveSplits As Integer
         Dim archiveProgress As New InlineProgress(Sub(value)
                                                      archiveBytes = Math.Max(archiveBytes, value.NetworkBytes)
@@ -116,22 +119,19 @@ Public NotInheritable Class ModpackArchiveInstaller
         If release.Platform = ModpackPlatform.Modrinth Then
             Dim package = TryCast(parsed, ModrinthPackage)
             If package Is Nothing Then Throw New InvalidDataException("下载文件与所选 Modrinth 格式不符。")
-            ValidateGame(release, package.Minecraft)
+            ModpackCompatibility.ValidateManifest(release, package.Minecraft, package.LoaderKind)
             Dim selected = If(chooseOptional Is Nothing, Enumerable.Empty(Of String)(), Await chooseOptional(package, token).ConfigureAwait(False))
             token.ThrowIfCancellationRequested()
             result = Await New ModrinthInstaller(policy, pclDirectory).InstallAsync(package, root, name, reuse, selected, progress, token, connections, limit, javaPath).ConfigureAwait(False)
         Else
             Dim package = TryCast(parsed, CurseForgePackage)
             If package Is Nothing Then Throw New InvalidDataException("下载文件与所选 CurseForge 格式不符。")
-            ValidateGame(release, package.Minecraft)
+            ModpackCompatibility.ValidateManifest(release, package.Minecraft, package.LoaderKind)
             result = Await New CurseForgeInstaller(policy, pclDirectory).InstallAsync(package, root, name, reuse, package.References.Where(Function(file) Not file.Required).Select(Function(file) file.FileId), progress, token, connections, limit, javaPath).ConfigureAwait(False)
         End If
         result.NetworkBytes += archiveBytes : result.Reused += archiveReused : result.DynamicSplits += archiveSplits
         Return result
     End Function
-    Private Shared Sub ValidateGame(release As ModpackRelease, game As String)
-        If release.GameVersions.Length > 0 AndAlso Not release.GameVersions.Contains(game, StringComparer.OrdinalIgnoreCase) Then Throw New InvalidDataException("整合包清单与所选版本声明的 Minecraft 版本不一致。")
-    End Sub
     Private Class InlineProgress
         Implements IProgress(Of TransferProgress)
         Private ReadOnly _report As Action(Of TransferProgress)

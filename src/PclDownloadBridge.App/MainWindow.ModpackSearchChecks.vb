@@ -259,6 +259,7 @@ Partial Public Class MainWindow
         check(DirectCast(PackProjectRows.Children(0), PclResourceItem).ToolTip.ToString().Contains("new"), "a late older query cannot overwrite the current search results")
 
         Await VerifyPackRecoveryAsync(directory, host, layout, check)
+        Await VerifyPackCompatibilityUiAsync(directory, host, layout, check)
 
         ChangePackMode(PackBrowserMode.Search) : layout() : _motionPreview = True : _categoryMotion.PauseForChecks = True
         ChangePackMode(PackBrowserMode.Detail) : layout()
