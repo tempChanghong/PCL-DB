@@ -2,9 +2,15 @@ Imports System.IO
 Imports System.Text
 Imports Newtonsoft.Json.Linq
 
+Public Enum InstanceIsolationMode
+    FollowPcl
+    Enabled
+    Disabled
+End Enum
+
 ' Read-only adaptation of pinned PCL McInstance.PathIndie. Existing preferences
-' are never initialized or migrated by a repair. New remapped instances freeze
-' their own resolved value only when their private payload is published.
+' are never initialized or migrated by a repair. New components, remapped assets
+' or explicit choices freeze their value with the private instance payload.
 Friend NotInheritable Class PclIsolationPlan
     Friend ReadOnly Isolated As Boolean
     Private ReadOnly _inputs As New List(Of Input)
@@ -16,11 +22,11 @@ Friend NotInheritable Class PclIsolationPlan
         Friend Relative As String
         Friend Bytes As Byte()
     End Class
-    Private Sub New(root As String, name As String, entry As VersionEntry, metadata As JObject, pclDirectory As String, repair As Boolean, withComponents As Boolean)
+    Private Sub New(root As String, name As String, entry As VersionEntry, metadata As JObject, pclDirectory As String, repair As Boolean, withComponents As Boolean, mode As InstanceIsolationMode, modable As Boolean)
         _root = root : _name = name
-        If Not repair AndAlso withComponents Then
-            ' Existing component installations explicitly use isolated mods.
-            Isolated = True : Return
+        If Not [Enum].IsDefined(GetType(InstanceIsolationMode), mode) Then Throw New ArgumentOutOfRangeException(NameOf(mode))
+        If Not repair AndAlso mode <> InstanceIsolationMode.FollowPcl Then
+            Isolated = mode = InstanceIsolationMode.Enabled : Return
         End If
         If repair Then
             Dim settings = ReadInput(root, "versions/" & name & "/PCL/Setup.ini")
@@ -49,17 +55,20 @@ Friend NotInheritable Class PclIsolationPlan
             If value IsNot Nothing AndAlso Not Integer.TryParse(value, strategy) Then Throw New InvalidDataException("PCL 的默认版本隔离设置无效，请先在 PCL 中确认。")
         End If
         Dim kind = If(CStr(metadata("type")), entry.Kind)
-        Dim nonRelease = entry.IsSupplemental OrElse Not String.Equals(kind, "release", StringComparison.OrdinalIgnoreCase)
+        ' PCL Load() assigns a component state after snapshot/fool detection.
+        ' OptiFine is a component state, but is not a ModLoaders flag (Modable).
+        Dim nonRelease = entry.IsSupplemental OrElse kind = "old_beta" OrElse kind = "old_alpha" OrElse
+            (Not withComponents AndAlso Not String.Equals(kind, "release", StringComparison.OrdinalIgnoreCase))
         Select Case strategy
             Case 0 : Isolated = False
-            Case 1 : Isolated = withComponents
+            Case 1 : Isolated = modable
             Case 2 : Isolated = nonRelease
-            Case 3 : Isolated = nonRelease OrElse withComponents
+            Case 3 : Isolated = nonRelease OrElse modable
             Case Else : Isolated = True
         End Select
     End Sub
-    Friend Shared Function Resolve(root As String, name As String, entry As VersionEntry, metadata As JObject, pclDirectory As String, repair As Boolean, withComponents As Boolean) As PclIsolationPlan
-        Return New PclIsolationPlan(root, name, entry, metadata, pclDirectory, repair, withComponents)
+    Friend Shared Function Resolve(root As String, name As String, entry As VersionEntry, metadata As JObject, pclDirectory As String, repair As Boolean, withComponents As Boolean, Optional mode As InstanceIsolationMode = InstanceIsolationMode.FollowPcl, Optional modable As Boolean = False) As PclIsolationPlan
+        Return New PclIsolationPlan(root, name, entry, metadata, pclDirectory, repair, withComponents, mode, modable)
     End Function
     Friend Sub WriteNewSettings(stage As String)
         Dim target = SafeFiles.UnderRoot(stage, "PCL/Setup.ini")

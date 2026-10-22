@@ -1,5 +1,11 @@
 {
   "profiles": {
+    "Isolation Options": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression install-mode-all",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
     "Isolation Resources": {
       "commandName": "Project",
       "commandLineArgs": "--regression install-isolation-all",

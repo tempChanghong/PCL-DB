@@ -18,7 +18,7 @@ Friend Module IsolationResourceChecks
         If Not value Then Throw New InvalidOperationException(label)
         passed.Add(label)
     End Sub
-    Private Sub Configure(fixture As InstallationChecks.InstallFixture, Optional objects As JObject = Nothing, Optional mapped As Boolean = True)
+    Friend Sub Configure(fixture As InstallationChecks.InstallFixture, Optional objects As JObject = Nothing, Optional mapped As Boolean = True)
         If objects Is Nothing Then objects = New JObject From {{Name, New JObject From {{"hash", Hash(Content)}, {"size", Content.Length}}}}
         Dim index As New JObject From {{"virtual", mapped}, {"map_to_resources", mapped}, {"objects", objects}}
         Dim bytes = Encoding.UTF8.GetBytes(index.ToString()), metadata = JObject.Parse(Encoding.UTF8.GetString(fixture.Server.Files("/version")))
@@ -47,7 +47,7 @@ Friend Module IsolationResourceChecks
             _action(value)
         End Sub
     End Class
-    Private Class Session
+    Friend Class Session
         Implements IDisposable
         Friend ReadOnly Fixture As InstallationChecks.InstallFixture
         Friend ReadOnly PclBase As String
@@ -57,8 +57,8 @@ Friend Module IsolationResourceChecks
         Friend ReadOnly Jar As String
         Friend ReadOnly Bad As Byte()
         Friend ReadOnly Root As String
-        Friend Sub New(testRoot As String, label As String)
-            Fixture = New InstallationChecks.InstallFixture(testRoot, "isolation-" & label)
+        Friend Sub New(testRoot As String, label As String, Optional mc As String = "1.20.1")
+            Fixture = New InstallationChecks.InstallFixture(testRoot, "isolation-" & label, mc)
             Root = Fixture.Root : PclBase = Root & "-pcl"
             GlobalPath = Path.Combine(PclBase, "PCL", "Setup.ini")
             Ini = Path.Combine(Root, "versions", "legacy", "PCL", "Setup.ini")
@@ -95,8 +95,8 @@ Friend Module IsolationResourceChecks
         Friend Sub Put(path As String, bytes As Byte())
             Directory.CreateDirectory(IO.Path.GetDirectoryName(path)) : File.WriteAllBytes(path, bytes)
         End Sub
-        Friend Function StartAsync(Optional repair As Boolean = False, Optional progress As IProgress(Of TransferProgress) = Nothing, Optional token As CancellationToken = Nothing, Optional components As ComponentSelection = Nothing) As Task(Of InstallResult)
-            Return New MinecraftInstaller(New Policy(Fixture.Server.Url), PclBase).InstallAsync(Fixture.Entry, Root, "legacy", {}, progress, token, repair, 4, components:=components)
+        Friend Function StartAsync(Optional repair As Boolean = False, Optional progress As IProgress(Of TransferProgress) = Nothing, Optional token As CancellationToken = Nothing, Optional components As ComponentSelection = Nothing, Optional isolation As InstanceIsolationMode = InstanceIsolationMode.FollowPcl) As Task(Of InstallResult)
+            Return New MinecraftInstaller(New Policy(Fixture.Server.Url), PclBase).InstallAsync(Fixture.Entry, Root, "legacy", {}, progress, token, repair, 4, components:=components, isolationMode:=isolation)
         End Function
         Friend Async Function SeedAsync() As Task
             SetGlobal("0") : Await StartAsync()
@@ -328,7 +328,7 @@ Friend Module IsolationResourceChecks
                 If value.Stage = "组件安装完成" Then ready.TrySetResult(True)
             End Sub)
             Using linked = CancellationTokenSource.CreateLinkedTokenSource(cancel.Token, safety.Token)
-                Dim work = session.StartAsync(progress:=progress, token:=linked.Token, components:=selection)
+                Dim work = session.StartAsync(progress:=progress, token:=linked.Token, components:=selection, isolation:=InstanceIsolationMode.Enabled)
                 Try
                     Dim winner = Await Task.WhenAny(ready.Task, work, Task.Delay(10000, safety.Token))
                     Check(winner Is ready.Task AndAlso Not work.IsCompleted AndAlso Not Directory.Exists(Path.GetDirectoryName(session.Json)) AndAlso Not File.Exists(session.Resource(False)), "component branch finishes while a shared object is blocked and no isolated instance is published", passed)
@@ -344,7 +344,7 @@ Friend Module IsolationResourceChecks
                     cancel.Cancel() : gate.Set()
                 End Try
             End Using
-            Dim result = Await session.StartAsync(components:=selection, token:=safety.Token)
+            Dim result = Await session.StartAsync(components:=selection, token:=safety.Token, isolation:=InstanceIsolationMode.Enabled)
             Check(result.NetworkBytes = Content.Length AndAlso File.ReadAllBytes(session.Resource(True)).SequenceEqual(Content) AndAlso Not File.Exists(session.Resource(False)) AndAlso PclFolders.ReadIniValue(session.Ini, "VersionArgumentIndieV2") = "True", "retry preserves existing component isolation policy and publishes staged resources with the instance", passed)
         End Using
     End Function
@@ -471,7 +471,7 @@ Friend Module IsolationResourceChecks
                 Await session.SeedAsync() : session.SetIni("VersionArgumentIndieV2:True") : session.Put(session.Resource(True), session.Bad)
                 Dim original = DirectCast(session.Fixture.Server.Files("/client").Clone(), Byte()) : original(0) = original(0) Xor CByte(1)
                 File.WriteAllBytes(session.Jar, original)
-                Dim iniBytes = File.ReadAllBytes(session.Ini), jsonBytes = File.ReadAllBytes(session.Json), armed = False, count As Integer = 0
+                Dim iniBytes = File.ReadAllBytes(session.Ini), jsonBytes = File.ReadAllBytes(session.Json), armed = False
                 Dim aliases = {"SHA1", "System.Security.Cryptography.SHA1"}, previous As New Dictionary(Of String, Type)
                 For Each aliasName In aliases
                     Using algorithm = DirectCast(CryptoConfig.CreateFromName(aliasName), SHA1)
@@ -482,7 +482,7 @@ Friend Module IsolationResourceChecks
                     If value.Phase = "commit" Then armed = True
                 End Sub)
                 CopyCancellationSha1.OnHash = Sub()
-                    If armed AndAlso Interlocked.Increment(count) = 2 AndAlso mode = "cancel-after-resource" Then cancel.Cancel()
+                    If armed AndAlso mode = "cancel-after-resource" AndAlso File.ReadAllBytes(session.Resource(True)).SequenceEqual(Content) Then cancel.Cancel()
                 End Sub
                 Dim failure As Exception = Nothing
                 Try

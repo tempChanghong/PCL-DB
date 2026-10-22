@@ -73,6 +73,7 @@ Partial Public Class MainWindow
     Private Async Function VerifyNameKeyboardAsync(check As Action(Of Boolean, String)) As Task
         Dim originalFolders = _folders.ToList(), originalFolder = _selectedFolder
         Dim originalRepair = RepairBox.IsChecked
+        Dim originalIsolation = IsolationBox.SelectedIndex
         Dim fixtureRoot = Path.Combine(Path.GetTempPath(), "PclDownloadBridge-NameUi-" & Guid.NewGuid().ToString("N"), ".minecraft")
         Dim existing = Path.Combine(fixtureRoot, "versions", "existing")
         Directory.CreateDirectory(existing)
@@ -113,22 +114,26 @@ Partial Public Class MainWindow
             InstanceName.Text = "blocked"
             check(Not InstallButton.IsEnabled AndAlso NameHint.Text.Contains("同名文件"), "a same-name file is shown as an occupied installation target")
 
-            Dim requests = 0, submittedName As String = Nothing, submittedRoot As String = Nothing
+            Dim requests = 0, submittedName As String = Nothing, submittedRoot As String = Nothing, submittedIsolation As InstanceIsolationMode
             Dim gate As New TaskCompletionSource(Of InstallResult)(TaskCreationOptions.RunContinuationsAsynchronously)
-            _installRunner = Function(entry, root, name, selection, token)
+            _installRunner = Function(entry, root, name, selection, isolation, token)
                 requests += 1 : submittedName = name : submittedRoot = root
+                submittedIsolation = isolation
                 Return gate.Task
             End Function
             InstanceName.Text = "bad/name"
             PressNameEnter()
             check(requests = 0 AndAlso Not _busy AndAlso StatusText.Text = NameHint.Text, "Enter on an invalid name reports the same validation reason without starting installation")
             InstanceName.Text = "键盘安装样本"
+            IsolationBox.SelectedIndex = 1
             ShowSettings(Nothing, Nothing)
             PressNameEnter()
             check(requests = 0, "a hidden install name cannot submit from the settings page")
             ShowDownload(Nothing, Nothing)
             PressNameEnter()
             check(requests = 1 AndAlso _busy AndAlso submittedName = "键盘安装样本" AndAlso submittedRoot = fixtureRoot AndAlso DownloadProgress.Visibility = Visibility.Visible, "Enter submits the actual selected name and folder through the shared install workflow")
+            IsolationBox.SelectedIndex = 2
+            check(submittedIsolation = InstanceIsolationMode.Enabled AndAlso Not IsolationBox.IsEnabled, "actual install submission captures isolation before later UI changes")
             PressNameEnter()
             check(requests = 1, "repeated Enter during installation cannot submit a second request")
             gate.SetResult(New InstallResult With {.InstancePath = Path.Combine(fixtureRoot, "versions", submittedName), .FileCount = 3})
@@ -145,6 +150,7 @@ Partial Public Class MainWindow
             FolderList.ItemsSource = Nothing : FolderList.ItemsSource = _folders
             FolderList.SelectedItem = originalFolder
             RepairBox.IsChecked = originalRepair
+            IsolationBox.SelectedIndex = originalIsolation
             SelectVersion(_versions(0))
         End Try
     End Function

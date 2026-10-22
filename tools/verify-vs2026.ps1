@@ -64,6 +64,7 @@ try {
     if ($Full) {
         $runs += Invoke-OfflineProfile $testProject 'Offline All'
     } else {
+        $runs += Invoke-OfflineProfile $testProject 'Isolation Options'
         $runs += Invoke-OfflineProfile $testProject 'Isolation Resources'
         $runs += Invoke-OfflineProfile $testProject 'Repair Metadata'
         $runs += Invoke-OfflineProfile $testProject 'Cache Boundaries'
@@ -82,7 +83,7 @@ try {
     $runs += Invoke-OfflineProfile $appProject 'Preview Components'
     $uiPath = Join-Path $properties[$appProject].TargetDir 'vs-ui-checks.json'
     $ui = Get-Content -LiteralPath $uiPath -Raw | ConvertFrom-Json
-    if (!$ui.Succeeded -or $ui.Scope -ne 'all' -or $ui.Count -ne 658 -or $ui.Count -ne $ui.Passed.Count) { throw 'The UI profile did not produce a complete report.' }
+    if (!$ui.Succeeded -or $ui.Scope -ne 'all' -or $ui.Count -ne 668 -or $ui.Count -ne $ui.Passed.Count) { throw 'The UI profile did not produce a complete report.' }
     $appearancePath = Join-Path $properties[$appProject].TargetDir 'vs-appearance-checks.json'
     $appearance = Get-Content -LiteralPath $appearancePath -Raw | ConvertFrom-Json
     if (!$appearance.Succeeded -or $appearance.Scope -ne 'appearance' -or $appearance.Count -ne 129 -or $appearance.Count -ne $appearance.Passed.Count) { throw 'The appearance profile did not produce a complete report.' }

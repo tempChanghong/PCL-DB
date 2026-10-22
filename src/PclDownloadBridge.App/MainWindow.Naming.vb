@@ -8,7 +8,7 @@ Imports PclDownloadBridge.Core
 Partial Public Class MainWindow
     Private _nameEdited As Boolean
     Private _settingName As Boolean
-    Private _installRunner As Func(Of VersionEntry, String, String, ComponentSelection, CancellationToken, Task(Of InstallResult))
+    Private _installRunner As Func(Of VersionEntry, String, String, ComponentSelection, InstanceIsolationMode, CancellationToken, Task(Of InstallResult))
 
     Private Sub SetAutomaticInstanceName(value As String)
         _settingName = True

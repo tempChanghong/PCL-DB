@@ -82,6 +82,16 @@
                         </StackPanel>
                       </p:PclCard.HeaderContent>
                     </p:PclCard>
+                    <p:PclCard Title="版本隔离" Margin="0,0,0,12">
+                      <StackPanel>
+                        <p:PclComboBox x:Name="IsolationBox" SelectedIndex="0" Height="28">
+                          <p:PclComboBoxItem Content="跟随 PCL" />
+                          <p:PclComboBoxItem Content="开启隔离" />
+                          <p:PclComboBoxItem Content="关闭隔离" />
+                        </p:PclComboBox>
+                        <TextBlock x:Name="IsolationHint" Text="跟随所选 PCL 的默认隔离策略；未找到设置时使用 PCL 默认值。" TextWrapping="Wrap" FontSize="12" Opacity="0.6" Margin="0,8,0,0" />
+                      </StackPanel>
+                    </p:PclCard>
                     <StackPanel x:Name="ComponentCards" />
                     <TextBlock x:Name="ComponentHint" FontSize="12" TextWrapping="Wrap" Opacity="0.65" Margin="0,3,0,12" />
                     <p:PclCard Title="校验与补全" Collapsible="True" Collapsed="True" Margin="0,0,0,12">

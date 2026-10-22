@@ -12,22 +12,24 @@ Friend NotInheritable Class LegacyResourcePublication
     Private ReadOnly _files As List(Of DownloadFile)
     Private ReadOnly _isolated As Boolean
     Private ReadOnly _repair As Boolean
+    Private ReadOnly _description As String
     Private ReadOnly _created As New List(Of DownloadFile)
     Private _completed As Boolean
-    Friend Sub New(root As String, stage As String, name As String, files As List(Of DownloadFile), isolated As Boolean, repair As Boolean)
+    Friend Sub New(root As String, stage As String, name As String, files As List(Of DownloadFile), isolated As Boolean, repair As Boolean, Optional description As String = "旧资源")
         _root = root : _stage = stage : _name = name : _files = files : _isolated = isolated : _repair = repair
+        _description = description
     End Sub
-    Friend Shared Sub Validate(root As String, files As IEnumerable(Of DownloadFile), repair As Boolean)
+    Friend Shared Sub Validate(root As String, files As IEnumerable(Of DownloadFile), repair As Boolean, Optional description As String = "旧资源")
         Dim targets As New HashSet(Of String)(files.Select(Function(item) SafeFiles.UnderRoot(root, item.RelativePath)), StringComparer.OrdinalIgnoreCase)
         For Each item In files
             Dim target = SafeFiles.UnderRoot(root, item.RelativePath)
-            If Directory.Exists(target) Then Throw New IOException("目录占用了旧资源文件：" & item.RelativePath)
+            If Directory.Exists(target) Then Throw New IOException("目录占用了" & description & "文件：" & item.RelativePath)
             Dim parent = Path.GetDirectoryName(target)
             While parent IsNot Nothing
-                If targets.Contains(parent) OrElse File.Exists(parent) Then Throw New InvalidDataException("旧资源文件与目录路径冲突：" & item.RelativePath)
+                If targets.Contains(parent) OrElse File.Exists(parent) Then Throw New InvalidDataException(description & "文件与目录路径冲突：" & item.RelativePath)
                 parent = Path.GetDirectoryName(parent)
             End While
-            If Not repair AndAlso File.Exists(target) AndAlso Not SafeFiles.Matches(target, item) Then Throw New IOException("已有旧资源内容不同，不会覆盖共享文件：" & item.RelativePath)
+            If Not repair AndAlso File.Exists(target) AndAlso Not SafeFiles.Matches(target, item) Then Throw New IOException("已有" & description & "内容不同，不会覆盖共享文件：" & item.RelativePath)
         Next
     End Sub
     Friend Shared Sub ValidateLayout(root As String, files As IEnumerable(Of DownloadFile))
@@ -46,7 +48,7 @@ Friend NotInheritable Class LegacyResourcePublication
     End Function
     Friend Sub Publish(token As CancellationToken, Optional guard As PclIsolationPlan.RepairGuard = Nothing)
         If _isolated AndAlso Not _repair Then Return ' Directory.Move publishes the whole payload.
-        Validate(_root, _files, _repair)
+        Validate(_root, _files, _repair, _description)
         Dim staged = StagedFiles()
         For i = 0 To _files.Count - 1
             token.ThrowIfCancellationRequested() : guard?.Verify()
@@ -57,9 +59,11 @@ Friend NotInheritable Class LegacyResourcePublication
                 Continue For
             End If
             token.ThrowIfCancellationRequested() : guard?.Verify()
-            If Not _repair AndAlso File.Exists(target) Then Throw New IOException("旧资源目标在安装期间发生变化：" & item.RelativePath)
+            If Not _repair AndAlso File.Exists(target) Then Throw New IOException(_description & "目标在安装期间发生变化：" & item.RelativePath)
             Directory.CreateDirectory(Path.GetDirectoryName(target))
             Dim source = SafeFiles.UnderRoot(_stage, staged(i).RelativePath)
+            If Not SafeFiles.Matches(source, item) Then Throw New InvalidDataException("待发布的" & _description & "文件校验失败：" & item.RelativePath)
+            token.ThrowIfCancellationRequested() : guard?.Verify()
             If _repair Then
                 SafeFiles.CommitFile(source, target)
             Else
@@ -79,7 +83,7 @@ Friend NotInheritable Class LegacyResourcePublication
                 Dim target = SafeFiles.UnderRoot(_root, item.RelativePath)
                 If SafeFiles.Matches(target, item) Then DeleteOwnedFile(target)
             Catch ex As Exception When TypeOf ex Is IOException OrElse TypeOf ex Is UnauthorizedAccessException
-                InstallLog.Append(_root, "未完成实例的共享旧资源回收失败：" & item.RelativePath & " | " & ex.Message)
+                InstallLog.Append(_root, "未完成实例的共享" & _description & "回收失败：" & item.RelativePath & " | " & ex.Message)
             End Try
         Next
     End Sub

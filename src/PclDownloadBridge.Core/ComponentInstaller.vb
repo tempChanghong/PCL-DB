@@ -31,8 +31,9 @@ Public Class ComponentInstaller
         _connections = connections : _limit = limit : _budget = budget
     End Sub
 
-    Public Async Function ApplyAsync(metadata As JObject, mc As String, stage As String, name As String, token As CancellationToken) As Task(Of JObject)
+    Public Async Function ApplyAsync(metadata As JObject, mc As String, stage As String, name As String, token As CancellationToken, Optional isolated As Boolean = True) As Task(Of JObject)
         _selection.Validate(mc)
+        ModFiles(_selection, mc) ' Reject ambiguous or escaping add-on names before downloading.
         Dim workRelative = ".vanilla-downloader/components/" & Guid.NewGuid().ToString("N")
         Dim work = SafeFiles.UnderRoot(_root, workRelative)
         Directory.CreateDirectory(work)
@@ -134,16 +135,35 @@ Public Class ComponentInstaller
                     If File.Exists(temp) Then File.Delete(temp)
                 End Try
             Next
-            Directory.CreateDirectory(Path.Combine(stage, "mods"))
+            If IsModable(_selection) Then Directory.CreateDirectory(Path.Combine(stage, "mods"))
             Directory.CreateDirectory(Path.Combine(stage, "resourcepacks"))
             Directory.CreateDirectory(Path.Combine(stage, "PCL"))
-            File.WriteAllText(Path.Combine(stage, "PCL", "Setup.ini"), "VersionArgumentIndie:1" & vbCrLf & "VersionArgumentIndieV2:True" & vbCrLf, New UTF8Encoding(False))
+            File.WriteAllText(Path.Combine(stage, "PCL", "Setup.ini"), "VersionArgumentIndie:" & If(isolated, "1", "2") & vbCrLf & "VersionArgumentIndieV2:" & isolated.ToString() & vbCrLf, New UTF8Encoding(False))
             Dim record As New JObject From {{"minecraft", mc}, {"components", JArray.FromObject(_selection.Entries.Select(Function(v) New With {.kind = ComponentCatalog.Label(v.Key), .version = v.Value.Version}))}}
             File.WriteAllText(Path.Combine(stage, "installation.json"), record.ToString(), New UTF8Encoding(False))
             Return merged
         Finally
             InstallCleanup.DeleteOwnedDirectory(_root, workRelative)
         End Try
+    End Function
+
+    Friend Shared Function IsModable(selection As ComponentSelection) As Boolean
+        Return selection IsNot Nothing AndAlso {ComponentKind.Forge, ComponentKind.NeoForge, ComponentKind.Fabric, ComponentKind.LiteLoader}.Any(Function(kind) selection.Has(kind))
+    End Function
+    Friend Shared Function ModFiles(selection As ComponentSelection, mc As String) As List(Of DownloadFile)
+        Dim result As New List(Of DownloadFile)
+        If selection Is Nothing Then Return result
+        For Each kind In {ComponentKind.OptiFine, ComponentKind.FabricApi, ComponentKind.OptiFabric}
+            Dim entry = selection.Item(kind)
+            If entry Is Nothing Then Continue For
+            If kind = ComponentKind.OptiFine AndAlso Not (selection.Has(ComponentKind.Forge) OrElse selection.Has(ComponentKind.Fabric) OrElse selection.Has(ComponentKind.LiteLoader)) Then Continue For
+            SafeFiles.ValidateInstanceName(entry.FileName)
+            Dim relative = "mods/" & If(kind = ComponentKind.OptiFine AndAlso selection.Has(ComponentKind.LiteLoader), mc & "/", "") & entry.FileName
+            MinecraftInstaller.ValidateResourceName(relative, "组件 Mods")
+            If result.Any(Function(item) String.Equals(item.RelativePath, relative, StringComparison.OrdinalIgnoreCase)) Then Throw New InvalidDataException("组件 Mods 文件名冲突：" & relative)
+            result.Add(New DownloadFile With {.RelativePath = relative, .Url = entry.Url, .Sha1 = entry.Sha1, .Md5 = entry.Md5, .Size = entry.Size, .Category = "component"})
+        Next
+        Return result
     End Function
 
     Private Async Function InstallForgelikeAsync(entry As ComponentEntry, metadata As JObject, work As String, clientJar As String, token As CancellationToken) As Task(Of JObject)

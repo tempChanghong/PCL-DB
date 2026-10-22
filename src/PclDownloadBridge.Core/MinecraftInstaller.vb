@@ -20,8 +20,9 @@ Public Class MinecraftInstaller
             .Released = DateTimeOffset.Parse(CStr(v("releaseTime")), Globalization.CultureInfo.InvariantCulture)}).ToList()
     End Function
 
-    Public Async Function InstallAsync(entry As VersionEntry, root As String, instanceName As String, reuseRoots As IEnumerable(Of String), progress As IProgress(Of TransferProgress), token As CancellationToken, Optional repairExisting As Boolean = False, Optional connections As Integer = 16, Optional limit As Long = 0, Optional components As ComponentSelection = Nothing) As Task(Of InstallResult)
+    Public Async Function InstallAsync(entry As VersionEntry, root As String, instanceName As String, reuseRoots As IEnumerable(Of String), progress As IProgress(Of TransferProgress), token As CancellationToken, Optional repairExisting As Boolean = False, Optional connections As Integer = 16, Optional limit As Long = 0, Optional components As ComponentSelection = Nothing, Optional isolationMode As InstanceIsolationMode = InstanceIsolationMode.FollowPcl) As Task(Of InstallResult)
         token.ThrowIfCancellationRequested()
+        If Not [Enum].IsDefined(GetType(InstanceIsolationMode), isolationMode) Then Throw New ArgumentOutOfRangeException(NameOf(isolationMode))
         InstallPreflight.ValidateDestination(root, instanceName, repairExisting)
         If components IsNot Nothing Then
             components = components.Copy()
@@ -77,9 +78,11 @@ Public Class MinecraftInstaller
             Dim resourceFiles = BuildAssetsPlan(assets)
             Dim mappedFiles = resourceFiles.Where(Function(item) item.RelativePath.StartsWith("resources/", StringComparison.Ordinal)).ToList()
             Dim withComponents = components IsNot Nothing AndAlso components.Entries.Count > 0
+            Dim modable = ComponentInstaller.IsModable(components)
+            Dim componentMods = ComponentInstaller.ModFiles(components, entry.Id)
             Dim isolation As PclIsolationPlan = Nothing
-            If mappedFiles.Count > 0 Then
-                isolation = PclIsolationPlan.Resolve(root, instanceName, entry, metadata, _pclDirectory, repairExisting, withComponents)
+            If mappedFiles.Count > 0 OrElse (Not repairExisting AndAlso (withComponents OrElse isolationMode <> InstanceIsolationMode.FollowPcl)) Then
+                isolation = PclIsolationPlan.Resolve(root, instanceName, entry, metadata, _pclDirectory, repairExisting, withComponents, isolationMode, modable)
                 If isolation.Isolated Then
                     For Each item In mappedFiles
                         item.RelativePath = "versions/" & instanceName & "/" & item.RelativePath
@@ -98,12 +101,19 @@ Public Class MinecraftInstaller
                 LegacyResourcePublication.ValidateLayout(root, plan)
                 LegacyResourcePublication.Validate(root, mappedFiles, repairExisting)
             End If
+            Dim sharedComponents = withComponents AndAlso Not isolation.Isolated
+            If sharedComponents Then
+                SharedModsPublication.Preflight(root, componentMods, modable)
+                LegacyResourcePublication.ValidateLayout(root, plan.Concat(componentMods))
+            End If
+            Dim sharedMods As New List(Of DownloadFile)
             Dim stageRelative = ".vanilla-downloader/staging/" & Guid.NewGuid().ToString("N") & "/payload"
             Dim stage = SafeFiles.UnderRoot(root, stageRelative)
             Directory.CreateDirectory(stage)
             Try
-              Using publication As New LegacyResourcePublication(root, stage, instanceName, mappedFiles, isolation IsNot Nothing AndAlso isolation.Isolated, repairExisting)
-                Dim newSettings = mappedFiles.Count > 0 AndAlso Not repairExisting AndAlso Not withComponents
+              Using publication As New LegacyResourcePublication(root, stage, instanceName, mappedFiles, isolation IsNot Nothing AndAlso isolation.Isolated, repairExisting),
+                    modsPublication As New LegacyResourcePublication(root, stage, instanceName, sharedMods, False, False, "Mods")
+                Dim newSettings = isolation IsNot Nothing AndAlso Not repairExisting
                 If newSettings Then isolation.WriteNewSettings(stage)
                 ' Client JAR stays outside versions/ until the entire install succeeds.
                 Dim client = plan.Single(Function(f) f.RelativePath = "versions/" & instanceName & "/" & instanceName & ".jar")
@@ -130,7 +140,7 @@ Public Class MinecraftInstaller
                             If components IsNot Nothing AndAlso components.Entries.Count > 0 Then
                                 extension = New ComponentInstaller(_policy, components, root, reuseRoots, reporting.Branch("components"), connections, limit, budget)
                                 Try
-                                    metadata = Await extension.ApplyAsync(metadata, entry.Id, stage, instanceName, linked.Token).ConfigureAwait(False)
+                                    metadata = Await extension.ApplyAsync(metadata, entry.Id, stage, instanceName, linked.Token, isolation.Isolated).ConfigureAwait(False)
                                 Catch ex As Exception When Not TypeOf ex Is OperationCanceledException
                                     reporting.Failed("components")
                                     Throw
@@ -161,6 +171,7 @@ Public Class MinecraftInstaller
                         End If
                     End Using
                 End Using
+                If sharedComponents Then sharedMods.AddRange(SharedModsPublication.CheckedFiles(stage, componentMods, token))
                 token.ThrowIfCancellationRequested()
                 Report(progress, "完成安装", "写入版本信息")
                 token.ThrowIfCancellationRequested()
@@ -193,10 +204,13 @@ Public Class MinecraftInstaller
                     Directory.CreateDirectory(Path.GetDirectoryName(instancePath))
                     token.ThrowIfCancellationRequested()
                     publication.Publish(token)
+                    modsPublication.Publish(token)
+                    If sharedComponents Then SharedModsPublication.FinishFolders(root, stage, modable)
                     token.ThrowIfCancellationRequested()
                     Directory.Move(stage, instancePath)
                 End If
                 publication.Complete()
+                modsPublication.Complete()
                 ' After the filesystem commit, return its real result even if cancellation
                 ' arrives during optional cache cleanup; never undo a published instance.
                 VerifiedComponentCache.ReleasePublishedClient(root, client)
@@ -276,7 +290,7 @@ Public Class MinecraftInstaller
         Return DownloadPlan.Merge(result)
     End Function
 
-    Private Shared Sub ValidateResourceName(name As String, Optional description As String = "旧资源映射")
+    Friend Shared Sub ValidateResourceName(name As String, Optional description As String = "旧资源映射")
         If name Is Nothing Then Throw New InvalidDataException(description & "名称为空。")
         For Each part In name.Replace("\"c, "/"c).Split("/"c)
             If String.IsNullOrEmpty(part) OrElse part = "." OrElse part = ".." OrElse part.Length > 255 OrElse part.EndsWith(".", StringComparison.Ordinal) OrElse part.EndsWith(" ", StringComparison.Ordinal) OrElse

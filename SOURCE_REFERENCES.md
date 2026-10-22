@@ -1,5 +1,13 @@
 # PCL2 代码依据
 
+## Beta 1.0 后续开发：安装页三态隔离与共享 Mods
+
+- 继续以固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 为准。`ModMinecraft.vb` 约 240–277 行的 PathIndie、316–321 行的 Modable 和 633–664 行的状态分类共同决定隔离：显式新安装选择优先，跟随模式读取 PCL 全局策略；已有实例补全始终保留原有设置和优先级。组件状态会覆盖快照/愚人节状态，不能仅用原版 type 判断非正式版。另核对固定 `PCLCS/Constants.cs` 的 ModLoaders 和 `PCLCS/Minecraft/McVersion.cs`：OptiFine 独立于 ModLoader flags，单独安装不算 Modable。未读写运行中 PCL 的设置缓存或注册表。
+- `ModDownloadLib.vb` 约 1835–1873 行先合并版本、确定 PathIndie，再复制 Mods、按 Modable 创建 Mods 和创建资源包目录；OptiFineAsMod 与 LiteLoader 的 `mods/<mc>/` 子目录保持。共享 libraries、assets 的存储与跨阶段并行不变。原先组件强制开启隔离的实现由此替换；前一阶段记录保留在下节。
+- `PageDownloadInstall.xaml.vb` 约 1161–1173 行提醒关闭隔离会共用 Mods。本工具在三态控件下显示兼容性提示，补全模式禁用控件，任务提交时固定当次选择并禁用更改。使用既有 PclComboBox、PclCard 样式和动画，不新增经典系统选择框。
+- 本工具在 PCL 行为基础上增加共享文件保护：组件 Mods 下载至私有暂存，发布前固定已校验内容的 SHA-1 和长度，拒绝不同内容、重复/大小写文件名、文件目录及联接冲突。无远端摘要的 OptiFine 仍先按既有安装器内容校验，再以暂存内容摘要比较共享目标，不能只比较文件名或大小。只有本次新建的共享文件参与失败回收，同内容已有文件保持字节、修改时间和只读属性。
+- 旧资源与 Mods 的逐文件原子移动处于同一最终提交范围，实例仍最后使用同卷 Directory.Move 发布；异常/取消触发两组自有新增文件回收。共享文件与实例目录不是跨目录的单一文件系统事务，断电/进程强杀后可能保留共享文件或空目录；既有修复仍保留已完成的逐文件修复。未声称与 PCL 安装器完整事务等价，也未进行真实游戏启动或真实 OptiFine 处理器验收。
+
 ## Beta 1.0 后续开发：旧资源的隔离目录与已有实例补全
 
 - 重读固定 `5ef81e4` 的 `McInstance.PathIndie`、`McAssetsListGet` 和 `Settings.vb`：已保存的 VersionArgumentIndieV2 优先，随后考虑旧版显式隔离、实例内非空 mods/saves 及五种 LaunchArgumentIndieV2 策略；默认值 4。map_to_resources 使用 PathIndie/resources，objects、indexes 和 virtual/legacy 保持共享。另用固定提交的 ModBase.IniGetContent 确认配置只解析冒号和区分大小写的键、重复键以后项为准，未把 PclFolders 目录兼容读取器的等号扩展用于隔离判断。
