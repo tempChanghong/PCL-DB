@@ -1,7 +1,7 @@
 Imports System.IO
 Imports System.Threading
 Imports System.Windows
-Imports System.Windows.Media
+Imports System.Windows.Input
 Imports PclDownloadBridge.Core
 Imports PclDownloadBridge.Controls
 
@@ -12,6 +12,46 @@ Partial Public Class MainWindow
     Private _packSelection As CurseForgePackage
     Private _readingPack As Boolean
     Private _packReadCancellation As CancellationTokenSource
+    Private Sub CancelPackRead()
+        _packReadCancellation?.Cancel()
+        MarkCancelledPackQueries()
+    End Sub
+    Private Sub MarkCancelledPackQueries()
+        For Each box In PackOptionalFiles.Children.OfType(Of PclCheckBox)()
+            ' IsEnabled inherits the form's temporary freeze. Preserve choices
+            ' whose own metadata already succeeded even while their parent is disabled.
+            If Not CBool(box.ReadLocalValue(IsEnabledProperty)) AndAlso box.Content.ToString().StartsWith("正在查询可选文件", StringComparison.Ordinal) Then
+                box.Content = "可选文件 " & box.Tag.ToString() & " 查询已取消（重新导入可重试）"
+            End If
+        Next
+    End Sub
+    Private Sub RefreshPackAvailability(Optional busy As Boolean? = Nothing)
+        If PackInstanceName Is Nothing Then Return
+        Dim issue = PackNameProblem(), active = If(busy, _busy) OrElse _readingPack
+        PackInstanceName.ValidationMessage = If(issue, "")
+        PackNameHint.Text = If(issue, "")
+        PackNameHint.Visibility = If(issue Is Nothing, Visibility.Collapsed, Visibility.Visible)
+        PackOptionsCard.IsEnabled = Not active
+        ImportPackButton.IsEnabled = Not active
+        PackInstallButton.IsEnabled = Not active AndAlso _packSelection IsNot Nothing AndAlso issue Is Nothing
+        PackInstallButton.ToolTip = If(active, "请等待当前任务结束。", issue)
+    End Sub
+    Private Function PackNameProblem() As String
+        If _packSelection Is Nothing Then Return Nothing
+        Try
+            InstallPreflight.ValidateName(PackInstanceName.Text)
+            If _selectedFolder IsNot Nothing Then InstallPreflight.ValidateDestination(_selectedFolder.Location, PackInstanceName.Text, False)
+        Catch ex As Exception When TypeOf ex Is ArgumentException OrElse TypeOf ex Is IOException OrElse TypeOf ex Is UnauthorizedAccessException
+            Return ex.Message
+        End Try
+        Return Nothing
+    End Function
+    Private Sub PackNameKeyDown(sender As Object, e As KeyEventArgs)
+        If e.Key <> Key.Enter Then Return
+        e.Handled = True
+        If e.IsRepeat OrElse _busy OrElse _readingPack OrElse _closing OrElse _downloadView <> DownloadView.Modpacks OrElse Not DownloadPage.IsVisible Then Return
+        StartInstall(sender, e)
+    End Sub
     Private Async Sub ChooseCurseForgePack(sender As Object, e As RoutedEventArgs)
         If _busy OrElse _readingPack Then Return
         Dim dialog As New Microsoft.Win32.OpenFileDialog With {.Title = "导入 CurseForge 整合包", .Filter = "CurseForge 整合包 (*.zip)|*.zip", .CheckFileExists = True}
@@ -19,86 +59,91 @@ Partial Public Class MainWindow
     End Sub
     Private Async Function ReadCurseForgePackAsync(path As String) As Task
         If _busy OrElse _readingPack Then Return
-        _packReadCancellation?.Cancel()
+        CancelPackRead()
         Dim request As New CancellationTokenSource()
         _packReadCancellation = request
-        _readingPack = True : ImportPackButton.IsEnabled = False
+        _readingPack = True : RefreshPackAvailability()
+        SetDownloadView(DownloadView.Modpacks)
+        SwitchMainPage(False)
         Try
-            StatusText.Text = "正在读取整合包清单…"
+            PackReadStatus.Text = "正在读取整合包清单…"
+            Await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background)
+            request.Token.ThrowIfCancellationRequested()
             Dim package = Await Task.Run(Function() CurseForgePackage.Read(path, request.Token))
-            If _closing OrElse _busy OrElse request.IsCancellationRequested Then Return
-            SelectCurseForgePackage(package)
-            _readingPack = False : ImportPackButton.IsEnabled = True
+            If _closing OrElse request.IsCancellationRequested Then Return
+            If _busy Then
+                PackReadStatus.Text = "当前安装已开始，请在任务结束后重新选择整合包。"
+                Return
+            End If
+            SelectCurseForgePackage(package, request, _downloadView = DownloadView.Modpacks AndAlso DownloadPage.Visibility = Visibility.Visible)
+            _readingPack = False : RefreshPackAvailability()
             If Not _preview Then
                 Using resolver As New CurseForgeFileResolver(Policy())
-                    For Each box In PackOptionalFiles.Children.OfType(Of PclCheckBox)().ToArray()
-                        Try
-                            Dim reference = package.References.Single(Function(item) item.FileId = CLng(box.Tag))
-                            Dim file = Await resolver.ResolveFileAsync(reference, package.Minecraft, request.Token)
-                            If request.IsCancellationRequested OrElse _closing OrElse _packSelection IsNot package Then Return
-                            box.Content = IO.Path.GetFileName(file.Download.RelativePath) & "（可选）"
-                            box.IsEnabled = True
-                        Catch ex As Exception When Not TypeOf ex Is OperationCanceledException
-                            If _closing OrElse _packSelection IsNot package Then Return
-                            box.Content = "可选文件暂时无法查询（重新导入可重试）"
-                            box.ToolTip = ex.Message
-                        End Try
-                    Next
+                    Using slots As New SemaphoreSlim(4)
+                        Await Task.WhenAll(PackOptionalFiles.Children.OfType(Of PclCheckBox)().Select(
+                            Function(box) QueryPackOptionalAsync(package, box, resolver, slots, request)).ToArray())
+                    End Using
                 End Using
             End If
         Catch ex As OperationCanceledException
-            If Not _closing AndAlso Not _busy AndAlso _packReadCancellation Is request Then StatusText.Text = "整合包读取已取消。"
+            If Not _closing AndAlso Not _busy AndAlso _packReadCancellation Is request Then PackReadStatus.Text = "整合包读取已取消。"
         Catch ex As Exception
             If Not _closing AndAlso Not _busy AndAlso _packReadCancellation Is request Then
-                StatusText.Text = ex.Message
-                If Not _preview Then MessageBox.Show(Me, ex.Message, "无法读取整合包", MessageBoxButton.OK, MessageBoxImage.Information)
+                PackReadStatus.Text = "无法读取整合包：" & ex.Message
             End If
         Finally
             If _packReadCancellation Is request Then
                 _packReadCancellation = Nothing
                 _readingPack = False
-                If Not _closing Then ImportPackButton.IsEnabled = Not _busy
+                If Not _closing Then
+                    If request.IsCancellationRequested Then
+                        MarkCancelledPackQueries()
+                    End If
+                    RefreshPackAvailability()
+                End If
             End If
             request.Dispose()
         End Try
     End Function
-    Private Sub SelectCurseForgePackage(package As CurseForgePackage)
-        CancelComponentRequests()
+    Private Async Function QueryPackOptionalAsync(package As CurseForgePackage, box As PclCheckBox, resolver As CurseForgeFileResolver, slots As SemaphoreSlim, request As CancellationTokenSource) As Task
+        Await slots.WaitAsync(request.Token)
+        Try
+            Dim reference = package.References.Single(Function(item) item.FileId = CLng(box.Tag))
+            Dim file = Await resolver.ResolveFileAsync(reference, package.Minecraft, request.Token)
+            If Not CurrentPackRead(package, request) Then Return
+            box.Content = IO.Path.GetFileName(file.Download.RelativePath) & "（可选）"
+            box.IsEnabled = True
+        Catch ex As Exception When Not TypeOf ex Is OperationCanceledException
+            If Not CurrentPackRead(package, request) Then Return
+            box.Content = "可选文件 " & box.Tag.ToString() & " 暂时无法查询（重新导入可重试）"
+            box.ToolTip = ex.Message
+        Finally
+            slots.Release()
+        End Try
+    End Function
+    Private Function CurrentPackRead(package As CurseForgePackage, request As CancellationTokenSource) As Boolean
+        Return Not _closing AndAlso Not request.IsCancellationRequested AndAlso _packSelection Is package AndAlso _packReadCancellation Is request
+    End Function
+    Private Sub SelectCurseForgePackage(package As CurseForgePackage, Optional request As CancellationTokenSource = Nothing, Optional navigate As Boolean = True)
+        If _packReadCancellation IsNot request Then CancelPackRead()
         _packSelection = package
-        _componentSelection = New ComponentSelection()
-        _componentsDirty = False
-        _selectedEntry = New VersionEntry With {.Id = package.Minecraft, .Kind = "release"}
-        RepairBox.IsChecked = False
-        _nameEdited = False
-        SetAutomaticInstanceName(package.Name)
-        SelectedVersionText.Text = package.Minecraft & " · 整合包指定版本"
-        SelectedVersionIcon.Source = New Imaging.BitmapImage(New Uri("pack://application:,,,/Images/Blocks/Grass.png"))
-        VanillaVersionIcon.Source = SelectedVersionIcon.Source
+        PackInstanceName.Text = package.Name
         PackSummary.Text = package.Name & " · " & package.Version & vbCrLf & "Minecraft " & package.Minecraft &
             If(package.LoaderKind.HasValue, " + " & package.LoaderKind.ToString() & " " & package.LoaderVersion, "") & vbCrLf &
             package.References.Where(Function(item) item.Required).Count() & " 个必需文件 · " & package.References.Where(Function(item) Not item.Required).Count() & " 个可选文件 · " & package.OverrideFiles.Count & " 个附带配置文件"
         PackSource.Text = package.SourcePath : PackSource.ToolTip = package.SourcePath
         PackOptionalFiles.Children.Clear()
         For Each reference In package.References.Where(Function(item) Not item.Required)
-            PackOptionalFiles.Children.Add(New PclCheckBox With {.Content = "正在查询可选文件…", .Tag = reference.FileId, .IsEnabled = False, .Margin = New Thickness(0, 0, 0, 6)})
+            PackOptionalFiles.Children.Add(New PclCheckBox With {.Content = "正在查询可选文件 " & reference.FileId & "…", .Tag = reference.FileId, .IsEnabled = False, .Margin = New Thickness(0, 0, 0, 6)})
         Next
-        SetPackVisibility(True)
-        RefreshInstallAvailability()
-        SetDownloadView(DownloadView.Install)
-        InstallScroll.ScrollToHome()
-        SwitchMainPage(False)
-        StatusText.Text = "已读取 CurseForge 清单。开始安装时将重新查询并校验指定文件。"
-    End Sub
-    Private Sub LeavePackMode()
-        _packReadCancellation?.Cancel()
-        _packSelection = Nothing
-        SetPackVisibility(False)
-    End Sub
-    Private Sub SetPackVisibility(enabled As Boolean)
-        PackOptionsCard.Visibility = If(enabled, Visibility.Visible, Visibility.Collapsed)
-        For Each element As FrameworkElement In New FrameworkElement() {IsolationCard, ComponentCards, ComponentHint, RepairCard}
-            element.Visibility = If(enabled, Visibility.Collapsed, Visibility.Visible)
-        Next
+        PackOptionsCard.Visibility = Visibility.Visible
+        RefreshPackAvailability()
+        ModpackPage.ScrollToHome()
+        If navigate Then
+            SetDownloadView(DownloadView.Modpacks)
+            SwitchMainPage(False)
+        End If
+        PackReadStatus.Text = "清单已读取。开始安装时将重新查询并校验指定文件。"
     End Sub
     Private Sub PackDragOver(sender As Object, e As DragEventArgs)
         If Not e.Data.GetDataPresent(DataFormats.FileDrop) Then Return

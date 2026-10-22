@@ -1,5 +1,12 @@
 # PCL2 代码依据
 
+## Beta 1.0 后续开发：下载侧栏与 CurseForge 独立卡片
+
+- 再次读取固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `Pages/PageDownload/PageDownloadLeft.xaml/.vb`：使用原版游戏和整合包的原始图形路径、36 DIP 行高、顶部 12 DIP 留白与禁用整行缩放的侧栏行为；页面保留实例，切换时不重建。这里只保留用户要求的两项，135 DIP 固定侧栏宽度是本项目对两项导航的适配。
+- 参考 `Resource/PageDownloadPack.xaml`、`MyListItem.xaml.vb`、`MyPageRight.vb` 和 `PageDownloadLeft.PageChangeRun` 的卡片、选中标记与右页退出/入场关系。复用已按 PCL 实现的 PclListItem、PclCard、PclSurfaceMotion；侧栏切换使用同一 110 + 30 ms 交接、卡片入场曲线，保留顶部主导航和原版安装页原有横向动画。新增动画所有权、快速反向、隐藏列表刷新、设置页交接和最小尺寸检查，避免两个控制器同时修改右页。
+- 重读 `ModModpack.InstallPackCurseForge` 的实例名称验证、固定加载器、ModOptionalList 与缺失文件处理。独立卡片保留整合包名称/可选文件；原版的组件、隔离和补全设置单独保留，开始任务时从当前类别复制输入。可选文件展示使用相同文件身份/摘要查询器，最多 4 个并发，只有当前请求能更新选项；并非把原版组件选择拿来替代清单中的加载器。
+- ZIP/文件信息查询、校验缓存、版本隔离和原子发布仍沿用前一轮已验证的核心实现；这轮没有更换校验规则、下载源或发布边界。公开接口的少量真实复核与回环/预览验证分别记录在 VALIDATION.md。
+
 ## Beta 1.0 后续开发：CurseForge ZIP 导入
 
 - 主要依据仍为固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8`，不是受限后的安装入口。重读 `Modules/Minecraft/ModModpack.vb` 的根目录/单层目录类型判断、InstallPackCurseForge、CopyOverrideDirectory、ModOptionalList、缺失文件处理及 McInstallLoadersGet 组合；参考 `ModDownload.vb` 的 DlModRequest / DlSourceModGet，以及 ResourceVersion 的 SHA-1/MD5 和资源文件类型处理。源码摘录保存在本轮 artifacts；未修改 PCL 或其他参考仓库。

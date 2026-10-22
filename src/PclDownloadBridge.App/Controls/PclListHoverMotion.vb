@@ -33,7 +33,7 @@ Namespace Controls
             Dim back = _backScale.ScaleX, whole = _wholeScale.ScaleX, opacity = _background.Opacity
             Dim previous = DirectCast(_background.Background, SolidColorBrush).Color
             Detach()
-            Dim targetBack = If(active OrElse sidebar, 1.0, 0.75), targetWhole = If(pressed, 0.98, 1.0), targetOpacity = If(active, 1.0, 0.0)
+            Dim targetBack = If(active OrElse sidebar, 1.0, 0.75), targetWhole = If(pressed AndAlso Not sidebar, 0.98, 1.0), targetOpacity = If(active, 1.0, 0.0)
             If Not animate Then
                 SetValues(targetBack, targetWhole, targetOpacity, color) : Return
             End If

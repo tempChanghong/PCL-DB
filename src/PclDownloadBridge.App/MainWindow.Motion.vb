@@ -29,7 +29,7 @@ Partial Public Class MainWindow
     End Sub
 
     Private Function MotionViewers() As PclScrollViewer()
-        Return {VersionScroll, InstallScroll, DownloadProgress, SettingsPage, AboutPage}
+        Return {VersionScroll, InstallScroll, ModpackPage, DownloadProgress, SettingsPage, AboutPage}
     End Function
     Private Function ActiveSurface() As FrameworkElement
         Return If(AboutPage.Visibility = Visibility.Visible, DirectCast(AboutPage, FrameworkElement),
@@ -37,8 +37,7 @@ Partial Public Class MainWindow
     End Function
     Private Function SurfaceUnits(surface As FrameworkElement) As IEnumerable(Of FrameworkElement)
         If surface Is DownloadPage Then
-            Return PclSurfaceMotion.Units(If(_downloadView = DownloadView.Versions, DirectCast(VersionPage, FrameworkElement),
-                If(_downloadView = DownloadView.Install, DirectCast(InstallScroll, FrameworkElement), DownloadProgress)))
+            Return PclSurfaceMotion.Units(DownloadContent(_downloadView))
         End If
         Return PclSurfaceMotion.Units(surface)
     End Function
@@ -46,6 +45,7 @@ Partial Public Class MainWindow
         Dim previous = ActiveSurface()
         If previous IsNot target Then
             _pendingSurfaceFocus = Nothing
+            _categoryMotion.Finish()
             For Each viewer In MotionViewers()
                 viewer.StopScrolling()
             Next

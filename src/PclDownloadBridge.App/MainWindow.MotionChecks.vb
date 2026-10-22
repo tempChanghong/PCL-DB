@@ -40,6 +40,8 @@ Partial Public Class MainWindow
         Dim folding As New MainWindow(True)
         folding.VerifyComponentFoldRefresh(directory, check)
         VerifyClippedLazyRows(check)
+        Dim downloads As New MainWindow(True)
+        downloads.VerifyDownloadCategoryMotion(directory, check)
         Return passed
     End Function
 

@@ -30,12 +30,18 @@ Partial Public Class MainWindow
             _pendingSurfaceFocus = AddressOf FocusDownloadPage
             Return
         End If
-        If _pageSwitch.Transition IsNot Nothing Then
+        If _pageSwitch.Transition IsNot Nothing OrElse _categoryMotion.Transition IsNot Nothing Then
             _focusAfterPageSwitch = True
             Return
         End If
         DownloadPage.UpdateLayout()
-        If _downloadView = DownloadView.Install Then
+        If _downloadView = DownloadView.Modpacks Then
+            If _packSelection IsNot Nothing AndAlso PackInstanceName.IsEnabled Then
+                PackInstanceName.Focus()
+            Else
+                ImportPackButton.Focus()
+            End If
+        ElseIf _downloadView = DownloadView.Install Then
             If InstanceName.IsEnabled Then
                 InstanceName.Focus()
             Else

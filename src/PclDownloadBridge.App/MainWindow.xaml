@@ -42,6 +42,18 @@
         </Grid>
         <Grid x:Name="PageSurface" Grid.Row="1" ClipToBounds="True">
             <Grid x:Name="DownloadPage">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="135"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+              <Border x:Name="DownloadSidebar" Background="{DynamicResource WindowSurfaceBrush}">
+                <p:PclScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                  <StackPanel x:Name="DownloadNav" Margin="0,12,0,0">
+                    <p:PclListItem x:Name="VanillaNav" Title="原版游戏" Height="36" IsSidebar="True" Selected="True" Click="ShowVanillaDownloads"
+                      Logo="m351.9,801.7c-8.6,0-17-3-23.7-8.4L18.9,614.7c-12.5-7.2-19.7-20.5-18.8-34.9V221c-.7-15,6.6-28.8,19.2-36L325.2,8.3c6.6-5.3,15.1-8.3,24-8.3s17.3,2.9,23.9,8.2l308.3,178c.2.1.5.3.8.5h0c12,6.7,19.4,19.8,19.4,34.1,0,13.9-7.1,26-18.7,32.5l-290.1,167.5v276l234-135.1v-168.9c0-20.8,17-37.8,37.8-37.8s37.8,17,37.8,37.8v191.7c0,16.4-10.9,31.2-26.5,36.1l-299.4,172.8c-6.7,5.4-15.1,8.3-23.7,8.3h-.9Zm-34.8-101.9v-276l-241.4-139.4v276l241.4,139.4Zm35.3-342.8l236.8-136.7-240-138.6L112.4,218.3l240,138.6Z"/>
+                    <p:PclListItem x:Name="ModpackNav" Title="整合包" Height="36" IsSidebar="True" Click="ShowModpackDownloads"
+                      Logo="M511 995a128 128 0 0 1-57-13L70 791a126 126 0 0 1-70-113V311a126 126 0 0 1 15-60V248c1-2 3-5 5-8a127 127 0 0 1 49-42L454 13a128 128 0 0 1 112 0l383 190a126 126 0 0 1 72 113v360a126 126 0 0 1-70 115L568 984c-17 7-37 11-57 11z m42-470v370l360-178c14-7 23-21 23-38v-335L554 524zM85 330v347a42 42 0 0 0 23 38l360 178V523L85 330zM135 260l375 189 137-65L286 188 135 260z m245-118l363 197 150-71-365-180a42 42 0 0 0-37 0l-111 53z"/>
+                  </StackPanel>
+                </p:PclScrollViewer>
+              </Border>
+              <Grid x:Name="DownloadRight" Grid.Column="1">
               <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
               <Grid Margin="25,14,25,0" Height="30">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
@@ -51,7 +63,6 @@
                   <TextBlock x:Name="SelectedPath" Grid.Column="1" Text="请选择 PCL 的 .minecraft 文件夹" TextTrimming="CharacterEllipsis" FontSize="12" VerticalAlignment="Center" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" />
                 </Grid>
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
-                  <p:PclButton x:Name="ImportPackButton" Text="导入整合包" Width="100" Height="28" Margin="10,0,0,0" Click="ChooseCurseForgePack" />
                   <p:PclButton x:Name="ChangeFolderButton" Text="更改目录" Width="86" Height="28" Margin="10,0,0,0" Click="ChooseInstallFolder" />
                   <p:PclButton x:Name="ProgressShortcut" Text="查看下载进度" Width="112" Height="28" Margin="10,0,0,0" Visibility="Collapsed" Click="ShowProgress" />
                   <p:PclButton x:Name="RefreshButton" Text="刷新列表" Width="86" Height="28" Margin="10,0,0,0" Click="RefreshVersions" />
@@ -82,14 +93,6 @@
                           <TextBlock x:Name="SelectedVersionText" Text="原版游戏" VerticalAlignment="Center" />
                         </StackPanel>
                       </p:PclCard.HeaderContent>
-                    </p:PclCard>
-                    <p:PclCard x:Name="PackOptionsCard" Title="CurseForge 整合包" Margin="0,0,0,12" Visibility="Collapsed">
-                      <StackPanel>
-                        <TextBlock x:Name="PackSummary" TextWrapping="Wrap" />
-                        <TextBlock x:Name="PackSource" FontSize="12" Opacity="0.6" TextTrimming="CharacterEllipsis" Margin="0,8,0,0" />
-                        <StackPanel x:Name="PackOptionalFiles" Margin="0,10,0,0" />
-                        <TextBlock Text="按整合包指定版本安装，并开启版本隔离。文件缺失、校验失败或同名实例冲突时停止；取消后可重试。" TextWrapping="Wrap" FontSize="12" Opacity="0.6" Margin="0,10,0,0" />
-                      </StackPanel>
                     </p:PclCard>
                     <p:PclCard x:Name="IsolationCard" Title="版本隔离" Margin="0,0,0,12">
                       <StackPanel>
@@ -126,12 +129,39 @@
                   </ControlTemplate></Button.Template>
                 </Button>
               </Grid>
+              <p:PclScrollViewer x:Name="ModpackPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="25,15,25,25">
+                  <p:PclCard x:Name="CurseForgeCard" Title="CurseForge" BodyMargin="20,40,20,20">
+                    <StackPanel>
+                      <Grid>
+                        <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel Margin="0,0,16,0" VerticalAlignment="Center">
+                          <TextBlock Text="导入本地整合包" FontSize="14"/>
+                          <TextBlock Text="选择从 PCL 或 CurseForge 保存的 ZIP 文件。" TextWrapping="Wrap" FontSize="12" Opacity="0.6" Margin="0,5,0,0"/>
+                        </StackPanel>
+                        <p:PclButton x:Name="ImportPackButton" Text="选择整合包" Width="120" Height="32" Grid.Column="1" VerticalAlignment="Center" Click="ChooseCurseForgePack"/>
+                      </Grid>
+                      <TextBlock x:Name="PackReadStatus" Text="也可以将整合包文件直接拖入窗口。" TextWrapping="Wrap" FontSize="12" Opacity="0.65" Margin="0,12,0,0"/>
+                      <StackPanel x:Name="PackOptionsCard" Visibility="Collapsed" Margin="0,18,0,0">
+                        <TextBlock x:Name="PackSummary" TextWrapping="Wrap"/>
+                        <TextBlock x:Name="PackSource" FontSize="12" Opacity="0.6" TextTrimming="CharacterEllipsis" Margin="0,7,0,15"/>
+                        <TextBlock Text="实例名称" Margin="0,0,0,7"/>
+                        <p:PclTextBox x:Name="PackInstanceName" Height="30" MaxLength="70" ShowValidateResult="False" ToolTip="整合包实例名称"/>
+                        <p:PclHint x:Name="PackNameHint" Visibility="Collapsed" Margin="0,9,0,0"/>
+                        <StackPanel x:Name="PackOptionalFiles" Margin="0,12,0,0"/>
+                        <TextBlock Text="按清单指定版本安装，并开启版本隔离。文件缺失、校验失败或同名实例冲突时停止；取消后可重试。" TextWrapping="Wrap" FontSize="12" Opacity="0.6" Margin="0,10,0,15"/>
+                        <p:PclButton x:Name="PackInstallButton" Text="开始安装" Width="120" Height="32" HorizontalAlignment="Right" Click="StartInstall" ToolTipService.ShowOnDisabled="True"/>
+                      </StackPanel>
+                    </StackPanel>
+                  </p:PclCard>
+                </StackPanel>
+              </p:PclScrollViewer>
             <p:PclScrollViewer x:Name="DownloadProgress" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
               <StackPanel Margin="25,15,25,10">
               <p:PclCard Title="下载任务" VerticalAlignment="Top" BodyMargin="25,40,15,15" HeaderContentMargin="132,0,15,0">
                 <p:PclCard.HeaderContent><p:PclButton Text="返回安装选项" Width="112" Height="27" HorizontalAlignment="Right" Click="ResumeInstallation" /></p:PclCard.HeaderContent>
                 <StackPanel>
-                  <TextBlock x:Name="TaskTitle" Text="暂无正在进行的任务" FontWeight="Bold" Margin="0,0,0,14" />
+                  <TextBlock x:Name="TaskTitle" Text="暂无正在进行的任务" FontWeight="Bold" TextWrapping="Wrap" Margin="0,0,0,14" />
                   <StackPanel x:Name="TaskPanel">
                     <ProgressBar x:Name="TaskProgress" Height="3" Maximum="1" Foreground="{DynamicResource ColorBrush3}" Background="{DynamicResource ColorBrush7}" BorderThickness="0" />
                     <Grid x:Name="TaskStats" Margin="0,15,0,15"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/><ColumnDefinition/></Grid.ColumnDefinitions>
@@ -166,6 +196,8 @@
               </p:PclCard>
               </StackPanel>
             </p:PclScrollViewer>
+            <Canvas x:Name="DownloadGhost" IsHitTestVisible="False" ClipToBounds="True"/>
+            </Grid>
             </Grid>
             </Grid>
             <p:PclScrollViewer x:Name="SettingsPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">

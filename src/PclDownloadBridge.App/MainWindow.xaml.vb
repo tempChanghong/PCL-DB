@@ -30,9 +30,13 @@ Partial Public Class MainWindow
         Versions
         Install
         Progress
+        Modpacks
     End Enum
     Private _downloadView As DownloadView = DownloadView.Versions
+    Private _vanillaView As DownloadView = DownloadView.Versions
+    Private _progressReturnView As DownloadView = DownloadView.Versions
     Private ReadOnly _pageSwitch As PclPageSwitch
+    Private ReadOnly _categoryMotion As PclSurfaceMotion
     Private _focusAfterPageSwitch As Boolean
     Private _hasTask As Boolean
     Private _pclBase As String = AppDomain.CurrentDomain.BaseDirectory
@@ -66,6 +70,16 @@ Partial Public Class MainWindow
         _preview = preview
         _surfaceMotion = New PclSurfaceMotion(PageSurface, PageGhost,
             AddressOf AllowPageMotion, AddressOf SurfaceUnits)
+        _categoryMotion = New PclSurfaceMotion(DownloadViewHost, DownloadGhost,
+            Function() AllowPageMotion() AndAlso DownloadPage.IsVisible,
+            Function(surface) PclSurfaceMotion.Units(surface))
+        AddHandler _categoryMotion.Settled, Sub()
+                                              If Not _focusAfterPageSwitch Then Return
+                                              _focusAfterPageSwitch = False
+                                              If DownloadPage.IsVisible AndAlso Not _closing Then FocusDownloadPage()
+                                          End Sub
+        AddHandler PackInstanceName.TextChanged, Sub() RefreshPackAvailability()
+        AddHandler PackInstanceName.KeyDown, AddressOf PackNameKeyDown
         InitializeMotion()
         InitializeAppearance()
         InitializeDeveloperSettings()
@@ -100,6 +114,8 @@ Partial Public Class MainWindow
     Public Sub PreviewPage(page As String)
         If Not _preview Then Return
         Select Case page
+            Case "modpacks"
+                SetDownloadView(DownloadView.Modpacks)
             Case "install"
                 SelectVersion(_versions(0))
             Case "components"
@@ -218,7 +234,7 @@ Partial Public Class MainWindow
                                                  End Sub
         check(Shell.RowDefinitions(0).Height.Value = 48, "PCL title bar is 48 DIP")
         check(TopTabs.Children.Count = 2 AndAlso DownloadTab.Text = "下载" AndAlso SettingsTab.Text = "设置", "only Download and Settings remain in main navigation")
-        check(FindName("FoldersPage") Is Nothing AndAlso FindName("TasksPage") Is Nothing AndAlso FindName("DownloadNav") Is Nothing, "standalone folder and task pages and sidebar are removed")
+        check(FindName("FoldersPage") Is Nothing AndAlso FindName("TasksPage") Is Nothing AndAlso DownloadNav.Children.Count = 2, "download navigation contains only vanilla and modpacks without standalone folder or task pages")
         check(Not _hasTask AndAlso ProgressShortcut.Visibility = Visibility.Collapsed, "fresh download page has no empty task entry")
         check(VersionCards.Children.Count = 5, "latest plus four PCL categories")
         Dim releaseCard = DirectCast(VersionCards.Children(1), PclCard)
@@ -243,7 +259,7 @@ Partial Public Class MainWindow
         check(Not _componentSelection.Has(ComponentKind.FabricApi) AndAlso InstanceName.Text = "我的自定义名称", "clearing Fabric clears dependencies and preserves custom instance name")
         ResetTaskView("测试任务", True)
         ShowProgress(Nothing, Nothing)
-        check(DownloadProgress.Visibility = Visibility.Visible AndAlso DownloadProgress.Parent Is DownloadViewHost AndAlso DownloadViewHost.Parent Is DownloadPage AndAlso DownloadTab.Checked AndAlso SettingsPage.Visibility = Visibility.Collapsed, "download progress is nested in Download with its tab selected")
+        check(DownloadProgress.Visibility = Visibility.Visible AndAlso DownloadProgress.Parent Is DownloadViewHost AndAlso DownloadViewHost.Parent Is DownloadRight AndAlso DownloadRight.Parent Is DownloadPage AndAlso DownloadTab.Checked AndAlso SettingsPage.Visibility = Visibility.Collapsed, "download progress is nested in the download right pane with its tab selected")
         RenderTaskProgress(New TransferProgress With {.Phase = "files", .StageFraction = 0.8, .Total = 100, .Completed = 80, .BytesPerSecond = 1024})
         Dim before = TaskProgress.Value
         RenderTaskProgress(New TransferProgress With {.Phase = "files", .StageFraction = 0.1, .Total = 10, .Completed = 1})
@@ -451,13 +467,12 @@ Partial Public Class MainWindow
         _versionGeneration += 1
         _versionCancellation?.Cancel()
         CancelComponentRequests()
-        _componentsDirty = _selectedEntry IsNot Nothing AndAlso _packSelection Is Nothing
-        If _selectedEntry IsNot Nothing AndAlso _packSelection Is Nothing Then RefreshComponents()
+        _componentsDirty = _selectedEntry IsNot Nothing
+        If _selectedEntry IsNot Nothing Then RefreshComponents()
     End Sub
 
     Private Async Function RefreshCurrentListsIfNeededAsync() As Task
         If _busy OrElse _closing Then Return
-        If _downloadView = DownloadView.Install AndAlso _packSelection IsNot Nothing Then Return
         If _downloadView = DownloadView.Install AndAlso _componentsDirty Then
             Await RefreshComponentListsAsync()
         ElseIf _downloadView = DownloadView.Versions AndAlso _versionsDirty Then
@@ -539,7 +554,6 @@ Partial Public Class MainWindow
 
     Private Sub SelectVersion(entry As VersionEntry)
         If _busy Then Return
-        LeavePackMode()
         _selectedEntry = entry
         _nameEdited = False
         Dim displayId = New VersionPresentation(entry).DisplayId
@@ -619,35 +633,76 @@ Partial Public Class MainWindow
         SelectSurface(If(settings, DirectCast(SettingsPage, FrameworkElement), DownloadPage),
             Sub()
                 If settings AndAlso _pageSwitch.Transition IsNot Nothing Then _pageSwitch.Finish()
+                If settings Then _categoryMotion.Finish()
                 prepare?.Invoke()
             End Sub)
     End Sub
 
     Private Sub SetDownloadView(view As DownloadView)
+        If view = _downloadView Then
+            RefreshDownloadChrome()
+            Return
+        End If
         If view <> _downloadView Then
             _pendingSurfaceFocus = Nothing
             _surfaceMotion.Finish()
         End If
         Dim previous = _downloadView
+        If (previous = DownloadView.Modpacks) Xor (view = DownloadView.Modpacks) Then
+            If _pageSwitch.Transition IsNot Nothing Then _pageSwitch.Finish()
+            Dim outgoing = DownloadContent(previous), incoming = DownloadContent(view)
+            _categoryMotion.Change(outgoing, incoming, Sub() ApplyDownloadView(view, previous))
+        Else
+            _categoryMotion.Finish()
+            ApplyDownloadView(view, previous)
+        End If
+    End Sub
+    Private Function DownloadContent(view As DownloadView) As FrameworkElement
+        Select Case view
+            Case DownloadView.Modpacks : Return ModpackPage
+            Case DownloadView.Install : Return InstallPage
+            Case DownloadView.Progress : Return DownloadProgress
+            Case Else : Return VersionPage
+        End Select
+    End Function
+    Private Sub ApplyDownloadView(view As DownloadView, previous As DownloadView)
+        If view = DownloadView.Progress AndAlso previous <> DownloadView.Progress Then _progressReturnView = previous
+        If view = DownloadView.Versions OrElse view = DownloadView.Install Then _vanillaView = view
         _downloadView = view
-        If view = DownloadView.Progress Then
+        If view = DownloadView.Progress OrElse view = DownloadView.Modpacks Then
             _focusAfterPageSwitch = False
             _pageSwitch.Finish()
             VersionPage.Visibility = Visibility.Collapsed
             InstallPage.Visibility = Visibility.Collapsed
         Else
-            _pageSwitch.SelectInstall(view = DownloadView.Install, previous <> DownloadView.Progress)
-            If previous = DownloadView.Progress Then _pageSwitch.Finish()
+            _pageSwitch.SelectInstall(view = DownloadView.Install, previous <> DownloadView.Progress AndAlso previous <> DownloadView.Modpacks)
+            If previous = DownloadView.Progress OrElse previous = DownloadView.Modpacks Then _pageSwitch.Finish()
             If _pageSwitch.Transition IsNot Nothing AndAlso DownloadViewHost.IsKeyboardFocusWithin Then
                 _focusAfterPageSwitch = True
                 DownloadTab.Focus()
             End If
         End If
         DownloadProgress.Visibility = If(view = DownloadView.Progress, Visibility.Visible, Visibility.Collapsed)
+        ModpackPage.Visibility = If(view = DownloadView.Modpacks, Visibility.Visible, Visibility.Collapsed)
+        RefreshDownloadChrome()
+    End Sub
+    Private Sub RefreshDownloadChrome()
+        Dim view = _downloadView
+        Dim packCategory = view = DownloadView.Modpacks OrElse (view = DownloadView.Progress AndAlso _progressReturnView = DownloadView.Modpacks)
+        VanillaNav.Selected = Not packCategory : ModpackNav.Selected = packCategory
         EmptyVersions.Visibility = If(view = DownloadView.Versions AndAlso _versions.Count = 0, Visibility.Visible, Visibility.Collapsed)
-        RefreshButton.Visibility = If(view <> DownloadView.Progress AndAlso Not (view = DownloadView.Install AndAlso _packSelection IsNot Nothing), Visibility.Visible, Visibility.Collapsed)
+        RefreshButton.Visibility = If(view = DownloadView.Versions OrElse view = DownloadView.Install, Visibility.Visible, Visibility.Collapsed)
         RefreshButton.ToolTip = If(view = DownloadView.Install, "重新获取组件列表，保留已选版本与名称", "重新获取 Minecraft 版本列表")
         ProgressShortcut.Visibility = If(_hasTask AndAlso view <> DownloadView.Progress, Visibility.Visible, Visibility.Collapsed)
+    End Sub
+    Private Async Sub ShowVanillaDownloads(sender As Object, e As RoutedEventArgs)
+        If _busy Then Return
+        SetDownloadView(_vanillaView)
+        Await RefreshCurrentListsIfNeededAsync()
+    End Sub
+    Private Sub ShowModpackDownloads(sender As Object, e As RoutedEventArgs)
+        If _busy Then Return
+        SetDownloadView(DownloadView.Modpacks)
     End Sub
 
     Private Async Sub ShowDownload(sender As Object, e As RoutedEventArgs)
@@ -668,7 +723,7 @@ Partial Public Class MainWindow
         RefreshTaskResultActions()
     End Sub
     Private Async Sub ResumeInstallation(sender As Object, e As RoutedEventArgs)
-        SetDownloadView(If(_selectedEntry Is Nothing, DownloadView.Versions, DownloadView.Install))
+        SetDownloadView(If(_progressReturnView = DownloadView.Modpacks, DownloadView.Modpacks, If(_selectedEntry Is Nothing, DownloadView.Versions, DownloadView.Install)))
         Await RefreshCurrentListsIfNeededAsync()
     End Sub
     Private Async Sub BackToVersions(sender As Object, e As RoutedEventArgs)
@@ -687,17 +742,20 @@ Partial Public Class MainWindow
 
     Private Async Sub StartInstall(sender As Object, e As RoutedEventArgs)
         If _busy Then Return
+        Dim pack = If(_downloadView = DownloadView.Modpacks, _packSelection, Nothing)
+        If _downloadView = DownloadView.Modpacks AndAlso (_readingPack OrElse pack Is Nothing) Then Return
         If _selectedFolder Is Nothing Then
             ChooseInstallFolder(sender, e)
             StatusText.Text = "请先选择游戏目录。"
             Return
         End If
-        Dim installProblem = RefreshInstallAvailability()
+        RefreshPackAvailability()
+        Dim installProblem = If(pack IsNot Nothing, PackNameProblem(), RefreshInstallAvailability())
         If installProblem IsNot Nothing Then
             StatusText.Text = installProblem
             Return
         End If
-        Dim entry = _selectedEntry?.Copy()
+        Dim entry = If(pack IsNot Nothing, New VersionEntry With {.Id = pack.Minecraft, .Kind = "release"}, _selectedEntry?.Copy())
         If entry Is Nothing Then
             StatusText.Text = "请先选择 Minecraft 版本。"
             Return
@@ -709,12 +767,11 @@ Partial Public Class MainWindow
             Return
         End If
         Dim root = _selectedFolder.Location
-        Dim name = InstanceName.Text
+        Dim name = If(pack IsNot Nothing, PackInstanceName.Text, InstanceName.Text)
         Dim repair = RepairBox.IsChecked.GetValueOrDefault()
-        Dim pack = _packSelection
         Dim optionalFiles = PackOptionalFiles.Children.OfType(Of PclCheckBox)().Where(Function(box) box.IsChecked.GetValueOrDefault()).Select(Function(box) CLng(box.Tag)).ToArray()
         If pack IsNot Nothing Then repair = False
-        Dim selection = _componentSelection.Copy()
+        Dim selection = If(pack IsNot Nothing, New ComponentSelection(), _componentSelection.Copy())
         selection.JavaPath = JavaPathBox.Text.Trim()
         Try
             InstallPreflight.ValidateDestination(root, name, repair)
@@ -734,8 +791,13 @@ Partial Public Class MainWindow
         SetBusy(True)
         PersistSettings()
         TaskPanel.Visibility = Visibility.Visible
-        ResetTaskView(name, pack IsNot Nothing OrElse selection.Entries.Count > 0, root)
-        If pack IsNot Nothing Then _taskComponents = "CurseForge " & pack.Name & " " & pack.Version & " · " & pack.LoaderKind.ToString() & " " & pack.LoaderVersion
+        ResetTaskView(name, If(pack IsNot Nothing, pack.LoaderKind.HasValue, selection.Entries.Count > 0), root)
+        _taskMinecraft = entry.Id
+        If pack IsNot Nothing Then
+            _taskComponents = "CurseForge " & pack.Name & " " & pack.Version & If(pack.LoaderKind.HasValue, " · " & pack.LoaderKind.ToString() & " " & pack.LoaderVersion, "")
+            _taskRows("metadata").Label.Text = "查询整合包文件与游戏版本信息"
+            _taskRows("files").Label.Text = "下载游戏、资源与整合包文件"
+        End If
         ShowProgress(Nothing, Nothing)
         Try
             Dim progress = CreateTaskProgress()
@@ -789,8 +851,8 @@ Partial Public Class MainWindow
         RefreshIsolation(value)
         VersionCards.IsEnabled = Not value
         ComponentCards.IsEnabled = Not value
-        PackOptionsCard.IsEnabled = Not value
-        ImportPackButton.IsEnabled = Not value AndAlso Not _readingPack
+        RefreshPackAvailability(value)
+        DownloadNav.IsEnabled = Not value
         GameFolderCard.IsEnabled = Not value
         DownloadSettingsCard.IsEnabled = Not value
         ChangeFolderButton.IsEnabled = Not value
@@ -859,6 +921,7 @@ Partial Public Class MainWindow
         _pendingSurfaceFocus = Nothing
         _focusAfterPageSwitch = False
         _pageSwitch.Finish()
+        _categoryMotion.Finish()
         _surfaceMotion.Finish()
         For Each viewer In MotionViewers()
             viewer.StopScrolling()

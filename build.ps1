@@ -12,11 +12,11 @@ try {
         & '.\src\PclDownloadBridge.App\bin\Release\net48\PclDownloadBridge.exe' --ui-checks artifacts/ui-checks.json | Out-Null
         if ($LASTEXITCODE -ne 0) { throw 'UI workflow checks failed.' }
         $uiChecks = Get-Content -LiteralPath artifacts/ui-checks.json -Raw | ConvertFrom-Json
-        if (!$uiChecks.Succeeded -or $uiChecks.Scope -ne 'all' -or $uiChecks.Count -ne 682) { throw 'UI workflow checks failed.' }
+        if (!$uiChecks.Succeeded -or $uiChecks.Scope -ne 'all' -or $uiChecks.Count -ne 707) { throw 'UI workflow checks failed.' }
         & '.\src\PclDownloadBridge.App\bin\Release\net48\PclDownloadBridge.exe' --motion-checks artifacts/motion-checks.json | Out-Null
         if ($LASTEXITCODE -ne 0) { throw 'Motion checks failed.' }
         $motion = Get-Content -LiteralPath artifacts/motion-checks.json -Raw | ConvertFrom-Json
-        if (!$motion.Succeeded -or $motion.Scope -ne 'motion' -or $motion.Count -ne 328) { throw 'Motion checks failed.' }
+        if (!$motion.Succeeded -or $motion.Scope -ne 'motion' -or $motion.Count -ne 344) { throw 'Motion checks failed.' }
     }
     if ($Package) {
         Import-Module (Join-Path $PSScriptRoot 'tools/PackageTools.psm1') -Force

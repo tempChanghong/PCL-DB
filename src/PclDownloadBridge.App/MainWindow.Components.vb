@@ -92,7 +92,7 @@ Partial Public Class MainWindow
 
     Private Async Function RefreshComponentListsAsync(Optional onlyKind As ComponentKind? = Nothing) As Task
         If _busy OrElse _closing OrElse _selectedEntry Is Nothing Then Return
-        If _packSelection IsNot Nothing Then Return
+        If _downloadView = DownloadView.Modpacks Then Return
         If _selectedEntry.IsSupplemental Then
             _componentsDirty = False
             RefreshComponents()
