@@ -17,6 +17,7 @@ Friend Module ComponentCatalogueChecks
         If onlyCase Is Nothing OrElse onlyCase = "component-catalogue-behavior" Then Await BehaviorAsync(passed)
         If onlyCase Is Nothing OrElse onlyCase.StartsWith("component-catalogue-legacy-", StringComparison.Ordinal) Then passed.AddRange(Await LegacyCatalogueChecks.RunAsync(onlyCase))
         If onlyCase Is Nothing OrElse onlyCase.StartsWith("component-catalogue-api-", StringComparison.Ordinal) Then passed.AddRange(Await FabricApiCatalogueChecks.RunAsync(onlyCase))
+        If onlyCase Is Nothing OrElse onlyCase.StartsWith("component-catalogue-integrity-", StringComparison.Ordinal) Then passed.AddRange(Await OptiFabricIntegrityChecks.RunAsync(onlyCase))
         If passed.Count = 0 Then Throw New ArgumentException(onlyCase)
         Return passed
     End Function

@@ -95,7 +95,7 @@ Public Class ComponentInstaller
                 Dim entry = _selection.Item(kind)
                 If entry Is Nothing Then Continue For
                 SafeFiles.ValidateInstanceName(entry.FileName)
-                Await FetchAsync(stage, {New DownloadFile With {.RelativePath = "mods/" & entry.FileName, .Url = entry.Url, .Sha1 = entry.Sha1, .Size = entry.Size, .Category = "component"}}, "下载 " & ComponentCatalog.Label(kind), token).ConfigureAwait(False)
+                Await FetchAsync(stage, {New DownloadFile With {.RelativePath = "mods/" & entry.FileName, .Url = entry.Url, .Sha1 = entry.Sha1, .Md5 = entry.Md5, .Size = entry.Size, .Category = "component"}}, "下载 " & ComponentCatalog.Label(kind), token).ConfigureAwait(False)
                 If kind = ComponentKind.OptiFabric Then
                     Dim info = ReadFabricMod(SafeFiles.UnderRoot(stage, "mods/" & entry.FileName))
                     If CStr(info("id")) <> "optifabric" Then Throw New InvalidDataException("下载的文件不是 OptiFabric 模组。")

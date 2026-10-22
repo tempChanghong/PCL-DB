@@ -2,6 +2,16 @@
 
 日期：2026-10-22（北京时间）。最新发布为 PCL-DB Beta 1.0（`1.0.0-beta.1`），当前主分支另含尚未发布的后续修复；下方保留先前版本的验证记录。
 
+## Beta 1.0 后续开发：OptiFabric MD5 校验链路
+
+- 基线 03694a5，源码、78 个 dist 文件摘要及七个参考仓库状态保存在 `artifacts/beta1-optifabric-md5/`。重读固定 PCL 5ef81e4 的 ResourceVersion：优先 SHA-1，未声明时使用 MD5，并将摘要和大小交给文件校验器；片段保存在 pcl-hash-excerpts.txt。
+- baseline-metadata/install/cache.log 分别复现 MD5 未被提取、安装任务丢失显式 MD5、已有同大小错误文件被复用。错误样本是可正常读取、模组 ID 仍为 optifabric 的不同 JAR，避免 ZIP 损坏或文件大小掩盖问题；安装基线记录 rejected=False、published=True。
+- 列表按 PCL 选择一种摘要并规范为小写，保留原始元数据。没有 SHA-1 时，MD5 必须是 32 位十六进制字符串，并在选源成功前校验；声明损坏的 SHA-1 仍拒绝该来源，不在同一来源降级。安装任务同时传递 Md5，沿用既有下载器的内容校验、复用及私有缓存逻辑；未声明摘要的旧列表保持兼容。
+- 新增 40 项检查，覆盖摘要优先级、大小写、缺省字段、三种源偏好下损坏 MD5 回退、聚合诊断、实际安装拒绝错误内容与重试、缓存损坏恢复、不同摘要共存和取消后重试。四份 fixed-*.log 均通过；既有 VS Component Catalogues 自动包含这些检查，总数从 140 增至 180。
+- first-cache-fixture.log 是样本断言问题：更新版摘要最初恰好匹配根目录已有文件，实际正确复用了该文件而没有发起请求。改用第三份不同内容后检查缓存隔离，没有为此修改产品复用逻辑。固定源对照初次包装器误用未设置的 LASTEXITCODE，脚本的 17 项断言均成功；按 PowerShell 的终止异常规则重新运行亦通过，说明保存在 pcl-reference-wrapper-note.txt。
+- 完整核心回归从 901 增至 941 项并全部通过（core-all.log）；Release 构建零警告/零错误，658 项界面、328 项动画及 17 项固定源对照通过。VS 2026 Debug/PDB 另通过 565 项精选核心、658 项界面、328 项动画及既有聚焦配置，报告复制到本轮目录。
+- 样本只使用回环 HTTP、临时游戏目录及离屏 WPF，不作为真实端点可用性或完整游戏启动证明。preservation.json 确认 78 个 dist 文件内容与修改时间、七个参考仓库状态保持，Beta 标签仍指向 c1fe250。本轮只本地构建、验证和提交，不打包、不发版、不推送。
+
 ## Beta 1.0 后续开发：Fabric API 兼容性与文件选择
 
 - 基线 b1b18cf，源码、78 个 dist 文件摘要及七个参考仓库状态保存在 `artifacts/beta1-fabric-api-selection/`。重读固定 PCL 5ef81e4 的 ResourceVersion Modrinth 字段解析、DownloadAvailable 过滤及安装页 Fabric API 兼容性筛选/发布时间排序。PCL 全局列表按标题判断适配，本项目按游戏查询，并用响应中的 game_versions/loaders 核对；保留本项目已有的 primary 优先，缺省改为只从运行用 JAR 中选择。

@@ -159,13 +159,15 @@ Public Class ComponentCatalog
                         If Not item("gameVersions").Values(Of String)().Contains(mc) Then Continue For
                         If item("projectId") IsNot Nothing AndAlso CInt(item("projectId")) <> 322385 Then Throw New InvalidDataException("OptiFabric 项目编号不匹配。")
                         Dim id = CLng(item("id")), fileName = CStr(item("fileName"))
-                        Dim hash = TryCast(item("hashes"), JArray)?.FirstOrDefault(Function(h) CInt(h("algo")) = 1)
+                        Dim hash = SelectOptiFabricHash(item)
+                        Dim algorithm = If(hash Is Nothing, 0, CInt(hash("algo")))
+                        Dim checksum = CStr(hash?("value"))?.ToLowerInvariant()
                         Dim url = CStr(item("downloadUrl"))
                         If String.IsNullOrWhiteSpace(url) Then url = "https://edge.forgecdn.net/files/" & (id \ 1000) & "/" & (id Mod 1000) & "/" & Uri.EscapeDataString(fileName)
                         Dim version = fileName.Replace("optifabric-", "").Replace(".jar", "").TrimStart("v"c)
                         item("name") = CStr(item("displayName"))
                         Dim size = CLng(item("fileLength"))
-                        result.Add(New ComponentEntry With {.Kind = kind, .Minecraft = mc, .Version = version, .Stable = CInt(item("releaseType")) = 1, .Url = url, .FileName = fileName, .Sha1 = CStr(hash?("value")), .Size = If(size = 0, -1L, size), .Data = item})
+                        result.Add(New ComponentEntry With {.Kind = kind, .Minecraft = mc, .Version = version, .Stable = CInt(item("releaseType")) = 1, .Url = url, .FileName = fileName, .Sha1 = If(algorithm = 1, checksum, Nothing), .Md5 = If(algorithm = 2, checksum, Nothing), .Size = If(size = 0, -1L, size), .Data = item})
                     Next
                     offset += files.Count
                     If files.Count < 50 Then Exit Do
@@ -336,6 +338,14 @@ Public Class ComponentCatalog
         If value Is Nothing OrElse value.Type <> JTokenType.String OrElse String.IsNullOrWhiteSpace(CStr(value)) Then Throw New InvalidDataException(catalogue & " 版本条目的 " & field & " 字段无效。")
     End Sub
 
+    Private Shared Function SelectOptiFabricHash(item As JObject) As JObject
+        ' PCL ResourceVersion: prefer SHA-1, otherwise use the declared MD5.
+        Dim hashes = TryCast(item("hashes"), JArray)
+        If hashes Is Nothing Then Return Nothing
+        Return DirectCast(If(hashes.FirstOrDefault(Function(hash) CInt(hash("algo")) = 1),
+                             hashes.FirstOrDefault(Function(hash) CInt(hash("algo")) = 2)), JObject)
+    End Function
+
     Private Shared Function ParseOptiFabricPage(body As String, mc As String, acceptedIds As IEnumerable(Of Long)) As JToken
         Dim data = JObject.Parse(body)
         Dim files = TryCast(data("data"), JArray)
@@ -370,6 +380,11 @@ Public Class ComponentCatalog
                 ValidateCatalogueText(hash, "value", "OptiFabric")
                 If Not Regex.IsMatch(CStr(hash("value")), "\A[0-9a-fA-F]{40}\z") Then Throw New InvalidDataException("OptiFabric SHA-1 校验字段无效。")
             Next
+            Dim selected = SelectOptiFabricHash(item)
+            If selected IsNot Nothing AndAlso CInt(selected("algo")) = 2 Then
+                ValidateCatalogueText(selected, "value", "OptiFabric")
+                If Not Regex.IsMatch(CStr(selected("value")), "\A[0-9a-fA-F]{32}\z") Then Throw New InvalidDataException("OptiFabric MD5 校验字段无效。")
+            End If
         Next
         Return data
     End Function
