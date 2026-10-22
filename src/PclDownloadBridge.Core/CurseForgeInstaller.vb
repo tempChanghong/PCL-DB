@@ -87,7 +87,7 @@ Friend NotInheritable Class CurseForgeInstallPlan
         Dim prefix = Package.BaseFolder & Package.OverridesFolder & "/"
         For Each entry In _archive.Entries
             Dim key = entry.FullName.Replace("\"c, "/"c)
-            If CurseForgePackage.IsDirectory(entry) OrElse Not key.StartsWith(prefix, StringComparison.Ordinal) Then Continue For
+            If CurseForgePackage.IsDirectory(entry) OrElse Not key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) Then Continue For
             token.ThrowIfCancellationRequested()
             Dim relative = key.Substring(prefix.Length), target = SafeFiles.UnderRoot(stage, relative)
             Directory.CreateDirectory(Path.GetDirectoryName(target))

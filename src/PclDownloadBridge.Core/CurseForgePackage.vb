@@ -92,7 +92,7 @@ Public NotInheritable Class CurseForgePackage
         OverridesFolder = If(TextValue(manifest, "overrides", False), "overrides").TrimEnd("/"c)
         ValidateRelative(OverridesFolder)
         Dim prefixPath = BaseFolder & OverridesFolder & "/"
-        OverrideFiles = names.Where(Function(pair) pair.Key.StartsWith(prefixPath, StringComparison.Ordinal) AndAlso Not IsDirectory(pair.Value)).Select(Function(pair) pair.Key.Substring(prefixPath.Length)).ToList().AsReadOnly()
+        OverrideFiles = names.Where(Function(pair) pair.Key.StartsWith(prefixPath, StringComparison.OrdinalIgnoreCase) AndAlso Not IsDirectory(pair.Value)).Select(Function(pair) pair.Key.Substring(prefixPath.Length)).ToList().AsReadOnly()
         For Each relative In OverrideFiles
             ValidateRelative(relative)
         Next

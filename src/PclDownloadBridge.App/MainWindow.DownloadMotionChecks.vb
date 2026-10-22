@@ -2,6 +2,7 @@ Imports System.Windows
 Imports System.Windows.Controls
 Imports System.Windows.Input
 Imports System.Windows.Media
+Imports System.Windows.Media.Imaging
 Imports System.Windows.Media.Animation
 Imports PclDownloadBridge.Controls
 
@@ -20,6 +21,19 @@ Partial Public Class MainWindow
         Try
             Using surface = PreviewSurface.Attach(host, 850, 600)
                 layout() : _motionPreview = True : _categoryMotion.PauseForChecks = True
+                Dim gate As New Grid With {.IsHitTestVisible = False}, action As New PclButton(), icon As New PclIconButton(), keyClicks = 0
+                gate.Width = 1 : gate.Height = 1 : gate.Opacity = 0
+                Dim root = DirectCast(content, Grid)
+                root.Children.Add(gate)
+                gate.Children.Add(action) : gate.Children.Add(icon)
+                AddHandler action.Click, Sub() keyClicks += 1
+                AddHandler icon.Click, Sub() keyClicks += 1
+                PressControlKey(action, Key.Enter) : PressControlKey(icon, Key.Space)
+                check(keyClicks = 0, "animated input gating blocks action and icon keyboard activation inherited from the page")
+                gate.IsHitTestVisible = True
+                PressControlKey(action, Key.Enter) : PressControlKey(icon, Key.Space)
+                check(keyClicks = 2, "action and icon keyboard activation resumes after the page input gate opens")
+                root.Children.Remove(gate)
                 PointerEvent(VanillaNav, Mouse.MouseDownEvent)
                 seek(VanillaNav.HoverTransition, 120)
                 Dim scale = DirectCast(VanillaNav.RenderTransform, ScaleTransform)
@@ -47,7 +61,25 @@ Partial Public Class MainWindow
                 check(returning IsNot Nothing AndAlso returning IsNot entering AndAlso _downloadView = DownloadView.Install AndAlso VanillaNav.Selected, "rapid category reversal retargets motion to the preserved vanilla install form")
                 entering.Controller.SkipToFill() : layout()
                 check(_categoryMotion.Transition Is returning AndAlso ModpackPage.Visibility = Visibility.Collapsed, "obsolete category completion cannot replace the newer navigation")
+                _categoryMotion.Finish()
+                BackToVersions(Me, New RoutedEventArgs()) : _pageSwitch.Finish()
+                ShowModpackDownloads(Me, New RoutedEventArgs()) : _categoryMotion.Finish()
+                ShowVanillaDownloads(Me, New RoutedEventArgs()) : layout()
+                returning = _categoryMotion.Transition
+                seek(returning, 70)
+                Dim refreshFrame = PclExitSnapshot.Capture(DownloadViewHost, Enumerable.Empty(Of FrameworkElement)(), Nothing)
+                UpdateVersions() : layout()
+                check(_categoryMotion.Transition IsNot Nothing AndAlso _categoryMotion.Transition IsNot returning AndAlso _surfaceMotion.Transition Is Nothing, "a visible catalogue refresh retargets the active right-pane transition without starting a parent animation")
+                Dim refreshed = DownloadGhost.Children.OfType(Of Canvas)().SelectMany(Function(layer) layer.Children.OfType(Of Image)()).FirstOrDefault()
+                check(DownloadGhost.Children.Count = 1 AndAlso refreshed IsNot Nothing AndAlso Not DownloadViewHost.IsHitTestVisible AndAlso SameDownloadFrame(refreshFrame, DirectCast(refreshed.Source, BitmapSource), New Rect(DownloadViewHost.RenderSize)), "catalogue replacement preserves the displayed right-pane frame and its input gate")
+                returning = _categoryMotion.Transition
+                seek(returning, 70)
+                Dim frame = PclExitSnapshot.Capture(PageSurface, Enumerable.Empty(Of FrameworkElement)(), Nothing)
+                Dim region = DownloadViewHost.TransformToAncestor(PageSurface).TransformBounds(New Rect(DownloadViewHost.RenderSize))
+                _surfaceMotion.PauseForChecks = True
                 ShowSettings(Me, New RoutedEventArgs()) : layout()
+                Dim frozen = PageGhost.Children.OfType(Of Canvas)().SelectMany(Function(layer) layer.Children.OfType(Of Image)()).FirstOrDefault()
+                check(PageGhost.Children.Count = 1 AndAlso frozen IsNot Nothing AndAlso SameDownloadFrame(frame, DirectCast(frozen.Source, BitmapSource), region), "top-page handoff captures the displayed category frame before releasing its animation")
                 check(_categoryMotion.Transition Is Nothing AndAlso DownloadGhost.Children.Count = 0 AndAlso CBool(DownloadViewHost.ReadLocalValue(IsHitTestVisibleProperty)) AndAlso SettingsPage.IsVisible, "settings handoff releases category snapshots clocks and local input gating")
                 _surfaceMotion.Finish() : ShowDownload(Me, New RoutedEventArgs()) : _surfaceMotion.Finish() : layout()
                 ShowModpackDownloads(Me, New RoutedEventArgs()) : layout()
@@ -59,7 +91,7 @@ Partial Public Class MainWindow
                 check(Not _focusAfterPageSwitch AndAlso ImportPackButton.Focusable AndAlso ImportPackButton.IsVisible AndAlso ImportPackButton.IsEnabled AndAlso DownloadViewHost.IsHitTestVisible AndAlso ModpackPage.Opacity = 1 AndAlso DownloadGhost.Children.Count = 0, "settled category entry releases pending focus exposes the import target and removes owned visual state")
                 ShowVanillaDownloads(Me, New RoutedEventArgs()) : layout()
                 host.Width = 900 : layout()
-                check(_categoryMotion.Transition Is Nothing AndAlso DownloadGhost.Children.Count = 0 AndAlso DownloadViewHost.IsHitTestVisible AndAlso InstallPage.IsVisible, "resizing during category entry settles the correct page without leftover overlays")
+                check(_categoryMotion.Transition Is Nothing AndAlso DownloadGhost.Children.Count = 0 AndAlso DownloadViewHost.IsHitTestVisible AndAlso VersionPage.IsVisible, "resizing during category entry settles the correct page without leftover overlays")
                 _categoryMotion.PauseForChecks = False
                 ShowModpackDownloads(Me, New RoutedEventArgs())
                 check(PumpMotionUntil(Function() _categoryMotion.Transition Is Nothing) AndAlso ModpackPage.IsVisible AndAlso DownloadGhost.Children.Count = 0 AndAlso DownloadViewHost.IsHitTestVisible, "unpaused category motion completes and restores input without a manual seek")
@@ -71,4 +103,13 @@ Partial Public Class MainWindow
             host.Child = Nothing : Me.Content = content
         End Try
     End Sub
+    Private Shared Function SameDownloadFrame(frame As PclExitSnapshot, actual As BitmapSource, region As Rect) As Boolean
+        Dim expected = frame.Bitmap
+        If expected.PixelWidth <> actual.PixelWidth OrElse expected.PixelHeight <> actual.PixelHeight Then Return False
+        Dim sx = expected.PixelWidth / frame.Width, sy = expected.PixelHeight / frame.Height
+        Dim crop As New Int32Rect(CInt(Math.Ceiling(region.Left * sx)) + 4, CInt(Math.Ceiling(region.Top * sy)) + 4, CInt(Math.Floor(region.Width * sx)) - 8, CInt(Math.Floor(region.Height * sy)) - 8)
+        Dim stride = crop.Width * 4, first(stride * crop.Height - 1) As Byte, second(first.Length - 1) As Byte
+        expected.CopyPixels(crop, first, stride, 0) : actual.CopyPixels(crop, second, stride, 0)
+        Return first.SequenceEqual(second)
+    End Function
 End Class

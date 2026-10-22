@@ -130,6 +130,20 @@ Partial Public Class MainWindow
         check(ImportPackButton.ActualWidth = 120 AndAlso CurseForgeCard.ActualWidth > 500 AndAlso ModpackPage.ScrollableHeight > 0, "minimum window keeps import controls usable and scrolls pack options")
         SaveControlVisual(host, Path.Combine(directory, "download-curseforge-minimum.png"))
         _installRunner = Nothing
+        _motionPreview = True : _categoryMotion.PauseForChecks = True
+        ShowVanillaDownloads(Me, New RoutedEventArgs()) : _categoryMotion.Finish()
+        ShowModpackDownloads(Me, New RoutedEventArgs()) : layout()
+        Dim keyboardStarts = 0
+        _installRunner = Function(game, gameRoot, name, components, isolation, token)
+                             keyboardStarts += 1
+                             Return Task.FromResult(New InstallResult With {.InstancePath = Path.Combine(gameRoot, "versions", name), .FileCount = 1})
+                         End Function
+        PressControlKey(PackInstanceName, System.Windows.Input.Key.Enter)
+        check(keyboardStarts = 0 AndAlso _categoryMotion.Transition IsNot Nothing, "a pack name Enter cannot start installation behind a category transition input gate")
+        _categoryMotion.Finish()
+        PressControlKey(PackInstanceName, System.Windows.Input.Key.Enter) : Await WaitForNameInstallAsync()
+        check(keyboardStarts = 1 AndAlso _taskOutcome = TaskOutcome.Succeeded, "pack name Enter becomes available again after category entry settles")
+        _motionPreview = False : _installRunner = Nothing
         manifest("minecraft")("modLoaders") = New JArray()
         Dim vanillaPack = Path.Combine(directory, "ui-vanilla-pack-" & Guid.NewGuid().ToString("N") & ".zip")
         Using archive = ZipFile.Open(vanillaPack, ZipArchiveMode.Create), writer As New StreamWriter(archive.CreateEntry("manifest.json").Open())

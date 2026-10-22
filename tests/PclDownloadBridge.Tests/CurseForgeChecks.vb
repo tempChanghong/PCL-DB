@@ -117,6 +117,10 @@ Friend Module CurseForgeChecks
         Check(package.Name = "Fixture pack" AndAlso package.Minecraft = "1.20.1" AndAlso package.LoaderKind.GetValueOrDefault() = ComponentKind.Fabric AndAlso package.LoaderVersion = "0.16.9", "CF package fixes exact game/loader versions and trims the suggested name", passed)
         Check(package.References.Count = 2 AndAlso package.References(0).Required AndAlso Not package.References(1).Required AndAlso package.OverrideFiles.Count = 2, "CF package retains required/optional identities and override files", passed)
         Check(CurseForgePackage.Read(Pack(root, "wrapped", prefix:="one/")).OverrideFiles.Count = 2, "CF package accepts PCL's single wrapping folder", passed)
+        For Each prefix In {"", "one/"}
+            Dim cased = CurseForgePackage.Read(Pack(root, "cased-" & If(prefix = "", "root", "wrapped"), entries:=New Dictionary(Of String, String) From {{"OVERRIDES/config/fixture.txt", "case preserved"}, {"Overrides/PCL/Setup.ini", "UserSetting:preserved"}}, prefix:=prefix))
+            Check(cased.OverrideFiles.Count = 2 AndAlso cased.OverrideFiles.Contains("config/fixture.txt"), "CF override folder lookup follows Windows casing without losing package files: " & prefix, passed)
+        Next
         Check(Not Directory.Exists(Path.Combine(root, "versions")), "CF parsing creates no game directory", passed)
         Dim changes As New Dictionary(Of String, Action(Of JObject)) From {
             {"format", Sub(value) value("manifestVersion") = 2}, {"type", Sub(value) value("manifestType") = "other"},
@@ -326,6 +330,14 @@ Friend Module CurseForgeChecks
                 End Using
             End Using
         Next
+        Using fixture As New InstallationChecks.InstallFixture(root, "cf-cased"), handler As New Handler(), client As New HttpClient(handler), resolver As New CurseForgeFileResolver(New SourcePolicy(), client, "")
+            Configure(fixture, handler)
+            Dim source = Pack(root, "install-cased", entries:=New Dictionary(Of String, String) From {{"Overrides/config/fixture.txt", "case preserved"}, {"OVERRIDES/pcl/setup.ini", "UserSetting:preserved"}}, prefix:="one/")
+            Dim package = CurseForgePackage.Read(source), installer As New CurseForgeInstaller(New Policy(fixture.Server.Url), resolver:=resolver)
+            Dim result = Await installer.InstallAsync(package, fixture.Root, "pack", {}, {}, Nothing, CancellationToken.None, connections:=4)
+            Check(IO.File.Exists(Path.Combine(result.InstancePath, "config", "fixture.txt")) AndAlso IO.File.ReadAllText(Path.Combine(result.InstancePath, "config", "fixture.txt")) = "case preserved", "CF installation publishes overrides whose folder casing differs from the manifest", passed)
+            Check(PclFolders.ReadIniValue(Path.Combine(result.InstancePath, "PCL", "Setup.ini"), "VersionArgumentIndieV2") = "True" AndAlso PclFolders.ReadIniValue(Path.Combine(result.InstancePath, "PCL", "Setup.ini"), "UserSetting") = "preserved", "CF case-insensitive override lookup preserves INI preferences and isolation", passed)
+        End Using
         For Each issue In {"missing", "changed-archive", "override-file", "ancestor", "late-instance", "late-mod", "late-config", "missing-loader", "corrupt-download"}
             Using fixture As New InstallationChecks.InstallFixture(root, "cf-error-" & issue), handler As New Handler(), client As New HttpClient(handler), resolver As New CurseForgeFileResolver(New SourcePolicy(), client, "")
                 Configure(fixture, handler)

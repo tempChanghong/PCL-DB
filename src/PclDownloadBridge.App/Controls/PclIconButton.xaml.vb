@@ -67,7 +67,7 @@ Namespace Controls
                                              RaiseEvent Click(Me, args)
                                          End Sub
             AddHandler KeyDown, Sub(sender, args)
-                                    If Not IsEnabled OrElse (args.Key <> Key.Enter AndAlso args.Key <> Key.Space) OrElse args.IsRepeat Then Return
+                                    If Not IsEnabled OrElse Not IsHitTestVisible OrElse (args.Key <> Key.Enter AndAlso args.Key <> Key.Space) OrElse args.IsRepeat Then Return
                                     args.Handled = True
                                     RaiseEvent Click(Me, args)
                                 End Sub

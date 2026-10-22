@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## Beta 1.0 后续修复：整合包目录与动画交接检查
+
+- 再次读取固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModModpack.CopyOverrideDirectory`：PCL 在 Windows 临时目录中检查并复制覆写目录，再处理 PCL/Setup.ini。本工具直接读 ZIP，却曾用区分大小写的前缀筛选，导致 `Overrides` 与清单 `overrides` 不一致时静默漏装。现在清单规划和实际复制同时按 Windows 的大小写规则匹配，保留原始文件名，继续拒绝重复/大小写碰撞和越界路径，不放宽已有实例覆盖或原子发布边界。
+- 核对 `PageDownloadLeft.PageChangeRun`、`MyPageRight.TriggerExitAnimation/TriggerEnterAnimation` 的退出、延迟入场和输入锁定关系，以及固定 `PageDownloadInstall.EnterSelectPage/ExitSelectPage` 的横向切换。独立 WPF 适配层新增的修复是：父页面切换前先捕获当前合成画面，再释放右侧动画；原版列表在类别入场期间完成刷新时，由已经拥有右侧视口的动画控制器续接。未声称 PCL 原版采用相同的冻结位图实现。
+- PclListItem 的键盘适配已遵守 IsHitTestVisible；动作/图标按钮及名称提交入口原先未统一遵守。现在键盘激活和安装入口同样尊重页面输入锁定，解除后恢复正常，不借禁用所有控件改变入场时的外观。新增真实 WPF 路由事件、两个层次的输入锁定和像素区域比较检查；不把离线 HWND 测试称为桌面帧率测试。
+
 ## Beta 1.0 后续开发：下载侧栏与 CurseForge 独立卡片
 
 - 再次读取固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `Pages/PageDownload/PageDownloadLeft.xaml/.vb`：使用原版游戏和整合包的原始图形路径、36 DIP 行高、顶部 12 DIP 留白与禁用整行缩放的侧栏行为；页面保留实例，切换时不重建。这里只保留用户要求的两项，135 DIP 固定侧栏宽度是本项目对两项导航的适配。

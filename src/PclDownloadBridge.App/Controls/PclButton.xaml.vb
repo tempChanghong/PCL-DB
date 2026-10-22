@@ -88,7 +88,7 @@ Namespace Controls
         End Sub
         Protected Overrides Sub OnKeyDown(e As KeyEventArgs)
             MyBase.OnKeyDown(e)
-            If IsEnabled AndAlso Not e.IsRepeat AndAlso (e.Key = Key.Enter OrElse e.Key = Key.Space) Then
+            If IsEnabled AndAlso IsHitTestVisible AndAlso Not e.IsRepeat AndAlso (e.Key = Key.Enter OrElse e.Key = Key.Space) Then
                 RaiseEvent Click(Me, New RoutedEventArgs())
                 e.Handled = True
             End If

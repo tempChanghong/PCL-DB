@@ -77,7 +77,7 @@ function Test-PclDbCandidate {
     param([Parameter(Mandatory)][string]$ProjectRoot, [Parameter(Mandatory)][string]$CandidateResultPath)
     $result = Get-Content -LiteralPath $CandidateResultPath -Raw -Encoding UTF8 | ConvertFrom-Json
     if (!$result.PSObject.Properties['MotionChecks'] -or !$result.PSObject.Properties['ReleaseVersion'] -or
-        !$result.Succeeded -or $result.StandaloneChecks -ne 25 -or $result.UiChecks -ne 707 -or $result.MotionChecks -ne 344 -or
+        !$result.Succeeded -or $result.StandaloneChecks -ne 25 -or $result.UiChecks -ne 709 -or $result.MotionChecks -ne 349 -or
         !$result.ColdDirectoryContainsOnlyExe -or $result.Version -notmatch '^\d+\.\d+\.\d+$' -or
         $result.Source.Commit -notmatch '^[0-9a-f]{40}$' -or $result.Source.InventorySHA256 -notmatch '^[0-9A-F]{64}$') { throw 'Invalid single EXE candidate report.' }
     Assert-PclDbSourceState $result.Source (Get-PclDbSourceState $ProjectRoot)

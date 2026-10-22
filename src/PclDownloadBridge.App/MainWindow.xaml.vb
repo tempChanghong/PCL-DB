@@ -486,11 +486,17 @@ Partial Public Class MainWindow
             _focusAfterPageSwitch = False
             ' A completed catalogue replaces its own entry group, as PCL's loader
             ' completion enters fresh content. Hidden catalogues do not touch it.
-            _surfaceMotion.Change(DownloadPage, DownloadPage,
-                Sub()
-                    If _pageSwitch.Transition IsNot Nothing Then _pageSwitch.Finish()
-                    RenderVersionCatalogue()
-                End Sub, contentRefresh:=True)
+            Dim replace As Action = Sub()
+                                        If _pageSwitch.Transition IsNot Nothing Then _pageSwitch.Finish()
+                                        RenderVersionCatalogue()
+                                    End Sub
+            If _categoryMotion.Transition IsNot Nothing Then
+                ' Retarget the controller already owning this viewport. Starting
+                ' a parent entry here would animate the same catalogue twice.
+                _categoryMotion.Change(VersionPage, VersionPage, replace, contentRefresh:=True)
+            Else
+                _surfaceMotion.Change(DownloadPage, DownloadPage, replace, contentRefresh:=True)
+            End If
             If refocus Then FocusDownloadPage()
             If _surfaceMotion.Transition Is Nothing Then RestoreSurfaceFocus()
         Else
@@ -741,7 +747,7 @@ Partial Public Class MainWindow
     End Sub
 
     Private Async Sub StartInstall(sender As Object, e As RoutedEventArgs)
-        If _busy Then Return
+        If _busy OrElse _closing OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible Then Return
         Dim pack = If(_downloadView = DownloadView.Modpacks, _packSelection, Nothing)
         If _downloadView = DownloadView.Modpacks AndAlso (_readingPack OrElse pack Is Nothing) Then Return
         If _selectedFolder Is Nothing Then
