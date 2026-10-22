@@ -10,22 +10,14 @@
       </ControlTemplate.Triggers>
     </ControlTemplate></Setter.Value></Setter>
   </Style>
-  <Style x:Key="PclAppearanceRadio" TargetType="RadioButton">
+  <Style x:Key="PclAppearanceRadio" TargetType="p:PclRadioBox">
     <Setter Property="Cursor" Value="Hand"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/>
     <Setter Property="Foreground" Value="{DynamicResource ColorBrush1}"/><Setter Property="MinHeight" Value="28"/>
-    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="RadioButton">
+    <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="p:PclRadioBox">
       <Grid Background="{StaticResource ColorBrushSemiTransparent}" MinHeight="20">
-        <Ellipse x:Name="Ring" Width="18" Height="18" StrokeThickness="1.1" Margin="1,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Stroke="{TemplateBinding Foreground}" Fill="{DynamicResource ColorBrushHalfWhite}"/>
-        <Ellipse x:Name="Dot" Width="9" Height="9" Margin="5.5,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Fill="{TemplateBinding Foreground}" Visibility="Collapsed"/>
+        <p:PclRadioGlyph x:Name="Glyph" Width="20" Height="20" HorizontalAlignment="Left" VerticalAlignment="Center" IsHitTestVisible="False"/>
         <ContentPresenter Margin="26,0,0,0" VerticalAlignment="Center" RecognizesAccessKey="True"/>
       </Grid>
-      <ControlTemplate.Triggers>
-        <Trigger Property="IsChecked" Value="True"><Setter Property="Foreground" Value="{DynamicResource ColorBrush2}"/><Setter TargetName="Dot" Property="Visibility" Value="Visible"/></Trigger>
-        <Trigger Property="IsMouseOver" Value="True"><Setter Property="Foreground" Value="{DynamicResource ColorBrush3}"/></Trigger>
-        <Trigger Property="IsKeyboardFocused" Value="True"><Setter Property="Foreground" Value="{DynamicResource ColorBrush3}"/></Trigger>
-        <Trigger Property="IsPressed" Value="True"><Setter TargetName="Ring" Property="Fill" Value="{DynamicResource ColorBrushBg1}"/></Trigger>
-        <Trigger Property="IsEnabled" Value="False"><Setter Property="Foreground" Value="{DynamicResource ColorBrushGray5}"/></Trigger>
-      </ControlTemplate.Triggers>
     </ControlTemplate></Setter.Value></Setter>
   </Style>
   <Style x:Key="PclComboToggle" TargetType="ToggleButton">

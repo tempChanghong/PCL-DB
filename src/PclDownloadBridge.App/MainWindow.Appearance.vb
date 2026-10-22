@@ -12,7 +12,7 @@ Partial Public Class MainWindow
     Private Sub InitializeAppearance()
         _restoringAppearance = True
         For i = 0 To AppearancePreferences.ThemeIds.Length - 1
-            Dim radio As New RadioButton With {.Content = AppearancePreferences.ThemeNames(i), .Tag = AppearancePreferences.ThemeIds(i), .GroupName = "AppearanceTheme", .Style = DirectCast(FindResource("PclAppearanceRadio"), Style)}
+            Dim radio As New PclRadioBox With {.Content = AppearancePreferences.ThemeNames(i), .Tag = AppearancePreferences.ThemeIds(i), .GroupName = "AppearanceTheme", .Style = DirectCast(FindResource("PclAppearanceRadio"), Style)}
             AddHandler radio.Checked, AddressOf AppearanceChanged
             AppearanceThemes.Children.Add(radio)
         Next

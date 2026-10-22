@@ -107,6 +107,7 @@ Partial Public Class MainWindow
 
     Private Shared Sub PressControlKey(control As UIElement, key As Key)
         control.RaiseEvent(New KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(control), Environment.TickCount, key) With {.RoutedEvent = Keyboard.KeyDownEvent})
+        control.RaiseEvent(New KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(control), Environment.TickCount, key) With {.RoutedEvent = Keyboard.KeyUpEvent})
     End Sub
 
     Friend Shared Sub FlushControlLayout()

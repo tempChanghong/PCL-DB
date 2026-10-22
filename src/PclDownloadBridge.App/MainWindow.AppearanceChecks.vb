@@ -22,6 +22,12 @@ Partial Public Class MainWindow
 
     Private Sub SelectAppearanceTheme(id As String)
         Dim radio = AppearanceThemes.Children.OfType(Of RadioButton)().Single(Function(r) CStr(r.Tag) = id)
+        If Not radio.IsLoaded OrElse Not radio.IsVisible Then
+            ' Hidden-page fixtures model programmatic preference restoration, not
+            ' user input. Real automation selection must respect the page gate.
+            radio.SetCurrentValue(RadioButton.IsCheckedProperty, True)
+            Return
+        End If
         Dim peer = UIElementAutomationPeer.CreatePeerForElement(radio)
         DirectCast(peer.GetPattern(PatternInterface.SelectionItem), ISelectionItemProvider).Select()
     End Sub
@@ -121,8 +127,8 @@ Partial Public Class MainWindow
             Dim lastChoice = AppearanceThemes.Children.OfType(Of RadioButton)().Last()
             check(lastChoice.ActualWidth > 70 AndAlso lastChoice.TranslatePoint(New Point(lastChoice.ActualWidth, 0), AppearanceGrid).X <= AppearanceGrid.ActualWidth + 0.5 AndAlso SettingsPage.ScrollableHeight > 0, "personalization choices stay inside the minimum window and remain scrollable")
             Dim firstChoice = AppearanceThemes.Children.OfType(Of RadioButton)().First()
-            Dim ring = DirectCast(firstChoice.Template.FindName("Ring", firstChoice), Shapes.Ellipse)
-            check(ring.Width = 18 AndAlso ring.StrokeThickness = 1.1 AndAlso DirectCast(firstChoice.Template.FindName("Dot", firstChoice), Shapes.Ellipse).Width = 9, "theme radio controls retain PCL's eighteen-DIP ring and nine-DIP selected dot")
+            Dim glyph = DirectCast(firstChoice.Template.FindName("Glyph", firstChoice), PclRadioGlyph)
+            check(glyph.Width = 20 AndAlso glyph.Height = 20 AndAlso PclRadioGlyph.RingSize = 18 AndAlso PclRadioGlyph.OutlineThickness = 1.1 AndAlso PclRadioGlyph.DotSize = 9, "theme radio controls retain PCL's eighteen-DIP ring and nine-DIP selected dot")
             Dim colors As New HashSet(Of Color)
             For Each theme In AppearancePreferences.ThemeIds
                 SelectAppearanceTheme(theme)

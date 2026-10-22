@@ -16,7 +16,7 @@ try {
         & '.\src\PclDownloadBridge.App\bin\Release\net48\PclDownloadBridge.exe' --motion-checks artifacts/motion-checks.json | Out-Null
         if ($LASTEXITCODE -ne 0) { throw 'Motion checks failed.' }
         $motion = Get-Content -LiteralPath artifacts/motion-checks.json -Raw | ConvertFrom-Json
-        if (!$motion.Succeeded -or $motion.Scope -ne 'motion' -or $motion.Count -ne 358) { throw 'Motion checks failed.' }
+        if (!$motion.Succeeded -or $motion.Scope -ne 'motion' -or $motion.Count -ne 503) { throw 'Motion checks failed.' }
         & '.\src\PclDownloadBridge.App\bin\Release\net48\PclDownloadBridge.exe' --pack-search-checks artifacts/pack-search-checks.json | Out-Null
         if ($LASTEXITCODE -ne 0) { throw 'Pack search UI checks failed.' }
         $packSearch = Get-Content -LiteralPath artifacts/pack-search-checks.json -Raw | ConvertFrom-Json

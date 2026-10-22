@@ -12,6 +12,7 @@ Partial Public Class MainWindow
         Dim cardPress = ObserveCardPressLifecycle(directory)
         Dim button As New PclButton With {.Text = "下载", .Width = 120, .Height = 35}
         Dim icon As New PclIconButton With {.Logo = "M 0,8 L 8,0 L 8,5 L 16,5 L 16,11 L 8,11 L 8,16 Z", .Width = 32, .Height = 32}
+        icon.MotionPolicy.EnabledForChecks = True
         Dim rows As New StackPanel()
         rows.Children.Add(button) : rows.Children.Add(icon)
         Dim host As New Border With {.Width = 300, .Height = 160, .Child = rows}

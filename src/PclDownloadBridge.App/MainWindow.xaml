@@ -32,12 +32,10 @@
             <p:PclRadioButton x:Name="SettingsTab" Text="设置" Margin="5,0" Logo="{StaticResource IconTitle设置}" Click="ShowSettings" />
           </StackPanel>
           <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0">
-            <Button Style="{StaticResource CaptionButton}" Click="MinimizeWindow" Margin="0,0,4,0">
-              <Path Data="M0,0 H15 V2 H0 Z" Fill="White" Width="12" Stretch="Uniform" />
-            </Button>
-            <Button Style="{StaticResource CaptionButton}" Click="CloseWindow">
-              <Path Data="M2,0 L0,2 8,10 0,18 2,20 10,12 18,20 20,18 12,10 20,2 18,0 10,8 Z" Fill="White" Width="12" Height="12" Stretch="Uniform" />
-            </Button>
+            <p:PclIconButton x:Name="TitleMinimize" Width="28" Height="28" Theme="White" LogoScale="0.72" Click="MinimizeWindow" Margin="0,0,4,0" ToolTip="最小化" AutomationProperties.Name="最小化"
+                             Logo="F1 M0,0 h15 v2 h-15 v-2 Z"/>
+            <p:PclIconButton x:Name="TitleClose" Width="28" Height="28" Theme="White" LogoScale="0.72" Click="CloseWindow" ToolTip="关闭" AutomationProperties.Name="关闭"
+                             Logo="F1 M2,0 L0,2 8,10 0,18 2,20 10,12 18,20 20,18 12,10 20,2 18,0 10,8 2,0Z"/>
           </StackPanel>
         </Grid>
         <Grid x:Name="PageSurface" Grid.Row="1" ClipToBounds="True">

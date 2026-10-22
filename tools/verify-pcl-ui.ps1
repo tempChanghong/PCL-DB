@@ -135,12 +135,35 @@ Write-Output 'PASS all ten April Fools descriptions match fixed PCL GetMcFoolNam
 
 [xml]$radioSource = Get-Content -LiteralPath (Join-Path $root 'reference/PCL/Controls/MyRadioBox.xaml') -Raw
 $radioStyle = $selection.SelectSingleNode('//*[local-name()="Style" and @*[local-name()="Key"]="PclAppearanceRadio"]')
-$radioRing = $radioStyle.SelectSingleNode('.//*[local-name()="Ellipse" and @*[local-name()="Name"]="Ring"]')
+$radioGlyph = $radioStyle.SelectSingleNode('.//*[local-name()="PclRadioGlyph" and @*[local-name()="Name"]="Glyph"]')
+$glyphCode = Get-Content -LiteralPath (Join-Path $root 'src/PclDownloadBridge.App/Controls/PclRadioGlyph.vb') -Raw
 $sourceRing = $radioSource.SelectSingleNode('//*[local-name()="Ellipse" and @*[local-name()="Name"]="ShapeBorder"]')
-foreach ($attribute in @('Width','Height','StrokeThickness','Margin')) {
-    if ($radioRing.GetAttribute($attribute) -ne $sourceRing.GetAttribute($attribute)) { throw "PCL appearance radio ring mismatch: $attribute" }
+if ($radioGlyph.GetAttribute('Width') -ne '20' -or $radioGlyph.GetAttribute('Height') -ne '20' -or
+    !$glyphCode.Contains('RingSize As Double = ' + $sourceRing.GetAttribute('Width')) -or
+    !$glyphCode.Contains('OutlineThickness As Double = ' + $sourceRing.GetAttribute('StrokeThickness')) -or
+    $sourceRing.GetAttribute('Margin') -ne '1,0,0,0' -or !$glyphCode.Contains('New Point(10, 10)')) {
+    throw 'PCL appearance radio ring geometry mismatch.'
 }
 $radioCode = Get-Content -LiteralPath (Join-Path $root 'reference/PCL/Controls/MyRadioBox.xaml.vb') -Raw
-if (!$radioCode.Contains('ShapeDot.Width = 9') -or $radioStyle.SelectSingleNode('.//*[local-name()="Ellipse" and @*[local-name()="Name"]="Dot"]').GetAttribute('Width') -ne '9') { throw 'PCL appearance radio dot mismatch.' }
+if (!$radioCode.Contains('ShapeDot.Width = 9') -or !$glyphCode.Contains('DotSize As Double = 9')) { throw 'PCL appearance radio dot mismatch.' }
 Assert-PclAsset 'Images/Themes/12.png'
 Write-Output 'PASS PCL appearance radio geometry and original title texture bytes'
+
+[xml]$sourceWindow = Get-Content -LiteralPath (Join-Path $root 'reference/PCL/FormMain.xaml') -Raw
+foreach ($pair in @(@('BtnTitleMin','TitleMinimize'), @('BtnTitleClose','TitleClose'))) {
+    $original = $sourceWindow.SelectSingleNode('//*[@*[local-name()="Name"]="' + $pair[0] + '"]')
+    $actual = $actualWindow.SelectSingleNode('//*[@*[local-name()="Name"]="' + $pair[1] + '"]')
+    foreach ($attribute in @('Width','Height','Theme','LogoScale','Logo')) {
+        if ($original.GetAttribute($attribute) -ne $actual.GetAttribute($attribute)) { throw "PCL title icon mismatch: $($pair[1])/$attribute" }
+    }
+}
+Write-Output 'PASS both PCL white title icon geometries, 28 DIP hit areas and 0.72 logo scale'
+[xml]$barStyle = Get-Content -LiteralPath (Join-Path $root 'src/PclDownloadBridge.App/Controls/PclScrollBarStyle.xaml') -Raw
+$sourceBar = $sourceApplication.SelectSingleNode('//*[local-name()="Style" and @TargetType="local:MyScrollBar"]')
+$sourceThumb = $sourceApplication.SelectSingleNode('//*[local-name()="Style" and @*[local-name()="Key"]="MyThumb"]//*[local-name()="Border" and @Margin]')
+$actualThumb = $barStyle.SelectSingleNode('//*[local-name()="ControlTemplate" and @TargetType="Thumb"]//*[local-name()="Border" and @Margin]')
+if ($barStyle.SelectSingleNode('//*[local-name()="Style" and @TargetType="ScrollBar"]/*[local-name()="Setter" and @Property="Width"]').GetAttribute('Value') -ne $sourceBar.SelectSingleNode('./*[local-name()="Setter" and @Property="Width"]').GetAttribute('Value')) { throw 'PCL scrollbar hit width mismatch.' }
+foreach ($attribute in @('CornerRadius','Margin')) {
+    if ($sourceThumb.GetAttribute($attribute) -ne $actualThumb.GetAttribute($attribute)) { throw "PCL scrollbar thumb mismatch: $attribute" }
+}
+Write-Output 'PASS PCL scrollbar 8 DIP hit area, 2 DIP thumb inset and corner radius'

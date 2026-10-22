@@ -70,10 +70,14 @@ Namespace Controls
         Private ReadOnly _owner As FrameworkElement
         Private ReadOnly _scale As ScaleTransform
         Private ReadOnly _cancelPress As Action
+        Private ReadOnly _canAnimate As Func(Of Boolean)
+        Private ReadOnly _pauseForChecks As Func(Of Boolean)
         Private _clock As AnimationClock
 
-        Friend Sub New(owner As FrameworkElement, scale As ScaleTransform, cancelPress As Action)
+        Friend Sub New(owner As FrameworkElement, scale As ScaleTransform, cancelPress As Action, Optional canAnimate As Func(Of Boolean) = Nothing, Optional pauseForChecks As Func(Of Boolean) = Nothing)
             _owner = owner : _scale = scale : _cancelPress = cancelPress
+            _canAnimate = canAnimate
+            _pauseForChecks = pauseForChecks
             AddHandler owner.Unloaded, Sub() Cancel()
             AddHandler owner.IsVisibleChanged, Sub()
                                                    If Not owner.IsVisible Then Cancel()
@@ -99,11 +103,15 @@ Namespace Controls
             If Not _owner.IsVisible OrElse Not _owner.IsHitTestVisible OrElse Not _owner.IsEnabled Then
                 Cancel() : Return
             End If
+            If _canAnimate IsNot Nothing AndAlso Not _canAnimate() Then
+                ResetScale() : Return
+            End If
             Dim origin = _scale.ScaleX
             ResetScale()
             ' A newly attached WPF clock may not be active until the next tick.
             _scale.ScaleX = origin : _scale.ScaleY = origin
             Dim clock = DirectCast(New PclPressAnimation(origin, kind).CreateClock(True), AnimationClock)
+            If _pauseForChecks IsNot Nothing AndAlso _pauseForChecks() Then clock.Controller.Pause()
             _clock = clock
             If kind <> PclPressKind.ButtonDown AndAlso kind <> PclPressKind.IconDown Then
                 AddHandler clock.Completed, Sub()
@@ -114,7 +122,7 @@ Namespace Controls
             _scale.ApplyAnimationClock(ScaleTransform.ScaleYProperty, clock)
         End Sub
 
-        Private Sub Cancel()
+        Friend Sub Cancel()
             _cancelPress() : ResetScale()
         End Sub
 
