@@ -124,12 +124,13 @@ Partial Public Class MainWindow
         ' Like PCL's Loader.ShouldStart / Start, keep the accepted identical request.
         ' In particular, do not enumerate mutable session errors while it is fetching.
         If _packSearchSession IsNot Nothing AndAlso key = _packLastQuery AndAlso _packSearchRequest IsNot Nothing AndAlso Not _packSearchRequest.IsCancellationRequested Then Return
-        If _packSearchSession IsNot Nothing AndAlso key = _packLastQuery AndAlso _packSearchRequest Is Nothing AndAlso _packSearchSession.ErrorMessage = "" AndAlso DateTime.UtcNow - _packLastSearch <= TimeSpan.FromSeconds(60) Then candidate = _packSearchSession
+        Dim cacheAge = DateTime.UtcNow - _packLastSearch
+        If _packSearchSession IsNot Nothing AndAlso key = _packLastQuery AndAlso _packSearchRequest Is Nothing AndAlso _packSearchSession.ErrorMessage = "" AndAlso cacheAge >= TimeSpan.Zero AndAlso cacheAge <= TimeSpan.FromSeconds(60) Then candidate = _packSearchSession
         _packSearchRequest?.Cancel()
         _packDetailRequest?.Cancel()
         If candidate IsNot _packSearchSession Then _packLastSearch = DateTime.UtcNow
         _packSearchSession = candidate : _packLastQuery = key
-        _packProject = Nothing : _packReleases.Clear()
+        _packProject = Nothing : _packVerifiedProject = Nothing : _packReleases.Clear()
         _packSearchPage = 0 : _packSearchScroll = 0
         ChangePackMode(PackBrowserMode.Search)
         Await LoadPackSearchPageAsync(0)
@@ -269,21 +270,15 @@ Partial Public Class MainWindow
     End Sub
     Private Async Sub OpenPackDetails(project As ModpackProject)
         If _busy OrElse _choosingOnline OrElse _closing OrElse Not DownloadViewHost.IsHitTestVisible OrElse Not PackSearchResultsHost.IsHitTestVisible Then Return
-        If _packProject Is Nothing OrElse _packProject.Key <> project.Key Then
-            _packProject = project : _packReleases.Clear() : _packDetailScroll = 0
+        Dim changingProject = _packProject Is Nothing OrElse _packProject.Key <> project.Key
+        If changingProject Then
+            _packProject = project : _packVerifiedProject = Nothing : _packReleases.Clear() : _packDetailScroll = 0
             _packTargetGame = If(_packSearchSession?.Query.Minecraft, "")
             _packVersionCache.Clear()
         End If
-        PackProjectTitle.Text = project.Name : PackProjectDescription.Text = project.Summary
-        If PackProjectIdentity.Children.Count = 0 OrElse DirectCast(PackProjectIdentity.Children(0), PclResourceItem).Tag IsNot project Then
-            PackProjectIdentity.Children.Clear()
-            Dim intro As New PclResourceItem(project) With {.Tag = project, .IsHitTestVisible = False, .Focusable = False}
-            PackProjectIdentity.Children.Add(intro)
-            LoadPackIconAsync(intro, project, If(_packArtworkRequest Is Nothing, CancellationToken.None, _packArtworkRequest.Token))
-        End If
-        PackProjectWebsite.Text = "转到 " & project.Platform.ToString()
+        RenderPackProject(ActivePackProject())
         ChangePackMode(PackBrowserMode.Detail)
-        If _packReleases.Count = 0 Then Await LoadPackDetailsAsync(project)
+        If _packReleases.Count = 0 AndAlso (changingProject OrElse _packDetailRequest Is Nothing OrElse _packDetailRequest.IsCancellationRequested) Then Await LoadPackDetailsAsync(_packProject)
     End Sub
     Private Async Sub RetryPackDetails(sender As Object, e As RoutedEventArgs)
         If _packProject Is Nothing OrElse _busy OrElse _choosingOnline OrElse _closing OrElse _packMode <> PackBrowserMode.Detail OrElse _downloadView <> DownloadView.Modpacks OrElse Not PackDetailSurface.IsVisible OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible OrElse Not PackDetailResultsHost.IsHitTestVisible Then Return
@@ -304,11 +299,12 @@ Partial Public Class MainWindow
                 Dim verified = Await client.GetProjectAsync(project.Platform, project.Id, request.Token)
                 Dim releases = Await client.GetVersionsAsync(verified, request.Token)
                 If _closing OrElse request.IsCancellationRequested OrElse _packDetailRequest IsNot request OrElse _packProject IsNot project Then Return
-                PackProjectDescription.Text = verified.Summary : _packReleases = releases
+                ChangePackContent(PackBrowserMode.Detail, Sub()
+                                                             _packVerifiedProject = verified : _packReleases = releases
+                                                             RenderPackProject(verified)
+                                                             PackDetailHint.Visibility = Visibility.Collapsed : InitializePackVersions()
+                                                         End Sub)
             End Using
-            ChangePackContent(PackBrowserMode.Detail, Sub()
-                                                         PackDetailHint.Visibility = Visibility.Collapsed : InitializePackVersions()
-                                                     End Sub)
         Catch ex As Exception
             If Not _closing AndAlso Not request.IsCancellationRequested AndAlso _packDetailRequest Is request AndAlso _packProject Is project Then
                 ChangePackContent(PackBrowserMode.Detail, Sub()
@@ -333,17 +329,20 @@ Partial Public Class MainWindow
         Return value
     End Function
     Private Sub OpenPackProjectWebsite(sender As Object, e As RoutedEventArgs)
-        If _packProject Is Nothing OrElse _preview Then Return
-        System.Diagnostics.Process.Start(New System.Diagnostics.ProcessStartInfo(_packProject.Website) With {.UseShellExecute = True})
+        Dim project = ActivePackProject()
+        If project Is Nothing OrElse _preview Then Return
+        System.Diagnostics.Process.Start(New System.Diagnostics.ProcessStartInfo(project.Website) With {.UseShellExecute = True})
     End Sub
     Private Sub CopyPackProjectName(sender As Object, e As RoutedEventArgs)
-        If _packProject IsNot Nothing Then Clipboard.SetText(_packProject.Name)
+        Dim project = ActivePackProject()
+        If project IsNot Nothing Then Clipboard.SetText(project.Name)
     End Sub
 
     Private Async Sub InstallOnlinePack(release As ModpackRelease, Optional displayedTitle As String = Nothing)
         If _busy OrElse _choosingOnline OrElse _readingPack OrElse _closing OrElse _packProject Is Nothing OrElse _packMode <> PackBrowserMode.Detail OrElse _downloadView <> DownloadView.Modpacks OrElse Not DownloadPage.IsVisible OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible OrElse Not PackDetailResultsHost.IsHitTestVisible Then Return
-        Dim project = _packProject, snapshot = release.Copy()
+        Dim project = ActivePackProject(), snapshot = release.Copy()
         If snapshot.Platform <> project.Platform OrElse snapshot.ProjectId <> project.Id Then Return
+        Dim projectKey = project.Key, projectName = project.Name
         Dim blocked = ModpackCompatibility.GetInstallBlockReason(snapshot)
         If blocked IsNot Nothing Then StatusText.Text = blocked : Return
         If _selectedFolder Is Nothing Then ChooseInstallFolder(Nothing, Nothing) : StatusText.Text = "请先选择游戏目录。" : Return
@@ -352,10 +351,10 @@ Partial Public Class MainWindow
         Dim root = _selectedFolder.Location
         _choosingOnline = True
         Try
-            Dim proposed = If(_onlineLastRelease = project.Key & ":" & snapshot.Id, _onlineLastName, SuggestedPackName(project.Name))
-            Dim name = Await PromptOnlinePackAsync("输入版本名称", project.Name & " · " & PackReleaseConfirmation(snapshot, displayedTitle), root, proposed, False, CancellationToken.None)
+            Dim proposed = If(_onlineLastRelease = projectKey & ":" & snapshot.Id, _onlineLastName, SuggestedPackName(projectName))
+            Dim name = Await PromptOnlinePackAsync("输入版本名称", projectName & " · " & PackReleaseConfirmation(snapshot, displayedTitle), root, proposed, False, CancellationToken.None)
             If String.IsNullOrEmpty(name) OrElse _closing Then Return
-            _onlineLastName = name : _onlineLastRelease = project.Key & ":" & snapshot.Id
+            _onlineLastName = name : _onlineLastRelease = projectKey & ":" & snapshot.Id
             Await RunOnlinePackInstallationAsync(snapshot, root, name, CLng(limit * 1024 * 1024), displayedTitle)
         Catch ex As Exception
             If Not _closing Then StatusText.Text = ex.GetBaseException().Message

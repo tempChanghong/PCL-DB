@@ -1,0 +1,25 @@
+Imports System.Threading
+Imports PclDownloadBridge.Controls
+Imports PclDownloadBridge.Core
+
+Partial Public Class MainWindow
+    Private _packVerifiedProject As ModpackProject
+
+    ' The accepted search object remains the detail request's owner. Fresh project
+    ' metadata supplies presentation/actions without modifying the search snapshot.
+    Private Function ActivePackProject() As ModpackProject
+        If _packProject IsNot Nothing AndAlso _packVerifiedProject IsNot Nothing AndAlso _packVerifiedProject.Key = _packProject.Key Then Return _packVerifiedProject
+        Return _packProject
+    End Function
+
+    Private Sub RenderPackProject(project As ModpackProject)
+        PackProjectTitle.Text = project.Name : PackProjectDescription.Text = project.Summary
+        If PackProjectIdentity.Children.Count = 0 OrElse DirectCast(PackProjectIdentity.Children(0), PclResourceItem).Tag IsNot project Then
+            PackProjectIdentity.Children.Clear()
+            Dim intro As New PclResourceItem(project) With {.Tag = project, .IsHitTestVisible = False, .Focusable = False}
+            PackProjectIdentity.Children.Add(intro)
+            LoadPackIconAsync(intro, project, If(_packArtworkRequest Is Nothing, CancellationToken.None, _packArtworkRequest.Token))
+        End If
+        PackProjectWebsite.Text = "转到 " & project.Platform.ToString()
+    End Sub
+End Class

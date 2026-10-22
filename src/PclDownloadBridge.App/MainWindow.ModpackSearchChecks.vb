@@ -249,6 +249,7 @@ Partial Public Class MainWindow
         _packCatalogFactory = Function() New ModpackCatalogClient(New PackSearchFixtureHandler(), "")
         Await LoadPackDetailsAsync(currentProject) : Await olderDetails : layout()
         check(_packProject Is currentProject AndAlso _packReleases.All(Function(release) release.ProjectId = "current") AndAlso PackVersionCards.Children.Count = 1, "a delayed older project's details cannot replace the current project's version cards")
+        check(ActivePackProject().Id = "current" AndAlso DirectCast(DirectCast(PackProjectIdentity.Children(0), PclResourceItem).Tag, ModpackProject).Id = "current", "a delayed older project also cannot replace the accepted visible metadata or detail actions")
 
         ' Query replacement must win even if an earlier handler ignores cancellation.
         _packCatalogFactory = Function() New ModpackCatalogClient(New PackSearchFixtureHandler With {.Delay = 60}, "")
@@ -262,6 +263,7 @@ Partial Public Class MainWindow
         Await VerifyPackAsyncEntryAsync(directory, host, layout, check)
         Await VerifyPackPagingAsync(directory, host, layout, check)
         Await VerifyPackRecoveryAsync(directory, host, layout, check)
+        Await VerifyPackProjectCacheAsync(directory, host, layout, check)
         Await VerifyPackCompatibilityUiAsync(directory, host, layout, check)
         Await VerifyPackReleaseLabelsAsync(directory, host, layout, check)
 
@@ -318,6 +320,7 @@ Partial Public Class MainWindow
         Public Property Delay As Integer
         Public Property BeforeSendAsync As Func(Of Uri, CancellationToken, Task)
         Public Property SearchPage As Func(Of Uri, JObject)
+        Public Property ProjectPage As Func(Of Uri, JObject)
         Protected Overrides Async Function SendAsync(request As HttpRequestMessage, token As CancellationToken) As Task(Of HttpResponseMessage)
             If Delay > 0 Then Await Task.Delay(Delay)
             Dim address = request.RequestUri, result As JToken
@@ -340,6 +343,8 @@ Partial Public Class MainWindow
                     versions.Add(New JObject From {{"id", "release" & number.Replace(".", "")}, {"project_id", id}, {"name", "Fixture " & number}, {"version_number", number}, {"version_type", "release"}, {"date_published", "2026-10-01T00:00:00Z"}, {"game_versions", New JArray("1.20.1")}, {"loaders", New JArray("forge")}, {"files", New JArray(New JObject From {{"filename", "fixture.mrpack"}, {"primary", True}, {"url", "https://cdn.modrinth.com/fixture.mrpack"}, {"size", 100}, {"hashes", New JObject From {{"sha1", New String("a"c, 40)}}}})}})
                 Next
                 result = versions
+            ElseIf ProjectPage IsNot Nothing Then
+                result = ProjectPage(address)
             Else
                 result = ProjectJson(address.Segments.Last())
             End If

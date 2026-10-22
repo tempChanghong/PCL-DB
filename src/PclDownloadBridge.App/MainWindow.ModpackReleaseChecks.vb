@@ -63,7 +63,7 @@ Partial Public Class MainWindow
         check(PackVersionCards.Children(0) Is card AndAlso card.Body Is rows AndAlso firstRow.Title = "pack-forge-2.3" AndAlso secondRow.Title = "pack-fabric-2.3", "returning from installation reuses the same card, row instances and disambiguated labels")
         generation = _taskGeneration
         firstRow.Activate() : layout()
-        check(OnlinePackName.Text = SuggestedPackName(_packProject.Name), "a different same-name release does not inherit the Fabric instance's chosen name")
+        check(OnlinePackName.Text = SuggestedPackName(PackProjectTitle.Text), "a different same-name release does not inherit the Fabric instance's chosen name")
         CancelOnlinePackName(Nothing, Nothing) : Await WaitPackUiAsync(Function() Not _choosingOnline)
         secondRow.Activate() : layout()
         check(OnlinePackName.Text = "Distinct-Fabric-Instance" AndAlso _taskGeneration = generation AndAlso calls = 1, "reselecting the confirmed release retains its chosen name without starting another task before confirmation")
