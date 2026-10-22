@@ -155,9 +155,19 @@ Partial Public Class MainWindow
     Private Sub ChangePackResults(update As Action)
         ChangePackContent(PackBrowserMode.Search, update)
     End Sub
+    Private Shared Function PackSearchPageLimitText() As String
+        Return "搜索最多支持前 " & (ModpackSearchSession.MaxPage + 1).ToString() & " 页，请缩小搜索范围或更改条件。"
+    End Function
     Private Async Function LoadPackSearchPageAsync(page As Integer) As Task
         Dim session = _packSearchSession
         If session Is Nothing OrElse _busy OrElse _closing OrElse _choosingOnline Then Return
+        ' Reject stale/programmatic navigation before canceling the accepted
+        ' request or replacing its rows. Core callers still receive an exception.
+        If page < 0 OrElse page > ModpackSearchSession.MaxPage Then
+            PackSearchHint.Theme = PclHintTheme.Yellow : PackSearchHint.Text = PackSearchPageLimitText()
+            PackSearchHint.ToolTip = Nothing : PackSearchHint.Visibility = Visibility.Visible
+            Return
+        End If
         _packSearchRequest?.Cancel()
         _packArtworkRequest?.Cancel() : _packArtworkRequest?.Dispose()
         _packArtworkRequest = New CancellationTokenSource()
@@ -185,6 +195,8 @@ Partial Public Class MainWindow
             End Using
             If Not CurrentPackSearch(session, request) Then Return
             _packSearchPage = page
+            Dim limitReached = page = ModpackSearchSession.MaxPage AndAlso session.Count >= (page + 1) * ModpackCatalogClient.PageSize AndAlso
+                (session.HasMore OrElse session.Count > (page + 1) * ModpackCatalogClient.PageSize)
             ChangePackResults(Sub()
                                   PackProjectRows.Children.Clear() : PackResultsCard.Title = "整合包"
                                   PackResultsCard.HorizontalAlignment = HorizontalAlignment.Stretch
@@ -203,8 +215,12 @@ Partial Public Class MainWindow
                                   Else
                                       PackSearchHint.Text = "无法取得整合包列表，请稍后重试或选择其他来源。"
                                   End If
+                                  If limitReached Then
+                                      PackSearchHint.Theme = PclHintTheme.Yellow
+                                      PackSearchHint.Text = PackSearchPageLimitText() & If(session.ErrorMessage = "", "", vbCrLf & PackSearchHint.Text)
+                                  End If
                                   PackSearchHint.ToolTip = session.ErrorMessage
-                                  PackSearchHint.Visibility = If(session.ErrorMessage = "", Visibility.Collapsed, Visibility.Visible)
+                                  PackSearchHint.Visibility = If(limitReached OrElse session.ErrorMessage <> "", Visibility.Visible, Visibility.Collapsed)
                                   PackPagingCard.Visibility = If(session.Count > ModpackCatalogClient.PageSize OrElse session.HasMore, Visibility.Visible, Visibility.Collapsed)
                                   PackPageLabel.Text = (page + 1).ToString()
                                   PackFirstPage.IsEnabled = page > 0 : PackPreviousPage.IsEnabled = page > 0 : PackNextPage.IsEnabled = session.HasNext(page)

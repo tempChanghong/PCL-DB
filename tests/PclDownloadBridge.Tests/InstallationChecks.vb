@@ -18,6 +18,7 @@ Friend Module InstallationChecks
         If onlyCase Is Nothing OrElse onlyCase.StartsWith("install-mode-", StringComparison.Ordinal) Then passed.AddRange(Await IsolationModeChecks.RunAsync(testRoot, onlyCase))
         If onlyCase Is Nothing OrElse onlyCase.StartsWith("install-boundary-", StringComparison.Ordinal) Then passed.AddRange(Await IsolationBoundaryChecks.RunAsync(testRoot, onlyCase))
         If onlyCase Is Nothing OrElse onlyCase.StartsWith("install-input-", StringComparison.Ordinal) Then passed.AddRange(Await InstallInputChecks.RunAsync(testRoot, onlyCase))
+        If onlyCase Is Nothing OrElse onlyCase.StartsWith("install-runtime-", StringComparison.Ordinal) Then passed.AddRange(Await RuntimeLibraryChecks.RunAsync(testRoot, onlyCase))
         If passed.Count = 0 Then Throw New ArgumentException("Unknown installation regression: " & onlyCase)
         Return passed
     End Function

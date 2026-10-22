@@ -3,6 +3,9 @@ Imports System.Threading
 ' PCL ResourceSearcher.SearchResult: one cursor per source, append-only results,
 ' partial failure, and a stable 40-item presentation page. No fuzzy identity merge.
 Public NotInheritable Class ModpackSearchSession
+    ' Zero-based presentation pages. Source cursors may still advance while the
+    ' last legal page is incomplete; a full final page must never offer page 501.
+    Public Const MaxPage As Integer = 500
     Private ReadOnly _query As ModpackQuery
     Private ReadOnly _gate As New SemaphoreSlim(1)
     Private ReadOnly _results As New List(Of ModpackProject)
@@ -45,6 +48,8 @@ Public NotInheritable Class ModpackSearchSession
         End Get
     End Property
     Public Function HasNext(page As Integer) As Boolean
+        If page < 0 OrElse page > MaxPage Then Return False
+        If page = MaxPage Then Return _results.Count < (page + 1) * ModpackCatalogClient.PageSize AndAlso HasMore
         Return _results.Count > (page + 1) * ModpackCatalogClient.PageSize OrElse HasMore
     End Function
     Private Class FetchResult
@@ -60,7 +65,7 @@ Public NotInheritable Class ModpackSearchSession
         End Try
     End Function
     Public Async Function GetPageAsync(page As Integer, client As ModpackCatalogClient, token As CancellationToken) As Task(Of List(Of ModpackProject))
-        If page < 0 OrElse page > 500 Then Throw New ArgumentOutOfRangeException(NameOf(page))
+        If page < 0 OrElse page > MaxPage Then Throw New ArgumentOutOfRangeException(NameOf(page))
         Await _gate.WaitAsync(token).ConfigureAwait(False)
         Try
             Dim target = (page + 1) * ModpackCatalogClient.PageSize

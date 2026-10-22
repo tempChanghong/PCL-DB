@@ -127,6 +127,7 @@ Public Class MinecraftInstaller
             Dim stageRelative = ".vanilla-downloader/staging/" & Guid.NewGuid().ToString("N") & "/payload"
             Dim stage = SafeFiles.UnderRoot(root, stageRelative)
             Directory.CreateDirectory(stage)
+            Dim extension As ComponentInstaller = Nothing
             Try
               Using publication As New LegacyResourcePublication(root, stage, instanceName, mappedFiles, isolation IsNot Nothing AndAlso isolation.Isolated, repairExisting),
                     modsPublication As New LegacyResourcePublication(root, stage, instanceName, sharedMods, False, False, "Mods", holdTargets:=True)
@@ -148,7 +149,6 @@ Public Class MinecraftInstaller
                           assetsEngine As New DownloadEngine(_policy, reporting.Branch("assets"), reuseRoots, connections, root, budget:=budget),
                           mappedEngine As New DownloadEngine(_policy, reporting.Branch("mapped"), reuseRoots.Concat({If(isolation IsNot Nothing AndAlso isolation.Isolated, instancePath, root)}), connections, root, budget:=budget),
                           packEngine As New DownloadEngine(_policy, reporting.Branch("pack"), reuseRoots, connections, root, True, budget)
-                        Dim extension As ComponentInstaller = Nothing
                         ' PCL's nonblocking library/resource LoaderCombos share ModNet.
                         ' Components need the verified client/support branch, not all assets.
                         Dim supportWork As Func(Of Task) = Async Function()
@@ -225,12 +225,18 @@ Public Class MinecraftInstaller
                     token.ThrowIfCancellationRequested()
                     Directory.CreateDirectory(Path.GetDirectoryName(instancePath))
                     token.ThrowIfCancellationRequested()
-                    publication.Publish(token)
-                    modsPublication.Publish(token)
-                    If sharedComponents Then SharedModsPublication.FinishFolders(root, stage, modable)
-                    pack?.WriteLedger(stage, token)
-                    token.ThrowIfCancellationRequested()
-                    Directory.Move(stage, instancePath)
+                    ' Component publication has already removed its private work.
+                    ' Recheck the frozen hashless content and hold readers through
+                    ' this short instance commit, after all download branches join.
+                    Using runtimeGuard = extension?.LockPublishedRuntimes(token)
+                        publication.Publish(token)
+                        modsPublication.Publish(token)
+                        If sharedComponents Then SharedModsPublication.FinishFolders(root, stage, modable)
+                        pack?.WriteLedger(stage, token)
+                        token.ThrowIfCancellationRequested()
+                        runtimeGuard?.Verify(token)
+                        Directory.Move(stage, instancePath)
+                    End Using
                 End If
                 publication.Complete()
                 modsPublication.Complete()

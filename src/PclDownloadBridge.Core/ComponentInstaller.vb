@@ -25,6 +25,10 @@ Public Class ComponentInstaller
     Public Property Retries As Integer
     Private ReadOnly _processorClock As Stopwatch = Stopwatch.StartNew()
     Private _lastProcessorReport As Long
+    Private _publishedRuntimes As New List(Of DownloadFile)
+    Friend Function LockPublishedRuntimes(token As CancellationToken) As ComponentRuntimePublication.PublishedLease
+        Return New ComponentRuntimePublication.PublishedLease(_root, _publishedRuntimes, token)
+    End Function
     Public Sub New(policy As SourcePolicy, selection As ComponentSelection, root As String, reuse As IEnumerable(Of String), progress As IProgress(Of TransferProgress), connections As Integer, limit As Long, Optional budget As DownloadBudget = Nothing)
         If selection Is Nothing Then Throw New ArgumentNullException(NameOf(selection))
         _policy = policy : _selection = selection.Copy() : _root = root : _progress = progress
@@ -33,6 +37,7 @@ Public Class ComponentInstaller
     End Sub
 
     Public Async Function ApplyAsync(metadata As JObject, mc As String, stage As String, name As String, token As CancellationToken, Optional isolated As Boolean = True) As Task(Of JObject)
+        _publishedRuntimes.Clear()
         _selection.Validate(mc)
         ModFiles(_selection, mc) ' Reject ambiguous or escaping add-on names before downloading.
         Dim workRelative = ".vanilla-downloader/components/" & Guid.NewGuid().ToString("N")
@@ -114,7 +119,10 @@ Public Class ComponentInstaller
                     missing.Add(libraryInfo)
                 End If
             Next
-            Await FetchAsync(work, missing, "补全组件支持库", token).ConfigureAwait(False)
+            Await FetchAsync(work, missing.Where(Function(item) ComponentRuntimePublication.HasDigest(item)), "补全组件支持库", token).ConfigureAwait(False)
+            ' A same-sized shared hashless file is not a trusted source. Fetch these
+            ' into this fresh private work tree without root donors or weak caches.
+            Await FetchAsync(work, missing.Where(Function(item) Not ComponentRuntimePublication.HasDigest(item)), "补全组件支持库", token, allowReuse:=False).ConfigureAwait(False)
             token.ThrowIfCancellationRequested()
             Emit("processors", "校验安装结果", "校验处理器输出与启动支持库", 0.95)
             For Each libraryInfo In libraries
@@ -122,20 +130,10 @@ Public Class ComponentInstaller
             Next
             ' Publish only the checked runtime plan. Embedded processor dependencies and
             ' unrelated installer files remain private, even if their paths collide.
-            For Each libraryInfo In libraries
-                token.ThrowIfCancellationRequested()
-                Dim destination = SafeFiles.UnderRoot(_root, libraryInfo.RelativePath)
-                If SafeFiles.Matches(destination, libraryInfo) Then Continue For
-                Directory.CreateDirectory(Path.GetDirectoryName(destination))
-                Dim temp = destination & ".component-" & Guid.NewGuid().ToString("N")
-                Try
-                    File.Copy(SafeFiles.UnderRoot(work, libraryInfo.RelativePath), temp)
-                    token.ThrowIfCancellationRequested()
-                    SafeFiles.CommitFile(temp, destination)
-                Finally
-                    If File.Exists(temp) Then File.Delete(temp)
-                End Try
-            Next
+            Using publication As New ComponentRuntimePublication(_root)
+                publication.Publish(work, libraries, token)
+                _publishedRuntimes = publication.FrozenFiles
+            End Using
             If IsModable(_selection) Then Directory.CreateDirectory(Path.Combine(stage, "mods"))
             Directory.CreateDirectory(Path.Combine(stage, "resourcepacks"))
             Directory.CreateDirectory(Path.Combine(stage, "PCL"))
@@ -293,7 +291,7 @@ Public Class ComponentInstaller
         Return outputs
     End Function
 
-    Private Async Function FetchAsync(root As String, files As IEnumerable(Of DownloadFile), title As String, token As CancellationToken) As Task
+    Private Async Function FetchAsync(root As String, files As IEnumerable(Of DownloadFile), title As String, token As CancellationToken, Optional allowReuse As Boolean = True) As Task
         Dim items = DownloadPlan.Merge(files, root)
         If items.Count = 0 Then Return
         Dim reporter As New InlineProgress(Sub(value)
@@ -303,13 +301,20 @@ Public Class ComponentInstaller
                                               value.DynamicSplits += DynamicSplits : value.Retries += Retries
                                               _progress?.Report(value)
                                           End Sub)
-        Using engine As New DownloadEngine(_policy, reporter, _reuse, _connections, _root, useComponentCache:=True, budget:=_budget)
-            engine.BytesPerSecondLimit = _limit
-            Await engine.DownloadAsync(root, items, token).ConfigureAwait(False)
-            NetworkBytes += engine.NetworkBytes : Reused += engine.Reused : DynamicSplits += engine.DynamicSplits
-            Retries += engine.Retries
-            FileCount += items.Count
-        End Using
+        ' Installer-profile dependencies can include the final runtime too, before
+        ' the final missing-library pass. Apply the same donor rule at every fetch
+        ' boundary, not only in that final pass, or a bad shared file could already
+        ' have been copied into work and then acquire a self-consistent local hash.
+        For Each batch In items.GroupBy(Function(item) allowReuse AndAlso ComponentRuntimePublication.HasDigest(item))
+            Dim reusable = batch.Key
+            Using engine As New DownloadEngine(_policy, reporter, If(reusable, _reuse, Enumerable.Empty(Of String)()), _connections, If(reusable, _root, Nothing), useComponentCache:=reusable, budget:=_budget)
+                engine.BytesPerSecondLimit = _limit
+                Await engine.DownloadAsync(root, batch, token).ConfigureAwait(False)
+                NetworkBytes += engine.NetworkBytes : Reused += engine.Reused : DynamicSplits += engine.DynamicSplits
+                Retries += engine.Retries
+                FileCount += batch.Count()
+            End Using
+        Next
     End Function
     Private Async Function FetchOptiFineAsync(root As String, relative As String, entry As ComponentEntry, token As CancellationToken) As Task
         Dim mirror As Func(Of Task) = Async Function()

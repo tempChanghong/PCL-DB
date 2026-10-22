@@ -1,0 +1,353 @@
+Imports System.IO
+Imports System.IO.Compression
+Imports System.Security.Cryptography
+Imports System.Text
+Imports System.Threading
+Imports Newtonsoft.Json.Linq
+Imports PclDownloadBridge.Core
+
+' A verified legacy installer gives us known private runtime bytes without Java.
+' These cases also run against the old Core for before/after evidence.
+Friend Module RuntimeLibraryChecks
+    Private Const Relative As String = "libraries/fixture/runtime/1/runtime-1.jar"
+    Private Const SecondRelative As String = "libraries/fixture/runtime-extra/2/runtime-extra-2.jar"
+    Private ReadOnly Correct As Byte() = Encoding.UTF8.GetBytes("correct")
+    Private ReadOnly Wrong As Byte() = Encoding.UTF8.GetBytes("corrupt")
+    Private Sub Check(value As Boolean, label As String, passed As List(Of String))
+        If Not value Then Throw New InvalidOperationException(label)
+        passed.Add(label)
+    End Sub
+    Private Function Hash(value As Byte()) As String
+        Using sha As New SHA1CryptoServiceProvider()
+            Return BitConverter.ToString(sha.ComputeHash(value)).Replace("-", "").ToLowerInvariant()
+        End Using
+    End Function
+    Private Sub Entry(zip As ZipArchive, name As String, bytes As Byte())
+        Using output = zip.CreateEntry(name).Open()
+            output.Write(bytes, 0, bytes.Length)
+        End Using
+    End Sub
+    Private Function CreateSelection(fixture As InstallationChecks.InstallFixture, sized As Boolean, hashed As Boolean, Optional remote As Boolean = False, Optional two As Boolean = False) As ComponentSelection
+        Dim libraries As New JArray(), artifact As New JObject From {{"path", Relative.Substring(10)}, {"url", If(remote, fixture.Server.Url & "/runtime", "")}}
+        If sized Then artifact("size") = Correct.Length
+        If hashed Then artifact("sha1") = Hash(Correct)
+        libraries.Add(New JObject From {{"name", "fixture:runtime:1"}, {"downloads", New JObject From {{"artifact", artifact}}}})
+        If two Then libraries.Add(New JObject From {{"name", "fixture:runtime-extra:2"}, {"downloads", New JObject From {{"artifact", New JObject From {{"path", SecondRelative.Substring(10)}, {"url", ""}, {"size", Correct.Length}}}}}})
+        Dim version As New JObject From {{"mainClass", "fixture.LegacyLoader"}, {"inheritsFrom", fixture.Entry.Id}, {"libraries", libraries}}
+        Dim profile As New JObject From {{"minecraft", fixture.Entry.Id}, {"versionInfo", version}}
+        If Not remote Then profile("install") = New JObject From {{"filePath", "universal.jar"}, {"path", "fixture:runtime:1"}}
+        Using buffer As New MemoryStream()
+            Using zip As New ZipArchive(buffer, ZipArchiveMode.Create, True)
+                Entry(zip, "install_profile.json", Encoding.UTF8.GetBytes(profile.ToString()))
+                If Not remote Then Entry(zip, "universal.jar", Correct)
+                If two Then Entry(zip, "maven/" & SecondRelative.Substring(10), Correct)
+            End Using
+            fixture.Server.Files("/runtime-installer") = buffer.ToArray()
+        End Using
+        fixture.Server.Files("/runtime") = Correct
+        Dim result As New ComponentSelection()
+        result.Entries.Add(ComponentKind.Forge, New ComponentEntry With {.Kind = ComponentKind.Forge, .Minecraft = fixture.Entry.Id, .Version = "14.23.5.2859", .Url = fixture.Server.Url & "/runtime-installer", .Sha1 = Hash(fixture.Server.Files("/runtime-installer"))})
+        Return result
+    End Function
+    Private Function Target(fixture As InstallationChecks.InstallFixture, Optional relativePath As String = Relative) As String
+        Return SafeFiles.UnderRoot(fixture.Root, relativePath)
+    End Function
+    Private Sub Seed(path As String, bytes As Byte())
+        Directory.CreateDirectory(IO.Path.GetDirectoryName(path)) : File.WriteAllBytes(path, bytes)
+    End Sub
+    Private Function Clean(fixture As InstallationChecks.InstallFixture) As Boolean
+        Return Not Directory.EnumerateFiles(fixture.Root, "*.component-*", SearchOption.AllDirectories).Any() AndAlso
+            {"components", "staging"}.All(Function(branch)
+                                               Dim folder = IO.Path.Combine(fixture.Root, ".vanilla-downloader", branch)
+                                               Return Not Directory.Exists(folder) OrElse Not Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories).Any()
+                                           End Function)
+    End Function
+    Friend Async Function RunAsync(root As String, Optional onlyCase As String = Nothing) As Task(Of List(Of String))
+        If onlyCase = "install-runtime-all" Then onlyCase = Nothing
+        Dim passed As New List(Of String)
+        If onlyCase Is Nothing OrElse onlyCase = "install-runtime-conflict" Then Await ConflictAsync(root, passed)
+        If onlyCase Is Nothing OrElse onlyCase = "install-runtime-reuse" Then Await ReuseAsync(root, passed)
+        If onlyCase Is Nothing OrElse onlyCase = "install-runtime-create" Then Await CreateAsync(root, passed)
+        If onlyCase Is Nothing OrElse onlyCase = "install-runtime-hashed" Then Await HashedAsync(root, passed)
+        If onlyCase Is Nothing OrElse onlyCase = "install-runtime-race" Then Await RaceAsync(root, passed)
+        If onlyCase Is Nothing OrElse onlyCase = "install-runtime-cancel" Then Await CancelAsync(root, passed)
+        If onlyCase Is Nothing OrElse onlyCase = "install-runtime-lease" Then Await LeaseAsync(root, passed)
+        If onlyCase Is Nothing OrElse onlyCase = "install-runtime-late-conflict" Then Await LateConflictAsync(root, passed)
+        If onlyCase Is Nothing OrElse onlyCase = "install-runtime-final-change" Then Await FinalChangeAsync(root, passed)
+        If onlyCase Is Nothing OrElse onlyCase = "install-runtime-final-lease" Then Await FinalLeaseAsync(root, passed, False)
+        If onlyCase Is Nothing OrElse onlyCase = "install-runtime-final-cancel" Then Await FinalLeaseAsync(root, passed, True)
+        If onlyCase Is Nothing OrElse onlyCase = "install-runtime-source-lease" Then Await SourceLeaseAsync(root, passed)
+        If passed.Count = 0 Then Throw New ArgumentException(onlyCase)
+        Return passed
+    End Function
+    Private Async Function ConflictAsync(root As String, passed As List(Of String)) As Task
+        For Each sized In {True, False}
+            For Each remote In {False, True}
+                Using fixture As New InstallationChecks.InstallFixture(root, "runtime-conflict-" & sized & remote, "1.12.2")
+                    Dim selection = CreateSelection(fixture, sized, False, remote), path = Target(fixture)
+                    Seed(path, Wrong)
+                    Dim preferences = SafeFiles.UnderRoot(fixture.Root, "versions/kept/PCL/Setup.ini")
+                    Seed(preferences, Encoding.UTF8.GetBytes("VersionArgumentIndieV2:False" & vbCrLf & "keep:用户设置"))
+                    Dim existingJson = SafeFiles.UnderRoot(fixture.Root, "versions/kept/kept.json")
+                    Dim existingBytes = Encoding.UTF8.GetBytes("{""id"":""kept"",""userSetting"":true}")
+                    Seed(existingJson, existingBytes)
+                    Dim oldPreferences = File.ReadAllBytes(preferences), failure As Exception = Nothing
+                    Try
+                        Await fixture.InstallAsync("conflict", selection)
+                    Catch ex As Exception
+                        failure = ex
+                    End Try
+                    Check(TypeOf failure Is IOException AndAlso failure.Message.Contains(Relative), "hashless runtime content conflict is explicit; sized=" & sized & ", remote=" & remote, passed)
+                    Check(File.ReadAllBytes(path).SequenceEqual(Wrong) AndAlso Not Directory.Exists(IO.Path.Combine(fixture.Root, "versions", "conflict")), "hashless runtime conflict preserves existing bytes and publishes no instance; sized=" & sized & ", remote=" & remote, passed)
+                    Check(File.ReadAllBytes(preferences).SequenceEqual(oldPreferences) AndAlso File.ReadAllBytes(existingJson).SequenceEqual(existingBytes) AndAlso Clean(fixture), "runtime conflict preserves unrelated instance metadata/PCL settings and cleans only private files; sized=" & sized & ", remote=" & remote, passed)
+                    If remote Then Check(fixture.Server.Requests.ContainsKey("/runtime"), "hashless remote runtime is fetched from its source instead of trusting the shared donor; sized=" & sized, passed)
+                End Using
+            Next
+        Next
+    End Function
+    Private Async Function ReuseAsync(root As String, passed As List(Of String)) As Task
+        For Each sized In {True, False}
+            Using fixture As New InstallationChecks.InstallFixture(root, "runtime-reuse-" & sized, "1.12.2")
+                Dim selection = CreateSelection(fixture, sized, False), path = Target(fixture)
+                Seed(path, Correct)
+                Dim before = File.GetLastWriteTimeUtc(path)
+                Using held As New FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read)
+                    Dim result = Await fixture.InstallAsync("same", selection)
+                    Check(File.Exists(IO.Path.Combine(result.InstancePath, "same.json")) AndAlso File.GetLastWriteTimeUtc(path) = before, "matching hashless runtime is reused even while open for reading; sized=" & sized, passed)
+                End Using
+                Check(File.ReadAllBytes(path).SequenceEqual(Correct) AndAlso Clean(fixture), "matching hashless runtime retains its bytes and leaves no component temporary copy; sized=" & sized, passed)
+            End Using
+        Next
+    End Function
+    Private Async Function CreateAsync(root As String, passed As List(Of String)) As Task
+        For Each sized In {True, False}
+            Using fixture As New InstallationChecks.InstallFixture(root, "runtime-create-" & sized, "1.12.2")
+                Dim result = Await fixture.InstallAsync("created", CreateSelection(fixture, sized, False))
+                Check(File.ReadAllBytes(Target(fixture)).SequenceEqual(Correct), "missing hashless runtime is created from the private installer payload; sized=" & sized, passed)
+                Dim profile = JObject.Parse(File.ReadAllText(IO.Path.Combine(result.InstancePath, "created.json")))
+                Check(profile.SelectToken("libraries[0].downloads.artifact.sha1") Is Nothing AndAlso profile.SelectToken("libraries[0].downloads.artifact.sha512") Is Nothing, "local publication checksum is not forged into upstream launch metadata; sized=" & sized, passed)
+                Check(File.ReadAllText(IO.Path.Combine(result.InstancePath, "PCL", "Setup.ini")).Contains("VersionArgumentIndieV2:True") AndAlso Clean(fixture), "runtime creation retains component isolation and private cleanup; sized=" & sized, passed)
+            End Using
+        Next
+    End Function
+    Private Async Function HashedAsync(root As String, passed As List(Of String)) As Task
+        Using fixture As New InstallationChecks.InstallFixture(root, "runtime-hashed", "1.12.2")
+            Dim selection = CreateSelection(fixture, True, True), path = Target(fixture)
+            Seed(path, Wrong)
+            Dim result = Await fixture.InstallAsync("hashed", selection)
+            Check(File.ReadAllBytes(path).SequenceEqual(Correct) AndAlso File.Exists(IO.Path.Combine(result.InstancePath, "hashed.json")), "upstream-hashed runtime retains the existing verified repair behavior", passed)
+            Check(Clean(fixture), "hashed runtime repair removes its temporary copies", passed)
+        End Using
+    End Function
+    Private Function CopyPresent(fixture As InstallationChecks.InstallFixture) As Boolean
+        Dim parent = IO.Path.GetDirectoryName(Target(fixture))
+        Return Directory.Exists(parent) AndAlso Directory.EnumerateFiles(parent, "runtime-1.jar.component-*").Any()
+    End Function
+    Private Async Function RaceAsync(root As String, passed As List(Of String)) As Task
+        Using fixture As New InstallationChecks.InstallFixture(root, "runtime-race", "1.12.2")
+            Dim selection = CreateSelection(fixture, True, False), reached As Boolean = False, failure As Exception = Nothing
+            Using probe As New RuntimeHashProbe(Sub()
+                                                    If reached OrElse Not CopyPresent(fixture) Then Return
+                                                    reached = True : Seed(Target(fixture), Wrong)
+                                                End Sub)
+                Try
+                    Await fixture.InstallAsync("race", selection)
+                Catch ex As Exception
+                    failure = ex
+                End Try
+            End Using
+            Check(reached AndAlso TypeOf failure Is IOException, "hashless publication notices a target created after its initial absence check", passed)
+            Check(File.ReadAllBytes(Target(fixture)).SequenceEqual(Wrong) AndAlso Not Directory.Exists(IO.Path.Combine(fixture.Root, "versions", "race")) AndAlso Clean(fixture), "atomic runtime creation cannot replace a competing writer or leave a partial instance", passed)
+            File.Delete(Target(fixture))
+            Dim retry = Await fixture.InstallAsync("race", selection)
+            Check(retry.NetworkBytes = 0 AndAlso File.ReadAllBytes(Target(fixture)).SequenceEqual(Correct), "retry after a runtime publication race reuses the checked installer", passed)
+        End Using
+    End Function
+    Private Async Function CancelAsync(root As String, passed As List(Of String)) As Task
+        Using fixture As New InstallationChecks.InstallFixture(root, "runtime-cancel", "1.12.2"), cancel As New CancellationTokenSource()
+            Dim selection = CreateSelection(fixture, False, False), reached As Boolean = False, cancelled As Boolean = False
+            Using probe As New RuntimeHashProbe(Sub()
+                                                    If reached OrElse Not CopyPresent(fixture) Then Return
+                                                    reached = True : cancel.Cancel()
+                                                End Sub)
+                Try
+                    Await fixture.InstallAsync("cancelled", selection, token:=cancel.Token)
+                Catch ex As OperationCanceledException
+                    cancelled = True
+                End Try
+            End Using
+            Check(reached AndAlso cancelled AndAlso Not File.Exists(Target(fixture)), "cancel after private runtime copy verification does not publish that file", passed)
+            Check(Not Directory.Exists(IO.Path.Combine(fixture.Root, "versions", "cancelled")) AndAlso Clean(fixture), "runtime publication cancellation leaves no instance or private copy", passed)
+            Dim retry = Await fixture.InstallAsync("cancelled", selection)
+            Check(retry.NetworkBytes = 0 AndAlso File.ReadAllBytes(Target(fixture)).SequenceEqual(Correct), "runtime publication cancellation can retry from the checked installer cache", passed)
+        End Using
+    End Function
+    Private Async Function LeaseAsync(root As String, passed As List(Of String)) As Task
+        Using fixture As New InstallationChecks.InstallFixture(root, "runtime-lease", "1.12.2")
+            Dim selection = CreateSelection(fixture, True, False, two:=True), reached As Boolean = False, blocked As Boolean = False
+            Seed(Target(fixture), Correct)
+            Using probe As New RuntimeHashProbe(Sub()
+                                                    Dim parent = IO.Path.GetDirectoryName(Target(fixture, SecondRelative))
+                                                    If reached OrElse Not Directory.Exists(parent) OrElse Not Directory.EnumerateFiles(parent, "runtime-extra-2.jar.component-*").Any() Then Return
+                                                    reached = True
+                                                    Try
+                                                        File.WriteAllBytes(Target(fixture), Wrong)
+                                                    Catch ex As IOException
+                                                        blocked = True
+                                                    End Try
+                                                End Sub)
+                Dim result = Await fixture.InstallAsync("leased", selection)
+                Check(reached AndAlso blocked AndAlso File.Exists(IO.Path.Combine(result.InstancePath, "leased.json")), "checked earlier runtime is held for reading through the short multi-library publication phase", passed)
+            End Using
+            Check(File.ReadAllBytes(Target(fixture)).SequenceEqual(Correct) AndAlso File.ReadAllBytes(Target(fixture, SecondRelative)).SequenceEqual(Correct) AndAlso Clean(fixture), "runtime publication read leases preserve checked bytes and release after the phase", passed)
+        End Using
+    End Function
+    Private Async Function LateConflictAsync(root As String, passed As List(Of String)) As Task
+        Using fixture As New InstallationChecks.InstallFixture(root, "runtime-late-conflict", "1.12.2")
+            Dim selection = CreateSelection(fixture, True, False, two:=True), failure As Exception = Nothing
+            Seed(Target(fixture, SecondRelative), Wrong)
+            Try
+                Await fixture.InstallAsync("late-conflict", selection)
+            Catch ex As Exception
+                failure = ex
+            End Try
+            Check(TypeOf failure Is IOException AndAlso failure.Message.Contains(SecondRelative), "a later hashless runtime conflict fails explicitly after an earlier runtime was published", passed)
+            Check(File.ReadAllBytes(Target(fixture)).SequenceEqual(Correct) AndAlso File.ReadAllBytes(Target(fixture, SecondRelative)).SequenceEqual(Wrong), "late conflict retains completed correct shared content and the existing conflicting file", passed)
+            Check(Not Directory.Exists(IO.Path.Combine(fixture.Root, "versions", "late-conflict")) AndAlso Clean(fixture), "late runtime conflict releases leases and cleans its unpublished instance", passed)
+        End Using
+    End Function
+    Private Sub GateAsset(fixture As InstallationChecks.InstallFixture, gate As ManualResetEventSlim)
+        Dim content = Encoding.UTF8.GetBytes("wait for runtime publication"), digest = Hash(content)
+        Dim assetPath = "/" & digest.Substring(0, 2) & "/" & digest
+        fixture.Server.Files(assetPath) = content : fixture.Server.Gates(assetPath) = gate
+        Dim index = Encoding.UTF8.GetBytes(New JObject From {{"objects", New JObject From {{"fixture.dat", New JObject From {{"hash", digest}, {"size", content.Length}}}}}}.ToString())
+        fixture.Server.Files("/index") = index
+        Dim metadata = JObject.Parse(Encoding.UTF8.GetString(fixture.Server.Files("/version")))
+        metadata("assetIndex")("size") = index.Length : metadata("assetIndex")("sha1") = Hash(index)
+        fixture.Server.Files("/version") = Encoding.UTF8.GetBytes(metadata.ToString())
+        fixture.Entry.Sha1 = Hash(fixture.Server.Files("/version"))
+    End Sub
+    Private Async Function FinalChangeAsync(root As String, passed As List(Of String)) As Task
+        For Each afterComponents In {True, False}
+            Using fixture As New InstallationChecks.InstallFixture(root, "runtime-final-change-" & afterComponents, "1.12.2"), gate As New ManualResetEventSlim(), timeout As New CancellationTokenSource(TimeSpan.FromSeconds(20))
+                Dim selection = CreateSelection(fixture, True, False), reached As Boolean = False, failure As Exception = Nothing
+                If afterComponents Then GateAsset(fixture, gate)
+                Dim progress As New InlineProgress(Sub(value)
+                                                        If reached OrElse If(afterComponents, value.Stage <> "组件安装完成", value.Phase <> "commit") Then Return
+                                                        reached = True : File.WriteAllBytes(Target(fixture), Wrong) : gate.Set()
+                                                    End Sub)
+                Try
+                    Await fixture.InstallAsync("changed", selection, progress:=progress, token:=timeout.Token)
+                Catch ex As Exception
+                    failure = ex
+                Finally
+                    gate.Set()
+                End Try
+                Check(reached AndAlso TypeOf failure Is IOException AndAlso Not timeout.IsCancellationRequested, "final instance commit detects changed runtime after components or final progress; components=" & afterComponents & "; reached=" & reached & "; timeout=" & timeout.IsCancellationRequested & "; failure=" & If(failure Is Nothing, "none", failure.ToString()), passed)
+                Check(File.ReadAllBytes(Target(fixture)).SequenceEqual(Wrong) AndAlso Not Directory.Exists(IO.Path.Combine(fixture.Root, "versions", "changed")) AndAlso Clean(fixture), "late external runtime change is preserved and cannot be blessed as the expected digest; components=" & afterComponents, passed)
+                File.WriteAllBytes(Target(fixture), Correct)
+                Dim retry = Await fixture.InstallAsync("changed", selection)
+                Check(retry.NetworkBytes = 0 AndAlso File.Exists(IO.Path.Combine(retry.InstancePath, "changed.json")), "retry after restoring the expected runtime uses the checked install cache; components=" & afterComponents, passed)
+            End Using
+        Next
+    End Function
+    Private Async Function FinalLeaseAsync(root As String, passed As List(Of String), cancelAtLease As Boolean) As Task
+        Using fixture As New InstallationChecks.InstallFixture(root, "runtime-final-lease-" & cancelAtLease, "1.12.2"), cancel As New CancellationTokenSource()
+            Dim selection = CreateSelection(fixture, True, False), finalPhase As Boolean = False, reached As Boolean = False, blocked As Boolean = False, cancelled As Boolean = False
+            Dim progress As New InlineProgress(Sub(value)
+                                                    If value.Phase = "commit" Then finalPhase = True
+                                                End Sub)
+            Using probe As New RuntimeHashProbe(Sub()
+                                                    If Not finalPhase OrElse reached Then Return
+                                                    reached = True
+                                                    Try
+                                                        File.WriteAllBytes(Target(fixture), Wrong)
+                                                    Catch ex As IOException
+                                                        blocked = True
+                                                    End Try
+                                                    If cancelAtLease Then cancel.Cancel()
+                                                End Sub)
+                Try
+                    Await fixture.InstallAsync("guarded", selection, progress:=progress, token:=cancel.Token)
+                Catch ex As OperationCanceledException
+                    cancelled = True
+                End Try
+            End Using
+            Check(reached AndAlso blocked AndAlso cancelled = cancelAtLease, "final runtime read lease blocks replacement and observes cancellation; cancel=" & cancelAtLease, passed)
+            Check(File.ReadAllBytes(Target(fixture)).SequenceEqual(Correct) AndAlso Directory.Exists(IO.Path.Combine(fixture.Root, "versions", "guarded")) <> cancelAtLease AndAlso Clean(fixture), "final runtime lease preserves correct bytes and atomic instance result; cancel=" & cancelAtLease, passed)
+            Using released As New FileStream(Target(fixture), FileMode.Open, FileAccess.ReadWrite, FileShare.None)
+                Check(released.Length = Correct.Length, "final runtime lease is released on success or cancellation; cancel=" & cancelAtLease, passed)
+            End Using
+            If cancelAtLease Then
+                Dim retry = Await fixture.InstallAsync("guarded", selection)
+                Check(retry.NetworkBytes = 0 AndAlso File.Exists(IO.Path.Combine(retry.InstancePath, "guarded.json")), "final runtime-lease cancellation retries without fetching checked payloads", passed)
+            End If
+        End Using
+    End Function
+    Private Async Function SourceLeaseAsync(root As String, passed As List(Of String)) As Task
+        Using fixture As New InstallationChecks.InstallFixture(root, "runtime-source-lease", "1.12.2")
+            Dim selection = CreateSelection(fixture, False, False), reached As Boolean = False, blocked As Boolean = False
+            Using probe As New RuntimeHashProbe(Sub()
+                                                    If reached Then Return
+                                                    Dim work = IO.Path.Combine(fixture.Root, ".vanilla-downloader", "components")
+                                                    If Not Directory.Exists(work) Then Return
+                                                    Dim source = Directory.EnumerateFiles(work, "runtime-1.jar", SearchOption.AllDirectories).SingleOrDefault()
+                                                    If source Is Nothing Then Return
+                                                    reached = True
+                                                    Try
+                                                        File.WriteAllBytes(source, Wrong)
+                                                    Catch ex As IOException
+                                                        blocked = True
+                                                    End Try
+                                                End Sub)
+                Dim result = Await fixture.InstallAsync("source-leased", selection)
+                Check(reached AndAlso blocked AndAlso File.ReadAllBytes(Target(fixture)).SequenceEqual(Correct) AndAlso File.Exists(IO.Path.Combine(result.InstancePath, "source-leased.json")), "private runtime read lease binds local digest computation and publication to unchanged source bytes", passed)
+            End Using
+            Check(Clean(fixture), "private runtime read lease releases before work cleanup", passed)
+        End Using
+    End Function
+    Private Class RuntimeHashProbe
+        Implements IDisposable
+        Private ReadOnly _previous As New Dictionary(Of String, Type)
+        Friend Sub New(callback As Action)
+            For Each aliasName In {"SHA512", "System.Security.Cryptography.SHA512"}
+                Using algorithm = DirectCast(CryptoConfig.CreateFromName(aliasName), SHA512)
+                    _previous.Add(aliasName, algorithm.GetType())
+                End Using
+            Next
+            RuntimePublicationSha512.OnHash = callback
+            CryptoConfig.AddAlgorithm(GetType(RuntimePublicationSha512), _previous.Keys.ToArray())
+        End Sub
+        Public Sub Dispose() Implements IDisposable.Dispose
+            RuntimePublicationSha512.OnHash = Nothing
+            For Each previous In _previous
+                CryptoConfig.AddAlgorithm(previous.Value, {previous.Key})
+            Next
+        End Sub
+    End Class
+End Module
+
+Public Class RuntimePublicationSha512
+    Inherits SHA512
+    Friend Shared OnHash As Action
+    Private ReadOnly _inner As New SHA512Managed()
+    Public Sub New()
+        HashSizeValue = 512
+    End Sub
+    Public Overrides Sub Initialize()
+        _inner.Initialize()
+    End Sub
+    Protected Overrides Sub HashCore(array As Byte(), ibStart As Integer, cbSize As Integer)
+        _inner.TransformBlock(array, ibStart, cbSize, array, ibStart)
+    End Sub
+    Protected Overrides Function HashFinal() As Byte()
+        _inner.TransformFinalBlock(New Byte() {}, 0, 0)
+        Dim result = _inner.Hash
+        OnHash?.Invoke()
+        Return result
+    End Function
+    Protected Overrides Sub Dispose(disposing As Boolean)
+        If disposing Then _inner.Dispose()
+        MyBase.Dispose(disposing)
+    End Sub
+End Class

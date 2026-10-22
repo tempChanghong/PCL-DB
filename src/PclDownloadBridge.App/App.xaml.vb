@@ -55,6 +55,7 @@ Partial Public Class App
                 Sub(directory, passed)
                     If scope = "pack-search" Then
                         window.VerifyPackSearchUi(directory, passed)
+                        window.VerifyPackPagingUi(directory, passed)
                     ElseIf scope = "all" Then
                         window.VerifyUi(directory, passed)
                     ElseIf scope = "appearance" Then

@@ -57,9 +57,11 @@ Partial Public Class MainWindow
         Await WaitPackUiAsync(Function() _packSearchRequest Is Nothing) : layout()
         check(_packSearchSession IsNot session AndAlso _packSearchSession.Query.Minecraft = "1.20.1" AndAlso _packSearchSession.Query.Text = "part|tail", "literal separators in different query fields cannot alias one cached search")
 
-        ' An argument failure is reachable at the catalogue's bounded page limit.
-        Await LoadPackSearchPageAsync(501) : layout()
-        check(PackResultsCard.HorizontalAlignment = HorizontalAlignment.Stretch AndAlso PackProjectRows.Children.OfType(Of TextBlock)().Any() AndAlso PackSearchHint.Theme = PclHintTheme.Red AndAlso PackSearchHint.IsVisible, "a failed page request restores a readable full-width error state instead of a blank centered loading card")
+        ' Invalid navigation is rejected before presentation changes. Exercise
+        ' recovery with a real failure while creating the accepted page's client.
+        _packCatalogFactory = Function() FailingPackCatalog(New IOException("fixture current catalogue unavailable"))
+        Await LoadPackSearchPageAsync(0) : layout()
+        check(PackResultsCard.HorizontalAlignment = HorizontalAlignment.Stretch AndAlso PackProjectRows.Children.OfType(Of TextBlock)().Any() AndAlso PackSearchHint.Theme = PclHintTheme.Red AndAlso PackSearchHint.IsVisible AndAlso PackSearchHint.ToolTip.ToString().Contains("fixture current catalogue unavailable"), "a failed page request restores a readable full-width error state instead of a blank centered loading card")
         SaveControlVisual(host, Path.Combine(directory, "pack-search-request-error.png"))
         _packCatalogFactory = Function() FailingPackCatalog(New TaskCanceledException("fixture current search timeout"))
         Await LoadPackSearchPageAsync(0) : layout()
@@ -102,7 +104,8 @@ Partial Public Class MainWindow
         ResumeInstallation(Nothing, Nothing) : layout()
 
         ChangePackMode(PackBrowserMode.Search) : layout() : _motionPreview = True : _packResultMotion.PauseForChecks = True
-        Await LoadPackSearchPageAsync(501) : layout()
+        _packCatalogFactory = Function() FailingPackCatalog(New IOException("fixture animated catalogue failure"))
+        Await LoadPackSearchPageAsync(0) : layout()
         Dim obsoleteError = _packResultMotion.Transition
         check(obsoleteError IsNot Nothing AndAlso Not PackSearchResultsHost.IsHitTestVisible AndAlso PackSearchText.IsHitTestVisible, "request-error transitions retain PCL result animation ownership while keeping search inputs usable")
         _surfaceMotion.PauseForChecks = True

@@ -50,6 +50,9 @@ Public NotInheritable Class ModpackRelease
     Public Property Published As DateTimeOffset
     Public Property ReleaseType As String
     Public Property GameVersions As String() = {}
+    ' Missing compatibility metadata may defer to the archive, but an explicitly
+    ' unusable declaration must remain distinguishable from missing metadata.
+    Public Property GameVersionMetadataError As String
     Public Property Loaders As String() = {}
     Public Property FileName As String
     Public Property Url As String
@@ -191,8 +194,7 @@ Public NotInheritable Class ModpackCatalogClient
             If result.Url = "" Then Return Nothing
             result.Size = Number(data, "fileLength") : result.Version = result.Name : result.Published = DateValue(data, "fileDate")
             result.ReleaseType = If(Number(data, "releaseType") = 1, "release", If(Number(data, "releaseType") = 2, "beta", "alpha"))
-            Dim raw = Strings(data, "gameVersions")
-            result.GameVersions = raw.Where(Function(value) Regex.IsMatch(value, "^\d+\.\d+(\.\d+)?$|^\d{2}w\d{2}[a-z]$")).ToArray()
+            Dim raw = ReadCurseForgeTags(data("gameVersions"), result)
             result.Loaders = raw.Where(Function(value) {"Forge", "NeoForge", "Fabric", "Quilt"}.Contains(value, StringComparer.OrdinalIgnoreCase)).ToArray()
             For Each hash In ArrayValue(data, "hashes").OfType(Of JObject)()
                 Dim algorithm = Number(hash, "algo")
@@ -220,6 +222,36 @@ Public NotInheritable Class ModpackCatalogClient
             If Uri.UnescapeDataString(address.AbsolutePath) <> expected Then Throw New InvalidDataException("CurseForge 下载地址与指定文件不匹配。")
         End If
         Return result
+    End Function
+
+    Private Shared Function ReadCurseForgeTags(declaration As JToken, release As ModpackRelease) As String()
+        ' Fixed PCL ResourceVersion.FromPlatformJson distinguishes loader labels
+        ' from Minecraft versions, then normalizes previews for display. Here the
+        ' original exact IDs must survive for the archive/manifest identity check.
+        If declaration Is Nothing OrElse declaration.Type = JTokenType.Null Then Return {}
+        Dim values = TryCast(declaration, JArray)
+        If values Is Nothing OrElse values.Any(Function(value) value.Type <> JTokenType.String OrElse CStr(value).Length > 100) Then
+            release.GameVersionMetadataError = "CurseForge 文件的 Minecraft 版本声明无效，无法核对整合包清单。请刷新重试或选择其他版本。"
+            Return {}
+        End If
+        Dim tags = values.Values(Of String)().Select(Function(value) value.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).ToArray()
+        release.GameVersions = tags.Where(AddressOf IsExactMinecraftVersion).ToArray()
+        If release.GameVersions.Length = 0 Then
+            release.GameVersionMetadataError = "CurseForge 文件未声明可识别的 Minecraft 版本，无法核对整合包清单。请刷新重试或选择其他版本。"
+        End If
+        Return tags
+    End Function
+
+    Private Shared Function IsExactMinecraftVersion(value As String) As Boolean
+        ' McVersion.IsStandardFormat / GetVanillaName at PCL 5ef81e4 are the
+        ' modern/pre/rc/year-snapshot basis. Anchor the entire tag: never extract
+        ' a version-like substring from Forge, Java or other mixed labels.
+        Const modern = "\A(?:1\.[0-9]+(?:\.[0-9]+)?|(?:2[6-9]|[3-9][0-9])\.[0-9]+(?:\.[0-9]+)?)(?:-(?:pre|rc|snapshot-?)[1-9][0-9]*| Pre-Release(?: [1-9][0-9]*)?)?(?:_unobfuscated)?\z"
+        Const weekly = "\A[0-9]{2}w[0-9]{2}[a-z]\z"
+        Const historical = "\A(?:[ab]1\.[0-9]+(?:\.[0-9]+)?(?:_[0-9]+[a-z]?)?(?:-?pre[1-9][0-9]*)?|c0\.[0-9]+(?:\.[0-9]+)?[a-z]?(?:_[0-9]+[a-z]?)?|(?:in|inf|rd)-[0-9]{6,8})\z"
+        Dim options = RegexOptions.IgnoreCase Or RegexOptions.CultureInvariant
+        Return Regex.IsMatch(value, modern, options) OrElse Regex.IsMatch(value, weekly, options) OrElse
+            Regex.IsMatch(value, historical, options) OrElse value = "2.0"
     End Function
 
     Private Shared Function ParseProject(platform As ModpackPlatform, data As JObject, search As Boolean) As ModpackProject

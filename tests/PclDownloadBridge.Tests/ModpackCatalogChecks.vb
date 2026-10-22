@@ -80,6 +80,7 @@ Friend Module ModpackCatalogChecks
         Dim cf As New ModpackProject With {.Platform = ModpackPlatform.CurseForge, .Id = "12"}
         Dim cfJson As New JObject From {{"id", 1234567}, {"modId", 12}, {"displayName", "Client pack"}, {"fileName", "client.zip"}, {"downloadUrl", "https://edge.forgecdn.net/files/1234/567/client.zip"}, {"fileLength", 100}, {"isServerPack", False}, {"isAvailable", True}, {"releaseType", 1}, {"fileDate", "2026-10-01T00:00:00Z"}, {"gameVersions", New JArray("1.20.1", "Forge")}, {"hashes", New JArray(New JObject From {{"algo", 1}, {"value", New String("a"c, 40)}})}}
         Check(ModpackCatalogClient.ParseRelease(cf, cfJson).GameVersions.SequenceEqual({"1.20.1"}), "CF client archive binds IDs, CDN path, checksum and exact game versions", passed)
+        Await CurseForgeGameVersionChecksAsync(root, cf, cfJson, passed)
         Dim quiltJson = DirectCast(cfJson.DeepClone(), JObject) : quiltJson("gameVersions") = New JArray("1.20.1", "Quilt")
         Check(ModpackCompatibility.GetInstallBlockReason(ModpackCatalogClient.ParseRelease(cf, quiltJson)).Contains("Quilt"), "CF Quilt labels retain the same automatic-install compatibility guard", passed)
         cfJson("isServerPack") = True
@@ -207,6 +208,91 @@ Friend Module ModpackCatalogChecks
         End Try
         Check(rejected, "unfamiliar loader labels do not bypass exact Minecraft version validation", passed)
     End Sub
+
+    Private Async Function CurseForgeGameVersionChecksAsync(root As String, project As ModpackProject, original As JObject, passed As List(Of String)) As Task
+        ' PCL ResourceVersion uses friendly preview groups; manifest binding must
+        ' instead retain the original MC identifier, including pre/rc suffixes.
+        For Each version In {"1.20.1", "24w14a", "1.21-pre1", "1.21-rc1", "26.1-snapshot-1", "26.1-snapshot1", "26.1-pre1", "1.14 Pre-Release 1", "b1.7.3", "b1.9-pre6", "a1.2.6", "c0.30_01c", "c0.0.13a_03", "in-20100223", "inf-20100618", "rd-132211"}
+            Dim json = DirectCast(original.DeepClone(), JObject)
+            json("gameVersions") = New JArray(version, "Forge", "Java 17", "NeoForge 21.1.77", "Client", "Server")
+            Dim release = ModpackCatalogClient.ParseRelease(project, json)
+            Check(release.GameVersions.SequenceEqual({version}), "CF retains the exact Minecraft identifier rather than a display family: " & version, passed)
+            ModpackCompatibility.ValidateManifest(release, version, ComponentKind.Forge)
+            Check(ModpackCompatibility.GetInstallBlockReason(release) Is Nothing AndAlso release.Loaders.SequenceEqual({"Forge"}), "CF exact MC declaration binds without mistaking mixed platform labels for game IDs: " & version, passed)
+            Dim rejected = False
+            Try
+                ModpackCompatibility.ValidateManifest(release, If(version = "1.20.1", "1.20.2", "1.20.1"), ComponentKind.Forge)
+            Catch ex As InvalidDataException
+                rejected = True
+            End Try
+            Check(rejected, "CF exact catalogue MC declaration cannot bind a different archive manifest: " & version, passed)
+        Next
+        Dim exact = DirectCast(original.DeepClone(), JObject)
+        exact("gameVersions") = New JArray(" 1.21-pre1 ", "1.21-pre1", "1.21-rc1", "Forge", "Java 17", "future-label")
+        Dim choices = ModpackCatalogClient.ParseRelease(project, exact)
+        Check(choices.GameVersions.SequenceEqual({"1.21-pre1", "1.21-rc1"}), "CF trims and deduplicates exact MC declarations without collapsing distinct preview IDs", passed)
+        ModpackCompatibility.ValidateManifest(choices, "1.21-rc1", ComponentKind.Forge)
+        Dim familyRejected = False
+        Try
+            ModpackCompatibility.ValidateManifest(choices, "1.21", ComponentKind.Forge)
+        Catch ex As InvalidDataException
+            familyRejected = True
+        End Try
+        Check(familyRejected, "CF preview display families cannot replace an exact pre or rc manifest binding", passed)
+
+        For Each missing In {False, True}
+            Dim json = DirectCast(original.DeepClone(), JObject)
+            If missing Then
+                json.Remove("gameVersions")
+            Else
+                json("gameVersions") = JValue.CreateNull()
+            End If
+            Dim release = ModpackCatalogClient.ParseRelease(project, json)
+            ModpackCompatibility.ValidateManifest(release, "1.20.1", ComponentKind.Fabric)
+            Check(release.GameVersions.Length = 0 AndAlso ModpackCompatibility.GetInstallBlockReason(release) Is Nothing, "absent CF MC metadata preserves the existing manifest-led compatibility path: " & missing, passed)
+        Next
+        Dim invalid As New List(Of KeyValuePair(Of String, JToken)) From {
+            New KeyValuePair(Of String, JToken)("empty array", New JArray()),
+            New KeyValuePair(Of String, JToken)("loader and Java labels only", New JArray("Forge", "Java 17", "NeoForge 21.1.77")),
+            New KeyValuePair(Of String, JToken)("unrecognized MC declaration", New JArray("future-unrecognized-mc", "Fabric")),
+            New KeyValuePair(Of String, JToken)("blank declaration", New JArray(" ", "Forge")),
+            New KeyValuePair(Of String, JToken)("wrong field type", New JValue("1.20.1")),
+            New KeyValuePair(Of String, JToken)("wrong item type", New JArray(1201, "Forge"))}
+        Dim blockedRelease As ModpackRelease = Nothing
+        For Each item In invalid
+            Dim json = DirectCast(original.DeepClone(), JObject) : json("gameVersions") = item.Value.DeepClone()
+            Dim release = ModpackCatalogClient.ParseRelease(project, json), reason = ModpackCompatibility.GetInstallBlockReason(release)
+            Check(release IsNot Nothing AndAlso reason IsNot Nothing AndAlso reason.Contains("Minecraft"), "CF invalid declared MC metadata remains visible with an explicit installation block: " & item.Key, passed)
+            Check(ModpackCompatibility.GetInstallBlockReason(release.Copy()) = reason, "copying a CF release preserves its unresolved MC declaration guard: " & item.Key, passed)
+            Dim rejected = False
+            Try
+                ModpackCompatibility.ValidateManifest(release, "1.20.1", ComponentKind.Forge)
+            Catch ex As InvalidDataException
+                rejected = True
+            End Try
+            Check(rejected, "CF unresolved declared metadata cannot skip the manifest guard: " & item.Key, passed)
+            blockedRelease = release
+        Next
+        Dim bad = DirectCast(original.DeepClone(), JObject)
+        bad("id") = 1234568 : bad("downloadUrl") = "https://edge.forgecdn.net/files/1234/568/client.zip"
+        bad("gameVersions") = New JArray("Forge", "Java 17")
+        Dim handler As New Handler With {.Route = Function(uri) New JObject From {{"data", New JArray(original.DeepClone(), bad)}, {"pagination", New JObject From {{"totalCount", 2}}}}}
+        Using client As New ModpackCatalogClient(handler, "")
+            Dim releases = Await client.GetVersionsAsync(project, CancellationToken.None)
+            Check(releases.Count = 2 AndAlso releases.Any(Function(value) value.Id = "1234567" AndAlso ModpackCompatibility.GetInstallBlockReason(value) Is Nothing) AndAlso releases.Any(Function(value) value.Id = "1234568" AndAlso ModpackCompatibility.GetInstallBlockReason(value) IsNot Nothing), "one unresolved CF game-version declaration does not swallow a valid neighbouring release", passed)
+        End Using
+        Using fixture As New InstallationChecks.InstallFixture(root, "catalogue-cf-metadata")
+            Dim destination = Path.Combine(fixture.Root, "blocked-destination"), rejected = False
+            Dim requests = fixture.Server.Requests.Values.Sum()
+            Try
+                Await ModpackArchiveInstaller.InstallAsync(blockedRelease, destination, "blocked", New ModrinthChecks.Policy(fixture.Server.Url), Nothing, {}, Nothing, CancellationToken.None)
+            Catch ex As NotSupportedException
+                rejected = True
+            End Try
+            Check(rejected AndAlso Not Directory.Exists(destination) AndAlso fixture.Server.Requests.Values.Sum() = requests, "unresolved CF MC metadata is rejected before archive requests cache writes or instance publication", passed)
+        End Using
+    End Function
+
     Private Async Function CurseForgeArchiveCheckAsync(root As String, passed As List(Of String)) As Task
         Using fixture As New InstallationChecks.InstallFixture(root, "catalogue-cf")
             Dim manifest As New JObject From {{"manifestType", "minecraftModpack"}, {"manifestVersion", 1}, {"name", "CF online"}, {"version", "1"}, {"author", "fixture"}, {"minecraft", New JObject From {{"version", "1.20.1"}, {"modLoaders", New JArray()}}}, {"files", New JArray()}, {"overrides", "overrides"}}

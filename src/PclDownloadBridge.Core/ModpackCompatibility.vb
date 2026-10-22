@@ -7,6 +7,7 @@ Public NotInheritable Class ModpackCompatibility
     End Sub
 
     Public Shared Function GetInstallBlockReason(release As ModpackRelease) As String
+        If release.GameVersionMetadataError IsNot Nothing Then Return release.GameVersionMetadataError
         Dim declared = KnownLoaders(release.Loaders)
         ' Missing or unfamiliar tags do not prove incompatibility. Parse the archive.
         If declared Is Nothing OrElse declared.Count = 0 OrElse declared.Any(Function(loader) {"Forge", "NeoForge", "Fabric", "原版"}.Contains(loader, StringComparer.Ordinal)) Then Return Nothing
@@ -14,6 +15,7 @@ Public NotInheritable Class ModpackCompatibility
     End Function
 
     Public Shared Sub ValidateManifest(release As ModpackRelease, minecraft As String, loader As ComponentKind?)
+        If release.GameVersionMetadataError IsNot Nothing Then Throw New InvalidDataException(release.GameVersionMetadataError)
         If release.GameVersions.Length > 0 AndAlso Not release.GameVersions.Contains(minecraft, StringComparer.OrdinalIgnoreCase) Then Throw New InvalidDataException("整合包清单与所选版本声明的 Minecraft 版本不一致。")
         Dim declared = KnownLoaders(release.Loaders)
         If declared Is Nothing OrElse declared.Count = 0 Then Return
