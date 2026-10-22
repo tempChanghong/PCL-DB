@@ -48,7 +48,7 @@ Partial Public Class MainWindow
                 check(ModpackPage.Visibility = Visibility.Visible AndAlso VersionPage.Visibility = Visibility.Collapsed AndAlso InstallPage.Visibility = Visibility.Collapsed AndAlso ModpackNav.Selected, "category ownership and sidebar selection change immediately")
                 check(DownloadNav.IsHitTestVisible AndAlso DownloadSidebar.Opacity = 1 AndAlso DownloadPage.Opacity = 1 AndAlso Not DownloadViewHost.IsHitTestVisible, "category motion keeps sidebar and toolbar stable while gating the right pane")
                 Dim plan = DirectCast(entering.Timeline, ParallelTimeline)
-                check(plan.Children.OfType(Of PclPageYAnimation)().Single().BeginTime.Value.TotalMilliseconds = 140 AndAlso _categoryMotion.ItemCount = 1, "CurseForge card enters with the PCL 110 plus 30 millisecond delay")
+                check(plan.Children.OfType(Of PclPageYAnimation)().Select(Function(item) item.BeginTime.Value.TotalMilliseconds).SequenceEqual({140.0, 165.0}) AndAlso _categoryMotion.ItemCount = 2, "CurseForge and Modrinth cards enter with PCL first delay and 25 millisecond item staggering")
                 seek(entering, 70)
                 check(DownloadGhost.Children.Count > 0 AndAlso Not DownloadGhost.IsHitTestVisible AndAlso ModpackPage.Opacity = 0 AndAlso Not DownloadViewHost.IsHitTestVisible, "category exit snapshots are inert and hidden incoming cards cannot be clicked")
                 UpdateVersions() : layout()

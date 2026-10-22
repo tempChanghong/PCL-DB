@@ -54,7 +54,11 @@ Public Class DownloadFile
     Public Property RelativePath As String
     Public Property Url As String
     Public Property Size As Long = -1
+    Public Property AlternateUrls As String()
+    ' Modrinth fileSize is a progress estimate, never a hard integrity check.
+    Public Property EstimatedSize As Long = -1
     Public Property Sha1 As String
+    Public Property Sha512 As String
     Public Property Md5 As String
     ' Only the one-part multipart S3 ETag form (MD5 of the binary MD5, then -1).
     ' Ordinary ETags and unknown multipart boundaries are never checksums.
@@ -120,7 +124,12 @@ Public Module SafeFiles
         If item.Size >= 0 AndAlso info.Length <> item.Size Then Return False
         ' An explicitly declared or hashed empty file is legitimate; unknown empty
         ' downloads still must not be mistaken for completed reusable files.
-        If info.Length = 0 AndAlso item.Size <> 0 AndAlso String.IsNullOrWhiteSpace(item.Sha1) AndAlso String.IsNullOrWhiteSpace(item.Md5) Then Return False
+        If info.Length = 0 AndAlso item.Size <> 0 AndAlso String.IsNullOrWhiteSpace(item.Sha1) AndAlso String.IsNullOrWhiteSpace(item.Sha512) AndAlso String.IsNullOrWhiteSpace(item.Md5) Then Return False
+        If Not String.IsNullOrWhiteSpace(item.Sha512) Then
+            Using stream = File.OpenRead(path), sha = SHA512.Create()
+                If Not String.Equals(BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", ""), item.Sha512, StringComparison.OrdinalIgnoreCase) Then Return False
+            End Using
+        End If
         If Not String.IsNullOrWhiteSpace(item.Sha1) Then
             Using stream = File.OpenRead(path), sha = SHA1.Create()
                 If Not String.Equals(BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", ""), item.Sha1, StringComparison.OrdinalIgnoreCase) Then Return False

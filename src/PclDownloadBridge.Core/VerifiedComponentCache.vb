@@ -17,7 +17,10 @@ Friend Class VerifiedComponentCache
 
     Private Shared Function RelativePath(item As DownloadFile, Optional processorOutputs As Boolean = False) As String
         Dim algorithm As String, digest As String
-        If Not String.IsNullOrWhiteSpace(item.Sha1) Then
+        If Not String.IsNullOrWhiteSpace(item.Sha512) Then
+            If Not Regex.IsMatch(item.Sha512, "\A[0-9a-fA-F]{128}\z") Then Return Nothing
+            algorithm = "sha512" : digest = item.Sha512.ToLowerInvariant()
+        ElseIf Not String.IsNullOrWhiteSpace(item.Sha1) Then
             If Not Regex.IsMatch(item.Sha1, "\A[0-9a-fA-F]{40}\z") Then Return Nothing
             algorithm = "sha1" : digest = item.Sha1.ToLowerInvariant()
         ElseIf Not String.IsNullOrWhiteSpace(item.Md5) Then

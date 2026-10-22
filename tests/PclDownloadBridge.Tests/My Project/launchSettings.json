@@ -1,5 +1,11 @@
 {
   "profiles": {
+    "Modrinth Import": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression modrinth-all",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
     "CurseForge Import": {
       "commandName": "Project",
       "commandLineArgs": "--regression curseforge-all",

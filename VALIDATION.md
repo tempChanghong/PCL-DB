@@ -2,6 +2,19 @@
 
 日期：2026-10-22（北京时间）。最新发布为 PCL-DB Beta 1.0（`1.0.0-beta.1`），当前主分支另含尚未发布的后续修复；下方保留先前版本的验证记录。
 
+
+## Beta 1.0 后续开发：Modrinth MRPACK 导入（2026-10-22）
+
+- 主要依据固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 InstallPackModrinth、CopyOverrideDirectory、根清单优先和非阻塞任务组合，以及 Modrinth 官方格式。整合包页保留两个下载侧栏项，新增 Modrinth 独立卡片；两种格式各自保留名称、可选项，支持 MRPACK/ZIP 内容识别、拖入、进度往返、取消与重试。两卡沿用 PCL 默认间距和 25ms 交错入场，继承转场期间的鼠标/键盘输入门控。
+- 新增 **106 项 Modrinth 专项**（modrinth-candidate.log；VS 配置 **Modrinth Import**）：严格清单/依赖/双摘要/环境声明、根清单优先与单层包装、大小写/路径穿越/链接/文件与目录冲突；多地址回退、实际服务端长度、HEAD 不支持及错误长度、续传、Range 分段、空文件、重定向与目标主机限制、缓存复用和可变数组快照；隔离、合法跨层覆盖、生成文件保护、临近发布变更/冲突、取消与零载荷重试、原包变化检测及句柄释放。用例使用受控 ZIP、真实摘要和回环 HTTP；CF 既有 **135 项**随全量检查通过。
+- 实包为 `Zombie Invade 100 Days 2.3.mrpack`，原包 SHA-256 为 `d470acdf9bbccc87e2e064a3d8867ad5570e3631dd1ca28f5d9147406be1de6d`，29,975,184 字节。Minecraft **1.20.1**、Forge **47.4.10**，129 个必需外部文件，清单预计 330,356,812 字节；1176 个客户端覆盖文件。初次通过真实 CDN 完成下载与 Forge 安装处理器后，连续复制暴露了每个文件未归零的长度累计，证据为 live-first-failure.json 和 multiple-overrides-before.log；公共复制流程已修复并增加回归，未放宽长度/摘要检查。
+- 修复后完整安装：**129 个外部文件全部通过 SHA-1 与 SHA-512，1176 个覆盖文件逐项与原 ZIP 比对通过**。发布前主动取消没有产生实例，随后重试 **0 游戏/整合包载荷字节**，最终原子发布；元数据仍正常请求，未称为离线安装。当前构建又在独立目录使用已校验缓存重复上述安装、取消、重试和逐文件比对（live-final/report.json，65.76 秒）。真实 profile 参数确认为 Forge 47.4.10、clientVersion 1.20.1、BootstrapLauncher；实例内 **143 个 Mod JAR、3 个资源包、797 个光影文件**，没有因文件名含 fabric-api 额外安装 Fabric Loader（live-profile.json）。
+- 两次实包验证均在本轮 artifacts 下的独立 `.minecraft` 执行：实例隔离开启；预先放入的共享 Mod 与全局 PCL 设置字节保持。所有覆盖文件留在实例内，libraries/assets 按现有机制共享。没有修改用户的已有游戏实例，没有启动游戏，也未把完整安装/内容比对称为游戏运行验收。
+- 默认 `build.ps1` 无 Package 参数通过：核心 **1969 项**、界面 **734 项**、动画 **349 项**、固定 PCL 源码比对 **17 项**；Release 零警告、零错误。VS 2026 Debug / portable PDB 验证通过精选控制台 **1593 项**、界面 **734 项**、动画 **349 项**；外观 129、卡片 104、导航 31、设置兼容 49 为其中的独立配置检查。未进行人工 IDE F5 断点或桌面帧率验收。
+- 同步默认构建、单 EXE/打包候选与 VS 验证的界面计数契约，五份相关 PowerShell 脚本解析和契约核对通过；**没有执行打包或发布验证**。现有 dist 的 **78 个文件**内容、长度和修改时间，七个参考仓库的提交/工作区状态，以及原 MRPACK 摘要全部保持（preservation.json）。本轮只本地 Commit，暂不打包、发版或推送。
+- 本轮机器报告与截图位于 `artifacts/modrinth-import/`（忽略目录）；其中 default-build.log、ui-candidate.json、motion-candidate.json、vs2026-report.json、live-final/report.json、live-profile.json、script-contracts.json 和 preservation.json 分别记录对应证据。预览使用离屏 `--snapshot`，真实包预览见 preview-zombie-final.png；曾误用 --preview 启动的普通窗口已关闭，不作为预览隔离证据。
+
+
 ## Beta 1.0 后续修复：导入、侧栏与下载页动画检查
 
 - 基线 `2b344999d65d553513799f16090a9088bee4d8b6`。源码备份、分发文件/参考仓库/原 ZIP 摘要与本轮报告位于 `artifacts/beta1-import-navigation-audit/`；参考 PCL 仍为固定 `5ef81e4`。检查清单解析、文件查询与安装关系、原版/整合包状态、取消重试、侧栏、原版横向选择、页面/列表刷新动画及主页面交接，保留原包、已有隔离配置、共享文件和现有发布资产。

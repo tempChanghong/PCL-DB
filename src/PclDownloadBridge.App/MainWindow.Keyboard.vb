@@ -36,7 +36,9 @@ Partial Public Class MainWindow
         End If
         DownloadPage.UpdateLayout()
         If _downloadView = DownloadView.Modpacks Then
-            If _packSelection IsNot Nothing AndAlso PackInstanceName.IsEnabled Then
+            If _activeModrinth AndAlso _modrinthSelection IsNot Nothing AndAlso ModrinthInstanceName.IsEnabled Then
+                ModrinthInstanceName.Focus()
+            ElseIf _packSelection IsNot Nothing AndAlso PackInstanceName.IsEnabled Then
                 PackInstanceName.Focus()
             Else
                 ImportPackButton.Focus()

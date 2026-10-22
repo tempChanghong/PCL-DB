@@ -7,7 +7,12 @@ Imports PclDownloadBridge.Controls
 
 Partial Public Class MainWindow
     Public Sub PreviewCurseForge(path As String)
-        If _preview Then SelectCurseForgePackage(CurseForgePackage.Read(path))
+        If Not _preview Then Return
+        If ModpackFormats.Detect(path) = ModpackFormat.Modrinth Then
+            SelectModrinthPackage(ModrinthPackage.Read(path))
+        Else
+            SelectCurseForgePackage(CurseForgePackage.Read(path))
+        End If
     End Sub
     Private _packSelection As CurseForgePackage
     Private _readingPack As Boolean
@@ -26,6 +31,7 @@ Partial Public Class MainWindow
         Next
     End Sub
     Private Sub RefreshPackAvailability(Optional busy As Boolean? = Nothing)
+        RefreshModrinthAvailability(busy)
         If PackInstanceName Is Nothing Then Return
         Dim issue = PackNameProblem(), active = If(busy, _busy) OrElse _readingPack
         PackInstanceName.ValidationMessage = If(issue, "")
@@ -55,9 +61,12 @@ Partial Public Class MainWindow
     Private Async Sub ChooseCurseForgePack(sender As Object, e As RoutedEventArgs)
         If _busy OrElse _readingPack Then Return
         Dim dialog As New Microsoft.Win32.OpenFileDialog With {.Title = "导入 CurseForge 整合包", .Filter = "CurseForge 整合包 (*.zip)|*.zip", .CheckFileExists = True}
-        If dialog.ShowDialog(Me) = True Then Await ReadCurseForgePackAsync(dialog.FileName)
+        If dialog.ShowDialog(Me) = True Then Await ReadLocalPackAsync(dialog.FileName)
     End Sub
-    Private Async Function ReadCurseForgePackAsync(path As String) As Task
+    Private Function ReadCurseForgePackAsync(path As String) As Task
+        Return ReadLocalPackAsync(path)
+    End Function
+    Private Async Function ReadLocalPackAsync(path As String, Optional modrinthIntent As Boolean = False) As Task
         If _busy OrElse _readingPack Then Return
         CancelPackRead()
         Dim request As New CancellationTokenSource()
@@ -65,17 +74,28 @@ Partial Public Class MainWindow
         _readingPack = True : RefreshPackAvailability()
         SetDownloadView(DownloadView.Modpacks)
         SwitchMainPage(False)
+        Dim status = If(modrinthIntent OrElse String.Equals(IO.Path.GetExtension(path), ".mrpack", StringComparison.OrdinalIgnoreCase), ModrinthReadStatus, PackReadStatus)
         Try
-            PackReadStatus.Text = "正在读取整合包清单…"
+            status.Text = "正在读取整合包清单…"
             Await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background)
             request.Token.ThrowIfCancellationRequested()
-            Dim package = Await Task.Run(Function() CurseForgePackage.Read(path, request.Token))
+            Dim parsed = Await Task.Run(Function() As Object
+                                            If ModpackFormats.Detect(path) = ModpackFormat.Modrinth Then Return ModrinthPackage.Read(path, request.Token)
+                                            Return CurseForgePackage.Read(path, request.Token)
+                                        End Function)
             If _closing OrElse request.IsCancellationRequested Then Return
             If _busy Then
-                PackReadStatus.Text = "当前安装已开始，请在任务结束后重新选择整合包。"
+                status.Text = "当前安装已开始，请在任务结束后重新选择整合包。"
                 Return
             End If
+            If TypeOf parsed Is ModrinthPackage Then
+                SelectModrinthPackage(DirectCast(parsed, ModrinthPackage), _downloadView = DownloadView.Modpacks AndAlso DownloadPage.Visibility = Visibility.Visible, request)
+                If status IsNot ModrinthReadStatus Then status.Text = "已识别为 Modrinth，清单已显示在对应卡片。"
+                Return
+            End If
+            Dim package = DirectCast(parsed, CurseForgePackage)
             SelectCurseForgePackage(package, request, _downloadView = DownloadView.Modpacks AndAlso DownloadPage.Visibility = Visibility.Visible)
+            If status IsNot PackReadStatus Then status.Text = "已识别为 CurseForge，清单已显示在对应卡片。"
             _readingPack = False : RefreshPackAvailability()
             If Not _preview Then
                 Using resolver As New CurseForgeFileResolver(Policy())
@@ -86,10 +106,10 @@ Partial Public Class MainWindow
                 End Using
             End If
         Catch ex As OperationCanceledException
-            If Not _closing AndAlso Not _busy AndAlso _packReadCancellation Is request Then PackReadStatus.Text = "整合包读取已取消。"
+            If Not _closing AndAlso Not _busy AndAlso _packReadCancellation Is request Then status.Text = "整合包读取已取消。"
         Catch ex As Exception
             If Not _closing AndAlso Not _busy AndAlso _packReadCancellation Is request Then
-                PackReadStatus.Text = "无法读取整合包：" & ex.Message
+                status.Text = "无法读取整合包：" & ex.Message
             End If
         Finally
             If _packReadCancellation Is request Then
@@ -126,7 +146,7 @@ Partial Public Class MainWindow
     End Function
     Private Sub SelectCurseForgePackage(package As CurseForgePackage, Optional request As CancellationTokenSource = Nothing, Optional navigate As Boolean = True)
         If _packReadCancellation IsNot request Then CancelPackRead()
-        _packSelection = package
+        _packSelection = package : _activeModrinth = False
         PackInstanceName.Text = package.Name
         PackSummary.Text = package.Name & " · " & package.Version & vbCrLf & "Minecraft " & package.Minecraft &
             If(package.LoaderKind.HasValue, " + " & package.LoaderKind.ToString() & " " & package.LoaderVersion, "") & vbCrLf &
@@ -148,14 +168,14 @@ Partial Public Class MainWindow
     Private Sub PackDragOver(sender As Object, e As DragEventArgs)
         If Not e.Data.GetDataPresent(DataFormats.FileDrop) Then Return
         Dim files = TryCast(e.Data.GetData(DataFormats.FileDrop), String())
-        e.Effects = If(Not _busy AndAlso Not _readingPack AndAlso files IsNot Nothing AndAlso files.Length = 1 AndAlso String.Equals(Path.GetExtension(files(0)), ".zip", StringComparison.OrdinalIgnoreCase), DragDropEffects.Copy, DragDropEffects.None)
+        e.Effects = If(Not _busy AndAlso Not _readingPack AndAlso files IsNot Nothing AndAlso files.Length = 1 AndAlso IsPackFile(files(0)), DragDropEffects.Copy, DragDropEffects.None)
         e.Handled = True
     End Sub
     Private Async Sub PackDrop(sender As Object, e As DragEventArgs)
         If Not e.Data.GetDataPresent(DataFormats.FileDrop) Then Return
         e.Handled = True
         Dim files = TryCast(e.Data.GetData(DataFormats.FileDrop), String())
-        If _busy OrElse _readingPack OrElse files Is Nothing OrElse files.Length <> 1 OrElse Not String.Equals(Path.GetExtension(files(0)), ".zip", StringComparison.OrdinalIgnoreCase) Then Return
-        Await ReadCurseForgePackAsync(files(0))
+        If _busy OrElse _readingPack OrElse files Is Nothing OrElse files.Length <> 1 OrElse Not IsPackFile(files(0)) Then Return
+        Await ReadLocalPackAsync(files(0))
     End Sub
 End Class

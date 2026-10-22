@@ -32,7 +32,7 @@ function Assert-BuildManifest([object]$Manifest) {
         $Manifest.Build.SourceCommit -notmatch '^[0-9a-f]{40}$' -or $Manifest.Build.InventorySHA256 -notmatch '^[0-9A-F]{64}$' -or
         $Manifest.Build.Configuration -cne 'Release' -or $Manifest.Build.Framework -cne 'net48' -or
         $Manifest.Build.Dirty -isnot [bool] -or $Manifest.Build.SingleExecutable -isnot [bool] -or !$Manifest.Build.SingleExecutable -or
-        $Manifest.Verification.StandaloneChecks -ne 25 -or $Manifest.Verification.UiChecks -ne 709 -or
+        $Manifest.Verification.StandaloneChecks -ne 25 -or $Manifest.Verification.UiChecks -ne 734 -or
         $Manifest.Verification.MotionChecks -ne 349 -or $Manifest.Files.Count -ne 8) { throw 'Invalid build manifest.' }
     $seen = @{}
     foreach ($file in $Manifest.Files) {

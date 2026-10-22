@@ -80,6 +80,8 @@ Partial Public Class MainWindow
                                           End Sub
         AddHandler PackInstanceName.TextChanged, Sub() RefreshPackAvailability()
         AddHandler PackInstanceName.KeyDown, AddressOf PackNameKeyDown
+        AddHandler ModrinthInstanceName.TextChanged, Sub() RefreshModrinthAvailability()
+        AddHandler ModrinthInstanceName.KeyDown, AddressOf ModrinthNameKeyDown
         InitializeMotion()
         InitializeAppearance()
         InitializeDeveloperSettings()
@@ -327,6 +329,7 @@ Partial Public Class MainWindow
         VerifyNavigationUi(artifactDirectory, checks)
         VerifyCompatibilityUi(artifactDirectory, checks)
         VerifyCurseForge(check, artifactDirectory)
+        VerifyModrinth(check, artifactDirectory)
         Return checks
     End Function
 
@@ -748,20 +751,24 @@ Partial Public Class MainWindow
 
     Private Async Sub StartInstall(sender As Object, e As RoutedEventArgs)
         If _busy OrElse _closing OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible Then Return
-        Dim pack = If(_downloadView = DownloadView.Modpacks, _packSelection, Nothing)
-        If _downloadView = DownloadView.Modpacks AndAlso (_readingPack OrElse pack Is Nothing) Then Return
+        If sender Is ModrinthInstallButton OrElse sender Is ModrinthInstanceName Then _activeModrinth = True
+        If sender Is PackInstallButton OrElse sender Is PackInstanceName Then _activeModrinth = False
+        Dim pack = If(_downloadView = DownloadView.Modpacks AndAlso Not _activeModrinth, _packSelection, Nothing)
+        Dim modrinth = If(_downloadView = DownloadView.Modpacks AndAlso _activeModrinth, _modrinthSelection, Nothing)
+        Dim isPack = pack IsNot Nothing OrElse modrinth IsNot Nothing
+        If _downloadView = DownloadView.Modpacks AndAlso (_readingPack OrElse Not isPack) Then Return
         If _selectedFolder Is Nothing Then
             ChooseInstallFolder(sender, e)
             StatusText.Text = "请先选择游戏目录。"
             Return
         End If
         RefreshPackAvailability()
-        Dim installProblem = If(pack IsNot Nothing, PackNameProblem(), RefreshInstallAvailability())
+        Dim installProblem = If(modrinth IsNot Nothing, ModrinthNameProblem(), If(pack IsNot Nothing, PackNameProblem(), RefreshInstallAvailability()))
         If installProblem IsNot Nothing Then
             StatusText.Text = installProblem
             Return
         End If
-        Dim entry = If(pack IsNot Nothing, New VersionEntry With {.Id = pack.Minecraft, .Kind = "release"}, _selectedEntry?.Copy())
+        Dim entry = If(isPack, New VersionEntry With {.Id = If(modrinth IsNot Nothing, modrinth.Minecraft, pack?.Minecraft), .Kind = "release"}, _selectedEntry?.Copy())
         If entry Is Nothing Then
             StatusText.Text = "请先选择 Minecraft 版本。"
             Return
@@ -773,11 +780,12 @@ Partial Public Class MainWindow
             Return
         End If
         Dim root = _selectedFolder.Location
-        Dim name = If(pack IsNot Nothing, PackInstanceName.Text, InstanceName.Text)
+        Dim name = If(modrinth IsNot Nothing, ModrinthInstanceName.Text, If(pack IsNot Nothing, PackInstanceName.Text, InstanceName.Text))
         Dim repair = RepairBox.IsChecked.GetValueOrDefault()
         Dim optionalFiles = PackOptionalFiles.Children.OfType(Of PclCheckBox)().Where(Function(box) box.IsChecked.GetValueOrDefault()).Select(Function(box) CLng(box.Tag)).ToArray()
-        If pack IsNot Nothing Then repair = False
-        Dim selection = If(pack IsNot Nothing, New ComponentSelection(), _componentSelection.Copy())
+        Dim modrinthOptions = ModrinthOptionalFiles.Children.OfType(Of PclCheckBox)().Where(Function(box) box.IsChecked.GetValueOrDefault()).Select(Function(box) CStr(box.Tag)).ToArray()
+        If isPack Then repair = False
+        Dim selection = If(isPack, New ComponentSelection(), _componentSelection.Copy())
         selection.JavaPath = JavaPathBox.Text.Trim()
         Try
             InstallPreflight.ValidateDestination(root, name, repair)
@@ -788,7 +796,7 @@ Partial Public Class MainWindow
             Return
         End Try
         Dim connections = ConnectionCount()
-        Dim isolation = If(pack IsNot Nothing, InstanceIsolationMode.Enabled, If(repair, InstanceIsolationMode.FollowPcl, SelectedIsolation()))
+        Dim isolation = If(isPack, InstanceIsolationMode.Enabled, If(repair, InstanceIsolationMode.FollowPcl, SelectedIsolation()))
         Dim reuse = If(ReuseBox.IsChecked = True, _folders.Select(Function(f) f.Location).ToList(), New List(Of String))
         Dim installer As New MinecraftInstaller(Policy(), _pclBase)
         Dim packInstaller As New CurseForgeInstaller(Policy(), _pclBase)
@@ -797,11 +805,16 @@ Partial Public Class MainWindow
         SetBusy(True)
         PersistSettings()
         TaskPanel.Visibility = Visibility.Visible
-        ResetTaskView(name, If(pack IsNot Nothing, pack.LoaderKind.HasValue, selection.Entries.Count > 0), root)
+        ResetTaskView(name, If(modrinth IsNot Nothing, modrinth.LoaderKind.HasValue, If(pack IsNot Nothing, pack.LoaderKind.HasValue, selection.Entries.Count > 0)), root)
         _taskMinecraft = entry.Id
         If pack IsNot Nothing Then
             _taskComponents = "CurseForge " & pack.Name & " " & pack.Version & If(pack.LoaderKind.HasValue, " · " & pack.LoaderKind.ToString() & " " & pack.LoaderVersion, "")
             _taskRows("metadata").Label.Text = "查询整合包文件与游戏版本信息"
+            _taskRows("files").Label.Text = "下载游戏、资源与整合包文件"
+        End If
+        If modrinth IsNot Nothing Then
+            _taskComponents = "Modrinth " & modrinth.Name & " " & modrinth.Version & If(modrinth.LoaderKind.HasValue, " · " & modrinth.LoaderKind.ToString() & " " & modrinth.LoaderVersion, "")
+            _taskRows("metadata").Label.Text = "校验整合包清单与游戏版本信息"
             _taskRows("files").Label.Text = "下载游戏、资源与整合包文件"
         End If
         ShowProgress(Nothing, Nothing)
@@ -812,6 +825,8 @@ Partial Public Class MainWindow
                 result = Await _installRunner(entry, root, name, selection, isolation, _cancellation.Token)
             ElseIf _preview Then
                 Throw New InvalidOperationException("界面预览不会执行实际安装。")
+            ElseIf modrinth IsNot Nothing Then
+                result = Await Task.Run(Function() New ModrinthInstaller(Policy(), _pclBase).InstallAsync(modrinth, root, name, reuse, modrinthOptions, progress, _cancellation.Token, connections, CLng(limit * 1024 * 1024), selection.JavaPath))
             ElseIf pack IsNot Nothing Then
                 result = Await Task.Run(Function() packInstaller.InstallAsync(pack, root, name, reuse, optionalFiles, progress, _cancellation.Token, connections, CLng(limit * 1024 * 1024), selection.JavaPath))
             Else

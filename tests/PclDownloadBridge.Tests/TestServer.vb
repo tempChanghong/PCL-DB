@@ -17,6 +17,9 @@ Public Class TestServer
     Public ReadOnly BodyGates As New ConcurrentDictionary(Of String, ManualResetEventSlim)
     Public ReadOnly BodyPauseAt As New ConcurrentDictionary(Of String, Integer)
     Public ReadOnly DeclaredLengths As New ConcurrentDictionary(Of String, Long)
+    Public ReadOnly HeadLengths As New ConcurrentDictionary(Of String, Long)
+    Public ReadOnly HeadStatusCodes As New ConcurrentDictionary(Of String, Integer)
+    Public ReadOnly Redirects As New ConcurrentDictionary(Of String, String)
     Public ReadOnly StatusCodes As New ConcurrentDictionary(Of String, Integer)
     Public ReadOnly ContentTypes As New ConcurrentDictionary(Of String, String)
     Public ReadOnly OmitLengths As New ConcurrentDictionary(Of String, Boolean)
@@ -113,10 +116,19 @@ Public Class TestServer
                 If OmitLengths.TryGetValue(path, omitLength) AndAlso omitLength Then lengthHeader = ""
                 Dim code As Integer
                 If StatusCodes.TryGetValue(path, code) Then status = code.ToString() & " Fixture"
+                If request.StartsWith("HEAD ", StringComparison.Ordinal) Then
+                    If HeadLengths.TryGetValue(path, declared) Then lengthHeader = "Content-Length: " & declared & vbCrLf
+                    If HeadStatusCodes.TryGetValue(path, code) Then status = code.ToString() & " Fixture"
+                End If
+                Dim location As String = Nothing
+                If Redirects.TryGetValue(path, location) Then
+                    status = "302 Found" : extra &= "Location: " & location & vbCrLf
+                End If
                 Dim contentType As String = Nothing
                 If ContentTypes.TryGetValue(path, contentType) Then extra &= "Content-Type: " & contentType & vbCrLf
                 Dim header = Encoding.ASCII.GetBytes("HTTP/1.1 " & status & vbCrLf & lengthHeader & extra & "Connection: close" & vbCrLf & vbCrLf)
                 stream.Write(header, 0, header.Length)
+                If request.StartsWith("HEAD ", StringComparison.Ordinal) Then Return
                 Dim bodyGate As ManualResetEventSlim = Nothing
                 Dim pauseAt As Integer
                 BodyPauseAt.TryGetValue(path, pauseAt)

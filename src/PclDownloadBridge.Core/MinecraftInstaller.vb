@@ -23,10 +23,10 @@ Public Class MinecraftInstaller
     Public Async Function InstallAsync(entry As VersionEntry, root As String, instanceName As String, reuseRoots As IEnumerable(Of String), progress As IProgress(Of TransferProgress), token As CancellationToken, Optional repairExisting As Boolean = False, Optional connections As Integer = 16, Optional limit As Long = 0, Optional components As ComponentSelection = Nothing, Optional isolationMode As InstanceIsolationMode = InstanceIsolationMode.FollowPcl) As Task(Of InstallResult)
         Return Await InstallCoreAsync(entry, root, instanceName, reuseRoots, progress, token, repairExisting, connections, limit, components, isolationMode, Nothing).ConfigureAwait(False)
     End Function
-    Friend Function InstallPackAsync(entry As VersionEntry, root As String, instanceName As String, reuseRoots As IEnumerable(Of String), progress As IProgress(Of TransferProgress), token As CancellationToken, components As ComponentSelection, connections As Integer, limit As Long, pack As CurseForgeInstallPlan) As Task(Of InstallResult)
+    Friend Function InstallPackAsync(entry As VersionEntry, root As String, instanceName As String, reuseRoots As IEnumerable(Of String), progress As IProgress(Of TransferProgress), token As CancellationToken, components As ComponentSelection, connections As Integer, limit As Long, pack As ModpackInstallPlan) As Task(Of InstallResult)
         Return InstallCoreAsync(entry, root, instanceName, reuseRoots, progress, token, False, connections, limit, components, InstanceIsolationMode.Enabled, pack)
     End Function
-    Private Async Function InstallCoreAsync(entry As VersionEntry, root As String, instanceName As String, reuseRoots As IEnumerable(Of String), progress As IProgress(Of TransferProgress), token As CancellationToken, repairExisting As Boolean, connections As Integer, limit As Long, components As ComponentSelection, isolationMode As InstanceIsolationMode, pack As CurseForgeInstallPlan) As Task(Of InstallResult)
+    Private Async Function InstallCoreAsync(entry As VersionEntry, root As String, instanceName As String, reuseRoots As IEnumerable(Of String), progress As IProgress(Of TransferProgress), token As CancellationToken, repairExisting As Boolean, connections As Integer, limit As Long, components As ComponentSelection, isolationMode As InstanceIsolationMode, pack As ModpackInstallPlan) As Task(Of InstallResult)
         token.ThrowIfCancellationRequested()
         If Not [Enum].IsDefined(GetType(InstanceIsolationMode), isolationMode) Then Throw New ArgumentOutOfRangeException(NameOf(isolationMode))
         If entry Is Nothing Then Throw New ArgumentNullException(NameOf(entry))
@@ -34,7 +34,7 @@ Public Class MinecraftInstaller
         entry = entry.Copy()
         InstallPreflight.ValidateDestination(root, instanceName, repairExisting)
         If pack IsNot Nothing Then
-            If entry.Id <> pack.Package.Minecraft OrElse repairExisting OrElse isolationMode <> InstanceIsolationMode.Enabled Then Throw New InvalidDataException("整合包必须使用指定原版和新的隔离实例。")
+            If entry.Id <> pack.Minecraft OrElse repairExisting OrElse isolationMode <> InstanceIsolationMode.Enabled Then Throw New InvalidDataException("整合包必须使用指定原版和新的隔离实例。")
             pack.ValidateTargets(instanceName)
         End If
         If components IsNot Nothing Then
@@ -237,7 +237,7 @@ Public Class MinecraftInstaller
                 ' After the filesystem commit, return its real result even if cancellation
                 ' arrives during optional cache cleanup; never undo a published instance.
                 VerifiedComponentCache.ReleasePublishedClient(root, client)
-                Return New InstallResult With {.InstancePath = instancePath, .FileCount = plan.Count + 1 + If(newSettings, 1, 0) + If(pack Is Nothing, 0, pack.Files.Count + pack.Package.OverrideFiles.Count + 1), .NetworkBytes = networkBytes, .Reused = reused, .DynamicSplits = splits}
+                Return New InstallResult With {.InstancePath = instancePath, .FileCount = plan.Count + 1 + If(newSettings, 1, 0) + If(pack Is Nothing, 0, pack.Files.Count + pack.OverrideCount + 1), .NetworkBytes = networkBytes, .Reused = reused, .DynamicSplits = splits}
               End Using
             Finally
                 ' Preserve transfer caches and existing versions. A locked private payload

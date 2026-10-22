@@ -1,5 +1,13 @@
 # PCL2 代码依据
 
+## Beta 1.0 后续开发：Modrinth MRPACK 导入
+
+- 主要参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModModpack.InstallPackModrinth`（361–485 行）、根清单优先/单层包装目录探测和 `CopyOverrideDirectory`（121–144 行）：固定加载器、client required/optional/unsupported、downloads 数组、overrides 后 client-overrides、隔离设置，以及整合包与游戏安装的非阻塞组合。`ModDownload.DlSourceModGet` 和 `ResourceVersion.ParseModrinthTrackArguments` 用于比较选源；本轮使用包内原始地址和顺序回退，未把 Modrinth CDN 错配为 BMCL，也未把未经实测的 MCIM 映射当作可用来源。
+- [Modrinth 官方格式](https://support.modrinth.com/en/articles/8802351-modrinth-modpack-format-mrpack)用于核对 SHA-1/SHA-512、HTTPS 地址列表、客户端环境和覆盖层。沿用 PCL 不把 fileSize 用作硬性校验的行为，服务端长度仅用于 Range/续传，最终验证两种摘要；补齐域名及重定向检查。
+- 与 CurseForge 共用 ModpackInstallPlan、精确组件安装、下载预算、只读原包绑定、隔离暂存和最终目录发布；格式解析、可选文件身份及安装记录各自独立。以胜出覆盖文件的摘要验证最终内容，保留清单下载的双哈希和覆盖来源，不因合法覆盖而错误套用旧哈希。
+- 实包的 1176 个覆盖文件暴露了每个循环未归零的复制长度累计；已修复公共复制流程，并用连续普通文件和跨层覆盖用例复现/回归，CurseForge 同时受益。两张卡片沿用原 PCL 控件、25ms 逐项入场与现有导航动画，不增加新的下载侧栏分类。
+
+
 ## Beta 1.0 后续修复：整合包目录与动画交接检查
 
 - 再次读取固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModModpack.CopyOverrideDirectory`：PCL 在 Windows 临时目录中检查并复制覆写目录，再处理 PCL/Setup.ini。本工具直接读 ZIP，却曾用区分大小写的前缀筛选，导致 `Overrides` 与清单 `overrides` 不一致时静默漏装。现在清单规划和实际复制同时按 Windows 的大小写规则匹配，保留原始文件名，继续拒绝重复/大小写碰撞和越界路径，不放宽已有实例覆盖或原子发布边界。

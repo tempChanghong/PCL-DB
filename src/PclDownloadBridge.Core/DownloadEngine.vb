@@ -15,6 +15,8 @@ Public Class DownloadEngine
     Implements IDisposable
     Private ReadOnly _policy As SourcePolicy
     Private ReadOnly _client As HttpClient = SourcePolicy.CreateClient()
+    Private ReadOnly _modrinthClient As HttpClient
+    Private ReadOnly _modrinthTransfer As New AsyncLocal(Of Boolean)
     Private ReadOnly _clock As Stopwatch = Stopwatch.StartNew()
     Private ReadOnly _progress As IProgress(Of TransferProgress)
     Private ReadOnly _reuseRoots As List(Of String)
@@ -77,6 +79,7 @@ Public Class DownloadEngine
 
     Public Sub New(policy As SourcePolicy, progress As IProgress(Of TransferProgress), reuseRoots As IEnumerable(Of String), Optional connections As Integer = 16, Optional cacheRoot As String = Nothing, Optional useComponentCache As Boolean = False, Optional budget As DownloadBudget = Nothing)
         _policy = policy
+        _modrinthClient = ModrinthDownloadPolicy.CreateClient(policy.AllowLoopback)
         _progress = progress
         _reuseRoots = reuseRoots.Concat(If(String.IsNullOrWhiteSpace(cacheRoot), Enumerable.Empty(Of String)(), {cacheRoot})).Distinct(StringComparer.OrdinalIgnoreCase).ToList()
         _cacheRoot = cacheRoot
@@ -99,7 +102,7 @@ Public Class DownloadEngine
         _budget.BeginBatch()
         Try
             _total = queue.Count
-            _knownBytes = queue.Sum(Function(f) Math.Max(0L, f.Size))
+            _knownBytes = queue.Sum(Function(f) Math.Max(0L, If(f.Size >= 0, f.Size, f.EstimatedSize)))
             _verifiedBytes = 0
             _completed = 0
             Dim workers As New List(Of Task)
@@ -131,9 +134,10 @@ Public Class DownloadEngine
         While queue.TryDequeue(item)
             Try
                 linked.Token.ThrowIfCancellationRequested()
+                _modrinthTransfer.Value = item.Category = "modrinth"
                 _currentFile = item.RelativePath
                 Await DownloadOneAsync(root, item, linked.Token).ConfigureAwait(False)
-                Interlocked.Add(_verifiedBytes, Math.Max(0L, item.Size))
+                Interlocked.Add(_verifiedBytes, Math.Max(0L, If(item.Size >= 0, item.Size, item.EstimatedSize)))
                 Interlocked.Increment(_completed)
                 Report(item.RelativePath)
             Catch
@@ -146,7 +150,7 @@ Public Class DownloadEngine
     Private Async Function DownloadOneAsync(root As String, item As DownloadFile, token As CancellationToken) As Task
         Dim cacheKey As String
         Using sha = SHA256.Create()
-            cacheKey = BitConverter.ToString(sha.ComputeHash(Text.Encoding.UTF8.GetBytes(item.Url & "|" & item.Sha1 & "|" & item.Size & If(item.Md5 Is Nothing, "", "|" & item.Md5) & If(item.S3SinglePartETag Is Nothing, "", "|s3-etag1:" & item.S3SinglePartETag)))).Replace("-", "").ToLowerInvariant()
+            cacheKey = BitConverter.ToString(sha.ComputeHash(Text.Encoding.UTF8.GetBytes(item.Url & "|" & item.Sha1 & "|" & item.Size & If(item.Md5 Is Nothing, "", "|" & item.Md5) & If(item.S3SinglePartETag Is Nothing, "", "|s3-etag1:" & item.S3SinglePartETag) & If(item.Sha512 Is Nothing, "", "|sha512:" & item.Sha512)))).Replace("-", "").ToLowerInvariant()
         End Using
         ' Asset aliases share a transfer cache even when their final paths differ.
         ' Hold one cache owner through validation/publication, not a network connection slot.
@@ -209,7 +213,7 @@ Public Class DownloadEngine
         cache = Path.GetDirectoryName(cache)
         Directory.CreateDirectory(cache)
         Dim failures As New List(Of Exception)
-        Dim sources = _policy.Candidates(item.Url, item.Category)
+        Dim sources = {item.Url}.Concat(If(item.AlternateUrls, New String() {})).SelectMany(Function(url) _policy.Candidates(url, item.Category)).Distinct(StringComparer.Ordinal).ToList()
         For sourceIndex = 0 To sources.Count - 1
             Dim source = sources(sourceIndex)
             _source = New Uri(source).Host
@@ -219,22 +223,35 @@ Public Class DownloadEngine
                 Dim failure As Exception = Nothing
                 Dim merged = SafeFiles.UnderRoot(cache, "complete.tmp")
                 Try
-                    Dim completeCached = CanResumeSingle(item) AndAlso SafeFiles.Matches(merged, item)
-                    ' PCL avoids segmentation on BMCLAPI. Only hashed, sized large
-                    ' official/loopback files may combine separately fetched ranges.
-                    Dim canSplit = item.Size >= 8L * 1024 * 1024 AndAlso Not String.IsNullOrWhiteSpace(item.Sha1) AndAlso Not New Uri(source).Host.Contains("bmclapi")
+                    Dim completeCached = (CanResumeSingle(item) OrElse _modrinthTransfer.Value) AndAlso SafeFiles.Matches(merged, item)
                     If completeCached Then
                         _source = "本地已校验续传缓存"
-                    ElseIf canSplit Then
-                        Dim unsupported = False
-                        Try
-                            Await SegmentedAsync(source, item, cache, merged, token).ConfigureAwait(False)
-                        Catch ex As RangeUnavailableException
-                            unsupported = True
-                        End Try
-                        If unsupported Then Await SingleAsync(source, merged, item, token).ConfigureAwait(False)
                     Else
-                        Await SingleAsync(source, merged, item, token).ConfigureAwait(False)
+                        Dim transferItem = item
+                        If _modrinthTransfer.Value Then
+                            transferItem = DownloadPlan.Merge({item})(0)
+                            ' The manifest size is advisory. Discover the server's
+                            ' actual length for Range/resume; hashes remain authoritative.
+                            Using probe = CancellationTokenSource.CreateLinkedTokenSource(token)
+                                probe.CancelAfter(TimeSpan.FromSeconds(8))
+                                Try
+                                    Await WithResponseCoreAsync(source, Nothing, Nothing, probe.Token, Function(response)
+                                        If response.IsSuccessStatusCode AndAlso response.Content.Headers.ContentLength.HasValue Then transferItem.Size = response.Content.Headers.ContentLength.Value
+                                        Return Task.FromResult(0)
+                                    End Function, HttpMethod.Head).ConfigureAwait(False)
+                                Catch ex As Exception When Not token.IsCancellationRequested
+                                    ' HEAD may be unsupported; an ordinary GET still works.
+                                End Try
+                            End Using
+                        End If
+                        Dim retryWithoutLength = False
+                        Try
+                            Await TransferAsync(source, transferItem, cache, merged, token).ConfigureAwait(False)
+                        Catch ex As Exception When Not token.IsCancellationRequested AndAlso _modrinthTransfer.Value AndAlso transferItem.Size >= 0 AndAlso (TypeOf ex Is IOException OrElse TypeOf ex Is InvalidDataException)
+                            ' A misleading HEAD length must not reject valid hashed bytes.
+                            retryWithoutLength = True
+                        End Try
+                        If retryWithoutLength AndAlso Not SafeFiles.Matches(merged, item) Then Await SingleAsync(source, merged, item, token).ConfigureAwait(False)
                     End If
                     If Not SafeFiles.Matches(merged, item) Then Throw New InvalidDataException("大小或哈希校验失败：" & item.RelativePath)
                     token.ThrowIfCancellationRequested()
@@ -265,6 +282,20 @@ Public Class DownloadEngine
         Throw New AggregateException("下载失败：" & item.RelativePath, failures)
     End Function
 
+    Private Async Function TransferAsync(source As String, item As DownloadFile, cache As String, merged As String, token As CancellationToken) As Task
+        Dim canSplit = item.Size >= 8L * 1024 * 1024 AndAlso (Not String.IsNullOrWhiteSpace(item.Sha1) OrElse Not String.IsNullOrWhiteSpace(item.Sha512)) AndAlso Not New Uri(source).Host.Contains("bmclapi")
+        If canSplit Then
+            Dim unsupported = False
+            Try
+                Await SegmentedAsync(source, item, cache, merged, token).ConfigureAwait(False)
+            Catch ex As RangeUnavailableException
+                unsupported = True
+            End Try
+            If Not unsupported Then Return
+        End If
+        Await SingleAsync(source, merged, item, token).ConfigureAwait(False)
+    End Function
+
     Private Shared Sub DeleteReuseCopy(temporary As String)
         Try
             If File.Exists(temporary) Then File.Delete(temporary)
@@ -276,7 +307,7 @@ Public Class DownloadEngine
     Private Function ReuseCandidates(item As DownloadFile) As IEnumerable(Of String)
         ' PCL CheckExistingFile requires an upstream size or hash before searching
         ' other folders. A matching filename alone does not identify their content.
-        If item.Size < 0 AndAlso String.IsNullOrWhiteSpace(item.Sha1) AndAlso String.IsNullOrWhiteSpace(item.Md5) Then Return Enumerable.Empty(Of String)()
+        If item.Size < 0 AndAlso String.IsNullOrWhiteSpace(item.Sha1) AndAlso String.IsNullOrWhiteSpace(item.Md5) AndAlso String.IsNullOrWhiteSpace(item.Sha512) Then Return Enumerable.Empty(Of String)()
         Dim candidates As New List(Of String)
         For Each reuseRoot In _reuseRoots
           Try
@@ -308,6 +339,7 @@ Public Class DownloadEngine
 
     Private Shared Function CanResumeSingle(item As DownloadFile) As Boolean
         If item.Size <= 0 Then Return False
+        If Not String.IsNullOrWhiteSpace(item.Sha512) Then Return Regex.IsMatch(item.Sha512, "\A[0-9a-fA-F]{128}\z")
         If Not String.IsNullOrWhiteSpace(item.Sha1) Then Return Regex.IsMatch(item.Sha1, "\A[0-9a-fA-F]{40}\z")
         Return Regex.IsMatch(If(item.Md5, ""), "\A[0-9a-fA-F]{32}\z") OrElse Regex.IsMatch(If(item.S3SinglePartETag, ""), "\A[0-9a-fA-F]{32}-1\z")
     End Function
@@ -368,7 +400,10 @@ Public Class DownloadEngine
         Await scheduler.RunAsync(url, target, token).ConfigureAwait(False)
     End Function
 
-    Private Async Function WithResponseAsync(url As String, first As Long?, last As Long?, token As CancellationToken, body As Func(Of HttpResponseMessage, Task)) As Task
+    Private Function WithResponseAsync(url As String, first As Long?, last As Long?, token As CancellationToken, body As Func(Of HttpResponseMessage, Task)) As Task
+        Return WithResponseCoreAsync(url, first, last, token, body, HttpMethod.Get)
+    End Function
+    Private Async Function WithResponseCoreAsync(url As String, first As Long?, last As Long?, token As CancellationToken, body As Func(Of HttpResponseMessage, Task), method As HttpMethod) As Task
         Dim host = _budget.Hosts.GetOrAdd(New Uri(url).Host, Function(key) New SemaphoreSlim(_budget.HostLimit))
         Await host.WaitAsync(token).ConfigureAwait(False)
         Try
@@ -387,11 +422,11 @@ Public Class DownloadEngine
                 End If
                 Interlocked.Increment(_budget.ActiveConnections)
                 Try
-                Using request As New HttpRequestMessage(HttpMethod.Get, url)
+                Using request As New HttpRequestMessage(method, url)
                     If first.HasValue Then request.Headers.Range = New RangeHeaderValue(first, last)
                     Using timeout = CancellationTokenSource.CreateLinkedTokenSource(token)
                         timeout.CancelAfter(TimeSpan.FromMinutes(3))
-                        Using response = Await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(False)
+                        Using response = Await If(_modrinthTransfer.Value, _modrinthClient, _client).SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(False)
                             ' Body deadline measures inactivity, not total file length.
                             timeout.CancelAfter(TimeSpan.FromSeconds(45))
                             ' Pass the deadline to reads through cancellation closing the response.
@@ -480,6 +515,7 @@ Public Class DownloadEngine
     End Sub
 
     Public Sub Dispose() Implements IDisposable.Dispose
+        _modrinthClient.Dispose()
         _client.Dispose()
         If _ownsBudget Then _budget.Dispose()
     End Sub

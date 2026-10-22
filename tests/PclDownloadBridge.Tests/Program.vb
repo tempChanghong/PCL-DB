@@ -12,6 +12,10 @@ Module Program
         Net.ServicePointManager.SecurityProtocol = Net.SecurityProtocolType.Tls12
         Try
             If ProcessorStreamChecks.TryRunFixture(args) Then Return
+            If args.Length >= 3 AndAlso args(0) = "--live-modrinth" Then
+                ModrinthLiveChecks.RunAsync(args(1), args(2), args.Skip(3)).GetAwaiter().GetResult()
+                Return
+            End If
             If args.Length = 3 AndAlso args(0) = "--live-curseforge" Then
                 CurseForgeLiveChecks.RunAsync(args(1), args(2)).GetAwaiter().GetResult()
                 Return
@@ -40,7 +44,9 @@ Module Program
             Directory.CreateDirectory(TestRoot)
             If args.Length = 2 AndAlso args(0) = "--regression" Then
                 Dim run As Task(Of List(Of String))
-                If args(1).StartsWith("curseforge-", StringComparison.Ordinal) Then
+                If args(1).StartsWith("modrinth-", StringComparison.Ordinal) Then
+                    run = ModrinthChecks.RunAsync(TestRoot, args(1))
+                ElseIf args(1).StartsWith("curseforge-", StringComparison.Ordinal) Then
                     run = CurseForgeChecks.RunAsync(TestRoot, args(1))
                 ElseIf args(1) = "supplemental-indexes" Then
                     run = SupplementalAssetIndexChecks.RunAsync(TestRoot)
@@ -115,6 +121,9 @@ Module Program
                 Next
                 Return
             End If
+            For Each label In ModrinthChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
+                Check(True, label)
+            Next
             For Each label In CurseForgeChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
                 Check(True, label)
             Next
