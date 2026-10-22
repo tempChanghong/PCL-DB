@@ -2,6 +2,15 @@
 
 日期：2026-10-22（北京时间）。最新发布为 PCL-DB Beta 1.0（`1.0.0-beta.1`），当前主分支另含尚未发布的后续修复；下方保留先前版本的验证记录。
 
+## Beta 1.0 后续开发：补充响应失败隔离与刷新恢复
+
+- 基线 `fc3cb1807e4aadd9bfd3a19e0fc0561b57bc6725`，源码备份及保护快照保存在 `artifacts/beta1-supplemental-recovery/`。再次阅读固定 PCL 的补充清单合并、PCL-CE 的可选来源异常隔离；片段见 pcl-extra-source.txt。
+- baseline-core.log 通过真实回环 HTTP 响应复现：`Content-Type: application/json; charset=invalid-pcl-db-charset` 使 net48 HttpContent 将不支持的编码包装为 InvalidOperationException，越过原有补充异常筛选。baseline-ui/supplemental-workflow.json 另确认正常列表被标记为刷新失败，以及只有实验快照/同名条目全部被普通清单覆盖时，完成提示仍声称包含两种补充类别。
+- 核心层将该预期的解码错误按可选来源失败处理；界面把整个补充完成过程置于单独的异常边界，正常列表的可用性及刷新标志不再受补充意外失败影响，并记录当前补充完成过程中的意外异常。过期、安装中、关闭中及用户已经修改的状态不会被覆盖。完成提示基于实际合并后的数量与类别，全部被正常清单覆盖时显示「无新增补充版本」。
+- 新增 7 项回环核心检查，覆盖三种来源偏好下无效字符编码的隔离及同一策略刷新恢复，并确认有效 UTF-16 响应保持可读；补充检查从 83 增至 **90 项**。既有界面断言扩展至 **17 种补充工作流场景**，包含错误后重试、实际分类/冲突提示和忙碌、关闭、过期请求的异常；ui/supplemental-workflow.json 及 vs-supplemental-workflow.json 全部为 true，界面总数仍为 658。
+- 完整核心 **1104 项**、VS 2026 Debug/PDB 精选核心 **728 项**通过；Release 与 Debug 的 **658 项界面、328 项动画**通过，固定源码对照 **17 项**通过，Release 构建零警告/零错误。本轮使用回环 HTTP、临时目录和隔离离屏 WPF，没有重新进行真实端点或游戏启动验收。
+- preservation.json 确认 78 个 dist 文件内容和修改时间、七个参考仓库及 Beta 标签保持。本轮仅本地验证与 Commit，不打包、不发版、不推送。
+
 ## Beta 1.0 后续开发：战斗测试版与实验快照补充清单
 
 - 基线 `08b9857120f37e131c4dcc699efd6fbb3d1b3a81`，源码备份、dist 摘要和七个参考仓库状态保存在 `artifacts/beta1-supplemental-versions/`。重读固定 PCL `5ef81e4` 的 `DlClientListBmclapiMain`、`McDownloadListItem` 与安装页分类代码，片段保存在 pcl-supplement-reference.txt；另外阅读 PCL-CE 的公开 UVMC 合并与忽略补充异常的路径。采用独立公开清单，没有读取上游身份凭据或恢复其私有特供清单。

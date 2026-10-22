@@ -46,7 +46,9 @@ Public NotInheritable Class SupplementalVersions
                 If body.Length > 1024 * 1024 Then Throw New InvalidDataException("补充版本列表过大。")
                 Return Parse(JObject.Parse(body))
             Catch ex As Exception When TypeOf ex Is IO.IOException OrElse TypeOf ex Is InvalidDataException OrElse TypeOf ex Is Net.Http.HttpRequestException OrElse
-                TypeOf ex Is OperationCanceledException OrElse TypeOf ex Is Newtonsoft.Json.JsonException OrElse TypeOf ex Is ArgumentException
+                TypeOf ex Is OperationCanceledException OrElse TypeOf ex Is Newtonsoft.Json.JsonException OrElse TypeOf ex Is ArgumentException OrElse
+                (TypeOf ex Is InvalidOperationException AndAlso TypeOf ex.InnerException Is ArgumentException)
+                ' net48 HttpContent wraps unsupported response charsets this way.
                 token.ThrowIfCancellationRequested()
                 Return New List(Of VersionEntry)()
             End Try

@@ -71,6 +71,44 @@ Partial Public Class MainWindow
             _supplementalProvider = Function(policy, token) Task.FromCanceled(Of List(Of VersionEntry))(New CancellationToken(True))
             Await LoadVersionsAsync(True)
             results("optionalCancellationKeepsNormal") = _versions.Count = 1 AndAlso _versions(0) Is normal AndAlso Not _versionsDirty AndAlso Not _loading AndAlso Not StatusText.Text.Contains("刷新失败")
+            _supplementalProvider = Function(policy, token) Task.FromException(Of List(Of VersionEntry))(New InvalidOperationException("optional response decoding failed"))
+            Await LoadVersionsAsync(True)
+            results("optionalExceptionKeepsNormal") = _versions.Count = 1 AndAlso _versions(0) Is normal AndAlso Not _versionsDirty AndAlso Not _loading AndAlso Not StatusText.Text.Contains("刷新失败") AndAlso BrowserRows("正式版").Single().Tag Is normal
+            _supplementalProvider = Function(policy, token) Task.FromResult(New List(Of VersionEntry) From {experiment})
+            Await LoadVersionsAsync(True)
+            results("optionalExceptionThenRetry") = Not _versionsDirty AndAlso _versions.Count = 2 AndAlso _versions.Contains(experiment) AndAlso BrowserRows("实验快照").Single().Tag Is experiment
+            results("statusReportsActualCategory") = StatusText.Text.Contains("含 1 个补充版本：实验快照") AndAlso Not StatusText.Text.Contains("战斗测试版")
+            Dim officialCombat = BrowserEntry(combat.Id, "snapshot", "2020-08-26T12:00:00Z")
+            _versionProvider = Function(policy, token) Task.FromResult(New List(Of VersionEntry) From {normal, officialCombat})
+            _supplementalProvider = Function(policy, token) Task.FromResult(New List(Of VersionEntry) From {combat})
+            Await LoadVersionsAsync(True)
+            results("statusReportsCollisionWithoutAddition") = _versions.Count = 2 AndAlso _versions.Contains(officialCombat) AndAlso Not _versions.Contains(combat) AndAlso
+                BrowserRows("战斗测试版").Count = 0 AndAlso StatusText.Text.Contains("无新增补充版本")
+            _versionProvider = Function(policy, token) Task.FromResult(New List(Of VersionEntry) From {normal})
+            pending = ListGate(Of VersionEntry)()
+            _supplementalProvider = Function(policy, token) pending.Task
+            loading = LoadVersionsAsync(True) : before = _versions
+            _busy = True : StatusText.Text = "正在安装测试实例"
+            pending.SetException(New InvalidOperationException("late optional failure while installing")) : Await loading
+            results("optionalBusyExceptionKeepsNormal") = _versions Is before AndAlso Not _versionsDirty AndAlso StatusText.Text = "正在安装测试实例"
+            _busy = False
+            pending = ListGate(Of VersionEntry)()
+            loading = LoadVersionsAsync(True) : before = _versions
+            _closing = True
+            pending.SetException(New InvalidOperationException("late optional failure while closing")) : Await loading
+            results("optionalClosingExceptionKeepsNormal") = _versions Is before AndAlso Not _versionsDirty AndAlso _versionCancellation Is Nothing
+            _closing = False
+            older = ListGate(Of VersionEntry)() : current = ListGate(Of VersionEntry)() : requests = 0
+            _supplementalProvider = Function(policy, token)
+                                        requests += 1
+                                        Return If(requests = 1, older.Task, current.Task)
+                                    End Function
+            oldWork = LoadVersionsAsync(True) : newWork = LoadVersionsAsync(True)
+            current.SetResult(New List(Of VersionEntry) From {experiment}) : Await newWork
+            before = _versions
+            Dim acceptedStatus = StatusText.Text
+            older.SetException(New InvalidOperationException("stale optional failure")) : Await oldWork
+            results("optionalStaleExceptionKeepsNormal") = _versions Is before AndAlso _versions.Contains(experiment) AndAlso Not _versionsDirty AndAlso StatusText.Text = acceptedStatus
             If directory IsNot Nothing Then IO.File.WriteAllText(IO.Path.Combine(directory, "supplemental-workflow.json"), results.ToString())
             Return results.Properties().All(Function(item) CBool(item.Value))
         Finally

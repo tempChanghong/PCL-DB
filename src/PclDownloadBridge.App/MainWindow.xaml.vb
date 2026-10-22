@@ -384,22 +384,25 @@ Partial Public Class MainWindow
             _loading = False
             If _supplementalProvider IsNot Nothing OrElse (_versionProvider Is Nothing AndAlso Not _preview) Then
                 Dim status = StatusText.Text
-                Dim extra As List(Of VersionEntry)
                 Try
-                    extra = Await If(_supplementalProvider Is Nothing, SupplementalVersions.LoadAsync(Policy(), request.Token), _supplementalProvider(Policy(), request.Token))
+                    Dim extra = Await If(_supplementalProvider Is Nothing, SupplementalVersions.LoadAsync(Policy(), request.Token), _supplementalProvider(Policy(), request.Token))
+                    If _closing OrElse generation <> _versionGeneration OrElse _busy Then Return
+                    _versions = SupplementalVersions.Merge(_versions, extra)
+                    ' Append separate PCL-style folded groups without rebuilding rows the
+                    ' user has already opened, focused or scrolled through.
+                    AddSupplementalVersionCards()
+                    If _downloadView = DownloadView.Versions AndAlso StatusText.Text = status Then StatusText.Text = SupplementalCatalogueStatus(extra.Count > 0)
                 Catch ex As OperationCanceledException
                     ' The main list has already succeeded. Its deadline or a cancelled
                     ' optional request must not turn that success into a refresh error.
                     Return
+                Catch ex As Exception
+                    ' Optional catalogue work cannot change the successful main list's
+                    ' freshness or replace an active task/newer request's status.
+                    If _closing OrElse generation <> _versionGeneration OrElse _busy Then Return
+                    If _downloadView = DownloadView.Versions AndAlso StatusText.Text = status Then StatusText.Text = SupplementalCatalogueStatus(False)
+                    If Not _preview Then Log(ex)
                 End Try
-                If _closing OrElse generation <> _versionGeneration OrElse _busy Then Return
-                _versions = SupplementalVersions.Merge(_versions, extra)
-                ' Append separate PCL-style folded groups without rebuilding rows the
-                ' user has already opened, focused or scrolled through.
-                AddSupplementalVersionCards()
-                If _downloadView = DownloadView.Versions Then
-                    If StatusText.Text = status Then StatusText.Text = "已读取 " & _versions.Count & " 个版本" & If(extra.Count = 0, "（补充清单暂不可用，可刷新重试）", "，含战斗测试版与实验快照") & "。"
-                End If
             End If
         Catch ex As Exception
             If _closing OrElse generation <> _versionGeneration Then Return
@@ -416,6 +419,15 @@ Partial Public Class MainWindow
             End If
             request.Dispose()
         End Try
+    End Function
+
+    Private Function SupplementalCatalogueStatus(available As Boolean) As String
+        Dim status = "已读取 " & _versions.Count & " 个版本"
+        If Not available Then Return status & "（补充清单暂不可用，可刷新重试）。"
+        Dim added = _versions.Where(Function(entry) entry.IsSupplemental).ToList()
+        If added.Count = 0 Then Return status & "（无新增补充版本）。"
+        Dim categories = {"战斗测试版", "实验快照"}.Where(Function(category) added.Any(Function(entry) SupplementalVersions.Label(entry) = category))
+        Return status & "，含 " & added.Count & " 个补充版本：" & String.Join("、", categories) & "。"
     End Function
 
     Private Async Sub RefreshVersions(sender As Object, e As RoutedEventArgs)

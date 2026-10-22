@@ -43,6 +43,7 @@ Friend Module SupplementalVersionChecks
     Friend Async Function RunAsync(root As String) As Task(Of List(Of String))
         Dim passed As New List(Of String)
         ParseChecks(passed)
+        Await ResponseRecoveryAsync(passed)
         Await OptionalSourceAsync(passed)
         Await InstallationAsync(root, passed)
         Return passed
@@ -93,6 +94,25 @@ Friend Module SupplementalVersionChecks
         Next
         Check(SupplementalVersions.Merge(parsed, parsed).Count = parsed.Count, "supplement repeated merge is idempotent", passed)
     End Sub
+
+    Private Async Function ResponseRecoveryAsync(passed As List(Of String)) As Task
+        Using server As New TestServer()
+            Dim body = Manifest(EntryJson()).ToString()
+            server.Files("/supplement") = Encoding.UTF8.GetBytes(body)
+            For Each preference As SourcePreference In [Enum].GetValues(GetType(SourcePreference))
+                Dim policy As New FixturePolicy(server.Url) With {.Preference = preference, .VersionPreference = preference}
+                server.ContentTypes("/supplement") = "application/json; charset=invalid-pcl-db-charset"
+                Dim failed = Await SupplementalVersions.LoadAsync(policy, CancellationToken.None)
+                Check(failed.Count = 0, "supplement unsupported response charset is isolated " & preference.ToString(), passed)
+                server.ContentTypes("/supplement") = "application/json; charset=utf-8"
+                Dim recovered = Await SupplementalVersions.LoadAsync(policy, CancellationToken.None)
+                Check(recovered.Count = 1 AndAlso recovered(0).Id = "1.16_combat-6", "supplement a valid refresh recovers after a response decoding failure " & preference.ToString(), passed)
+            Next
+            server.Files("/supplement") = Encoding.Unicode.GetBytes(body)
+            server.ContentTypes("/supplement") = "application/json; charset=utf-16"
+            Check((Await SupplementalVersions.LoadAsync(New FixturePolicy(server.Url), CancellationToken.None)).Count = 1, "supplement declared UTF-16 responses keep normal decoding support", passed)
+        End Using
+    End Function
 
     Private Async Function OptionalSourceAsync(passed As List(Of String)) As Task
         Using server As New TestServer()

@@ -2,6 +2,8 @@
 
 ## Beta 1.0 后续开发：补充版本清单
 
+- 后续恢复检查再次阅读下述 PCL 合并及 PCL-CE 忽略 UVMC 异常的路径。补充来源的响应解码失败同样属于可选来源失败：核心层处理 net48 对无效字符编码的异常包装；界面层单独隔离整个补充完成过程，保留普通清单成功状态并记录意外异常，过期、安装中与关闭中的失败不覆盖当前状态。数量与分类提示以合并后的实际补充项为准。这些错误隔离及提示属于本工具适配，不改变上游版本身份或文件校验要求。
+
 - 重读固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `Modules/Minecraft/ModDownload.vb` 中 `DlClientListBmclapiMain`：读取正常列表后合并 `Cache/download.json`。`Pages/PageDownload/ModDownloadLib.vb` 的 `McDownloadListItem` 使用原条目 Tag、42 DIP 行、分类方块图标、说明文字及来源前缀，安装继续进入正常客户端/支持库/资源流程；`PageDownloadInstall.xaml.vb` 按 release/snapshot/special/历史版本分类，并避免把 combat、experimental 名称误改成正式版。
 - 本工具采用“合并额外条目、沿用原版安装器”的机制。正常官方/BMCL 清单及其 SHA-1 要求保持原实现；补充请求独立限时，正常列表先显示，结果以两个折叠卡片追加，避免改变用户已经展开、聚焦的普通行。过期代次、安装期间、关闭期间和可选请求取消不会覆盖正常结果。这些异步交接、去重和身份门禁属于本工具适配。
 - 补充数据来自公开 [unlisted-versions-of-minecraft / UVMC](https://zkitefly.github.io/unlisted-versions-of-minecraft/)，使用其 [version_manifest.json](https://zkitefly.github.io/unlisted-versions-of-minecraft/version_manifest.json)。另外阅读本地 PCL-CE `1a7653127d578efdb2a9388999a3fdc67d9e49d5` 的 `Modules/Minecraft/ModDownload.cs`：其官方/BMCL 列表会合并公开 UVMC 镜像清单，补充异常被记录并忽略；本阶段使用 UVMC 项目自身端点，没有移植其缓存和镜像实现，也不宣称恢复了 PCL 私有特供数据。

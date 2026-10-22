@@ -39,8 +39,8 @@ Debug 构建输出为 `src/PclDownloadBridge.App/bin/Debug/net48/`。启动配�
 
 | 配置 | 覆盖的流程 |
 |---|---|
-| Offline All | 全部本地下载、安装与处理器回归；当前 1097 项检查，处理器样本需要本机 Java 8 或更高版本 |
-| Supplemental Versions | 83 项补充版本检查：20 个目标身份、显式别名、分类信息、重复冲突、官方优先、三种选源设置、补充源失败/超时/取消、正常版本安装、别名安装及校验补全、错误元数据和文件拒绝；只使用回环 HTTP 与临时目录 |
+| Offline All | 全部本地下载、安装与处理器回归；当前 1104 项检查，处理器样本需要本机 Java 8 或更高版本 |
+| Supplemental Versions | 90 项补充版本检查：20 个目标身份、显式别名、分类信息、重复冲突、官方优先、三种选源设置、补充源失败/超时/取消、响应编码错误及刷新恢复、正常版本安装、别名安装及校验补全、错误元数据和文件拒绝；只使用回环 HTTP 与临时目录 |
 | Metadata Transfers | 26 项元数据响应、大小上限、JSON 对象类型、备用源、哈希及取消回归；仅使用本地 HTTP 样本 |
 | Component Catalogues | 234 项 Fabric / Fabric API / OptiFine / OptiFabric / LiteLoader 检查，覆盖兼容性、主文件/附件选择、发布时间、实际安装、SHA-1/MD5 校验与缓存、OptiFine 文件大小与损坏回退、合法空列表、损坏条目、重复分页、源偏好及取消；仅使用本地 HTTP 样本 |
 | Processor Log Recovery | 12 项真实 Java 样本检查：日志只读/占用、输出进度、失败原因、取消、恢复后重试；不使用真实游戏目录 |
