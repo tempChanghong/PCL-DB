@@ -64,6 +64,7 @@ try {
     if ($Full) {
         $runs += Invoke-OfflineProfile $testProject 'Offline All'
     } else {
+        $runs += Invoke-OfflineProfile $testProject 'Cache Boundaries'
         $runs += Invoke-OfflineProfile $testProject 'Segment Responses'
         $runs += Invoke-OfflineProfile $testProject 'Asset Objects'
         $runs += Invoke-OfflineProfile $testProject 'Supplemental Versions'

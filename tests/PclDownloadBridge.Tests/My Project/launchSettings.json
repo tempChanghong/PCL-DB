@@ -1,5 +1,11 @@
 {
   "profiles": {
+    "Cache Boundaries": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression component-cache-boundary-all",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
     "Segment Responses": {
       "commandName": "Project",
       "commandLineArgs": "--regression single-resume-segment-all",

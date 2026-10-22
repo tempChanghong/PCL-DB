@@ -15,6 +15,7 @@ Friend Module ComponentCacheChecks
         If onlyCase Is Nothing OrElse onlyCase = "component-cache-cancel" Then Await CancelAsync(testRoot, passed)
         If onlyCase Is Nothing OrElse onlyCase = "component-cache-failure" Then Await FailureAsync(testRoot, passed)
         If onlyCase Is Nothing OrElse onlyCase = "component-cache-unavailable" Then Await UnavailableAsync(testRoot, passed)
+        If onlyCase Is Nothing OrElse onlyCase.StartsWith("component-cache-boundary-", StringComparison.Ordinal) Then passed.AddRange(Await CacheBoundaryChecks.RunAsync(testRoot, onlyCase))
         If passed.Count = 0 Then Throw New ArgumentException("Unknown component cache case: " & onlyCase)
         Return passed
     End Function

@@ -37,14 +37,18 @@ Friend Class VerifiedComponentCache
             token.ThrowIfCancellationRequested()
             Dim temporary As String = Nothing
             Try
-                Dim candidate = SafeFiles.UnderRoot(readRoot, relative)
-                If Not SafeFiles.Matches(candidate, item) Then Continue For
-                temporary = target & ".cache-" & Guid.NewGuid().ToString("N")
-                CopyChecked(candidate, temporary, item, token)
+                Try
+                    Dim candidate = SafeFiles.UnderRoot(readRoot, relative)
+                    If Not SafeFiles.Matches(candidate, item) Then Continue For
+                    temporary = target & ".cache-" & Guid.NewGuid().ToString("N")
+                    CopyChecked(candidate, temporary, item, token)
+                Catch ex As Exception When TypeOf ex Is IOException OrElse TypeOf ex Is UnauthorizedAccessException OrElse TypeOf ex Is ArgumentException
+                    ' Optional cache reads/copies may fall back. A real destination
+                    ' commit failure below must remain an error, just as with reuse.
+                    Continue For
+                End Try
                 SafeFiles.CommitFile(temporary, target)
                 Return True
-            Catch ex As Exception When TypeOf ex Is IOException OrElse TypeOf ex Is UnauthorizedAccessException OrElse TypeOf ex Is ArgumentException
-                ' Corruption, inaccessible optional roots and links fall back to downloading.
             Finally
                 DeleteTemporary(temporary)
             End Try
