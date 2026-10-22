@@ -1,5 +1,11 @@
 {
   "profiles": {
+    "CurseForge Import": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression curseforge-all",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
     "Install Inputs": {
       "commandName": "Project",
       "commandLineArgs": "--regression install-input-all",

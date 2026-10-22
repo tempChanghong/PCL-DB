@@ -146,7 +146,7 @@ Public Class DownloadEngine
     Private Async Function DownloadOneAsync(root As String, item As DownloadFile, token As CancellationToken) As Task
         Dim cacheKey As String
         Using sha = SHA256.Create()
-            cacheKey = BitConverter.ToString(sha.ComputeHash(Text.Encoding.UTF8.GetBytes(item.Url & "|" & item.Sha1 & "|" & item.Size & If(item.Md5 Is Nothing, "", "|" & item.Md5)))).Replace("-", "").ToLowerInvariant()
+            cacheKey = BitConverter.ToString(sha.ComputeHash(Text.Encoding.UTF8.GetBytes(item.Url & "|" & item.Sha1 & "|" & item.Size & If(item.Md5 Is Nothing, "", "|" & item.Md5) & If(item.S3SinglePartETag Is Nothing, "", "|s3-etag1:" & item.S3SinglePartETag)))).Replace("-", "").ToLowerInvariant()
         End Using
         ' Asset aliases share a transfer cache even when their final paths differ.
         ' Hold one cache owner through validation/publication, not a network connection slot.
@@ -309,7 +309,7 @@ Public Class DownloadEngine
     Private Shared Function CanResumeSingle(item As DownloadFile) As Boolean
         If item.Size <= 0 Then Return False
         If Not String.IsNullOrWhiteSpace(item.Sha1) Then Return Regex.IsMatch(item.Sha1, "\A[0-9a-fA-F]{40}\z")
-        Return Regex.IsMatch(If(item.Md5, ""), "\A[0-9a-fA-F]{32}\z")
+        Return Regex.IsMatch(If(item.Md5, ""), "\A[0-9a-fA-F]{32}\z") OrElse Regex.IsMatch(If(item.S3SinglePartETag, ""), "\A[0-9a-fA-F]{32}-1\z")
     End Function
 
     Private Async Function SingleAsync(url As String, target As String, item As DownloadFile, token As CancellationToken) As Task

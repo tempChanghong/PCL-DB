@@ -29,7 +29,7 @@ Partial Public Class MainWindow
         If _selectedEntry Is Nothing Then Return Nothing
         Try
             InstallPreflight.ValidateName(InstanceName.Text)
-            If _selectedFolder IsNot Nothing Then InstallPreflight.ValidateDestination(_selectedFolder.Location, InstanceName.Text, RepairBox.IsChecked.GetValueOrDefault())
+            If _selectedFolder IsNot Nothing Then InstallPreflight.ValidateDestination(_selectedFolder.Location, InstanceName.Text, _packSelection Is Nothing AndAlso RepairBox.IsChecked.GetValueOrDefault())
         Catch ex As Exception When TypeOf ex Is ArgumentException OrElse TypeOf ex Is IOException OrElse TypeOf ex Is UnauthorizedAccessException
             Return ex.Message
         End Try
@@ -41,7 +41,7 @@ Partial Public Class MainWindow
         InstanceName.ValidationMessage = If(nameIssue, "")
         NameHint.Text = If(nameIssue, "")
         NameHint.Visibility = If(nameIssue Is Nothing, Visibility.Collapsed, Visibility.Visible)
-        Dim issue = If(nameIssue, ComponentInstallProblem())
+        Dim issue = If(nameIssue, If(_packSelection IsNot Nothing, Nothing, ComponentInstallProblem()))
         If issue Is Nothing AndAlso RepairBox.IsChecked.GetValueOrDefault() AndAlso _componentSelection.Entries.Count > 0 Then issue = "请为组件安装使用新名称；原版校验仅支持未添加加载器的实例。"
         Dim active = If(busy, _busy)
         InstallButton.IsEnabled = Not active AndAlso issue Is Nothing

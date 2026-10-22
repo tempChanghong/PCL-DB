@@ -56,6 +56,9 @@ Public Class DownloadFile
     Public Property Size As Long = -1
     Public Property Sha1 As String
     Public Property Md5 As String
+    ' Only the one-part multipart S3 ETag form (MD5 of the binary MD5, then -1).
+    ' Ordinary ETags and unknown multipart boundaries are never checksums.
+    Public Property S3SinglePartETag As String
     Public Property Category As String = "meta"
 End Class
 
@@ -126,6 +129,13 @@ Public Module SafeFiles
         If Not String.IsNullOrWhiteSpace(item.Md5) Then
             Using stream = File.OpenRead(path), hash = Security.Cryptography.MD5.Create()
                 If Not String.Equals(BitConverter.ToString(hash.ComputeHash(stream)).Replace("-", ""), item.Md5, StringComparison.OrdinalIgnoreCase) Then Return False
+            End Using
+        End If
+        If Not String.IsNullOrWhiteSpace(item.S3SinglePartETag) Then
+            If Not Text.RegularExpressions.Regex.IsMatch(item.S3SinglePartETag, "\A[0-9a-fA-F]{32}-1\z") Then Return False
+            Using stream = File.OpenRead(path), hash = Security.Cryptography.MD5.Create()
+                Dim digest = hash.ComputeHash(hash.ComputeHash(stream))
+                If Not String.Equals(BitConverter.ToString(digest).Replace("-", "") & "-1", item.S3SinglePartETag, StringComparison.OrdinalIgnoreCase) Then Return False
             End Using
         End If
         Return True

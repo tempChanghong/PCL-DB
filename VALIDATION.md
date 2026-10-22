@@ -2,6 +2,17 @@
 
 日期：2026-10-22（北京时间）。最新发布为 PCL-DB Beta 1.0（`1.0.0-beta.1`），当前主分支另含尚未发布的后续修复；下方保留先前版本的验证记录。
 
+## Beta 1.0 后续开发：CurseForge ZIP 导入
+
+- 基线 `f6dab5b58bed8e934fc3fe130b41130fd087f418`；源码备份、dist/参考仓库快照及本轮日志位于 `artifacts/beta1-curseforge-import/`。只读检查用户提供的 BetterMC ZIP，固定 PCL 参考仍为 `5ef81e4`。本轮只本地 Commit，暂不打包、发版或推送。
+- 新增下载页文件选择/ZIP 拖入、固定版本与隔离说明、可选文件 PCL 复选框和既有任务页接入。普通原版的三态隔离选择独立保留；整合包不提供已有实例补全。文件信息查询、精确加载器选择、附带配置和 Mods 的下载共用原安装器暂存/发布边界，目录最终冲突保留外部实例。缺失或无校验依据的文件明确失败，错误摘要最多显示 8 项，日志保留完整清单；查询期间不创建游戏目标目录。
+- 新增 **131 项**核心专项（curseforge-checks.log）：根/单层清单、必选/可选、非法类型/ID/加载器、重复和大小写/父子路径、Windows 无效路径、ZIP 链接、API 身份/MC/可用性、API SHA-1/MD5 与两种受限 S3 校验、同尺寸坏内容、未知/弱/多分片/KMS/非官方 CDN 拒绝、资源包/光影分类、镜像优先、密钥目标、查询取消、四种校验的实际安装/提交前取消/零载荷重试、原 ZIP 写保护及释放、全局/共享 Mods 保留、包内 INI 其他项保留、迟到实例/模组/配置冲突、指定加载器缺失及坏载荷失败。HTTP 载荷来自回环服务，元数据通过注入 HttpClient 的受控处理器验证；没有新增生产安装测试钩子。
+- 新增 **14 项** WPF 检查，合计 **682 项**；验证导入入口、固定版本/隔离、可选控件、来源切换、任务冻结、设置与进度返回、已有实例及隐藏补全标志、普通原版控件/隔离恢复。bettermc-preview.png 是实际用户 ZIP 的只读界面预览，预览不联网，可选项查询保持禁用；不把它称为鼠标实操验收。
+- 实际联网渠道探测（bettermc-channel-probe.json）：MCIM 返回 503 暂停页；官网逐项返回 85 份文件信息，`227639/5071019` 为空且下载 404。最终实现另实际查询全部 86 项并下载 **85 个可用载荷、100373500 字节**，按 83 个单段 MD5、2 个单分片组合 MD5 完整校验（live/report.json / live.log）。再次用原 ZIP 调用实际导入器，因该必需项缺失而在游戏目标目录创建前停止。没有跳过、更新或替换清单，不声称 BetterMC 已完整安装；也没有真实 Forge 47.2.0 处理器或游戏启动验收。
+- 默认 build.ps1 最终通过完整核心 **1859 项**、界面 **682 项**、动画 **328 项**及固定源码对照 **17 项**（default-build.log），未进入打包分支。最终 **131 项**专项通过，包含真正未知长度的 HttpContent 和 API 提供的独立 CDN 地址、外域/身份不符拒绝。VS 2026 Debug / portable PDB 精选核心 **1483 项**、界面 **682 项**、动画 **328 项**通过（vs2026.log / vs2026-report.json），Release/Debug 均零警告/零错误；暂停确认修正后两种配置的界面与动画均重新验收。单 EXE 门槛同步为 682 项，本轮未生成或验证发布候选。
+- 首轮 VS Debug 再次触发上一轮保留的选中标记断言（vs-motion-failed.json）：诊断记录高度对应 100ms，组/子时钟却已到 106.9444ms（vs-motion-failed-clock.json）。核对 WPF Clock.InternalPause / InternalSeekAlignedToLastTick：Pause 排队到后续 tick，同步 seek 不处理待执行的 Pause。检查辅助代码现在先等待 CurrentGlobalSpeedInvalidated 确认 IsPaused，再定位；以事件和 5 秒失败上限控制，不使用固定睡眠、放宽曲线容差、跳过或自动重试。动画生产代码未改，独立 Debug 328 项通过且显示高度、父子时钟和采样值均对应 100ms（motion-pause-checks.json）。依据见 [Pause](https://learn.microsoft.com/en-us/dotnet/api/system.windows.media.animation.clockcontroller.pause)及 [WPF Clock 源码](https://github.com/dotnet/wpf/blob/main/src/Microsoft.DotNet.Wpf/src/PresentationCore/System/Windows/Media/Animation/Clock.cs)；原始失败完整保留。
+- preservation.json 核对 dist 的 **78 个文件**内容、长度和修改时间、七个参考仓库提交与工作区状态、Beta 标签和原 BetterMC ZIP 的 SHA-256 均保持。本轮本地提交，未打包、发版、推送或改动用户游戏目录；实际可用载荷保留于 artifacts 的验证目录。
+
 ## Beta 1.0 后续修复：任务输入固定与更新后重试
 
 - 基线 `5286a5d97888f5a8698cc94ce34be7a02cd23f17`；源码备份和保护快照位于 `artifacts/beta1-install-inputs/`。先以原生产代码复现：组件复制仍引用原条目（baseline-copy.log），元数据阶段修改原附加组件名导致意外共享 Mod 冲突（baseline-components.log），最后提交时修改原版本 ID 导致 clientVersion 写入新值（baseline-version.log），读取前修改版本 ID 则拒绝原本有效的请求（baseline-version-prepare.log），清空原复用列表导致重复下载支持库（baseline-roots.log），独立组件安装器读取构造后被清空的选择而丢失组件（baseline-direct.log）。

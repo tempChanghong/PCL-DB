@@ -310,6 +310,7 @@ Partial Public Class MainWindow
         VerifyKeyboardWorkflow(check, artifactDirectory)
         VerifyNavigationUi(artifactDirectory, checks)
         VerifyCompatibilityUi(artifactDirectory, checks)
+        VerifyCurseForge(check, artifactDirectory)
         Return checks
     End Function
 
@@ -450,12 +451,13 @@ Partial Public Class MainWindow
         _versionGeneration += 1
         _versionCancellation?.Cancel()
         CancelComponentRequests()
-        _componentsDirty = _selectedEntry IsNot Nothing
-        If _selectedEntry IsNot Nothing Then RefreshComponents()
+        _componentsDirty = _selectedEntry IsNot Nothing AndAlso _packSelection Is Nothing
+        If _selectedEntry IsNot Nothing AndAlso _packSelection Is Nothing Then RefreshComponents()
     End Sub
 
     Private Async Function RefreshCurrentListsIfNeededAsync() As Task
         If _busy OrElse _closing Then Return
+        If _downloadView = DownloadView.Install AndAlso _packSelection IsNot Nothing Then Return
         If _downloadView = DownloadView.Install AndAlso _componentsDirty Then
             Await RefreshComponentListsAsync()
         ElseIf _downloadView = DownloadView.Versions AndAlso _versionsDirty Then
@@ -537,6 +539,7 @@ Partial Public Class MainWindow
 
     Private Sub SelectVersion(entry As VersionEntry)
         If _busy Then Return
+        LeavePackMode()
         _selectedEntry = entry
         _nameEdited = False
         Dim displayId = New VersionPresentation(entry).DisplayId
@@ -642,7 +645,7 @@ Partial Public Class MainWindow
         End If
         DownloadProgress.Visibility = If(view = DownloadView.Progress, Visibility.Visible, Visibility.Collapsed)
         EmptyVersions.Visibility = If(view = DownloadView.Versions AndAlso _versions.Count = 0, Visibility.Visible, Visibility.Collapsed)
-        RefreshButton.Visibility = If(view <> DownloadView.Progress, Visibility.Visible, Visibility.Collapsed)
+        RefreshButton.Visibility = If(view <> DownloadView.Progress AndAlso Not (view = DownloadView.Install AndAlso _packSelection IsNot Nothing), Visibility.Visible, Visibility.Collapsed)
         RefreshButton.ToolTip = If(view = DownloadView.Install, "重新获取组件列表，保留已选版本与名称", "重新获取 Minecraft 版本列表")
         ProgressShortcut.Visibility = If(_hasTask AndAlso view <> DownloadView.Progress, Visibility.Visible, Visibility.Collapsed)
     End Sub
@@ -708,6 +711,9 @@ Partial Public Class MainWindow
         Dim root = _selectedFolder.Location
         Dim name = InstanceName.Text
         Dim repair = RepairBox.IsChecked.GetValueOrDefault()
+        Dim pack = _packSelection
+        Dim optionalFiles = PackOptionalFiles.Children.OfType(Of PclCheckBox)().Where(Function(box) box.IsChecked.GetValueOrDefault()).Select(Function(box) CLng(box.Tag)).ToArray()
+        If pack IsNot Nothing Then repair = False
         Dim selection = _componentSelection.Copy()
         selection.JavaPath = JavaPathBox.Text.Trim()
         Try
@@ -719,15 +725,17 @@ Partial Public Class MainWindow
             Return
         End Try
         Dim connections = ConnectionCount()
-        Dim isolation = If(repair, InstanceIsolationMode.FollowPcl, SelectedIsolation())
+        Dim isolation = If(pack IsNot Nothing, InstanceIsolationMode.Enabled, If(repair, InstanceIsolationMode.FollowPcl, SelectedIsolation()))
         Dim reuse = If(ReuseBox.IsChecked = True, _folders.Select(Function(f) f.Location).ToList(), New List(Of String))
         Dim installer As New MinecraftInstaller(Policy(), _pclBase)
+        Dim packInstaller As New CurseForgeInstaller(Policy(), _pclBase)
         _cancellation = New CancellationTokenSource()
         _busy = True
         SetBusy(True)
         PersistSettings()
         TaskPanel.Visibility = Visibility.Visible
-        ResetTaskView(name, selection.Entries.Count > 0, root)
+        ResetTaskView(name, pack IsNot Nothing OrElse selection.Entries.Count > 0, root)
+        If pack IsNot Nothing Then _taskComponents = "CurseForge " & pack.Name & " " & pack.Version & " · " & pack.LoaderKind.ToString() & " " & pack.LoaderVersion
         ShowProgress(Nothing, Nothing)
         Try
             Dim progress = CreateTaskProgress()
@@ -736,6 +744,8 @@ Partial Public Class MainWindow
                 result = Await _installRunner(entry, root, name, selection, isolation, _cancellation.Token)
             ElseIf _preview Then
                 Throw New InvalidOperationException("界面预览不会执行实际安装。")
+            ElseIf pack IsNot Nothing Then
+                result = Await Task.Run(Function() packInstaller.InstallAsync(pack, root, name, reuse, optionalFiles, progress, _cancellation.Token, connections, CLng(limit * 1024 * 1024), selection.JavaPath))
             Else
                 result = Await Task.Run(Function() installer.InstallAsync(entry, root, name, reuse, progress, _cancellation.Token, repair, connections, CLng(limit * 1024 * 1024), selection, isolation))
             End If
@@ -779,6 +789,8 @@ Partial Public Class MainWindow
         RefreshIsolation(value)
         VersionCards.IsEnabled = Not value
         ComponentCards.IsEnabled = Not value
+        PackOptionsCard.IsEnabled = Not value
+        ImportPackButton.IsEnabled = Not value AndAlso Not _readingPack
         GameFolderCard.IsEnabled = Not value
         DownloadSettingsCard.IsEnabled = Not value
         ChangeFolderButton.IsEnabled = Not value
@@ -843,6 +855,7 @@ Partial Public Class MainWindow
             End If
         End If
         _closing = True
+        _packReadCancellation?.Cancel()
         _pendingSurfaceFocus = Nothing
         _focusAfterPageSwitch = False
         _pageSwitch.Finish()

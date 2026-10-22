@@ -29,6 +29,18 @@ Beta 1.0 的两个下载入口使用相同的单 EXE，仍需系统安装 .NET F
 
 新装补充版本使用独立的资源索引名，避免与普通版本或其他测试版互相覆盖，实际资源文件仍共享。补全旧格式的补充实例时保留其 JSON；如果同名共享索引已有不同内容，会停止覆盖并提示使用新实例名称重新安装。缺失的旧索引及新格式实例中损坏的独立索引仍可补全。
 
+## CurseForge 整合包导入（当前源码）
+
+下载页点击「导入整合包」，或向窗口拖入一个 CurseForge ZIP。清单解析后显示固定的 Minecraft/Forge、NeoForge 或 Fabric 版本、实例名称及可选文件；可选文件默认不选，查询到文件名后可勾选。选择游戏目录、按需修改实例名称，再点击「开始下载」。此功能尚未包含在已发布的 Beta 1.0 中。
+
+按固定 PCL 的整合包安装逻辑读取 `manifest.json`、指定 projectID/fileID 和 overrides。整合包使用新的隔离实例，不能导入已有同名实例或切换为共享 Mods；保留全局 PCL 设置和原有实例。libraries/assets 沿用共享下载，模组、资源包、光影及附带配置均留在私有暂存区，校验完成后发布整个实例目录。取消或失败清理私有载荷，已校验缓存保留供重试；包文件在安装期间只读锁定，选择后被替换则须重新选择。
+
+文件信息优先使用 CurseForge 官网公开接口，可回退 MCIM；列表源设置为镜像优先时先尝试 MCIM。配置自己的 `PCLDB_CURSEFORGE_API_KEY` 环境变量后会优先查询官方 API，密钥仅发往 `api.curseforge.com`，不写入设置、安装记录或日志。MCIM 当前暂停服务，不能将它视为唯一可用渠道。必需或已选文件不存在、版本/ID 不匹配或没有可靠校验依据时，停止安装并列出错误，不替换成最新版、不静默跳过。
+
+有 API SHA-1/MD5 时按其校验。官网公开接口未提供摘要时，仅对官方 forgecdn 地址、匹配的文件 ID/名称/长度、Amazon S3 与 SSE-S3 响应接受明确可验证的 ETag：普通单段为 MD5，`-1` 单分片为组合 MD5；弱 ETag、其他加密、多分片或未知格式直接拒绝，不能把任意 ETag 当作 MD5。实例内 `PCL/CurseForgeInstall.json` 记录原包 SHA-256、指定文件 ID、实际校验值及来源，区分 API 摘要和 CDN 校验。
+
+实包 BetterMC 1.20.1-v1.5 声明 Minecraft 1.20.1、Forge 47.2.0 和 86 个文件。2026-10-22 已实际下载并校验其中 85 个可用文件；必需项 `227639/5071019` 当前查不到，原包导入在游戏目录写入前被拒绝。因此该包尚未通过完整游戏安装或启动验收，详细证据见 VALIDATION.md。当前不提供整合包搜索、升级已有整合包、Quilt 或其他整合包格式导入。
+
 ## 名称与旧版设置
 
 项目全称为 Plain Craft Launcher - Download Bridge，简称 PCL-DB；仓库与根目录为 PCL-DB，解决方案、程序集和命名空间统一为 PclDownloadBridge。第三方独立项目身份不变。
@@ -162,7 +174,7 @@ OptiFine/OptiFabric 的跨版本兼容性沿用 PCL 检查和上游声明，不�
 
 Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / Any CPU**，将 **PCL-DB** 设为启动项目，选择同名启动配置后按 **F5**。已提供主程序、界面自检、组件页渲染及本地下载回归的启动配置；具体输出、断点建议和复查命令见 [VS2026_DEBUG.md](VS2026_DEBUG.md)。
 
-主应用的 **Appearance Checks** 配置可独立执行 129 项主题/任务状态检查，**Card Checks** 执行 104 项卡片、摘要动画、安装视口与版本格式检查；**Navigation Checks** 执行 31 项页面切换与状态保留检查；**Settings Compatibility** 执行 49 项更名与设置兼容检查；全量界面检查为 668 项，包含以上各组。检查在离线示例模式运行，失败保留已通过项、失败名称、异常堆栈与诊断，并返回失败退出码。
+主应用的 **Appearance Checks** 配置可独立执行 129 项主题/任务状态检查，**Card Checks** 执行 104 项卡片、摘要动画、安装视口与版本格式检查；**Navigation Checks** 执行 31 项页面切换与状态保留检查；**Settings Compatibility** 执行 49 项更名与设置兼容检查；全量界面检查为 682 项，包含以上各组。检查在离线示例模式运行，失败保留已通过项、失败名称、异常堆栈与诊断，并返回失败退出码。
 
 需要 .NET SDK 10.0.4xx 与 .NET Framework 4.8 Developer Pack；完整处理器样本检查还需要本机 Java 8 或更高版本。应用运行本身需要 .NET Framework 4.8。两个 Java 桥接/样本 class 已随源码保留，重编译命令为 `javac --release 8`，对应源文件在 `tools/java/`。
 
@@ -180,9 +192,9 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 .\build.ps1 -Package
 ```
 
-此模式独立构建单 EXE，并执行 25 项单文件、668 项界面和 328 项动画候选检查；完整模式另运行临时目录中的 54 项打包回归，再生成便携目录、ZIP、可单独分发的版本号 EXE 与独立构建清单。不会读取旧 bin 作为打包候选。
+此模式独立构建单 EXE，并执行 25 项单文件、682 项界面和 328 项动画候选检查；完整模式另运行临时目录中的 54 项打包回归，再生成便携目录、ZIP、可单独分发的版本号 EXE 与独立构建清单。不会读取旧 bin 作为打包候选。
 
-新 ZIP 内固定为 `PclDownloadBridge/` 下的 `PCL-DB.exe`、7 份文档（包含 `LICENCE`）和 `build-manifest.json`，共 9 个文件，无相邻 DLL、config 或 PDB。独立资产使用完整发布版本，例如 `PCL-DB-1.0.0-beta.1.exe` 及 `.build-manifest.json`。清单记录数字程序集版本、包含 Beta 标识的发布版本、完整提交、分支、工作区是否有改动、源码清单 SHA-256、SDK、运行时、两份内嵌依赖、25/668/328 项候选验收及每个载荷文件的 SHA-256；EXE ProductVersion 必须同时包含发布版本和提交。构建前后和打包前均核对源码，旧候选不能混入新源码或文档。
+新 ZIP 内固定为 `PclDownloadBridge/` 下的 `PCL-DB.exe`、7 份文档（包含 `LICENCE`）和 `build-manifest.json`，共 9 个文件，无相邻 DLL、config 或 PDB。独立资产使用完整发布版本，例如 `PCL-DB-1.0.0-beta.1.exe` 及 `.build-manifest.json`。清单记录数字程序集版本、包含 Beta 标识的发布版本、完整提交、分支、工作区是否有改动、源码清单 SHA-256、SDK、运行时、两份内嵌依赖、25/682/328 项候选验收及每个载荷文件的 SHA-256；EXE ProductVersion 必须同时包含发布版本和提交。构建前后和打包前均核对源码，旧候选不能混入新源码或文档。
 
 打包先复制已验证候选到独立暂存目录，校验四种输出后再顺序替换；旧目录、ZIP、EXE 和清单保留在报告记录的备份位置。文件占用或替换失败时逆序恢复，失败详情、回滚问题和备份位置写入 `artifacts/packages/<本次编号>/failure.json`。文件锁阻止并发打包，输出路径经过目录联接检查。这是顺序替换与尽力回滚，不保证断电或强制终止时的多文件原子性。
 
@@ -194,7 +206,7 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 
 如需同时核对当前源码和已测试候选，追加 `-CandidateResultPath <本次单EXE验证打印的result.json完整路径>`，结果的 `CandidateVerified` 才为 true；未指定时只验证清单与文件内容的一致性，不证明构建来源或签名。Beta 使用 `PCL-DB-single-exe/v2` 格式，强制检查动画验收与发布版本；旧版 v1 清单不满足本版验收条件，旧 ZIP 不会被重写。
 
-`-SkipTests -Package` 跳过核心、常规界面及打包回归，仍强制独立构建、25 项单文件、668 项界面与 328 项动画候选验收、源码及全部分发资产校验；不能据此声称通过完整回归。单独执行 `tools/verify-packaging.ps1` 会创建全新候选，仅在随机临时目录生成测试 ZIP，不更新项目 `dist`。可用 `-CandidateResultPath` 显式复用当前源码对应的候选，避免重复构建。
+`-SkipTests -Package` 跳过核心、常规界面及打包回归，仍强制独立构建、25 项单文件、682 项界面与 328 项动画候选验收、源码及全部分发资产校验；不能据此声称通过完整回归。单独执行 `tools/verify-packaging.ps1` 会创建全新候选，仅在随机临时目录生成测试 ZIP，不更新项目 `dist`。可用 `-CandidateResultPath` 显式复用当前源码对应的候选，避免重复构建。
 
 单 EXE 功能可用以下命令独立验证；该命令构建开发候选，不生成 ZIP、不更新 `dist`，不创建 Release：
 
@@ -202,13 +214,13 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 .\tools\verify-single-exe.ps1
 ```
 
-验证器将 App/Core 构建到本次独立 artifacts 目录，只复制一个改名为 `PCL-DB.exe` 的文件到仓库之外、带中文和空格的临时目录。依次运行 25 项单文件、668 项界面及 328 项动画检查，并逐项核对内嵌两份 DLL 与本次构建、七份文档与源码的 SHA-256；报告保留候选路径、载荷快照、EXE 摘要、源码逐文件清单及完整提交。检查使用回环 HTTP 和预览数据，不修改真实用户设置或安装游戏。
+验证器将 App/Core 构建到本次独立 artifacts 目录，只复制一个改名为 `PCL-DB.exe` 的文件到仓库之外、带中文和空格的临时目录。依次运行 25 项单文件、682 项界面及 328 项动画检查，并逐项核对内嵌两份 DLL 与本次构建、七份文档与源码的 SHA-256；报告保留候选路径、载荷快照、EXE 摘要、源码逐文件清单及完整提交。检查使用回环 HTTP 和预览数据，不修改真实用户设置或安装游戏。
 
 底层开关为 App 项目的 `-p:PclDbSingleExecutable=true`，通过资源嵌入和启动期程序集解析实现；常规构建及 VS Debug 仍使用独立 DLL。单 EXE 不依赖邻接 `.exe.config`，长路径设置由最早启动代码应用；系统仍须安装 .NET Framework 4.8。关于页优先打开随附或开发目录文档；缺失时从程序资源生成内容寻址的文档副本，正常模式位于 `%LOCALAPPDATA%/PclDownloadBridge/documents/`，预览检查只使用随机临时目录。单文件模式的第三方说明同时附带完整 `LICENCE`，不需要在 EXE 旁写出 DLL 或文档。
 
 普通构建、F5 和单 EXE 验证均不会生成正式分发包。只有显式执行 `build.ps1 -Package` 才更新 `dist`；创建 Git 标签、上传资产与 GitHub Release 仍需另行明确要求。
 
-页面、滚动与按钮动画另设 328 项 `--motion-checks <报告路径>`，普通默认构建和单 EXE 验证均会执行，报告与上述 668 项界面检查分别记录。VS 可直接选择 Motion Checks；该入口使用隔离预览数据，检查曲线、快速导航、关于页的焦点/返回交接、高频滚轮、展开时滚动、缩放换行的高度衔接、裁剪区域中的延迟行及按钮按压/回弹和中断清理，并输出采样帧，不是桌面帧率测试。
+页面、滚动与按钮动画另设 328 项 `--motion-checks <报告路径>`，普通默认构建和单 EXE 验证均会执行，报告与上述 682 项界面检查分别记录。VS 可直接选择 Motion Checks；该入口使用隔离预览数据，检查曲线、快速导航、关于页的焦点/返回交接、高频滚轮、展开时滚动、缩放换行的高度衔接、裁剪区域中的延迟行及按钮按压/回弹和中断清理，并输出采样帧，不是桌面帧率测试。
 
 维护固定 PCL 参考时，先执行以下检查（需要本地 PCL Git 对象，可用 `-SourceRoot` 指向没有检出文件的仓库）：
 

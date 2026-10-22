@@ -72,6 +72,8 @@ Partial Public Class App
         If preview >= 0 AndAlso e.Args.Length > preview + 1 Then
             Dim pageIndex = Array.IndexOf(e.Args, "--page")
             If pageIndex >= 0 AndAlso e.Args.Length > pageIndex + 1 Then window.PreviewPage(e.Args(pageIndex + 1))
+            Dim packageIndex = Array.IndexOf(e.Args, "--package")
+            If packageIndex >= 0 AndAlso e.Args.Length > packageIndex + 1 Then window.PreviewCurseForge(e.Args(packageIndex + 1))
             Dim width = 850
             Dim height = 500
             Dim sizeIndex = Array.IndexOf(e.Args, "--size")

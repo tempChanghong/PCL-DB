@@ -21,12 +21,22 @@ Public Class MinecraftInstaller
     End Function
 
     Public Async Function InstallAsync(entry As VersionEntry, root As String, instanceName As String, reuseRoots As IEnumerable(Of String), progress As IProgress(Of TransferProgress), token As CancellationToken, Optional repairExisting As Boolean = False, Optional connections As Integer = 16, Optional limit As Long = 0, Optional components As ComponentSelection = Nothing, Optional isolationMode As InstanceIsolationMode = InstanceIsolationMode.FollowPcl) As Task(Of InstallResult)
+        Return Await InstallCoreAsync(entry, root, instanceName, reuseRoots, progress, token, repairExisting, connections, limit, components, isolationMode, Nothing).ConfigureAwait(False)
+    End Function
+    Friend Function InstallPackAsync(entry As VersionEntry, root As String, instanceName As String, reuseRoots As IEnumerable(Of String), progress As IProgress(Of TransferProgress), token As CancellationToken, components As ComponentSelection, connections As Integer, limit As Long, pack As CurseForgeInstallPlan) As Task(Of InstallResult)
+        Return InstallCoreAsync(entry, root, instanceName, reuseRoots, progress, token, False, connections, limit, components, InstanceIsolationMode.Enabled, pack)
+    End Function
+    Private Async Function InstallCoreAsync(entry As VersionEntry, root As String, instanceName As String, reuseRoots As IEnumerable(Of String), progress As IProgress(Of TransferProgress), token As CancellationToken, repairExisting As Boolean, connections As Integer, limit As Long, components As ComponentSelection, isolationMode As InstanceIsolationMode, pack As CurseForgeInstallPlan) As Task(Of InstallResult)
         token.ThrowIfCancellationRequested()
         If Not [Enum].IsDefined(GetType(InstanceIsolationMode), isolationMode) Then Throw New ArgumentOutOfRangeException(NameOf(isolationMode))
         If entry Is Nothing Then Throw New ArgumentNullException(NameOf(entry))
         If reuseRoots Is Nothing Then Throw New ArgumentNullException(NameOf(reuseRoots))
         entry = entry.Copy()
         InstallPreflight.ValidateDestination(root, instanceName, repairExisting)
+        If pack IsNot Nothing Then
+            If entry.Id <> pack.Package.Minecraft OrElse repairExisting OrElse isolationMode <> InstanceIsolationMode.Enabled Then Throw New InvalidDataException("整合包必须使用指定原版和新的隔离实例。")
+            pack.ValidateTargets(instanceName)
+        End If
         If components IsNot Nothing Then
             components = components.Copy()
             If entry.IsSupplemental AndAlso components.Entries.Count > 0 Then Throw New InvalidOperationException("补充版本目前仅支持原版安装，请取消加载器选择。")
@@ -131,12 +141,13 @@ Public Class MinecraftInstaller
                 Dim reused As Integer
                 Dim splits As Integer
                 Using budget As New DownloadBudget(connections, limit), linked = CancellationTokenSource.CreateLinkedTokenSource(token)
-                    Dim reporting As New InstallationProgress(progress, budget, supportFiles.Count + 1, assetFiles.Count + mappedFiles.Count)
+                    Dim reporting As New InstallationProgress(progress, budget, supportFiles.Count + 1 + If(pack Is Nothing, 0, pack.Files.Count), assetFiles.Count + mappedFiles.Count)
                     Dim stagedClient As New DownloadFile With {.RelativePath = instanceName & ".jar", .Url = client.Url, .Size = client.Size, .Sha1 = client.Sha1, .Category = client.Category}
                     Using clientEngine As New DownloadEngine(_policy, reporting.Branch("client"), reuseRoots, connections, root, True, budget),
                           supportEngine As New DownloadEngine(_policy, reporting.Branch("libraries"), reuseRoots, connections, root, budget:=budget),
                           assetsEngine As New DownloadEngine(_policy, reporting.Branch("assets"), reuseRoots, connections, root, budget:=budget),
-                          mappedEngine As New DownloadEngine(_policy, reporting.Branch("mapped"), reuseRoots.Concat({If(isolation IsNot Nothing AndAlso isolation.Isolated, instancePath, root)}), connections, root, budget:=budget)
+                          mappedEngine As New DownloadEngine(_policy, reporting.Branch("mapped"), reuseRoots.Concat({If(isolation IsNot Nothing AndAlso isolation.Isolated, instancePath, root)}), connections, root, budget:=budget),
+                          packEngine As New DownloadEngine(_policy, reporting.Branch("pack"), reuseRoots, connections, root, True, budget)
                         Dim extension As ComponentInstaller = Nothing
                         ' PCL's nonblocking library/resource LoaderCombos share ModNet.
                         ' Components need the verified client/support branch, not all assets.
@@ -159,7 +170,10 @@ Public Class MinecraftInstaller
                             Await assetsEngine.DownloadAsync(root, assetFiles, linked.Token).ConfigureAwait(False)
                             If mappedFiles.Count > 0 Then Await mappedEngine.DownloadAsync(stage, publication.StagedFiles(), linked.Token).ConfigureAwait(False)
                         End Function
-                        Dim branches = {CancelPeersAsync(supportWork, linked), CancelPeersAsync(assetWork, linked, Sub() reporting.Failed("files"))}
+                        Dim packWork As Func(Of Task) = Async Function()
+                            If pack IsNot Nothing Then Await packEngine.DownloadAsync(stage, pack.Files, linked.Token).ConfigureAwait(False)
+                        End Function
+                        Dim branches = {CancelPeersAsync(supportWork, linked), CancelPeersAsync(assetWork, linked, Sub() reporting.Failed("files")), CancelPeersAsync(packWork, linked, Sub() reporting.Failed("files"))}
                         Try
                             Await Task.WhenAll(branches).ConfigureAwait(False)
                         Catch
@@ -169,15 +183,16 @@ Public Class MinecraftInstaller
                             If failure IsNot Nothing Then Throw failure
                             Throw
                         End Try
-                        networkBytes = clientEngine.NetworkBytes + supportEngine.NetworkBytes + assetsEngine.NetworkBytes + mappedEngine.NetworkBytes
-                        reused = clientEngine.Reused + supportEngine.Reused + assetsEngine.Reused + mappedEngine.Reused
-                        splits = clientEngine.DynamicSplits + supportEngine.DynamicSplits + assetsEngine.DynamicSplits + mappedEngine.DynamicSplits
+                        networkBytes = clientEngine.NetworkBytes + supportEngine.NetworkBytes + assetsEngine.NetworkBytes + mappedEngine.NetworkBytes + packEngine.NetworkBytes
+                        reused = clientEngine.Reused + supportEngine.Reused + assetsEngine.Reused + mappedEngine.Reused + packEngine.Reused
+                        splits = clientEngine.DynamicSplits + supportEngine.DynamicSplits + assetsEngine.DynamicSplits + mappedEngine.DynamicSplits + packEngine.DynamicSplits
                         If extension IsNot Nothing Then
                             networkBytes += extension.NetworkBytes : reused += extension.Reused : splits += extension.DynamicSplits
                             plan.AddRange(Enumerable.Repeat(New DownloadFile(), extension.FileCount))
                         End If
                     End Using
                 End Using
+                If pack IsNot Nothing Then pack.CopyOverrides(stage, token)
                 If sharedComponents Then sharedMods.AddRange(SharedModsPublication.CheckedFiles(stage, componentMods, token))
                 token.ThrowIfCancellationRequested()
                 Report(progress, "完成安装", "写入版本信息")
@@ -213,6 +228,7 @@ Public Class MinecraftInstaller
                     publication.Publish(token)
                     modsPublication.Publish(token)
                     If sharedComponents Then SharedModsPublication.FinishFolders(root, stage, modable)
+                    pack?.WriteLedger(stage, token)
                     token.ThrowIfCancellationRequested()
                     Directory.Move(stage, instancePath)
                 End If
@@ -221,7 +237,7 @@ Public Class MinecraftInstaller
                 ' After the filesystem commit, return its real result even if cancellation
                 ' arrives during optional cache cleanup; never undo a published instance.
                 VerifiedComponentCache.ReleasePublishedClient(root, client)
-                Return New InstallResult With {.InstancePath = instancePath, .FileCount = plan.Count + 1 + If(newSettings, 1, 0), .NetworkBytes = networkBytes, .Reused = reused, .DynamicSplits = splits}
+                Return New InstallResult With {.InstancePath = instancePath, .FileCount = plan.Count + 1 + If(newSettings, 1, 0) + If(pack Is Nothing, 0, pack.Files.Count + pack.Package.OverrideFiles.Count + 1), .NetworkBytes = networkBytes, .Reused = reused, .DynamicSplits = splits}
               End Using
             Finally
                 ' Preserve transfer caches and existing versions. A locked private payload

@@ -12,6 +12,10 @@ Module Program
         Net.ServicePointManager.SecurityProtocol = Net.SecurityProtocolType.Tls12
         Try
             If ProcessorStreamChecks.TryRunFixture(args) Then Return
+            If args.Length = 3 AndAlso args(0) = "--live-curseforge" Then
+                CurseForgeLiveChecks.RunAsync(args(1), args(2)).GetAwaiter().GetResult()
+                Return
+            End If
             If args.Length = 2 AndAlso args(0) = "--live-supplemental" Then
                 SupplementalVersionChecks.LiveAsync(args(1)).GetAwaiter().GetResult()
                 Return
@@ -36,7 +40,9 @@ Module Program
             Directory.CreateDirectory(TestRoot)
             If args.Length = 2 AndAlso args(0) = "--regression" Then
                 Dim run As Task(Of List(Of String))
-                If args(1) = "supplemental-indexes" Then
+                If args(1).StartsWith("curseforge-", StringComparison.Ordinal) Then
+                    run = CurseForgeChecks.RunAsync(TestRoot, args(1))
+                ElseIf args(1) = "supplemental-indexes" Then
                     run = SupplementalAssetIndexChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "supplemental-versions" Then
                     run = SupplementalVersionChecks.RunAsync(TestRoot)
@@ -109,6 +115,9 @@ Module Program
                 Next
                 Return
             End If
+            For Each label In CurseForgeChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
+                Check(True, label)
+            Next
             For Each label In ComponentChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
                 Check(True, label)
             Next

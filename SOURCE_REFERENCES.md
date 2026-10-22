@@ -1,5 +1,14 @@
 # PCL2 代码依据
 
+## Beta 1.0 后续开发：CurseForge ZIP 导入
+
+- 主要依据仍为固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8`，不是受限后的安装入口。重读 `Modules/Minecraft/ModModpack.vb` 的根目录/单层目录类型判断、InstallPackCurseForge、CopyOverrideDirectory、ModOptionalList、缺失文件处理及 McInstallLoadersGet 组合；参考 `ModDownload.vb` 的 DlModRequest / DlSourceModGet，以及 ResourceVersion 的 SHA-1/MD5 和资源文件类型处理。源码摘录保存在本轮 artifacts；未修改 PCL 或其他参考仓库。
+- 保持指定 MC/加载器版本、projectID/fileID、可选项、overrides 和整合包开启隔离的关系。模组分支与原版/资源/加载器共用 DownloadBudget，整体等待并取消同伴后才提交；配置在加载器处理后合入，防止组件生成的 Setup.ini 覆盖包内偏好。保留其余包内 INI 项，但固定 VersionArgumentIndie/V2 为隔离并取消星标。已有实例和全局设置均不改写。
+- 文件信息使用独立的官网公开接口适配及 MCIM 回退，可选自己的官方 API Key；没有复制上游密钥、身份或鉴权代码。PCL 通过官方 API 批量查询；本工具以最多 4 个并发按项目/文件 ID 精确查询，逐项验证 ID、MC、客户端可用性、路径、长度与摘要。PCL 允许用户确认后继续缺项，本阶段明确失败，避免把不完整实例当作成功。
+- 官网接口缺少 hashes 时，以官方文件下载入口 HEAD 的受限重定向获取对应 forgecdn 对象。仅在文件身份/长度、AmazonS3、SSE-S3 AES256 和强 ETag 全部匹配时使用单段 MD5 或 `-1` 单分片组合 MD5；不接受未知多分片边界、KMS、弱 ETag 或任意站点 ETag。依据为 [AWS 对 S3 ETag 的定义](https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity-upload.html)及[单段/多段说明](https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpuoverview.html)，这属于本工具的独立渠道适配，不称为 PCL 原有实现或 API 提供的 SHA-1。VerifiedComponentCache 对组合 MD5 使用独立命名空间，复用和续传仍按完整校验值验证。
+- ZIP 输入先验证重复/大小写、路径片段、文件/祖先冲突、链接、条目和解压大小上限；只从已固定摘要并持有只读句柄的原包复制 overrides。下载与配置均在实例私有载荷中完成，最终再次校验；同名外部实例保留，失败回收自有载荷，正常共享文件和可信缓存保留。沿用原 Directory.Move 发布边界，不声称能把共享库、资源和实例组成断电安全的跨目录事务。
+- [CurseForge 官方 API](https://docs.curseforge.com/rest-api/)和 [MCIM 当前服务状态](https://github.com/mcmod-info-mirror/mcim-rust-api)用于核对渠道。2026-10-22 的 BetterMC 实测区分了「85 个可用载荷校验通过」与「原包因一个必需文件缺失而无法完整安装」，没有跳过该条目或将下载检查称为游戏启动成功。
+
 ## Beta 1.0 后续修复：安装参数按任务固定
 
 - 重读固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModDownloadLib.vb`：McInstallRequest（约 1687–1728 行）表达实例名、目录、Minecraft/组件版本和附加组件；McInstallLoadersGet（约 1733–1777 行）在建立加载器时确定版本与临时目录；McDownloadFabricLoader（约 1618–1635 行）使用传入的版本字符串构造 ID 和清单 URL。本工具继续保持这些版本/目录关系，并在应用提交、核心安装入口和独立组件安装器入口复制各自需要的输入。深复制条目与嵌套 JSON 是本工具为可变对象增加的保护，未声称上游对整个请求实现相同深拷贝。

@@ -2,6 +2,7 @@ Imports System.Windows
 Imports System.Windows.Controls
 Imports System.Windows.Media
 Imports System.Windows.Media.Animation
+Imports System.Windows.Threading
 Imports Newtonsoft.Json.Linq
 Imports PclDownloadBridge.Controls
 
@@ -54,6 +55,7 @@ Partial Public Class MainWindow
 
     Private Shared Sub VerifySelectedMarkerTimelines(row As PclListItem, marker As Border, host As Border, layout As Action, check As Action(Of Boolean, String), directory As String)
         Dim seek As Action(Of ClockGroup, Double) = Sub(clock, milliseconds)
+                                                       PauseSelectionClock(clock)
                                                        clock.Controller.SeekAlignedToLastTick(TimeSpan.FromMilliseconds(milliseconds), TimeSeekOrigin.BeginTime) : layout()
                                                    End Sub
         Dim settle As Action = Sub()
@@ -188,6 +190,31 @@ Partial Public Class MainWindow
             check(row.Selected AndAlso row.SelectionTransition Is Nothing AndAlso Math.Abs(marker.ActualHeight - 30) < 0.001,
                 "restoring marker after " & interruption & " cannot revive an old clock")
         Next
+    End Sub
+
+    Private Shared Sub PauseSelectionClock(clock As ClockGroup)
+        If clock.IsPaused Then Return
+        Dim frame As New DispatcherFrame()
+        Dim timer As New DispatcherTimer(DispatcherPriority.Send) With {.Interval = TimeSpan.FromSeconds(5)}
+        Dim acknowledged As EventHandler = Sub()
+                                              If clock.IsPaused Then frame.Continue = False
+                                          End Sub
+        Dim expired As EventHandler = Sub() frame.Continue = False
+        AddHandler clock.CurrentGlobalSpeedInvalidated, acknowledged
+        AddHandler timer.Tick, expired
+        Try
+            ' WPF queues Pause for its next timing tick. A synchronous seek does
+            ' not process that pending request; idle layout alone is not an ack.
+            clock.Controller.Pause()
+            If Not clock.IsPaused Then
+                timer.Start() : Dispatcher.PushFrame(frame)
+            End If
+            If Not clock.IsPaused Then Throw New InvalidOperationException("Selected-marker clock did not acknowledge Pause before seek.")
+        Finally
+            timer.Stop()
+            RemoveHandler timer.Tick, expired
+            RemoveHandler clock.CurrentGlobalSpeedInvalidated, acknowledged
+        End Try
     End Sub
 
     Private Sub VerifySelectedMarkerPalette(row As PclListItem, marker As Border, layout As Action, check As Action(Of Boolean, String))

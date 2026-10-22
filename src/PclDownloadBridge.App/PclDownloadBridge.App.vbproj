@@ -21,6 +21,9 @@
     <!-- VB WPF net48 requires this explicit reference (dotnet/wpf #11501). -->
     <Reference Include="mscorlib" />
     <Reference Include="Microsoft.VisualBasic" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
     <ProjectReference Include="../PclDownloadBridge.Core/PclDownloadBridge.Core.vbproj" />
   </ItemGroup>
   <ItemGroup><Resource Include="Images/Blocks/*.png"/><Resource Include="Images/Themes/*.png"/><Resource Include="Images/Heads/*.png;Images/Heads/*.jpg"/><Resource Include="Resources/Font.ttf"/></ItemGroup>

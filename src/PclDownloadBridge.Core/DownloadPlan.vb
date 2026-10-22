@@ -20,11 +20,12 @@ Friend NotInheritable Class DownloadPlan
                 If existing.Size < 0 AndAlso item.Size >= 0 Then existing.Size = item.Size
                 existing.Sha1 = MergeHash(existing.Sha1, item.Sha1, item.RelativePath, "SHA-1")
                 existing.Md5 = MergeHash(existing.Md5, item.Md5, item.RelativePath, "MD5")
+                existing.S3SinglePartETag = MergeHash(existing.S3SinglePartETag, item.S3SinglePartETag, item.RelativePath, "S3 ETag")
             Else
                 ' Never mutate records owned by metadata/component callers. Preserve
                 ' the first source/category and ordinary transfer-cache key spelling.
                 Dim copy As New DownloadFile With {.RelativePath = item.RelativePath, .Url = item.Url, .Size = item.Size,
-                    .Sha1 = item.Sha1, .Md5 = item.Md5, .Category = item.Category}
+                    .Sha1 = item.Sha1, .Md5 = item.Md5, .S3SinglePartETag = item.S3SinglePartETag, .Category = item.Category}
                 targets.Add(key, copy)
                 result.Add(copy)
             End If

@@ -23,6 +23,8 @@ Friend Class VerifiedComponentCache
         ElseIf Not String.IsNullOrWhiteSpace(item.Md5) Then
             If Not Regex.IsMatch(item.Md5, "\A[0-9a-fA-F]{32}\z") Then Return Nothing
             algorithm = "md5" : digest = item.Md5.ToLowerInvariant()
+        ElseIf Regex.IsMatch(If(item.S3SinglePartETag, ""), "\A[0-9a-fA-F]{32}-1\z") Then
+            algorithm = "s3-etag1" : digest = item.S3SinglePartETag.Substring(0, 32).ToLowerInvariant()
         Else
             ' A stable-looking filename or URL is not an integrity declaration.
             Return Nothing
