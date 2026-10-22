@@ -200,7 +200,7 @@ Friend Module ReuseCopyChecks
                         previous(aliasName) = algorithm.GetType()
                     End Using
                 Next
-                Dim count As Integer
+                Dim count As Integer = 0
                 CopyCancellationSha1.OnHash = Sub()
                                                   If Interlocked.Increment(count) = boundary Then cancel.Cancel()
                                               End Sub

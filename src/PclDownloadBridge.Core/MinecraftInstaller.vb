@@ -43,7 +43,13 @@ Public Class MinecraftInstaller
             Report(progress, "准备安装", "检查组件安装所需的 Java 环境")
             InstallPreflight.VerifyJava(components, metadata)
             Dim existing As JObject = Nothing
-            If repairExisting Then existing = JObject.Parse(File.ReadAllText(jsonTarget))
+            Dim existingBytes As Byte() = Nothing
+            If repairExisting Then
+                existingBytes = File.ReadAllBytes(jsonTarget)
+                Using reader As New StreamReader(New MemoryStream(existingBytes), Encoding.UTF8, True)
+                    existing = JObject.Parse(reader.ReadToEnd())
+                End Using
+            End If
             Dim legacySupplementalIndex = entry.IsSupplemental AndAlso PrepareSupplementalAssetIndex(metadata, existing)
             If repairExisting Then
                 If existing("inheritsFrom") IsNot Nothing OrElse CStr(existing("mainClass")) <> CStr(metadata("mainClass")) OrElse CStr(existing.SelectToken("downloads.client.sha1")) <> CStr(metadata.SelectToken("downloads.client.sha1")) OrElse String.IsNullOrEmpty(CStr(metadata.SelectToken("downloads.client.sha1"))) Then Throw New InvalidDataException("只支持校验同版本的原版实例；不会修改加载器或继承版本。")
@@ -131,11 +137,19 @@ Public Class MinecraftInstaller
                 Report(progress, "完成安装", "写入版本信息")
                 token.ThrowIfCancellationRequested()
                 If repairExisting Then
-                    ' Metadata and PCL instance preferences remain byte-for-byte unchanged.
-                    Dim clientTarget = SafeFiles.UnderRoot(root, client.RelativePath)
-                    Dim needsReplacement = Not SafeFiles.Matches(clientTarget, client)
-                    token.ThrowIfCancellationRequested()
-                    If needsReplacement Then SafeFiles.CommitFile(Path.Combine(stage, instanceName & ".jar"), clientTarget)
+                    ' Recheck the exact metadata accepted above, then keep readers allowed
+                    ' while blocking external edits through the final client replacement.
+                    Using jsonLock As New FileStream(SafeFiles.UnderRoot(root, "versions/" & instanceName & "/" & instanceName & ".json"), FileMode.Open, FileAccess.Read, FileShare.Read)
+                        Using current As New MemoryStream()
+                            If jsonLock.Length <> existingBytes.LongLength Then Throw New InvalidDataException("待补全实例的版本 JSON 在校验期间发生变化，请确认后重试。")
+                            jsonLock.CopyTo(current)
+                            If Not existingBytes.SequenceEqual(current.ToArray()) Then Throw New InvalidDataException("待补全实例的版本 JSON 在校验期间发生变化，请确认后重试。")
+                        End Using
+                        Dim clientTarget = SafeFiles.UnderRoot(root, client.RelativePath)
+                        Dim needsReplacement = Not SafeFiles.Matches(clientTarget, client)
+                        token.ThrowIfCancellationRequested()
+                        If needsReplacement Then SafeFiles.CommitFile(Path.Combine(stage, instanceName & ".jar"), clientTarget)
+                    End Using
                 Else
                     metadata("id") = instanceName
                     metadata("clientVersion") = entry.Id ' Same PCL convention as McDownloadClientLoader.

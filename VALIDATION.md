@@ -2,6 +2,16 @@
 
 日期：2026-10-22（北京时间）。最新发布为 PCL-DB Beta 1.0（`1.0.0-beta.1`），当前主分支另含尚未发布的后续修复；下方保留先前版本的验证记录。
 
+## Beta 1.0 后续开发：校验补全的版本 JSON 并发保护
+
+- 基线 `2286f486dbe2550e001a60601938f31fef3ff4e7`，源码备份及保护快照位于 `artifacts/beta1-repair-metadata-guard/`。重读固定 PCL 的 McDownloadClientLoader、实例 id/clientVersion 写入及客户端/支持库/资源组合；本工具的已有实例补全保护属于独立适配。
+- baseline-conflict.log 通过实际安装器和提交进度回调复现：补全开始时 JSON 为兼容原版，替换客户端之前将它改为继承实例，旧实现仍返回 success 且 clientReplaced=True。baseline-guard.log 另确认最终客户端检查期间可以取得 JSON 写句柄。样本使用临时文件和同进程真实文件共享规则，没有操作实际 PCL 进程。
+- 现在从同一份原始字节解析并记录已有 JSON，保留 BOM 编码识别；最终替换之前再次核对长度和确切字节，并仅在检查及客户端替换期间持有允许读取、阻止写入/删除的句柄。下载期间不长期占用 JSON。发生变化、删除或写占用时保留原客户端并结束本次补全，处理冲突后可复用已校验客户端缓存；JSON 和 PCL Setup.ini 始终不由补全改写。此前已完成的共享支持库/资源修复按既有设计保留，这不是整次安装的事务回滚。
+- 新增 **36 项**检查（repair-metadata.log）：继承字段变更、同长度 mainClass 改写、仅格式变化、删除和写占用共五种提交冲突；均检查已有 JAR、外部 JSON 状态、PCL 偏好、暂存清理、根目录锁释放及重试复用。格式变化在重试时保留新格式。另检查 UTF-8 BOM、UTF-16 LE/BE、只读 JSON，以及在实际客户端哈希检查处验证读句柄可用、写句柄被阻止、取消不提交、提交保护释放和后续重试。
+- 沿用测试进程内真实 SHA-1 完成回调控制取消/句柄探测，finally 恢复 CryptoConfig。新增循环的探测计数首次暴露了 VB 循环局部变量无显式初始化时可保留上轮值；同时修正既有 CacheBoundaryChecks 和 ReuseCopyChecks 的 count=0，保证第二组确实在副本而非来源校验后取消。两组针对性日志均通过，既有断言数量保持。
+- 新增 VS 配置 **Repair Metadata**。完整核心 **1274 项**、VS 2026 Debug/PDB 精选核心 **898 项**通过；Release/Debug 的 **658 项界面、328 项动画**及 **17 项固定源码对照**通过，构建零警告/零错误。本轮只使用回环 HTTP、临时文件及隔离 WPF，没有真实 CDN 或游戏启动实测。
+- preservation.json 确认 78 个 dist 文件内容与修改时间、七个参考仓库及 Beta 标签保持。本轮只本地验证与 Commit，不打包、不发版、不推送。
+
 ## Beta 1.0 后续开发：私有缓存与目标替换错误边界
 
 - 基线 `c2dd6581b203ea855179018987cfeebd06d9cc9b`，源码备份及保护快照位于 `artifacts/beta1-cache-publish-boundary/`。重读固定 PCL 的 `ModNet.CheckExistingFiles` 可选复制失败回退流程，以及本工具普通复用的目标提交边界；私有组件缓存额外使用摘要寻址和校验副本，属于本工具机制。

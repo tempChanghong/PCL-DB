@@ -1,5 +1,11 @@
 {
   "profiles": {
+    "Repair Metadata": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression install-repair-metadata-all",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
     "Cache Boundaries": {
       "commandName": "Project",
       "commandLineArgs": "--regression component-cache-boundary-all",

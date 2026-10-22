@@ -13,6 +13,7 @@ Friend Module InstallationChecks
         If onlyCase Is Nothing OrElse onlyCase = "install-library-in-use" Then Await LibraryInUseAsync(testRoot, passed)
         If onlyCase Is Nothing OrElse onlyCase = "install-library-locked" Then Await LockedLibraryAsync(testRoot, passed)
         If onlyCase Is Nothing OrElse onlyCase = "install-publish" Then Await PublishAsync(testRoot, passed)
+        If onlyCase Is Nothing OrElse onlyCase.StartsWith("install-repair-metadata-", StringComparison.Ordinal) Then passed.AddRange(Await RepairMetadataChecks.RunAsync(testRoot, onlyCase))
         If passed.Count = 0 Then Throw New ArgumentException("Unknown installation regression: " & onlyCase)
         Return passed
     End Function
