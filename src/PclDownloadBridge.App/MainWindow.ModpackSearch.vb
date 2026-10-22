@@ -7,6 +7,7 @@ Imports System.Windows.Input
 Imports System.Windows.Media
 Imports System.Windows.Media.Animation
 Imports System.Windows.Media.Imaging
+Imports Newtonsoft.Json
 Imports PclDownloadBridge.Controls
 Imports PclDownloadBridge.Core
 
@@ -105,19 +106,26 @@ Partial Public Class MainWindow
     End Sub
     Private Async Sub RunPackSearch(sender As Object, e As RoutedEventArgs)
         If _busy OrElse _choosingOnline OrElse _closing OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible Then Return
-        _packSearchRequest?.Cancel()
-        _packDetailRequest?.Cancel()
         Dim game = PackSearchGameValue(), category = TryCast(PackSearchCategory.SelectedItem, ComboBoxItem)
         Dim query As New ModpackQuery With {.Text = PackSearchText.Text.Trim(), .Minecraft = game,
             .Platforms = If(PackSearchSource.SelectedIndex = 1, ModpackPlatform.CurseForge, If(PackSearchSource.SelectedIndex = 2, ModpackPlatform.Modrinth, ModpackPlatform.All)),
             .Category = If(category Is Nothing, "/", CStr(category.Tag))}
-        Dim key = query.Platforms.ToString() & "|" & query.Category & "|" & query.Minecraft & "|" & query.Text
+        ' Structured identity keeps literal separators in different fields distinct.
+        Dim key = JsonConvert.SerializeObject(query), candidate As ModpackSearchSession
         Try
-            If _packSearchSession Is Nothing OrElse key <> _packLastQuery OrElse _packSearchSession.ErrorMessage <> "" OrElse DateTime.UtcNow - _packLastSearch > TimeSpan.FromSeconds(60) Then _packSearchSession = New ModpackSearchSession(query)
+            candidate = New ModpackSearchSession(query)
         Catch ex As ArgumentException
-            PackSearchHint.Text = ex.Message : PackSearchHint.Visibility = Visibility.Visible : Return
+            PackSearchInputHint.Text = ex.Message : PackSearchInputHint.Visibility = Visibility.Visible : Return
         End Try
-        _packLastQuery = key : _packLastSearch = DateTime.UtcNow
+        PackSearchInputHint.Visibility = Visibility.Collapsed
+        ' Like PCL's Loader.ShouldStart / Start, keep the accepted identical request.
+        ' In particular, do not enumerate mutable session errors while it is fetching.
+        If _packSearchSession IsNot Nothing AndAlso key = _packLastQuery AndAlso _packSearchRequest IsNot Nothing AndAlso Not _packSearchRequest.IsCancellationRequested Then Return
+        If _packSearchSession IsNot Nothing AndAlso key = _packLastQuery AndAlso _packSearchRequest Is Nothing AndAlso _packSearchSession.ErrorMessage = "" AndAlso DateTime.UtcNow - _packLastSearch <= TimeSpan.FromSeconds(60) Then candidate = _packSearchSession
+        _packSearchRequest?.Cancel()
+        _packDetailRequest?.Cancel()
+        If candidate IsNot _packSearchSession Then _packLastSearch = DateTime.UtcNow
+        _packSearchSession = candidate : _packLastQuery = key
         _packProject = Nothing : _packReleases.Clear()
         _packSearchPage = 0 : _packSearchScroll = 0
         ChangePackMode(PackBrowserMode.Search)
@@ -127,6 +135,7 @@ Partial Public Class MainWindow
         If _busy OrElse _choosingOnline Then Return
         PackSearchText.Text = "" : PackSearchGame.SelectedIndex = 0 : PackSearchSource.SelectedIndex = 0 : PackSearchCategory.SelectedIndex = 0
         PackSearchGame.Text = "全部 (也可自行输入)"
+        PackSearchInputHint.Visibility = Visibility.Collapsed
         _packLastQuery = Nothing
     End Sub
     Private Async Sub FirstPackPage(sender As Object, e As RoutedEventArgs)
@@ -188,12 +197,18 @@ Partial Public Class MainWindow
                                   PackNextPage.Text = If(session.Count < (page + 1) * ModpackCatalogClient.PageSize AndAlso session.HasMore, "继续加载", "下一页")
                               End Sub)
             If _packMode = PackBrowserMode.Search AndAlso _downloadView = DownloadView.Modpacks Then ModpackPage.ScrollToHome()
-        Catch ex As OperationCanceledException
-            ' A newer query or closing owns the surface now.
         Catch ex As Exception
+            ' Intentional cancellation has already revoked ownership. An unexpected
+            ' cancellation of the current request must still leave a terminal view.
             If CurrentPackSearch(session, request) Then
-                PackResultsCard.Title = "获取失败" : PackProjectRows.Children.Clear()
-                PackSearchHint.Text = ex.GetBaseException().Message : PackSearchHint.Visibility = Visibility.Visible
+                ChangePackResults(Sub()
+                                      PackResultsCard.Title = "获取失败" : PackResultsCard.HorizontalAlignment = HorizontalAlignment.Stretch
+                                      PackProjectRows.Children.Clear()
+                                      PackProjectRows.Children.Add(New TextBlock With {.Text = "未能取得结果，请重试或选择其他来源。", .Margin = New Thickness(10), .TextWrapping = TextWrapping.Wrap})
+                                      PackSearchHint.Theme = PclHintTheme.Red : PackSearchHint.Text = "无法取得整合包列表，请点击搜索重试。"
+                                      PackSearchHint.ToolTip = ex.GetBaseException().Message : PackSearchHint.Visibility = Visibility.Visible
+                                      PackPagingCard.Visibility = Visibility.Collapsed
+                                  End Sub)
             End If
         Finally
             If _packSearchRequest Is request Then _packSearchRequest = Nothing
@@ -276,7 +291,6 @@ Partial Public Class MainWindow
                 PackProjectDescription.Text = verified.Summary : _packReleases = releases
             End Using
             PackDetailHint.Visibility = Visibility.Collapsed : InitializePackVersions()
-        Catch ex As OperationCanceledException
         Catch ex As Exception
             If Not _closing AndAlso Not request.IsCancellationRequested AndAlso _packDetailRequest Is request AndAlso _packProject Is project Then
                 PackVersionCards.Children.Clear()

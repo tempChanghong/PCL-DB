@@ -21,7 +21,7 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Pack search UI checks failed.' }
         $packSearch = Get-Content -LiteralPath artifacts/pack-search-checks.json -Raw | ConvertFrom-Json
         # One loading-clock assertion is skipped when Windows disables client-area animations.
-        if (!$packSearch.Succeeded -or $packSearch.Scope -ne 'pack-search' -or $packSearch.Count -lt 62) { throw 'Pack search UI checks failed.' }
+        if (!$packSearch.Succeeded -or $packSearch.Scope -ne 'pack-search' -or $packSearch.Count -lt 82) { throw 'Pack search UI checks failed.' }
     }
     if ($Package) {
         Import-Module (Join-Path $PSScriptRoot 'tools/PackageTools.psm1') -Force

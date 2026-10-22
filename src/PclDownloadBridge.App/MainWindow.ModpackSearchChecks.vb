@@ -258,6 +258,8 @@ Partial Public Class MainWindow
         Await LoadPackSearchPageAsync(0) : Await old
         check(DirectCast(PackProjectRows.Children(0), PclResourceItem).ToolTip.ToString().Contains("new"), "a late older query cannot overwrite the current search results")
 
+        Await VerifyPackRecoveryAsync(directory, host, layout, check)
+
         ChangePackMode(PackBrowserMode.Search) : layout() : _motionPreview = True : _categoryMotion.PauseForChecks = True
         ChangePackMode(PackBrowserMode.Detail) : layout()
         Dim entering = _categoryMotion.Transition
@@ -309,9 +311,11 @@ Partial Public Class MainWindow
     Private Class PackSearchFixtureHandler
         Inherits HttpMessageHandler
         Public Property Delay As Integer
+        Public Property BeforeSendAsync As Func(Of Uri, CancellationToken, Task)
         Protected Overrides Async Function SendAsync(request As HttpRequestMessage, token As CancellationToken) As Task(Of HttpResponseMessage)
             If Delay > 0 Then Await Task.Delay(Delay)
             Dim address = request.RequestUri, result As JToken
+            If BeforeSendAsync IsNot Nothing Then Await BeforeSendAsync(address, token)
             If address.Host <> "api.modrinth.com" Then Return New HttpResponseMessage(HttpStatusCode.ServiceUnavailable) With {.Content = New StringContent("{}")}
             If address.AbsolutePath.EndsWith("/search", StringComparison.Ordinal) Then
                 Dim hits As New JArray(), offset = If(address.Query.Contains("offset=40"), 40, 0)

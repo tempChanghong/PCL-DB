@@ -151,6 +151,7 @@
                           <p:PclButton Text="重置条件" Width="140" Height="35" Margin="0,0,20,0" Click="ResetPackSearch"/>
                           <p:PclButton Text="安装已有整合包" Width="140" Height="35" Click="OpenLocalPacks"/>
                         </WrapPanel>
+                        <p:PclHint x:Name="PackSearchInputHint" Theme="Red" Visibility="Collapsed" Margin="0,8,0,0"/>
                       </StackPanel>
                     </p:PclCard>
                     <Grid x:Name="PackSearchResultsHost" MinHeight="100">

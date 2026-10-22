@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## Beta 1.0 后续修复：搜索异常恢复与安装重试
+
+- 继续读取固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageResource.xaml.vb`（`StartNewSearch` / `ResetFilter`）、`ResourceSearcher.GetLoader`（60 秒 ReloadTimeout）和 `MyPageRight.vb`（`PageLoaderState` / `PageLoaderRestart`）。本工具先验证新条件，再替换旧请求；无效编辑留在搜索表单内，以既有 PCL 红色提示控件呈现，不取消有效查询或覆盖平台状态。重复提交相同的在途条件复用请求，缓存命中不再把有效期向后延长；结构化条件键避免名称和版本中的分隔符产生身份碰撞。这些为本工具异步实现的适配修复，没有移植上游 Loader 类。
+- 搜索及详情按当前请求的所有权区分主动取消和异常取消：已被替换或关闭的请求不能提交界面，当前请求意外取消则必须进入可重试错误状态。搜索错误恢复完整宽度和内容，诊断详情放在提示的 ToolTip；退出加载时仍通过既有 `PclSurfaceMotion` 交接，保持原 PCL 退场/入场动画的时钟所有权。没有把非用户取消误报为完成，也不无限停留在镐子加载页。
+- 再次核对 `PageDownloadCompDetail.Install_Click` 的名称确认、原始包下载及统一安装流程。本轮未改变归档或安装内核，只验证失败任务返回详情后保留版本卡片和自定义名称、重试创建独立取消令牌，以及错误动画切换到设置后不能覆盖新页。该失败/重试界面检查使用受控安装委托；它不替代真实包安装验收。
+
 ## Beta 1.0 后续修复：整合包版本筛选与卡片状态
 
 - 继续读取固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `Resource/MyResourceItem.xaml.vb`：整合包详情的目标 MC 版本来自 `FrmDownloadPack.Content.Loader.Input.GameVersion`，不是尚未提交的搜索编辑框。`ModpackSearchSession.Query` 现在只返回已提交条件的副本，详情据此固定目标版本。
