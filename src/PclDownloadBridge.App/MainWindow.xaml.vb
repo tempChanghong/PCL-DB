@@ -715,7 +715,7 @@ Partial Public Class MainWindow
         End Try
         Dim connections = ConnectionCount()
         Dim reuse = If(ReuseBox.IsChecked = True, _folders.Select(Function(f) f.Location).ToList(), New List(Of String))
-        Dim installer As New MinecraftInstaller(Policy())
+        Dim installer As New MinecraftInstaller(Policy(), _pclBase)
         _cancellation = New CancellationTokenSource()
         _busy = True
         SetBusy(True)

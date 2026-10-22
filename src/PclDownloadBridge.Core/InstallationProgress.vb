@@ -44,7 +44,7 @@ Friend NotInheritable Class InstallationProgress
                 _phases(value.Phase) = Math.Max(_phases(value.Phase), Math.Min(0.99, value.StageFraction))
             End If
             Dim supportDone = Snapshot("client").Completed + Snapshot("libraries").Completed
-            Dim assetsDone = Snapshot("assets").Completed
+            Dim assetsDone = Snapshot("assets").Completed + Snapshot("mapped").Completed
             _phases("files") = 14 / 32.0 * If(_supportCount = 0, 1, supportDone / CDbl(_supportCount)) + 18 / 32.0 * If(_assetCount = 0, 1, assetsDone / CDbl(_assetCount))
             Dim phase = If(name = "components", value.Phase, "files")
             _target?.Report(New TransferProgress With {

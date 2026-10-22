@@ -1,5 +1,11 @@
 {
   "profiles": {
+    "Isolation Resources": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression install-isolation-all",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
     "Repair Metadata": {
       "commandName": "Project",
       "commandLineArgs": "--regression install-repair-metadata-all",

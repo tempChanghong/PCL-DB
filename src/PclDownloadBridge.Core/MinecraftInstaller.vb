@@ -8,8 +8,9 @@ Imports Newtonsoft.Json.Linq
 ' McJsonRuleCheck and McAssetsListGet. Keeps the selected PCL root and shared stores.
 Public Class MinecraftInstaller
     Private ReadOnly _policy As SourcePolicy
-    Public Sub New(policy As SourcePolicy)
-        _policy = policy
+    Private ReadOnly _pclDirectory As String
+    Public Sub New(policy As SourcePolicy, Optional pclDirectory As String = Nothing)
+        _policy = policy : _pclDirectory = pclDirectory
     End Sub
 
     Public Async Function VersionsAsync(token As CancellationToken) As Task(Of List(Of VersionEntry))
@@ -73,29 +74,52 @@ Public Class MinecraftInstaller
             Report(progress, "准备安装", "解析资源索引与支持库")
             Dim assets = Await _policy.GetJsonAsync(CStr(index("url")), token, CStr(index("sha1"))).ConfigureAwait(False)
             plan.Add(New DownloadFile With {.RelativePath = indexRelative, .Url = CStr(index("url")), .Size = If(index("size") Is Nothing, -1, CLng(index("size"))), .Sha1 = CStr(index("sha1"))})
-            plan.AddRange(BuildAssetsPlan(assets))
+            Dim resourceFiles = BuildAssetsPlan(assets)
+            Dim mappedFiles = resourceFiles.Where(Function(item) item.RelativePath.StartsWith("resources/", StringComparison.Ordinal)).ToList()
+            Dim withComponents = components IsNot Nothing AndAlso components.Entries.Count > 0
+            Dim isolation As PclIsolationPlan = Nothing
+            If mappedFiles.Count > 0 Then
+                isolation = PclIsolationPlan.Resolve(root, instanceName, entry, metadata, _pclDirectory, repairExisting, withComponents)
+                If isolation.Isolated Then
+                    For Each item In mappedFiles
+                        item.RelativePath = "versions/" & instanceName & "/" & item.RelativePath
+                    Next
+                End If
+            End If
+            Dim mappedTargets As New HashSet(Of String)(mappedFiles.Select(Function(item) SafeFiles.UnderRoot(root, item.RelativePath)), StringComparer.OrdinalIgnoreCase)
+            If plan.Concat(resourceFiles.Except(mappedFiles)).Any(Function(item) mappedTargets.Contains(SafeFiles.UnderRoot(root, item.RelativePath))) Then Throw New InvalidDataException("旧资源映射与其他下载目标冲突。")
+            plan.AddRange(resourceFiles)
             If entry.IsSupplemental Then SupplementalVersions.ValidatePlan(plan)
             ' Merge and validate every destination across all branches before content
             ' downloads start, so duplicate checks cannot disappear between stages.
             plan = DownloadPlan.Merge(plan, root)
+            mappedFiles = plan.Where(Function(item) mappedTargets.Contains(SafeFiles.UnderRoot(root, item.RelativePath))).ToList()
+            If mappedFiles.Count > 0 Then
+                LegacyResourcePublication.ValidateLayout(root, plan)
+                LegacyResourcePublication.Validate(root, mappedFiles, repairExisting)
+            End If
             Dim stageRelative = ".vanilla-downloader/staging/" & Guid.NewGuid().ToString("N") & "/payload"
             Dim stage = SafeFiles.UnderRoot(root, stageRelative)
             Directory.CreateDirectory(stage)
             Try
+              Using publication As New LegacyResourcePublication(root, stage, instanceName, mappedFiles, isolation IsNot Nothing AndAlso isolation.Isolated, repairExisting)
+                Dim newSettings = mappedFiles.Count > 0 AndAlso Not repairExisting AndAlso Not withComponents
+                If newSettings Then isolation.WriteNewSettings(stage)
                 ' Client JAR stays outside versions/ until the entire install succeeds.
                 Dim client = plan.Single(Function(f) f.RelativePath = "versions/" & instanceName & "/" & instanceName & ".jar")
-                Dim supportFiles = plan.Where(Function(f) f IsNot client AndAlso Not f.RelativePath.StartsWith("assets/objects/", StringComparison.Ordinal) AndAlso
+                Dim supportFiles = plan.Where(Function(f) f IsNot client AndAlso Not mappedFiles.Contains(f) AndAlso Not f.RelativePath.StartsWith("assets/objects/", StringComparison.Ordinal) AndAlso
                     Not f.RelativePath.StartsWith("assets/virtual/", StringComparison.Ordinal) AndAlso Not f.RelativePath.StartsWith("resources/", StringComparison.Ordinal) AndAlso f.RelativePath <> indexRelative).ToList()
-                Dim assetFiles = plan.Where(Function(f) f IsNot client AndAlso Not supportFiles.Contains(f)).ToList()
+                Dim assetFiles = plan.Where(Function(f) f IsNot client AndAlso Not supportFiles.Contains(f) AndAlso Not mappedFiles.Contains(f)).ToList()
                 Dim networkBytes As Long
                 Dim reused As Integer
                 Dim splits As Integer
                 Using budget As New DownloadBudget(connections, limit), linked = CancellationTokenSource.CreateLinkedTokenSource(token)
-                    Dim reporting As New InstallationProgress(progress, budget, supportFiles.Count + 1, assetFiles.Count)
+                    Dim reporting As New InstallationProgress(progress, budget, supportFiles.Count + 1, assetFiles.Count + mappedFiles.Count)
                     Dim stagedClient As New DownloadFile With {.RelativePath = instanceName & ".jar", .Url = client.Url, .Size = client.Size, .Sha1 = client.Sha1, .Category = client.Category}
                     Using clientEngine As New DownloadEngine(_policy, reporting.Branch("client"), reuseRoots, connections, root, True, budget),
                           supportEngine As New DownloadEngine(_policy, reporting.Branch("libraries"), reuseRoots, connections, root, budget:=budget),
-                          assetsEngine As New DownloadEngine(_policy, reporting.Branch("assets"), reuseRoots, connections, root, budget:=budget)
+                          assetsEngine As New DownloadEngine(_policy, reporting.Branch("assets"), reuseRoots, connections, root, budget:=budget),
+                          mappedEngine As New DownloadEngine(_policy, reporting.Branch("mapped"), reuseRoots.Concat({If(isolation IsNot Nothing AndAlso isolation.Isolated, instancePath, root)}), connections, root, budget:=budget)
                         Dim extension As ComponentInstaller = Nothing
                         ' PCL's nonblocking library/resource LoaderCombos share ModNet.
                         ' Components need the verified client/support branch, not all assets.
@@ -114,7 +138,11 @@ Public Class MinecraftInstaller
                                 reporting.ComponentsComplete()
                             End If
                         End Function
-                        Dim branches = {CancelPeersAsync(supportWork, linked), CancelPeersAsync(Function() assetsEngine.DownloadAsync(root, assetFiles, linked.Token), linked, Sub() reporting.Failed("files"))}
+                        Dim assetWork As Func(Of Task) = Async Function()
+                            Await assetsEngine.DownloadAsync(root, assetFiles, linked.Token).ConfigureAwait(False)
+                            If mappedFiles.Count > 0 Then Await mappedEngine.DownloadAsync(stage, publication.StagedFiles(), linked.Token).ConfigureAwait(False)
+                        End Function
+                        Dim branches = {CancelPeersAsync(supportWork, linked), CancelPeersAsync(assetWork, linked, Sub() reporting.Failed("files"))}
                         Try
                             Await Task.WhenAll(branches).ConfigureAwait(False)
                         Catch
@@ -124,9 +152,9 @@ Public Class MinecraftInstaller
                             If failure IsNot Nothing Then Throw failure
                             Throw
                         End Try
-                        networkBytes = clientEngine.NetworkBytes + supportEngine.NetworkBytes + assetsEngine.NetworkBytes
-                        reused = clientEngine.Reused + supportEngine.Reused + assetsEngine.Reused
-                        splits = clientEngine.DynamicSplits + supportEngine.DynamicSplits + assetsEngine.DynamicSplits
+                        networkBytes = clientEngine.NetworkBytes + supportEngine.NetworkBytes + assetsEngine.NetworkBytes + mappedEngine.NetworkBytes
+                        reused = clientEngine.Reused + supportEngine.Reused + assetsEngine.Reused + mappedEngine.Reused
+                        splits = clientEngine.DynamicSplits + supportEngine.DynamicSplits + assetsEngine.DynamicSplits + mappedEngine.DynamicSplits
                         If extension IsNot Nothing Then
                             networkBytes += extension.NetworkBytes : reused += extension.Reused : splits += extension.DynamicSplits
                             plan.AddRange(Enumerable.Repeat(New DownloadFile(), extension.FileCount))
@@ -145,10 +173,14 @@ Public Class MinecraftInstaller
                             jsonLock.CopyTo(current)
                             If Not existingBytes.SequenceEqual(current.ToArray()) Then Throw New InvalidDataException("待补全实例的版本 JSON 在校验期间发生变化，请确认后重试。")
                         End Using
+                      Using isolationGuard = If(isolation Is Nothing, Nothing, isolation.LockForRepair())
+                        publication.Publish(token, isolationGuard)
                         Dim clientTarget = SafeFiles.UnderRoot(root, client.RelativePath)
                         Dim needsReplacement = Not SafeFiles.Matches(clientTarget, client)
                         token.ThrowIfCancellationRequested()
+                        isolationGuard?.Verify()
                         If needsReplacement Then SafeFiles.CommitFile(Path.Combine(stage, instanceName & ".jar"), clientTarget)
+                      End Using
                     End Using
                 Else
                     metadata("id") = instanceName
@@ -160,12 +192,16 @@ Public Class MinecraftInstaller
                     token.ThrowIfCancellationRequested()
                     Directory.CreateDirectory(Path.GetDirectoryName(instancePath))
                     token.ThrowIfCancellationRequested()
+                    publication.Publish(token)
+                    token.ThrowIfCancellationRequested()
                     Directory.Move(stage, instancePath)
                 End If
+                publication.Complete()
                 ' After the filesystem commit, return its real result even if cancellation
                 ' arrives during optional cache cleanup; never undo a published instance.
                 VerifiedComponentCache.ReleasePublishedClient(root, client)
-                Return New InstallResult With {.InstancePath = instancePath, .FileCount = plan.Count + 1, .NetworkBytes = networkBytes, .Reused = reused, .DynamicSplits = splits}
+                Return New InstallResult With {.InstancePath = instancePath, .FileCount = plan.Count + 1 + If(newSettings, 1, 0), .NetworkBytes = networkBytes, .Reused = reused, .DynamicSplits = splits}
+              End Using
             Finally
                 ' Preserve transfer caches and existing versions. A locked private payload
                 ' is logged separately and cannot replace cancellation or the real error.
@@ -207,7 +243,10 @@ Public Class MinecraftInstaller
         Next
         result.AddRange(selected.Values.SelectMany(Function(items) items))
         Dim logging = TryCast(metadata.SelectToken("logging.client.file"), JObject)
-        If logging IsNot Nothing Then result.Add(ToFile(logging, "assets/log_configs/" & CStr(logging("id")), "meta"))
+        If logging IsNot Nothing Then
+            ValidateResourceName(CStr(logging("id")), "日志文件")
+            result.Add(ToFile(logging, "assets/log_configs/" & CStr(logging("id")), "meta"))
+        End If
         Return DownloadPlan.Merge(result)
     End Function
 
@@ -225,6 +264,7 @@ Public Class MinecraftInstaller
             Dim size As Long
             If sizeToken Is Nothing OrElse sizeToken.Type <> JTokenType.Integer OrElse
                 Not Long.TryParse(sizeToken.ToString(Newtonsoft.Json.Formatting.None), Globalization.NumberStyles.None, Globalization.CultureInfo.InvariantCulture, size) Then Throw New InvalidDataException("资源大小无效：" & item.Name)
+            If CBool(If(index("virtual"), New JValue(False))) OrElse CBool(If(index("map_to_resources"), New JValue(False))) Then ValidateResourceName(item.Name)
             Dim source = "https://resources.download.minecraft.net/" & hash.Substring(0, 2) & "/" & hash
             Dim file = New DownloadFile With {.RelativePath = "assets/objects/" & hash.Substring(0, 2) & "/" & hash, .Url = source, .Size = size, .Sha1 = hash, .Category = "asset"}
             result.Add(file)
@@ -235,6 +275,14 @@ Public Class MinecraftInstaller
         Next
         Return DownloadPlan.Merge(result)
     End Function
+
+    Private Shared Sub ValidateResourceName(name As String, Optional description As String = "旧资源映射")
+        If name Is Nothing Then Throw New InvalidDataException(description & "名称为空。")
+        For Each part In name.Replace("\"c, "/"c).Split("/"c)
+            If String.IsNullOrEmpty(part) OrElse part = "." OrElse part = ".." OrElse part.Length > 255 OrElse part.EndsWith(".", StringComparison.Ordinal) OrElse part.EndsWith(" ", StringComparison.Ordinal) OrElse
+                part.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 OrElse Regex.IsMatch(part, "\A(?:CON|PRN|AUX|NUL|CLOCK\$|CONIN\$|CONOUT\$|COM[0-9]|LPT[0-9])(?:\.|\z)", RegexOptions.IgnoreCase Or RegexOptions.CultureInvariant) Then Throw New InvalidDataException(description & "名称无效：" & name)
+        Next
+    End Sub
 
     Public Shared Function RulesAllow(rules As JToken) As Boolean
         If rules Is Nothing OrElse rules.Type = JTokenType.Null Then Return True
@@ -280,6 +328,7 @@ Public Class MinecraftInstaller
         Dim relative = CStr(data("path"))
         If relative Is Nothing Then relative = MavenPath(CStr(libraryInfo("name")), classifier)
         If String.IsNullOrWhiteSpace(relative) Then Throw New InvalidDataException("支持库下载路径为空：" & CStr(libraryInfo("name")))
+        ValidateResourceName(relative, "支持库")
         Dim file = ToFile(data, "libraries/" & relative, "library")
         If file.Url Is Nothing Then
             Dim repo = If(CStr(libraryInfo("url")), "https://libraries.minecraft.net/")
