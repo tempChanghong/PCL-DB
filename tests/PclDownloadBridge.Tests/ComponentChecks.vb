@@ -68,7 +68,9 @@ Module ComponentChecks
             server.Files("/api/maven/versions/releases/net/neoforged/neoforge") = Utf8("{""versions"":[""21.1.77"",""21.2.1"",""20.4.1-beta""]}")
             server.Files("/optifine/versionList") = Utf8("[{""mcversion"":""1.21.1"",""type"":""HD_U"",""patch"":""J2"",""filename"":""OptiFine.jar"",""forge"":""N/A""}]")
             server.Files("/versions/versions.json") = Utf8("{""versions"":{""1.12.2"":{""snapshots"":{""com.mumfrey:liteloader"":{""latest"":{""version"":""1.12.2-SNAPSHOT"",""stream"":""SNAPSHOT"",""tweakClass"":""com.mumfrey.liteloader.launch.LiteLoaderTweaker"",""libraries"":[]}}}}}}")
-            Dim modList As New JArray(New JObject From {{"name", "Fixture mod"}, {"version_number", "1.0"}, {"version_type", "release"}, {"files", New JArray(New JObject From {{"url", server.Url & "/mod"}, {"filename", "fixture.jar"}, {"primary", True}, {"hashes", New JObject From {{"sha1", Hash(Utf8("mod"))}}}, {"size", 3}})}})
+            Dim modList As New JArray(New JObject From {{"name", "Fixture mod"}, {"version_number", "1.0"}, {"version_type", "release"},
+                {"project_id", "P7dR8mSH"}, {"game_versions", New JArray(mc)}, {"loaders", New JArray("fabric")}, {"date_published", "2026-01-01T00:00:00Z"},
+                {"files", New JArray(New JObject From {{"url", server.Url & "/mod"}, {"filename", "fixture.jar"}, {"primary", True}, {"hashes", New JObject From {{"sha1", Hash(Utf8("mod"))}}}, {"size", 3}})}})
             server.Files("/v2/project/P7dR8mSH/version") = Utf8(modList.ToString())
             Dim curse As New JObject From {{"data", New JArray(New JObject From {{"id", 5025647}, {"projectId", 322385}, {"gameVersions", New JArray("1.20.1")}, {"fileName", "optifabric-1.14.3.jar"}, {"displayName", "OptiFabric-v1.14.3"}, {"fileLength", 3}, {"releaseType", 2}, {"hashes", New JArray(New JObject From {{"algo", 1}, {"value", Hash(Utf8("mod"))}})}})}}
             server.Files("/api/v1/mods/322385/files") = Utf8(curse.ToString())

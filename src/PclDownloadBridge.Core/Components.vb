@@ -134,11 +134,10 @@ Public Class ComponentCatalog
             Case ComponentKind.FabricApi
                 Dim project = "P7dR8mSH"
                 Dim url = "https://api.modrinth.com/v2/project/" & project & "/version?loaders=" & Uri.EscapeDataString("[""fabric""]") & "&game_versions=" & Uri.EscapeDataString(New JArray(mc).ToString(Newtonsoft.Json.Formatting.None))
-                Dim data = Await _policy.GetVersionListTokenAsync(url, token).ConfigureAwait(False)
+                Dim data = Await _policy.GetVersionListTokenAsync(url, token,
+                    Function(body) ParseFabricApiMetadata(body, mc, _policy.AllowLoopback)).ConfigureAwait(False)
                 For Each item As JObject In data
-                    Dim files = DirectCast(item("files"), JArray).OfType(Of JObject)().ToList()
-                    Dim file = If(files.FirstOrDefault(Function(f) CBool(If(f("primary"), New JValue(False)))), files.FirstOrDefault())
-                    If file Is Nothing Then Continue For
+                    Dim file = SelectFabricApiFile(item)
                     result.Add(New ComponentEntry With {.Kind = kind, .Minecraft = mc, .Version = CStr(item("version_number")), .Stable = CStr(item("version_type")) = "release", .Url = CStr(file("url")), .FileName = CStr(file("filename")), .Sha1 = CStr(file("hashes")("sha1")), .Size = CLng(file("size")), .Data = item})
                 Next
             Case ComponentKind.OptiFabric
@@ -237,6 +236,84 @@ Public Class ComponentCatalog
             If stable Is Nothing OrElse stable.Type <> JTokenType.Boolean Then Throw New InvalidDataException("Fabric 版本条目的 stable 字段无效。")
         Next
         Return entries
+    End Function
+
+    Private Shared Function ParseFabricApiMetadata(body As String, mc As String, allowLoopback As Boolean) As JToken
+        Dim entries As JArray
+        ' Keep the original UTC/offset strings. The default DateTime conversion
+        ' followed by a string cast can lose the zone before publication sorting.
+        Using input As New StringReader(body), reader As New Newtonsoft.Json.JsonTextReader(input) With {.DateParseHandling = Newtonsoft.Json.DateParseHandling.None}
+            entries = JArray.Load(reader)
+            While reader.Read()
+                If reader.TokenType <> Newtonsoft.Json.JsonToken.Comment Then Throw New InvalidDataException("Fabric API 版本列表含有多余内容。")
+            End While
+        End Using
+        Dim accepted As New List(Of JObject)
+        For Each value In entries
+            Dim item = TryCast(value, JObject)
+            If item Is Nothing Then Throw New InvalidDataException("Fabric API 版本条目格式无效。")
+            ValidateCatalogueText(item, "project_id", "Fabric API")
+            If CStr(item("project_id")) <> "P7dR8mSH" Then Throw New InvalidDataException("Fabric API 项目编号不匹配。")
+            ' Like PCL's compatibility filter, verify each result before listing it.
+            ' This endpoint supplies exact game/loader arrays instead of relying
+            ' on the display-name version ranges used by PCL's global catalogue.
+            If Not CatalogueContains(item, "game_versions", mc) OrElse Not CatalogueContains(item, "loaders", "fabric") Then Continue For
+            For Each field In {"name", "version_number", "version_type"}
+                ValidateCatalogueText(item, field, "Fabric API")
+            Next
+            Dim published = item("date_published"), instant As DateTimeOffset
+            If published Is Nothing OrElse published.Type <> JTokenType.String OrElse
+                Not DateTimeOffset.TryParse(CStr(published), Globalization.CultureInfo.InvariantCulture, Globalization.DateTimeStyles.None, instant) Then Throw New InvalidDataException("Fabric API 发布时间无效。")
+            Dim file = SelectFabricApiFile(item)
+            If file Is Nothing Then Continue For ' PCL also omits versions without a download.
+            SafeFiles.ValidateInstanceName(CStr(file("filename")))
+            ValidateCatalogueText(file, "url", "Fabric API")
+            Dim address As Uri = Nothing
+            If Not Uri.TryCreate(CStr(file("url")), UriKind.Absolute, address) OrElse
+                (address.Scheme <> "https" AndAlso Not (allowLoopback AndAlso address.IsLoopback AndAlso address.Scheme = "http")) Then Throw New InvalidDataException("Fabric API 下载地址无效。")
+            ReadCatalogueInteger(file, "size", "Fabric API", 1)
+            Dim hashes = TryCast(file("hashes"), JObject)
+            If hashes Is Nothing Then Throw New InvalidDataException("Fabric API 校验信息格式无效。")
+            Dim sha1 = hashes("sha1")
+            If sha1 IsNot Nothing AndAlso sha1.Type <> JTokenType.Null AndAlso
+                (sha1.Type <> JTokenType.String OrElse Not Regex.IsMatch(CStr(sha1), "\A[0-9a-fA-F]{40}\z")) Then Throw New InvalidDataException("Fabric API SHA-1 校验字段无效。")
+            accepted.Add(item)
+        Next
+        ' PCL FabricApi_Loaded orders by publication time before auto-selection.
+        Return New JArray(accepted.OrderByDescending(Function(item) DateTimeOffset.Parse(CStr(item("date_published")), Globalization.CultureInfo.InvariantCulture)))
+    End Function
+
+    Private Shared Function CatalogueContains(item As JObject, field As String, expected As String) As Boolean
+        Dim values = TryCast(item(field), JArray)
+        If values Is Nothing OrElse values.Any(Function(value) value.Type <> JTokenType.String) Then Throw New InvalidDataException("Fabric API 的 " & field & " 字段无效。")
+        Return values.Values(Of String)().Any(Function(value) String.Equals(value, expected, StringComparison.OrdinalIgnoreCase))
+    End Function
+
+    Private Shared Function SelectFabricApiFile(item As JObject) As JObject
+        Dim files = TryCast(item("files"), JArray)
+        If files Is Nothing Then Throw New InvalidDataException("Fabric API 文件列表格式无效。")
+        Dim primary As JObject = Nothing, fallback As JObject = Nothing
+        For Each value In files
+            Dim file = TryCast(value, JObject)
+            If file Is Nothing Then Throw New InvalidDataException("Fabric API 文件条目格式无效。")
+            ValidateCatalogueText(file, "filename", "Fabric API")
+            Dim selected = file("primary")
+            If selected IsNot Nothing AndAlso selected.Type <> JTokenType.Null AndAlso selected.Type <> JTokenType.Boolean Then Throw New InvalidDataException("Fabric API primary 字段无效。")
+            If selected IsNot Nothing AndAlso selected.Type = JTokenType.Boolean AndAlso CBool(selected) Then
+                If primary IsNot Nothing Then Throw New InvalidDataException("Fabric API 声明了多个主文件。")
+                primary = file
+            End If
+            If fallback Is Nothing AndAlso IsRuntimeApiJar(CStr(file("filename"))) Then fallback = file
+        Next
+        If primary Is Nothing Then Return fallback
+        If Not IsRuntimeApiJar(CStr(primary("filename"))) Then Throw New InvalidDataException("Fabric API 主文件不是运行用 JAR。")
+        Return primary
+    End Function
+
+    Private Shared Function IsRuntimeApiJar(filename As String) As Boolean
+        Return filename.EndsWith(".jar", StringComparison.OrdinalIgnoreCase) AndAlso
+            Not filename.EndsWith("-sources.jar", StringComparison.OrdinalIgnoreCase) AndAlso
+            Not filename.EndsWith("-javadoc.jar", StringComparison.OrdinalIgnoreCase)
     End Function
 
     Private Shared Function ParseOptiFineMirrorMetadata(body As String) As JToken

@@ -2,6 +2,16 @@
 
 日期：2026-10-22（北京时间）。最新发布为 PCL-DB Beta 1.0（`1.0.0-beta.1`），当前主分支另含尚未发布的后续修复；下方保留先前版本的验证记录。
 
+## Beta 1.0 后续开发：Fabric API 兼容性与文件选择
+
+- 基线 b1b18cf，源码、78 个 dist 文件摘要及七个参考仓库状态保存在 `artifacts/beta1-fabric-api-selection/`。重读固定 PCL 5ef81e4 的 ResourceVersion Modrinth 字段解析、DownloadAvailable 过滤及安装页 Fabric API 兼容性筛选/发布时间排序。PCL 全局列表按标题判断适配，本项目按游戏查询，并用响应中的 game_versions/loaders 核对；保留本项目已有的 primary 优先，缺省改为只从运行用 JAR 中选择。
+- baseline-filter/files/invalid/install.log 分别复现：其他游戏的 API 也被标记为适用、无 primary 时选到 sources 附件、错误对象被当成空列表，以及真实 MinecraftInstaller 发布了错误文件。实际安装样本记录 runtime=False、wrong_requested=True；测试均非零退出。这些都是回环响应样本，不表明真实 Modrinth 端点发生同类故障。
+- 在列表响应接受前检查根数组、项目身份、目标游戏/加载器、适用记录的必要字段、日期及所选文件信息；不适用记录不进入安装选项。保留合法空列表和无下载文件的版本过滤。文件选择优先明确的运行用主 JAR；没有 primary 时跳过常见 -sources.jar、-javadoc.jar 和非 JAR 附件。多个主文件、非法主文件、无效地址/文件名/大小/声明的 SHA-1 都报告列表错误。
+- 按 PCL 将最新发布排到首位，并保留 beta/alpha 状态。混合 UTC 与 +08:00 的样本在首份修复中暴露了默认 JSON 日期转换后再转字符串的时区丢失，见 first-date-check.log；改为保留原始日期文字，再按 DateTimeOffset 比较。检查还拒绝根数组后的多余 JSON，保留缺省 SHA-1/primary 与合法大写摘要。原有 ComponentChecks 的 API 样本补齐真实协议的项目、游戏、加载器和发布时间字段，未移除既有安装断言。
+- 新增 37 项检查，与原 103 项合计 140 项组件列表检查，fixed-catalogues.log 全部通过。新的实际安装使用含 fabric.mod.json 的样本 JAR：只下载并发布正确的运行文件，错误版本/源码附件均未请求；PCL 独立实例配置和原有文件保持，第二个实例复用已验证缓存。可用 `--regression component-catalogue-api-install` 重现实际安装检查，同一前缀另有 filter、files、invalid、behavior 子组；既有 VS Component Catalogues 配置自动纳入。
+- 完整下载/安装核心从 864 增至 901 项并全部通过（core-all.log）；Release 构建零警告/零错误，658 项完整界面、328 项动画和 17 项固定源对照通过。VS 2026 Debug/PDB 另通过 525 项精选核心、658 项界面、328 项动画及既有聚焦配置。关键报告复制到本轮目录；preservation.json 确认 78 个 dist 文件的内容与修改时间、七个参考仓库的提交和状态保持，Beta 标签仍指向 c1fe250。
+- 检查使用本地 HTTP、隔离预览和临时目录，不访问真实官方/镜像端点，不作为完整游戏启动证明。本轮只做本地构建、验证及提交，不打包、不发版、不推送。
+
 ## Beta 1.0 后续开发：OptiFabric 分页与 LiteLoader 元数据
 
 - 基线 c680148，源码、78 个 dist 文件摘要和七个参考仓库状态保存在 `artifacts/beta1-legacy-catalogue-fallback/`。重读固定 PCL 5ef81e4 的 LiteLoader 各源解析、忽略大小写的 snapshot 比较、OptiFabric 项目来源、ResourceVersion 的 CurseForge 字段及零大小处理，以及 DlSourceLoader 的成功/失败交接。
