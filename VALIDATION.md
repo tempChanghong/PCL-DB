@@ -2,7 +2,16 @@
 
 日期：2026-10-22（北京时间）。最新发布为 PCL-DB Beta 1.0（`1.0.0-beta.1`），当前主分支另含尚未发布的后续修复；下方保留先前版本的验证记录。
 
-## 当前源码：整合包重名版本辨识与确认
+## 当前源码：搜索分页边界与异步内容动画
+
+- 从干净的 `74a550a` 继续，通查搜索条件、来源组合、缓存/独立分页、详情、版本选择、命名、安装返回及动画交接，继续对照固定 PCL 的 `PageResource`、`ResourceSearcher`、`MyPageRight`。`artifacts/search-flow-core-before.log`、`search-flow-ui-before.json` 分别复现来源不支持类型时未报错、过滤后没有可用结果时丢失继续加载入口；`search-flow-animation-before.json` 复现详情完成后版本卡片没有内容入场。
+- 来源/类型组合校验在替换查询之前完成；错误条件保留现有结果及在途有效查询的原有规则。分页保留四轮查询批次上限及各源原始游标，初始批次为空但有后续时可继续；仅有一页且来源结束时隐藏多余翻页按钮。下一页提前为空或来源失败时显示缓存中的最后一个有效页，失败仍保留警告。覆盖原始游标 `0/40/80/120` 过滤后继续到 `160`、提前结束、后续页异常及不兼容条件不替换结果。
+- 详情加载、成功与失败使用独立内容动画；父页面正在入场时更新由原控制器续接，移除的加载卡释放变换和时钟，不启动并行的父子内容动画。验证详情初期禁止安装、140ms 揭示后允许操作，以及在剩余位移中开始安装时先捕获合成画面。另覆盖分类入场、主页面入场、隐藏详情完成、旧时钟回调、搜索在两种父页面动画期间完成及最后无残留遮罩/输入锁。示例图为 `pack-detail-entry-160ms.png`、`pack-search-empty-continuation.png`、`pack-search-source-category.png`。
+- 针对性搜索/归档核心 **60 项**、搜索页面及流程 **135 项**通过（本轮分别新增 2、28 项），见 `artifacts/search-flow-core-after.log`、`search-flow-final.json`。包含原有搜索、版本与加载器兼容性、取消重试、名称记忆、文件身份和归档原子安装检查；受控安装委托只证明界面状态交接，不作为真实安装证据。最后用 `search-flow-partial-before.json` 复现一个源失败、另一个仍可续查时误显示终止错误；已改为黄色继续加载提示，后续页失败则明确说明保留了已有结果。
+- 完整核心 **2051 项**、既有界面 **754 项**、既有动画 **358 项**、固定 PCL 源码/资源比对 **17 项**通过；无 `Package` 参数的完整检查日志为 `artifacts/build-search-flow.log`，界面和动画回执另存 `ui-search-flow.json`、`motion-search-flow.json`。上述 135 项是最后补充提示修复后的搜索回归；各套用例有重叠，不累计。Release 构建零警告、零错误，`git diff --check` 通过；本轮只本地 Commit，不打包、发版或推送。
+- 2026-10-22 联网只读复测取得 Zombie Invade 项目 `l9m9tuPN` 的 7 个可安装发布，包含 2.3（`6OMYdNAO`，MC 1.20.1 / Forge）。合并搜索保留 Modrinth 结果；本地网络的 CurseForge 网页接口返回 403，MCIM 返回 503。回执为 `artifacts/search-flow-live-catalogue.json`，未取得归档、未执行实例安装；不把缺少外部服务或密钥的来源声明为可用，也未新增桌面帧率测量。
+
+## Beta 1.0 后续修复：整合包重名版本辨识与确认
 
 - 从干净的 `cdc35a6` 继续，对照固定 PCL 的 `InitializeStackResourceVersions` / `ResourceVersion.ToListItem`。先以相同名称、不同 Forge/Fabric 归档复现两行完全同名的问题，失败回执为 `artifacts/pack-release-labels-before.json`。同卡片重名改用文件名，文件名复用时再用版本号、平台 ID 区分；保留 `2.3` 等带小数点的版本号，并覆盖扩展名大小写、空标题、生成标签再次冲突的情况。
 - 版本行保留 42 DIP 和原图标；加载器采用通常的大小写，更新说明和测试类型使用中文，纯快照/预发布的游戏目标显示在次要说明中。ToolTip 补齐名称、文件、版本号、MC、加载器、归档大小及版本 ID，禁用行仍保留兼容性原因；不复制下载 URL。已复看 `pack-search-release-labels.png`、`pack-search-release-confirmation.png` 的离屏示例。

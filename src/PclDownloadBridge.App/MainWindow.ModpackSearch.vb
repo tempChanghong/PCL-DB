@@ -48,7 +48,10 @@ Partial Public Class MainWindow
 
     Private Sub InitializePackSearch()
         _packResultMotion = New PclSurfaceMotion(PackSearchResultsHost, PackSearchGhost,
-            Function() AllowPageMotion() AndAlso _downloadView = DownloadView.Modpacks AndAlso _packMode = PackBrowserMode.Search AndAlso DownloadPage.IsVisible AndAlso _categoryMotion.Transition Is Nothing AndAlso _surfaceMotion.Transition Is Nothing,
+            Function() CanAnimatePackContent(PackBrowserMode.Search),
+            Function(surface) PclSurfaceMotion.Units(surface))
+        _packDetailMotion = New PclSurfaceMotion(PackDetailResultsHost, PackDetailGhost,
+            Function() CanAnimatePackContent(PackBrowserMode.Detail),
             Function(surface) PclSurfaceMotion.Units(surface))
         AddHandler _categoryMotion.Settled, Sub() EnsurePackSearch()
         AddHandler _surfaceMotion.Settled, Sub() EnsurePackSearch()
@@ -81,7 +84,7 @@ Partial Public Class MainWindow
         If _packMode = PackBrowserMode.Detail Then _packDetailScroll = ModpackPage.VerticalOffset
         ModpackPage.StopScrolling()
         Dim apply As Action = Sub()
-                                  _packResultMotion.Finish()
+                                  FinishPackContentMotion()
                                   _packMode = mode
                                   PackSearchSurface.Visibility = If(mode = PackBrowserMode.Search, Visibility.Visible, Visibility.Collapsed)
                                   PackDetailSurface.Visibility = If(mode = PackBrowserMode.Detail, Visibility.Visible, Visibility.Collapsed)
@@ -149,11 +152,7 @@ Partial Public Class MainWindow
         Await LoadPackSearchPageAsync(If(incomplete, _packSearchPage, _packSearchPage + 1))
     End Sub
     Private Sub ChangePackResults(update As Action)
-        If _packMode = PackBrowserMode.Search AndAlso _downloadView = DownloadView.Modpacks AndAlso DownloadPage.IsVisible AndAlso _categoryMotion.Transition Is Nothing AndAlso _surfaceMotion.Transition Is Nothing Then
-            _packResultMotion.Change(PackSearchResultsSurface, PackSearchResultsSurface, update, contentRefresh:=True)
-        Else
-            update()
-        End If
+        ChangePackContent(PackBrowserMode.Search, update)
     End Sub
     Private Async Function LoadPackSearchPageAsync(page As Integer) As Task
         Dim session = _packSearchSession
@@ -172,8 +171,16 @@ Partial Public Class MainWindow
                           End Sub)
         Try
             Dim items As List(Of ModpackProject)
+            Dim retainedPage = False
             Using client = _packCatalogFactory()
                 items = Await session.GetPageAsync(page, client, request.Token)
+                ' A source may end early or fail while fetching the next page.
+                ' Keep the last populated presentation page and its warning.
+                If items.Count = 0 AndAlso session.Count > 0 AndAlso page * ModpackCatalogClient.PageSize >= session.Count Then
+                    page = (session.Count - 1) \ ModpackCatalogClient.PageSize
+                    items = Await session.GetPageAsync(page, client, request.Token)
+                    retainedPage = True
+                End If
             End Using
             If Not CurrentPackSearch(session, request) Then Return
             _packSearchPage = page
@@ -186,12 +193,18 @@ Partial Public Class MainWindow
                                       PackProjectRows.Children.Add(row)
                                       LoadPackIconAsync(row, project, artworkToken)
                                   Next
-                                  If items.Count = 0 Then PackProjectRows.Children.Add(New TextBlock With {.Text = If(session.ErrorMessage = "", "没有找到符合条件的整合包。", "未能取得结果，请重试或选择其他来源。"), .Margin = New Thickness(10), .TextWrapping = TextWrapping.Wrap})
-                                  PackSearchHint.Theme = If(items.Count > 0, PclHintTheme.Yellow, PclHintTheme.Red)
-                                  PackSearchHint.Text = If(items.Count > 0, "部分来源未能完成查询，目前仅显示可用来源的内容。点击搜索可重试。", "无法取得整合包列表，请稍后重试或选择其他来源。")
+                                  If items.Count = 0 Then PackProjectRows.Children.Add(New TextBlock With {.Text = If(session.HasMore, "暂时没有找到可用结果，点击「继续加载」查询后续内容。", If(session.ErrorMessage = "", "没有找到符合条件的整合包。", "未能取得结果，请重试或选择其他来源。")), .Margin = New Thickness(10), .TextWrapping = TextWrapping.Wrap})
+                                  PackSearchHint.Theme = If(items.Count > 0 OrElse session.HasMore, PclHintTheme.Yellow, PclHintTheme.Red)
+                                  If items.Count > 0 Then
+                                      PackSearchHint.Text = If(retainedPage, "后续内容未能加载，已保留现有结果。点击搜索可重试。", "部分来源未能完成查询，目前仅显示可用来源的内容。点击搜索可重试。")
+                                  ElseIf session.HasMore Then
+                                      PackSearchHint.Text = "部分来源暂时无法查询，可继续加载其余来源的后续内容。"
+                                  Else
+                                      PackSearchHint.Text = "无法取得整合包列表，请稍后重试或选择其他来源。"
+                                  End If
                                   PackSearchHint.ToolTip = session.ErrorMessage
                                   PackSearchHint.Visibility = If(session.ErrorMessage = "", Visibility.Collapsed, Visibility.Visible)
-                                  PackPagingCard.Visibility = If(session.Count > 0, Visibility.Visible, Visibility.Collapsed)
+                                  PackPagingCard.Visibility = If(session.Count > ModpackCatalogClient.PageSize OrElse session.HasMore, Visibility.Visible, Visibility.Collapsed)
                                   PackPageLabel.Text = (page + 1).ToString()
                                   PackFirstPage.IsEnabled = page > 0 : PackPreviousPage.IsEnabled = page > 0 : PackNextPage.IsEnabled = session.HasNext(page)
                                   PackNextPage.Text = If(session.Count < (page + 1) * ModpackCatalogClient.PageSize AndAlso session.HasMore, "继续加载", "下一页")
@@ -273,16 +286,19 @@ Partial Public Class MainWindow
         If _packReleases.Count = 0 Then Await LoadPackDetailsAsync(project)
     End Sub
     Private Async Sub RetryPackDetails(sender As Object, e As RoutedEventArgs)
-        If _packProject IsNot Nothing AndAlso Not _busy Then Await LoadPackDetailsAsync(_packProject)
+        If _packProject Is Nothing OrElse _busy OrElse _choosingOnline OrElse _closing OrElse _packMode <> PackBrowserMode.Detail OrElse _downloadView <> DownloadView.Modpacks OrElse Not PackDetailSurface.IsVisible OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible OrElse Not PackDetailResultsHost.IsHitTestVisible Then Return
+        Await LoadPackDetailsAsync(_packProject)
     End Sub
     Private Async Function LoadPackDetailsAsync(project As ModpackProject) As Task
         _packDetailRequest?.Cancel()
         Dim request As New CancellationTokenSource : _packDetailRequest = request
-        PackVersionCards.Children.Clear() : PackVersionFilters.Children.Clear()
-        PackVersionFilterCard.Visibility = Visibility.Collapsed
-        PackDetailHint.Visibility = Visibility.Collapsed : PackDetailRetry.Visibility = Visibility.Collapsed
-        Dim loading As New PclCard With {.ShowHeader = False, .HorizontalAlignment = HorizontalAlignment.Center, .BodyMargin = New Thickness(0), .Body = New PclLoadingView("正在获取版本列表")}
-        PackVersionCards.Children.Add(loading)
+        ChangePackContent(PackBrowserMode.Detail, Sub()
+                                                     PackVersionCards.Children.Clear() : PackVersionFilters.Children.Clear()
+                                                     PackVersionFilterCard.Visibility = Visibility.Collapsed
+                                                     PackDetailHint.Visibility = Visibility.Collapsed : PackDetailRetry.Visibility = Visibility.Collapsed
+                                                     Dim loading As New PclCard With {.ShowHeader = False, .HorizontalAlignment = HorizontalAlignment.Center, .BodyMargin = New Thickness(0), .Body = New PclLoadingView("正在获取版本列表")}
+                                                     PackVersionCards.Children.Add(loading)
+                                                 End Sub)
         Try
             Using client = _packCatalogFactory()
                 Dim verified = Await client.GetProjectAsync(project.Platform, project.Id, request.Token)
@@ -290,11 +306,15 @@ Partial Public Class MainWindow
                 If _closing OrElse request.IsCancellationRequested OrElse _packDetailRequest IsNot request OrElse _packProject IsNot project Then Return
                 PackProjectDescription.Text = verified.Summary : _packReleases = releases
             End Using
-            PackDetailHint.Visibility = Visibility.Collapsed : InitializePackVersions()
+            ChangePackContent(PackBrowserMode.Detail, Sub()
+                                                         PackDetailHint.Visibility = Visibility.Collapsed : InitializePackVersions()
+                                                     End Sub)
         Catch ex As Exception
             If Not _closing AndAlso Not request.IsCancellationRequested AndAlso _packDetailRequest Is request AndAlso _packProject Is project Then
-                PackVersionCards.Children.Clear()
-                PackDetailHint.Theme = PclHintTheme.Red : PackDetailHint.Text = "无法获取可安装的客户端版本，请重试。" : PackDetailHint.ToolTip = ex.GetBaseException().Message : PackDetailHint.Visibility = Visibility.Visible : PackDetailRetry.Visibility = Visibility.Visible
+                ChangePackContent(PackBrowserMode.Detail, Sub()
+                                                             PackVersionCards.Children.Clear()
+                                                             PackDetailHint.Theme = PclHintTheme.Red : PackDetailHint.Text = "无法获取可安装的客户端版本，请重试。" : PackDetailHint.ToolTip = ex.GetBaseException().Message : PackDetailHint.Visibility = Visibility.Visible : PackDetailRetry.Visibility = Visibility.Visible
+                                                         End Sub)
             End If
         Finally
             If _packDetailRequest Is request Then _packDetailRequest = Nothing
@@ -321,7 +341,7 @@ Partial Public Class MainWindow
     End Sub
 
     Private Async Sub InstallOnlinePack(release As ModpackRelease, Optional displayedTitle As String = Nothing)
-        If _busy OrElse _choosingOnline OrElse _readingPack OrElse _closing OrElse _packProject Is Nothing OrElse _packMode <> PackBrowserMode.Detail OrElse _downloadView <> DownloadView.Modpacks OrElse Not DownloadPage.IsVisible OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible Then Return
+        If _busy OrElse _choosingOnline OrElse _readingPack OrElse _closing OrElse _packProject Is Nothing OrElse _packMode <> PackBrowserMode.Detail OrElse _downloadView <> DownloadView.Modpacks OrElse Not DownloadPage.IsVisible OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible OrElse Not PackDetailResultsHost.IsHitTestVisible Then Return
         Dim project = _packProject, snapshot = release.Copy()
         If snapshot.Platform <> project.Platform OrElse snapshot.ProjectId <> project.Id Then Return
         Dim blocked = ModpackCompatibility.GetInstallBlockReason(snapshot)
@@ -470,7 +490,7 @@ Partial Public Class MainWindow
     Private Async Function RunOnlinePackInstallationAsync(release As ModpackRelease, root As String, name As String, limit As Long, Optional displayedTitle As String = Nothing) As Task
         InstallPreflight.ValidateDestination(root, name, False)
         CancelPackRead()
-        _packSearchRequest?.Cancel() : _packDetailRequest?.Cancel() : _packResultMotion.Finish()
+        _packSearchRequest?.Cancel() : _packDetailRequest?.Cancel()
         Dim policySnapshot = Policy(), reuse = If(ReuseBox.IsChecked = True, _folders.Select(Function(folder) folder.Location).ToList(), New List(Of String))
         Dim connections = ConnectionCount(), javaPath = JavaPathBox.Text.Trim()
         Dim request As New CancellationTokenSource : _cancellation = request : _busy = True

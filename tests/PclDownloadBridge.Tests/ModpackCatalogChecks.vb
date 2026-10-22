@@ -41,6 +41,15 @@ Friend Module ModpackCatalogChecks
         Dim facets = JArray.Parse(facetsText)
         Check(TypeOf facets(0) Is JArray AndAlso CStr(facets(0)(0)) = "project_type:modpack" AndAlso address.Contains("name%20%26%20"), "catalogue escapes queries and preserves nested MR modpack facets", passed)
         Check(ModpackCatalogClient.SearchUrl(ModpackPlatform.CurseForge, query, 40).Contains("classId=4471") AndAlso ModpackCatalogClient.SearchUrl(ModpackPlatform.CurseForge, query, 40).Contains("index=40"), "CF pack search uses the pack class and its own raw offset", passed)
+        For Each pair In {Tuple.Create(ModpackPlatform.CurseForge, "/optimization"), Tuple.Create(ModpackPlatform.Modrinth, "4484/")}
+            Dim incompatible = False
+            Try
+                Dim unused = New ModpackSearchSession(New ModpackQuery With {.Platforms = pair.Item1, .Category = pair.Item2})
+            Catch ex As ArgumentException
+                incompatible = ex.Message.Contains(pair.Item1.ToString())
+            End Try
+            Check(incompatible, "a source without the selected category is rejected explicitly: " & pair.Item1.ToString(), passed)
+        Next
         Dim mr As New ModpackProject With {.Platform = ModpackPlatform.Modrinth, .Id = "pack1"}
         Dim json = MrRelease(), release = ModpackCatalogClient.ParseRelease(mr, json)
         Check(release.FileName = "pack.mrpack" AndAlso release.Sha512 IsNot Nothing, "MR chooses the primary installable archive instead of files(0)", passed)

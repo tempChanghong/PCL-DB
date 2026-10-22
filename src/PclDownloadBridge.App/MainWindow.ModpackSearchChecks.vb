@@ -30,7 +30,7 @@ Partial Public Class MainWindow
             End Using
         Finally
             owner._packSearchRequest?.Cancel() : owner._packDetailRequest?.Cancel() : owner._packArtworkRequest?.Cancel()
-            owner._packResultMotion.Finish() : owner._categoryMotion.Finish() : owner._surfaceMotion.Finish()
+            owner.FinishPackContentMotion() : owner._categoryMotion.Finish() : owner._surfaceMotion.Finish()
             owner.CompleteOnlinePrompt(Nothing)
             host.Child = Nothing : owner.Content = content
             SynchronizationContext.SetSynchronizationContext(previous)
@@ -259,6 +259,8 @@ Partial Public Class MainWindow
         Await LoadPackSearchPageAsync(0) : Await old
         check(DirectCast(PackProjectRows.Children(0), PclResourceItem).ToolTip.ToString().Contains("new"), "a late older query cannot overwrite the current search results")
 
+        Await VerifyPackAsyncEntryAsync(directory, host, layout, check)
+        Await VerifyPackPagingAsync(directory, host, layout, check)
         Await VerifyPackRecoveryAsync(directory, host, layout, check)
         Await VerifyPackCompatibilityUiAsync(directory, host, layout, check)
         Await VerifyPackReleaseLabelsAsync(directory, host, layout, check)
@@ -315,12 +317,15 @@ Partial Public Class MainWindow
         Inherits HttpMessageHandler
         Public Property Delay As Integer
         Public Property BeforeSendAsync As Func(Of Uri, CancellationToken, Task)
+        Public Property SearchPage As Func(Of Uri, JObject)
         Protected Overrides Async Function SendAsync(request As HttpRequestMessage, token As CancellationToken) As Task(Of HttpResponseMessage)
             If Delay > 0 Then Await Task.Delay(Delay)
             Dim address = request.RequestUri, result As JToken
             If BeforeSendAsync IsNot Nothing Then Await BeforeSendAsync(address, token)
             If address.Host <> "api.modrinth.com" Then Return New HttpResponseMessage(HttpStatusCode.ServiceUnavailable) With {.Content = New StringContent("{}")}
-            If address.AbsolutePath.EndsWith("/search", StringComparison.Ordinal) Then
+            If address.AbsolutePath.EndsWith("/search", StringComparison.Ordinal) AndAlso SearchPage IsNot Nothing Then
+                result = SearchPage(address)
+            ElseIf address.AbsolutePath.EndsWith("/search", StringComparison.Ordinal) Then
                 Dim hits As New JArray(), offset = If(address.Query.Contains("offset=40"), 40, 0)
                 For i = offset To offset + 39
                     Dim item = ProjectJson("pack" & i)
@@ -340,7 +345,7 @@ Partial Public Class MainWindow
             End If
             Return New HttpResponseMessage(HttpStatusCode.OK) With {.Content = New StringContent(result.ToString(), Encoding.UTF8, "application/json")}
         End Function
-        Private Shared Function ProjectJson(id As String) As JObject
+        Friend Shared Function ProjectJson(id As String) As JObject
             Return New JObject From {{"id", id}, {"project_id", id}, {"project_type", "modpack"}, {"title", "Fixture 整合包"}, {"description", "用于离线检查搜索、项目详情、版本选择、命名和下载任务的示例数据。"}, {"slug", id}, {"icon_url", ""}, {"downloads", 123456}, {"date_modified", "2026-10-01T00:00:00Z"}, {"updated", "2026-10-01T00:00:00Z"}, {"versions", New JArray("1.20.1")}, {"game_versions", New JArray("1.20.1")}}
         End Function
     End Class

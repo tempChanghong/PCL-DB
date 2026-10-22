@@ -49,7 +49,7 @@ Partial Public Class MainWindow
     End Sub
 
     Private Sub SelectPackVersionFilter(button As PclButton)
-        If _busy OrElse _choosingOnline OrElse _closing OrElse _packMode <> PackBrowserMode.Detail OrElse _downloadView <> DownloadView.Modpacks OrElse Not PackDetailSurface.IsVisible OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible OrElse Not PackVersionFilters.Children.Contains(button) Then Return
+        If _busy OrElse _choosingOnline OrElse _closing OrElse _packMode <> PackBrowserMode.Detail OrElse _downloadView <> DownloadView.Modpacks OrElse Not PackDetailSurface.IsVisible OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible OrElse Not PackDetailResultsHost.IsHitTestVisible OrElse Not PackVersionFilters.Children.Contains(button) Then Return
         Dim selected = CStr(button.Tag)
         If _packGameFilter = selected Then Return
         ModpackPage.StopScrolling()

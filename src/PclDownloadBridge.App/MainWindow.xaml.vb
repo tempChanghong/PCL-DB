@@ -668,7 +668,7 @@ Partial Public Class MainWindow
         If (previous = DownloadView.Modpacks) Xor (view = DownloadView.Modpacks) Then
             If _pageSwitch.Transition IsNot Nothing Then _pageSwitch.Finish()
             Dim outgoing = DownloadContent(previous), incoming = DownloadContent(view)
-            _categoryMotion.Change(outgoing, incoming, Sub() ApplyDownloadView(view, previous), compositeExit:=_packResultMotion IsNot Nothing AndAlso _packResultMotion.Transition IsNot Nothing)
+            _categoryMotion.Change(outgoing, incoming, Sub() ApplyDownloadView(view, previous), compositeExit:=HasPackContentMotion())
         Else
             _categoryMotion.Finish()
             ApplyDownloadView(view, previous)
@@ -683,6 +683,8 @@ Partial Public Class MainWindow
         End Select
     End Function
     Private Sub ApplyDownloadView(view As DownloadView, previous As DownloadView)
+        ' SetDownloadView captures an active pack animation before reaching here.
+        If previous = DownloadView.Modpacks AndAlso view <> DownloadView.Modpacks Then FinishPackContentMotion()
         If view = DownloadView.Progress AndAlso previous <> DownloadView.Progress Then _progressReturnView = previous
         If view = DownloadView.Versions OrElse view = DownloadView.Install Then _vanillaView = view
         _downloadView = view
@@ -955,7 +957,7 @@ Partial Public Class MainWindow
         _packArtworkRequest?.Cancel()
         _packArtworkRequest?.Dispose()
         _packArtworkRequest = Nothing
-        _packResultMotion.Finish()
+        FinishPackContentMotion()
         _packReadCancellation?.Cancel()
         _pendingSurfaceFocus = Nothing
         _focusAfterPageSwitch = False
