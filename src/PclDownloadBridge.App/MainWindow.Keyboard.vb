@@ -24,6 +24,12 @@ Partial Public Class MainWindow
 
     Private Sub ShellKeyDown(sender As Object, e As KeyEventArgs)
         If e.Key <> Key.Escape OrElse e.IsRepeat OrElse e.Handled Then Return
+        If _onlinePrompt IsNot Nothing Then
+            e.Handled = True
+            If _onlineOptionalPrompt Then CancelInstall(Nothing, Nothing)
+            CompleteOnlinePrompt(Nothing)
+            Return
+        End If
         If AboutPage.Visibility = Visibility.Visible Then
             e.Handled = True
             BackFromAbout(Me, e)
@@ -34,6 +40,10 @@ Partial Public Class MainWindow
         ElseIf _downloadView = DownloadView.Progress Then
             e.Handled = True
             ResumeInstallation(Me, e)
+            FocusDownloadPage()
+        ElseIf _downloadView = DownloadView.Modpacks AndAlso _packMode <> PackBrowserMode.Search Then
+            e.Handled = True
+            BackToPackSearch(Me, e)
             FocusDownloadPage()
         ElseIf _downloadView = DownloadView.Install Then
             e.Handled = True
@@ -53,7 +63,11 @@ Partial Public Class MainWindow
         End If
         DownloadPage.UpdateLayout()
         If _downloadView = DownloadView.Modpacks Then
-            If _activeModrinth AndAlso _modrinthSelection IsNot Nothing AndAlso ModrinthInstanceName.IsEnabled Then
+            If _packMode = PackBrowserMode.Search Then
+                PackSearchText.Focus()
+            ElseIf _packMode = PackBrowserMode.Detail Then
+                PackProjectWebsite.Focus()
+            ElseIf _activeModrinth AndAlso _modrinthSelection IsNot Nothing AndAlso ModrinthInstanceName.IsEnabled Then
                 ModrinthInstanceName.Focus()
             ElseIf _packSelection IsNot Nothing AndAlso PackInstanceName.IsEnabled Then
                 PackInstanceName.Focus()

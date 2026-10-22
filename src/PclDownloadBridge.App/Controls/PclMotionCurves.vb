@@ -33,6 +33,20 @@ Namespace Controls
         End Function
     End Class
 
+    ' MyMsgInput.Loaded: a 40px offset returning with Weak Back over 300ms.
+    Friend NotInheritable Class PclDialogYAnimation
+        Inherits DoubleAnimationBase
+        Public Sub New()
+            Duration = New Duration(TimeSpan.FromMilliseconds(300))
+        End Sub
+        Protected Overrides Function GetCurrentValueCore(origin As Double, destination As Double, clock As AnimationClock) As Double
+            Return 40 * (1 - PclMotionCurves.Back(If(clock.CurrentTime, TimeSpan.Zero).TotalMilliseconds / 300, 2))
+        End Function
+        Protected Overrides Function CreateInstanceCore() As Freezable
+            Return New PclDialogYAnimation()
+        End Function
+    End Class
+
     ' Remaining increments of overlapping wheel inputs, rather than restarting a target tween.
     Friend NotInheritable Class PclWheelAnimation
         Inherits DoubleAnimationBase

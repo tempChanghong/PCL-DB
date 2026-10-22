@@ -54,13 +54,16 @@ Partial Public Class MainWindow
             Sub()
                 ' Capture the composited category frame before releasing its
                 ' clocks; settling first would flash the fully entered page.
-                If previous IsNot target Then _categoryMotion.Finish()
+                If previous IsNot target Then
+                    _categoryMotion.Finish()
+                    _packResultMotion?.Finish()
+                End If
                 DownloadPage.Visibility = If(target Is DownloadPage, Visibility.Visible, Visibility.Collapsed)
                 SettingsPage.Visibility = If(target Is SettingsPage, Visibility.Visible, Visibility.Collapsed)
                 AboutPage.Visibility = If(target Is AboutPage, Visibility.Visible, Visibility.Collapsed)
                 DownloadTab.Checked = target Is DownloadPage
                 SettingsTab.Checked = target IsNot DownloadPage
                 prepare?.Invoke()
-            End Sub, compositeExit:=previous IsNot target AndAlso (_pageSwitch.Transition IsNot Nothing OrElse _categoryMotion.Transition IsNot Nothing))
+            End Sub, compositeExit:=previous IsNot target AndAlso (_pageSwitch.Transition IsNot Nothing OrElse _categoryMotion.Transition IsNot Nothing OrElse (_packResultMotion IsNot Nothing AndAlso _packResultMotion.Transition IsNot Nothing)))
     End Sub
 End Class

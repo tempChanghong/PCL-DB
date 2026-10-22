@@ -1,5 +1,14 @@
 # PCL2 代码依据
 
+## Beta 1.0 后续开发：整合包搜索与在线安装
+
+- 主参照仍固定为 `5ef81e490ae46b1100d61e33d0183094c7a80ca8`。读取 `Resource/PageDownloadPack.xaml`、`PageResource.xaml/.vb`、`ResourceSearcher.vb`、`ResourceProject.vb`、`ResourceVersion.vb` 和 `PageDownloadCompDetail.xaml/.vb`，按搜索、项目选择、版本选择、名称确认、下载原始包、统一安装的顺序接入。当前 PCL 只在安装动作上增加限制判断，搜索和另存路径仍保留；未把当前受限点击行为作为在线安装依据。
+- 搜索采用独立平台偏移、40 项显示分页、按平台映射的分类、部分失败提示和查询缓存；项目/文件身份始终带平台。与上游的相似项目合并和下载量加权有所区分：同名跨平台结果不合并，下载失败不切换到另一平台的同名整合包。Modrinth 在有效 MRPACK 候选中选择 primary，不照搬上游的 `files(0)`；外层归档严格校验声明大小及受支持的摘要，包内文件继续使用既有规则。
+- 参考 `ModDownload.DlModRequest` / `DlSourceModGet` 的社区请求通道划分，CurseForge 目录查询支持自己的 API 密钥、网页公开接口和 MCIM 回退；独立于原版 BMCL 设置，不复制 PCL 凭据、设备身份或下载追踪参数。版本列表使用有限分页并检查重复原始 ID。缓存放在 `.vanilla-downloader/pack-archives/`，继续复用原有格式解析、组件安装、隔离、校验和原子实例发布；未将上游提前创建最终版本目录的做法移植过来。
+- `MyResourceItem.xaml` 的 64 DIP 行高、50 DIP 图标及 14/12 DIP 字号，`ResourceVersion.ToListItem` 的 42 DIP 版本行，`MyHint` 的蓝/黄/红颜色和 `MyPageRight` 的切页机制作为界面依据。新增 ReleaseTypes 的 Release/Beta/Alpha 和 NoIcon 四张原始资源。`MyLoading.xaml/.vb` 与 `ModAnimation` 的镐子动画按 250ms 等待、350ms 弱回摆、900ms Fluent+弱 Elastic 并行动画及碎屑时序实现；控件隐藏/卸载时释放时钟。搜索结果、右页分类与主导航切换按当前合成画面交接，旧动画和旧请求不能覆盖新页面。
+- `ModModpack.InstallPackModrinth` 的客户端 optional 逐项询问用于在线安装；CurseForge 按其 ModList 默认包含可选项。本地导入复选框仍由用户选择。名称确认在归档下载前完成，取消不创建安装任务；归档下载、清单解析及现有安装内核构成同一可取消任务，任务页另列归档阶段。
+- 命名及可选文件弹窗另对照 `Controls/MyMsg/MyMsgInput.xaml/.vb`：23 DIP 标题、2 DIP 分隔线、22 DIP 内边距、左侧中心旋转原点；入场从 -4°/Y=40 开始，60ms 后执行 120ms 淡入与 300ms Weak Back/Fluent 位移和旋转，退场按 80/150ms 动画及 200ms 遮罩淡出处理。新弹窗取得所有权后，旧进入/关闭时钟不能再隐藏遮罩或解锁背景。
+
 ## Beta 1.0 后续修复：整合包重读状态与页面键盘输入
 
 - 继续依据固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModModpack.InstallPackCurseForge` / `InstallPackModrinth`：可选文件身份与用户选择分离，安装仍查询指定文件并校验。CurseForge 卡片现在按原包 SHA-256 保留名称、选择及已解析的显示名称，新的查询失败仍允许取消已选项；不同内容不继承。它是独立导入卡片的状态管理修复，不把保留的显示数据交给安装解析器或缓存为可信下载元数据。

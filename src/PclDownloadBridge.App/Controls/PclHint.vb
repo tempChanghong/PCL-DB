@@ -3,10 +3,28 @@ Imports System.Windows.Controls
 Imports System.Windows.Media
 
 Namespace Controls
-    ' Non-closable red MyHint at PCL 5ef81e4; geometry and colors are kept intact.
+    Public Enum PclHintTheme
+        Red
+        Blue
+        Yellow
+    End Enum
+    ' Non-closable MyHint at PCL 5ef81e4; geometry and original theme colors.
     Public Class PclHint
         Inherits Border
         Private ReadOnly _text As TextBlock
+        Private _theme As PclHintTheme
+        Public Property Theme As PclHintTheme
+            Get
+                Return _theme
+            End Get
+            Set(value As PclHintTheme)
+                _theme = value
+                Dim colors = If(value = PclHintTheme.Yellow, {"#ffebd7", "#f57a00", "#d86c00"}, If(value = PclHintTheme.Blue, {"#d9ecff", "#1172d4", "#0f64b8"}, {"#ffdddf", "#d82929", "#bf0b0b"}))
+                Background = New SolidColorBrush(CType(ColorConverter.ConvertFromString(colors(0)), Color))
+                BorderBrush = New SolidColorBrush(CType(ColorConverter.ConvertFromString(colors(1)), Color))
+                _text.Foreground = New SolidColorBrush(CType(ColorConverter.ConvertFromString(colors(2)), Color))
+            End Set
+        End Property
         Public Property Text As String
             Get
                 Return _text.Text

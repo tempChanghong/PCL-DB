@@ -67,6 +67,7 @@ Partial Public Class MainWindow
         RefreshModrinthSummary()
         ModrinthOptionsCard.Visibility = Visibility.Visible : RefreshPackAvailability()
         If navigate Then
+            ChangePackMode(PackBrowserMode.Local)
             SetDownloadView(DownloadView.Modpacks) : SwitchMainPage(False)
         End If
         ModrinthReadStatus.Text = "清单已读取。确认实例名称和可选文件后即可安装。"

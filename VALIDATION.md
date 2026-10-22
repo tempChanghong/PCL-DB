@@ -2,6 +2,15 @@
 
 日期：2026-10-22（北京时间）。最新发布为 PCL-DB Beta 1.0（`1.0.0-beta.1`），当前主分支另含尚未发布的后续修复；下方保留先前版本的验证记录。
 
+## 当前源码：整合包搜索、版本选择与在线安装
+
+- 本轮依据限制前固定 PCL 源码接通搜索、项目详情、版本选择、名称确认、获取归档和现有导入安装内核。原版/整合包两个侧栏入口、本地 ZIP/MRPACK 导入、已有实例与隔离设置保持既有行为。搜索结果和详情使用原生 WPF 控件，镐子加载、结果切换和页间交接按源代码时序实现；离屏检查不能替代真实桌面帧率或逐像素还原验收。
+- 实际在线查找 Zombie Invade 100 Days，选中 Modrinth 项目 `l9m9tuPN`、版本 ID `6OMYdNAO`、显示版本 `2.3`，下载归档通过声明摘要后解析为 Minecraft `1.20.1`、Forge `47.4.10`、129 个索引文件。首次在 `artifacts/modpack-search-live/.minecraft/versions/Zombie-Search-2.3` 完成 **5,017 个文件**的隔离安装，记录见 `artifacts/modpack-search-live/result.json` 和 `artifacts/modpack-search-live.log`；没有启动游戏或在 PCL UI 中进行人工启动验收。
+- 在线归档 SHA-256 为 `4502c4545417207846c25284a706ec9611664483d24b222be713b219e0a563b6`。它与此前本地同名包的容器摘要不同（本地 `d470acdf9bbccc87e2e064a3d8867ad5570e3631dd1ca28f5d9147406be1de6d`）；两者都声明 2.3、相同游戏/加载器及 129 项，不因此当作同一文件或用同名缓存替代。原始本地文件未改写。
+- CurseForge 无密钥网页搜索在当前网络返回 HTTP 403，MCIM 返回 HTTP 503；已对平台局部失败、带平台身份的结果、客户端 ZIP 选择和归档到现有隔离安装器的衔接做离线/回环验证。未将这些验证记为 CurseForge 有密钥的在线成功安装。
+- 默认无 Package 参数的构建完成核心套件 **2023 项**回归；最终归档文件名及 CDN 回退小修后，搜索/归档针对性回归 **33 项**通过，包含 CurseForge 目录分页与 ZIP 到隔离实例的回环安装。这些用例有重叠，不累计。最终 WPF 既有界面 **754 项**、既有动画 **358 项**、新增搜索/任务/弹窗及动画 **43 项**通过，Release 构建零警告、零错误；固定 PCL 源码/资源比对 **17 项**通过。
+- 同一项目/版本在 `artifacts/modpack-search-verified/` 的第二个独立目录完成复核，再次提交 **5,017 个文件**，保持原包、固定依赖、覆盖文件及隔离结果。该次安装阶段复用已经验证的共享内容，`networkBytes=0` 不包括此前单独获取归档及版本元数据的网络请求，不能称为整条流程零网络。证据为 `modpack-search-verified/result.json`、`modpack-search-verified.log`；界面/动画报告分别为 `ui-search-final.json`、`motion-search-final.json`、`pack-search-search-final.json`，另有搜索、版本、命名、任务、加载及最小窗口 PNG。
+
 ## Beta 1.0 后续修复：导入状态、侧栏与动画输入复查（2026-10-22）
 
 - 起点为干净的 `025757c9dbf707eee47032254ddbcddf4bda8d2c`；修改前源码快照、七个参考仓库状态、dist 和两份原包摘要保存在 `artifacts/import-navigation-review/before.zip` / before.json。继续读取固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的两种整合包安装、MyCheckBox、PageDownloadLeft 和 MyPageRight，摘录为 pcl-reference.txt。

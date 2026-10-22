@@ -83,6 +83,7 @@ Partial Public Class MainWindow
         AddHandler ModrinthInstanceName.TextChanged, Sub() RefreshModrinthAvailability()
         AddHandler ModrinthInstanceName.KeyDown, AddressOf ModrinthNameKeyDown
         InitializeMotion()
+        InitializePackSearch()
         InitializeAppearance()
         InitializeDeveloperSettings()
         InitializeAbout()
@@ -667,7 +668,7 @@ Partial Public Class MainWindow
         If (previous = DownloadView.Modpacks) Xor (view = DownloadView.Modpacks) Then
             If _pageSwitch.Transition IsNot Nothing Then _pageSwitch.Finish()
             Dim outgoing = DownloadContent(previous), incoming = DownloadContent(view)
-            _categoryMotion.Change(outgoing, incoming, Sub() ApplyDownloadView(view, previous))
+            _categoryMotion.Change(outgoing, incoming, Sub() ApplyDownloadView(view, previous), compositeExit:=_packResultMotion IsNot Nothing AndAlso _packResultMotion.Transition IsNot Nothing)
         Else
             _categoryMotion.Finish()
             ApplyDownloadView(view, previous)
@@ -719,6 +720,7 @@ Partial Public Class MainWindow
     Private Sub ShowModpackDownloads(sender As Object, e As RoutedEventArgs)
         If _busy Then Return
         SetDownloadView(DownloadView.Modpacks)
+        EnsurePackSearch()
     End Sub
 
     Private Async Sub ShowDownload(sender As Object, e As RoutedEventArgs)
@@ -873,6 +875,8 @@ Partial Public Class MainWindow
     End Sub
 
     Private Sub SetBusy(value As Boolean)
+        PackSearchSurface.IsEnabled = Not value
+        PackDetailSurface.IsEnabled = Not value
         RefreshInstallAvailability(value)
         InstanceName.IsEnabled = Not value
         RepairBox.IsEnabled = Not value
@@ -945,6 +949,13 @@ Partial Public Class MainWindow
             End If
         End If
         _closing = True
+        CompleteOnlinePrompt(Nothing)
+        _packSearchRequest?.Cancel()
+        _packDetailRequest?.Cancel()
+        _packArtworkRequest?.Cancel()
+        _packArtworkRequest?.Dispose()
+        _packArtworkRequest = Nothing
+        _packResultMotion.Finish()
         _packReadCancellation?.Cancel()
         _pendingSurfaceFocus = Nothing
         _focusAfterPageSwitch = False

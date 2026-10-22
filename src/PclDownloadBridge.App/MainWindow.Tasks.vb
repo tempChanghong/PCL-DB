@@ -29,7 +29,13 @@ Partial Public Class MainWindow
     Private Const CompleteIcon As String = "F1 M23.7501,33.25 L34.8334,44.3333 L52.2499,22.1668 L56.9999,26.9168 L34.8334,53.8333 L19.0001,38 L23.7501,33.25 Z"
     Private Const WaitingIcon As String = "F1 M5,0 a5,5 360 1 0 0,0.0001 m15,0 a5,5 360 1 0 0,0.0001 m15,0 a5,5 360 1 0 0,0.0001 Z"
     Private Const FailedIcon As String = "F1 M2.5,0 L0,2.5 7.5,10 0,17.5 2.5,20 10,12.5 17.5,20 20,17.5 12.5,10 20,2.5 17.5,0 10,7.5 2.5,0Z"
-    Private Sub ResetTaskView(name As String, hasComponents As Boolean, Optional root As String = Nothing)
+    Private _taskHasArchive As Boolean
+    Private _archiveNetwork As Long
+    Private _archiveReused As Integer
+    Private _archiveSplits As Integer
+    Private _archiveRetries As Integer
+    Private Sub ResetTaskView(name As String, hasComponents As Boolean, Optional root As String = Nothing, Optional hasArchive As Boolean = False)
+        _taskHasArchive = hasArchive : _archiveNetwork = 0 : _archiveReused = 0 : _archiveSplits = 0 : _archiveRetries = 0
         _taskGeneration += 1
         _taskFinished = False : _taskCancelling = False
         _hasTask = True
@@ -39,7 +45,8 @@ Partial Public Class MainWindow
         _lastSplits = 0 : _lastRetries = 0
         _taskName = name : _taskHasComponents = hasComponents : _taskClock.Restart()
         ResetTaskResult(If(root, _selectedFolder?.Location))
-        For Each pair In New Dictionary(Of String, String) From {{"metadata", "读取版本信息与资源索引"}, {"files", "下载原版游戏与资源文件"}, {"components", "下载所选组件与支持库"}, {"processors", "运行组件安装处理器"}, {"commit", "校验结果并写入实例"}}
+        For Each pair In New Dictionary(Of String, String) From {{"archive", "下载并校验整合包归档"}, {"metadata", "读取版本信息与资源索引"}, {"files", "下载原版游戏与资源文件"}, {"components", "下载所选组件与支持库"}, {"processors", "运行组件安装处理器"}, {"commit", "校验结果并写入实例"}}
+            If pair.Key = "archive" AndAlso Not hasArchive Then Continue For
             If Not hasComponents AndAlso (pair.Key = "components" OrElse pair.Key = "processors") Then Continue For
             Dim row As New Grid With {.Height = 26}
             row.ColumnDefinitions.Add(New ColumnDefinition With {.Width = New GridLength(50)})
@@ -102,6 +109,7 @@ Partial Public Class MainWindow
         UpdateDeveloperDiagnostics(value)
         Dim phase = value.Phase
         If Not _taskRows.ContainsKey(phase) Then Return
+        If _taskHasArchive AndAlso phase <> "archive" AndAlso Not _taskRows("archive").Complete Then MarkComplete(_taskRows("archive"))
         If value.PhaseFractions Is Nothing Then
             If _lastPhase IsNot Nothing AndAlso _lastPhase <> phase Then MarkComplete(_taskRows(_lastPhase))
         Else
@@ -127,27 +135,34 @@ Partial Public Class MainWindow
         current.Label.ToolTip = current.Label.Text
         Dim start As Double, weight As Double
         Select Case phase
+            Case "archive" : start = 0 : weight = 0.1
             Case "metadata" : start = 0 : weight = 0.03
             Case "files" : start = 0.03 : weight = If(_taskHasComponents, 0.62, 0.92)
             Case "components" : start = 0.65 : weight = 0.16
             Case "processors" : start = 0.81 : weight = 0.16
             Case Else : start = 0.97 : weight = 0.03
         End Select
+        If _taskHasArchive AndAlso phase <> "archive" Then start = 0.1 + 0.9 * start : weight *= 0.9
         _taskOverall = Math.Max(_taskOverall, Math.Min(0.99, start + weight * Math.Max(0, fraction)))
         If value.PhaseFractions IsNot Nothing Then
             Dim states = value.PhaseFractions
             Dim overall = states("metadata") * 0.03 + states("files") * If(_taskHasComponents, 0.62, 0.92)
             If _taskHasComponents Then overall += states("components") * 0.16 + states("processors") * 0.16
             overall += states("commit") * 0.03
+            If _taskHasArchive Then overall = 0.1 + 0.9 * overall
             ' A later phase can finish while resource files still run.
             _taskOverall = Math.Min(0.99, Math.Max(_parallelOverall, overall))
             _parallelOverall = _taskOverall
             If states(phase) >= 1 Then MarkComplete(current)
         End If
-        _lastNetworkBytes = Math.Max(_lastNetworkBytes, value.NetworkBytes)
-        _lastReused = Math.Max(_lastReused, value.Reused)
-        _lastSplits = Math.Max(_lastSplits, value.DynamicSplits)
-        _lastRetries = Math.Max(_lastRetries, value.Retries)
+        If phase = "archive" Then
+            _archiveNetwork = Math.Max(_archiveNetwork, value.NetworkBytes) : _archiveReused = Math.Max(_archiveReused, value.Reused)
+            _archiveSplits = Math.Max(_archiveSplits, value.DynamicSplits) : _archiveRetries = Math.Max(_archiveRetries, value.Retries)
+        End If
+        _lastNetworkBytes = Math.Max(_lastNetworkBytes, value.NetworkBytes + If(phase = "archive", 0L, _archiveNetwork))
+        _lastReused = Math.Max(_lastReused, value.Reused + If(phase = "archive", 0, _archiveReused))
+        _lastSplits = Math.Max(_lastSplits, value.DynamicSplits + If(phase = "archive", 0, _archiveSplits))
+        _lastRetries = Math.Max(_lastRetries, value.Retries + If(phase = "archive", 0, _archiveRetries))
         TaskTitle.Text = _taskName & " 安装"
         TaskProgress.IsIndeterminate = False : TaskProgress.Value = _taskOverall
         TaskPercent.Text = (_taskOverall * 100).ToString("0.00") & " %"

@@ -67,11 +67,12 @@ Partial Public Class MainWindow
         Return ReadLocalPackAsync(path)
     End Function
     Private Async Function ReadLocalPackAsync(path As String, Optional modrinthIntent As Boolean = False) As Task
-        If _busy OrElse _readingPack Then Return
+        If _busy OrElse _readingPack OrElse _choosingOnline Then Return
         CancelPackRead()
         Dim request As New CancellationTokenSource()
         _packReadCancellation = request
         _readingPack = True : RefreshPackAvailability()
+        ChangePackMode(PackBrowserMode.Local)
         SetDownloadView(DownloadView.Modpacks)
         SwitchMainPage(False)
         Dim status = If(modrinthIntent OrElse String.Equals(IO.Path.GetExtension(path), ".mrpack", StringComparison.OrdinalIgnoreCase), ModrinthReadStatus, PackReadStatus)
@@ -80,8 +81,7 @@ Partial Public Class MainWindow
             Await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.Background)
             request.Token.ThrowIfCancellationRequested()
             Dim parsed = Await Task.Run(Function() As Object
-                                            If ModpackFormats.Detect(path) = ModpackFormat.Modrinth Then Return ModrinthPackage.Read(path, request.Token)
-                                            Return CurseForgePackage.Read(path, request.Token)
+                                            Return ModpackArchiveInstaller.ReadPackage(path, request.Token)
                                         End Function)
             If _closing OrElse request.IsCancellationRequested Then Return
             If _busy Then
@@ -176,6 +176,7 @@ Partial Public Class MainWindow
         PackOptionsCard.Visibility = Visibility.Visible
         RefreshPackAvailability()
         If navigate Then
+            ChangePackMode(PackBrowserMode.Local)
             SetDownloadView(DownloadView.Modpacks)
             SwitchMainPage(False)
             If Not sameArchive Then CurseForgeCard.BringIntoView()
@@ -193,14 +194,14 @@ Partial Public Class MainWindow
     Private Sub PackDragOver(sender As Object, e As DragEventArgs)
         If Not e.Data.GetDataPresent(DataFormats.FileDrop) Then Return
         Dim files = TryCast(e.Data.GetData(DataFormats.FileDrop), String())
-        e.Effects = If(Not _busy AndAlso Not _readingPack AndAlso files IsNot Nothing AndAlso files.Length = 1 AndAlso IsPackFile(files(0)), DragDropEffects.Copy, DragDropEffects.None)
+        e.Effects = If(Not _busy AndAlso Not _readingPack AndAlso Not _choosingOnline AndAlso files IsNot Nothing AndAlso files.Length = 1 AndAlso IsPackFile(files(0)), DragDropEffects.Copy, DragDropEffects.None)
         e.Handled = True
     End Sub
     Private Async Sub PackDrop(sender As Object, e As DragEventArgs)
         If Not e.Data.GetDataPresent(DataFormats.FileDrop) Then Return
         e.Handled = True
         Dim files = TryCast(e.Data.GetData(DataFormats.FileDrop), String())
-        If _busy OrElse _readingPack OrElse files Is Nothing OrElse files.Length <> 1 OrElse Not IsPackFile(files(0)) Then Return
+        If _busy OrElse _readingPack OrElse _choosingOnline OrElse files Is Nothing OrElse files.Length <> 1 OrElse Not IsPackFile(files(0)) Then Return
         Await ReadLocalPackAsync(files(0))
     End Sub
 End Class

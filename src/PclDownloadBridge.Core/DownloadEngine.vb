@@ -17,6 +17,9 @@ Public Class DownloadEngine
     Private ReadOnly _client As HttpClient = SourcePolicy.CreateClient()
     Private ReadOnly _modrinthClient As HttpClient
     Private ReadOnly _modrinthTransfer As New AsyncLocal(Of Boolean)
+    Private ReadOnly _archivePlatform As New AsyncLocal(Of ModpackPlatform?)
+    Private ReadOnly _modrinthArchiveClient As HttpClient
+    Private ReadOnly _curseforgeArchiveClient As HttpClient
     Private ReadOnly _clock As Stopwatch = Stopwatch.StartNew()
     Private ReadOnly _progress As IProgress(Of TransferProgress)
     Private ReadOnly _reuseRoots As List(Of String)
@@ -80,6 +83,8 @@ Public Class DownloadEngine
     Public Sub New(policy As SourcePolicy, progress As IProgress(Of TransferProgress), reuseRoots As IEnumerable(Of String), Optional connections As Integer = 16, Optional cacheRoot As String = Nothing, Optional useComponentCache As Boolean = False, Optional budget As DownloadBudget = Nothing)
         _policy = policy
         _modrinthClient = ModrinthDownloadPolicy.CreateClient(policy.AllowLoopback)
+        _modrinthArchiveClient = ModpackArchivePolicy.CreateClient(ModpackPlatform.Modrinth, policy.AllowLoopback)
+        _curseforgeArchiveClient = ModpackArchivePolicy.CreateClient(ModpackPlatform.CurseForge, policy.AllowLoopback)
         _progress = progress
         _reuseRoots = reuseRoots.Concat(If(String.IsNullOrWhiteSpace(cacheRoot), Enumerable.Empty(Of String)(), {cacheRoot})).Distinct(StringComparer.OrdinalIgnoreCase).ToList()
         _cacheRoot = cacheRoot
@@ -135,6 +140,7 @@ Public Class DownloadEngine
             Try
                 linked.Token.ThrowIfCancellationRequested()
                 _modrinthTransfer.Value = item.Category = "modrinth"
+                _archivePlatform.Value = If(item.Category = "modrinth-archive", CType(ModpackPlatform.Modrinth, ModpackPlatform?), If(item.Category = "curseforge-archive", CType(ModpackPlatform.CurseForge, ModpackPlatform?), Nothing))
                 _currentFile = item.RelativePath
                 Await DownloadOneAsync(root, item, linked.Token).ConfigureAwait(False)
                 Interlocked.Add(_verifiedBytes, Math.Max(0L, If(item.Size >= 0, item.Size, item.EstimatedSize)))
@@ -426,7 +432,8 @@ Public Class DownloadEngine
                     If first.HasValue Then request.Headers.Range = New RangeHeaderValue(first, last)
                     Using timeout = CancellationTokenSource.CreateLinkedTokenSource(token)
                         timeout.CancelAfter(TimeSpan.FromMinutes(3))
-                        Using response = Await If(_modrinthTransfer.Value, _modrinthClient, _client).SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(False)
+                        Dim client = If(_archivePlatform.Value.HasValue, If(_archivePlatform.Value = ModpackPlatform.Modrinth, _modrinthArchiveClient, _curseforgeArchiveClient), If(_modrinthTransfer.Value, _modrinthClient, _client))
+                        Using response = Await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(False)
                             ' Body deadline measures inactivity, not total file length.
                             timeout.CancelAfter(TimeSpan.FromSeconds(45))
                             ' Pass the deadline to reads through cancellation closing the response.
@@ -515,6 +522,8 @@ Public Class DownloadEngine
     End Sub
 
     Public Sub Dispose() Implements IDisposable.Dispose
+        _modrinthArchiveClient.Dispose()
+        _curseforgeArchiveClient.Dispose()
         _modrinthClient.Dispose()
         _client.Dispose()
         If _ownsBudget Then _budget.Dispose()

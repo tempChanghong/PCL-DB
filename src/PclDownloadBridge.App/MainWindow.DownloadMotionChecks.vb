@@ -109,7 +109,7 @@ Partial Public Class MainWindow
                 seek(_categoryMotion.Transition, 491) : _categoryMotion.Finish() : layout()
                 ' The preview HWND is intentionally inactive; verify the handoff
                 ' and reachable target without claiming foreground keyboard focus.
-                check(Not _focusAfterPageSwitch AndAlso ImportPackButton.Focusable AndAlso ImportPackButton.IsVisible AndAlso ImportPackButton.IsEnabled AndAlso DownloadViewHost.IsHitTestVisible AndAlso ModpackPage.Opacity = 1 AndAlso DownloadGhost.Children.Count = 0, "settled category entry releases pending focus exposes the import target and removes owned visual state")
+                check(Not _focusAfterPageSwitch AndAlso PackSearchText.Focusable AndAlso PackSearchText.IsVisible AndAlso PackSearchText.IsEnabled AndAlso DownloadViewHost.IsHitTestVisible AndAlso ModpackPage.Opacity = 1 AndAlso DownloadGhost.Children.Count = 0, "settled category entry releases pending focus exposes the search target and removes owned visual state")
                 ShowVanillaDownloads(Me, New RoutedEventArgs()) : layout()
                 host.Width = 900 : layout()
                 check(_categoryMotion.Transition Is Nothing AndAlso DownloadGhost.Children.Count = 0 AndAlso DownloadViewHost.IsHitTestVisible AndAlso VersionPage.IsVisible, "resizing during category entry settles the correct page without leftover overlays")

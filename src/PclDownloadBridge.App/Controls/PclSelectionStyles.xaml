@@ -77,6 +77,7 @@
         <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="3" BorderThickness="1" BorderBrush="{TemplateBinding Foreground}"/>
         <ToggleButton x:Name="DropDownToggle" Style="{StaticResource PclComboToggle}" Margin="0,0,1.5,0" Foreground="{TemplateBinding Foreground}" IsTabStop="False" Focusable="False" ClickMode="Press" IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"/>
         <ContentPresenter x:Name="PART_Content" Margin="8.5,0,21.5,0" IsHitTestVisible="False" VerticalAlignment="Center" TextElement.Foreground="{DynamicResource ColorBrush1}" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"/>
+        <TextBox x:Name="PART_EditableTextBox" Style="{x:Null}" Margin="8.5,0,21.5,0" Padding="0" BorderThickness="0" Background="Transparent" Foreground="{DynamicResource ColorBrush1}" VerticalAlignment="Center" VerticalContentAlignment="Center" IsReadOnly="{TemplateBinding IsReadOnly}" Visibility="Collapsed" FocusVisualStyle="{x:Null}"/>
         <Popup x:Name="PART_Popup" SnapsToDevicePixels="True" VerticalOffset="-1.5" AllowsTransparency="True" IsOpen="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" Placement="Bottom" PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}" PopupAnimation="Fade">
           <Grid x:Name="PanPopup" Width="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
             <Border Background="{DynamicResource CardSurfaceBrush}" CornerRadius="3"/>
@@ -90,6 +91,10 @@
       </Grid>
       <ControlTemplate.Triggers>
         <Trigger Property="HasItems" Value="False"><Setter TargetName="dropDownBorder" Property="Height" Value="26"/></Trigger>
+        <Trigger Property="IsEditable" Value="True">
+          <Setter TargetName="PART_Content" Property="Visibility" Value="Collapsed"/>
+          <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible"/>
+        </Trigger>
         <Trigger Property="IsEnabled" Value="False"><Setter TargetName="PART_Content" Property="Opacity" Value="0.55"/></Trigger>
       </ControlTemplate.Triggers>
     </ControlTemplate></Setter.Value></Setter>
