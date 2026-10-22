@@ -35,17 +35,36 @@ Partial Public Class MainWindow
     End Function
 
     Private Function TaskLogPath() As String
-        If String.IsNullOrWhiteSpace(_taskRoot) Then Return Nothing
-        Return PclDownloadBridge.Core.SafeFiles.UnderRoot(_taskRoot, ".vanilla-downloader/installer.log")
+        If Not _taskFinished OrElse String.IsNullOrWhiteSpace(_taskRoot) Then Return Nothing
+        Try
+            Dim path = PclDownloadBridge.Core.SafeFiles.UnderRoot(_taskRoot, ".vanilla-downloader/installer.log")
+            Return If(File.Exists(path), path, Nothing)
+        Catch ex As Exception When TypeOf ex Is IOException OrElse TypeOf ex Is UnauthorizedAccessException OrElse TypeOf ex Is ArgumentException OrElse TypeOf ex Is NotSupportedException OrElse TypeOf ex Is Security.SecurityException
+            Return Nothing
+        End Try
+    End Function
+
+    Private Function TaskFolderPath() As String
+        If Not _taskFinished OrElse _taskOutcome <> TaskOutcome.Succeeded OrElse String.IsNullOrWhiteSpace(_taskRoot) OrElse String.IsNullOrWhiteSpace(_taskInstancePath) Then Return Nothing
+        Try
+            PclDownloadBridge.Core.SafeFiles.ValidateInstanceName(_taskName)
+            Dim expected = PclDownloadBridge.Core.SafeFiles.UnderRoot(_taskRoot, "versions/" & _taskName)
+            If Not Directory.Exists(expected) OrElse (File.GetAttributes(expected) And FileAttributes.ReparsePoint) <> 0 Then Return Nothing
+            Dim recorded = Path.GetFullPath(_taskInstancePath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            Return If(String.Equals(recorded, expected, StringComparison.OrdinalIgnoreCase), expected, Nothing)
+        Catch ex As Exception When TypeOf ex Is IOException OrElse TypeOf ex Is UnauthorizedAccessException OrElse TypeOf ex Is ArgumentException OrElse TypeOf ex Is NotSupportedException OrElse TypeOf ex Is Security.SecurityException
+            Return Nothing
+        End Try
     End Function
 
     Private Sub RefreshTaskResultActions()
         TaskResultActions.Visibility = If(_taskFinished, Visibility.Visible, Visibility.Collapsed)
         OpenTaskFolderButton.Visibility = If(_taskOutcome = TaskOutcome.Succeeded, Visibility.Visible, Visibility.Collapsed)
-        OpenTaskFolderButton.IsEnabled = _taskOutcome = TaskOutcome.Succeeded AndAlso Directory.Exists(_taskInstancePath)
-        OpenTaskFolderButton.ToolTip = If(OpenTaskFolderButton.IsEnabled, _taskInstancePath, "此任务的版本文件夹不存在或无法访问。")
-        OpenTaskLogButton.IsEnabled = File.Exists(TaskLogPath())
-        OpenTaskLogButton.ToolTip = If(OpenTaskLogButton.IsEnabled, TaskLogPath() & Environment.NewLine & "此文件是该游戏目录的累计安装器日志。", "此任务尚无可用的安装器日志。")
+        Dim folder = TaskFolderPath(), log = TaskLogPath()
+        OpenTaskFolderButton.IsEnabled = folder IsNot Nothing
+        OpenTaskFolderButton.ToolTip = If(folder, "此任务的版本文件夹不存在或无法访问。")
+        OpenTaskLogButton.IsEnabled = log IsNot Nothing
+        OpenTaskLogButton.ToolTip = If(log IsNot Nothing, log & Environment.NewLine & "此文件是该游戏目录的累计安装器日志。", "此任务尚无可用的安装器日志。")
         If _taskFinished Then
             TaskResultLocation.Text = If(_taskOutcome = TaskOutcome.Succeeded AndAlso Not String.IsNullOrEmpty(_taskInstancePath), "实例位置：" & _taskInstancePath,
                 If(String.IsNullOrEmpty(_taskRoot), "", "游戏目录：" & _taskRoot))
@@ -69,17 +88,19 @@ Partial Public Class MainWindow
 
     Private Sub OpenTaskFolder(sender As Object, e As RoutedEventArgs)
         If Not _taskFinished OrElse _taskOutcome <> TaskOutcome.Succeeded Then Return
-        If Not Directory.Exists(_taskInstancePath) Then
+        Dim folder = TaskFolderPath()
+        If folder Is Nothing Then
             TaskActionStatus.Text = "此任务的版本文件夹不存在或无法访问。"
             RefreshTaskResultActions()
             Return
         End If
-        DispatchTaskAction("folder", _taskInstancePath)
+        DispatchTaskAction("folder", folder)
     End Sub
 
     Private Sub OpenInstallerLog(sender As Object, e As RoutedEventArgs)
+        If Not _taskFinished Then Return
         Dim log = TaskLogPath()
-        If Not File.Exists(log) Then
+        If log Is Nothing Then
             TaskActionStatus.Text = "此任务尚无可用的安装器日志。"
             RefreshTaskResultActions()
             Return

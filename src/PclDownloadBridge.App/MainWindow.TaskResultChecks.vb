@@ -87,13 +87,14 @@ Partial Public Class MainWindow
             check(top >= 0 AndAlso top + CopyTaskInfoButton.ActualHeight <= DownloadProgress.ViewportHeight AndAlso TaskResultActions.ActualWidth >= 456, "all terminal task actions remain reachable and fit the minimum window")
             capture("align-task-result-minimum-after-0.29.png")
             _taskAction = Sub(kind, value) actions.Add(New KeyValuePair(Of String, String)(kind, value))
+            Dim pathChecks = VerifyTaskResultPaths(artifactDirectory)
             Dim count = actions.Count
             Directory.Delete(instancePath) ' This fixture created an empty directory; never recursive.
             click(OpenTaskFolderButton)
-            check(actions.Count = count AndAlso Not OpenTaskFolderButton.IsEnabled AndAlso TaskActionStatus.Text.Contains("不存在"), "a removed instance directory produces inline feedback instead of opening another location")
+            check(pathChecks.Key AndAlso actions.Count = count AndAlso Not OpenTaskFolderButton.IsEnabled AndAlso TaskActionStatus.Text.Contains("不存在"), "missing or redirected instance paths produce inline feedback and never open another location")
             File.Delete(logA)
             click(OpenTaskLogButton)
-            check(actions.Count = count AndAlso Not OpenTaskLogButton.IsEnabled AndAlso TaskActionStatus.Text.Contains("日志"), "a disappeared task log disables its action without falling back to the newly selected root")
+            check(pathChecks.Value AndAlso actions.Count = count AndAlso Not OpenTaskLogButton.IsEnabled AndAlso TaskActionStatus.Text.Contains("日志"), "missing or redirected logs disable their action without throwing or falling back to another root")
             host.Width = 850 : host.Height = 700
             SelectVersion(_versions(0)) : InstanceName.Text = "失败的实例"
             File.Delete(logB) ' Owned fixture file: failure must create its own diagnostic log.

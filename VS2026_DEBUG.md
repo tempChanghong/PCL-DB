@@ -81,6 +81,7 @@ Debug 构建输出为 `src/PclDownloadBridge.App/bin/Debug/net48/`。启动配�
 | Java 版本检测 | `src/PclDownloadBridge.Core/ComponentInstaller.vb`：`JavaRuntime.Major`、`ReadMajorAsync`、`ParseMajor` |
 | 处理器日志不可写 | `src/PclDownloadBridge.Core/ComponentInstaller.vb`：`ProcessorLine`；预期的 IO/访问异常不会阻止安装及进度 |
 | 完整失败诊断 | `src/PclDownloadBridge.Core/InstallLog.vb`：`Failure` / `Append`；汇总异常在展开前记录，日志不可写不改变返回的具体异常 |
+| 任务结果路径变化 | `src/PclDownloadBridge.App/MainWindow.TaskResults.vb`：`TaskLogPath` / `TaskFolderPath`；UI Checks 用隔离 NTFS 目录联接检查路径失效、恢复及未结束任务，不实际打开 Shell |
 | 清理异常与日志 | `src/PclDownloadBridge.Core/InstallCleanup.vb`：`DeleteOwnedDirectory` |
 | 下载成功后的分片清理 | `src/PclDownloadBridge.Core/TransferCleanup.vb`：`DeleteCommitted` |
 
