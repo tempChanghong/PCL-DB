@@ -140,13 +140,7 @@ Friend Module SourcePreferenceChecks
         Next
     End Function
     Private Async Function OptiFineAsync(root As String, passed As List(Of String)) As Task
-        Dim jar As Byte()
-        Using buffer As New MemoryStream()
-            Using zip As New ZipArchive(buffer, ZipArchiveMode.Create, True), output = zip.CreateEntry("optifine/Installer.class").Open()
-                output.WriteByte(1) ' Stub only: installed as a mod; no class execution.
-            End Using
-            jar = buffer.ToArray()
-        End Using
+        Dim jar = OptiFinePayloadChecks.Jar(64 * 1024)
         For Each preference In {SourcePreference.OfficialFirst, SourcePreference.MirrorFirst}
             For Each invalidPreferred In {False, True}
                 Using server As New TestServer(), timeout As New CancellationTokenSource(TimeSpan.FromSeconds(10))

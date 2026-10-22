@@ -321,7 +321,12 @@ Public Class ComponentInstaller
         Await FetchAsync(root, {New DownloadFile With {.RelativePath = relative, .Url = source, .Category = "component"}}, "下载 OptiFine（官方源）", token).ConfigureAwait(False)
         ValidateOptiFine(path)
     End Function
-    Private Shared Sub ValidateOptiFine(path As String)
+    Private Sub ValidateOptiFine(path As String)
+        ' PCL McDownloadOptiFineSaveLoader uses 64 KiB for a mod, while
+        ' McDownloadOptiFineLoader requires 300 KiB for standalone installation.
+        Dim asMod = _selection.Has(ComponentKind.Forge) OrElse _selection.Has(ComponentKind.Fabric) OrElse _selection.Has(ComponentKind.LiteLoader)
+        Dim minimum = If(asMod, 64, 300) * 1024L
+        If New FileInfo(path).Length < minimum Then Throw New InvalidDataException("OptiFine 下载文件过小，至少需要 " & (minimum \ 1024).ToString() & " KiB。")
         Using archive = ZipFile.OpenRead(path)
             If archive.GetEntry("optifine/Installer.class") Is Nothing Then Throw New InvalidDataException("下载文件不是有效的 OptiFine 安装器。")
         End Using

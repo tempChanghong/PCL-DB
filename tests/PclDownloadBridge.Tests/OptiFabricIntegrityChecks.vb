@@ -155,12 +155,7 @@ Friend Module OptiFabricIntegrityChecks
 
     Private Function PrepareSelection(fixture As InstallationChecks.InstallFixture) As ComponentSelection
         Dim selection = fixture.Fabric()
-        Using buffer As New MemoryStream()
-            Using archive As New ZipArchive(buffer, ZipArchiveMode.Create, True), output = archive.CreateEntry("optifine/Installer.class").Open()
-                output.WriteByte(1)
-            End Using
-            fixture.Server.Files("/optifine") = buffer.ToArray()
-        End Using
+        fixture.Server.Files("/optifine") = OptiFinePayloadChecks.Jar(64 * 1024)
         selection.Entries(ComponentKind.OptiFine) = New ComponentEntry With {.Kind = ComponentKind.OptiFine, .Minecraft = "1.20.1", .Version = "fixture", .FileName = "optifine.jar", .Url = fixture.Server.Url & "/optifine"}
         Return selection
     End Function

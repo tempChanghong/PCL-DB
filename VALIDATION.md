@@ -2,6 +2,16 @@
 
 日期：2026-10-22（北京时间）。最新发布为 PCL-DB Beta 1.0（`1.0.0-beta.1`），当前主分支另含尚未发布的后续修复；下方保留先前版本的验证记录。
 
+## Beta 1.0 后续开发：OptiFine 文件大小与来源回退
+
+- 基线 e926aee，源码、78 个 dist 文件摘要及七个参考仓库状态保存在 `artifacts/beta1-optifine-payload/`。重读固定 PCL 5ef81e4 的 McDownloadOptiFineSaveLoader、McDownloadOptiFineLoader 及 OptiFineAsMod 分支：作为模组下载至少 64 KiB，独立安装至少 300 KiB；片段保存在 pcl-optifine-excerpts.txt。
+- baseline-fallback/boundary.log 复现：带有 Installer.class 的 1 KiB JAR 被直接安装，未尝试备用文件源；两个来源均返回 65535 字节的可读 JAR 时仍发布实例。新校验使用 PCL 的两种大小门槛，保留 ZIP/条目检查及既有来源顺序；过小文件交由现有失败回退处理，两个来源均失败时不发布实例。
+- 新增 54 项检查，覆盖三种源偏好、过小 JAR、达到大小但不是 ZIP 或缺少必要条目、官方 HTML 转义链接、健康首选源不回退、无摘要文件重新下载、两源失败与同名重试、取消与重试、用户文件保留。精确检查 64 KiB 和 300 KiB 的门槛及少 1 字节边界。独立安装的合格大小样本在单独的 class 文件头检查处停止，不执行下载的安装器；作为模组的样本走完整 MinecraftInstaller 发布路径。
+- 初始 ZIP 样本因 Deflate 块开销超出目标几字节，记录保存在 initial-fixture-*.log；校正填充长度后重新复现边界。first-boundary-assertion.log 记录初版错误断言：完整安装流程原本会展开 AggregateException 并返回首个具体异常；检查改为核对大小错误、两个来源均尝试及未发布实例，没有修改该异常处理流程。
+- 既有 SourcePreferenceChecks 与 OptiFabricIntegrityChecks 的极小 OptiFine 占位 JAR 改为精确 64 KiB 的可读样本，原有断言保留。Component Catalogues 自动包含新用例，从 180 增至 234 项；完整核心回归从 941 增至 995 项，全部通过（core-all.log）。
+- Release 构建零警告/零错误，658 项界面、328 项动画及 17 项固定源对照通过。VS 2026 Debug/PDB 另通过 619 项精选核心、658 项界面、328 项动画及既有聚焦配置，报告复制到本轮目录。
+- 新样本仅使用回环 HTTP、临时游戏目录及离屏 WPF，不作为真实下载端点或完整游戏启动的证明。preservation.json 确认 78 个 dist 文件内容与修改时间、七个参考仓库状态保持，Beta 标签仍指向 c1fe250。本轮只做本地构建、验证和提交，不打包、不发版、不推送。
+
 ## Beta 1.0 后续开发：OptiFabric MD5 校验链路
 
 - 基线 03694a5，源码、78 个 dist 文件摘要及七个参考仓库状态保存在 `artifacts/beta1-optifabric-md5/`。重读固定 PCL 5ef81e4 的 ResourceVersion：优先 SHA-1，未声明时使用 MD5，并将摘要和大小交给文件校验器；片段保存在 pcl-hash-excerpts.txt。
