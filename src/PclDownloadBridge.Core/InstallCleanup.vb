@@ -1,5 +1,4 @@
 Imports System.IO
-Imports System.Text
 Imports System.Text.RegularExpressions
 
 ' PCL logs cleanup failures separately instead of replacing the install outcome.
@@ -23,11 +22,6 @@ Friend NotInheritable Class InstallCleanup
     End Sub
 
     Private Shared Sub LogIncomplete(root As String, relative As String, failure As Exception)
-        Try
-            Dim log = SafeFiles.UnderRoot(root, ".vanilla-downloader/installer.log")
-            File.AppendAllText(log, DateTimeOffset.Now.ToString("o") & " 安装临时文件清理未完成：" & relative & " | " & failure.Message & vbCrLf, New UTF8Encoding(False))
-        Catch ex As Exception When TypeOf ex Is IOException OrElse TypeOf ex Is UnauthorizedAccessException OrElse TypeOf ex Is ArgumentException
-            ' An unavailable log must not replace success, cancellation or the real error.
-        End Try
+        InstallLog.Append(root, "安装临时文件清理未完成：" & relative & " | " & failure.Message)
     End Sub
 End Class

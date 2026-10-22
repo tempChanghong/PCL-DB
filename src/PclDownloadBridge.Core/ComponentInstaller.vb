@@ -341,15 +341,8 @@ Public Class ComponentInstaller
     End Sub
     Private Sub ProcessorLine(line As String)
         ' Logging is best effort; a blocked log must not stop Java or UI progress.
-        Dim log = SafeFiles.UnderRoot(_root, ".vanilla-downloader/installer.log")
         SyncLock Me
-            Try
-                File.AppendAllText(log, DateTimeOffset.Now.ToString("o") & " " & line & vbCrLf, New UTF8Encoding(False))
-            Catch ex As IOException
-                ' Retain the existing log and keep reporting processor output.
-            Catch ex As UnauthorizedAccessException
-                ' Read-only logs and access-denied paths are optional diagnostics.
-            End Try
+            InstallLog.Append(_root, line)
             If _processorClock.ElapsedMilliseconds - _lastProcessorReport < 120 Then Return
             _lastProcessorReport = _processorClock.ElapsedMilliseconds
         End SyncLock

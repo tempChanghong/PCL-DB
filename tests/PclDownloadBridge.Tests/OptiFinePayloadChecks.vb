@@ -148,7 +148,7 @@ Friend Module OptiFinePayloadChecks
         If Not condition Then Throw New InvalidOperationException(label)
         passed.Add(label)
     End Sub
-    Private Class Fixture
+    Friend Class Fixture
         Implements IDisposable
         Friend ReadOnly Server As New TestServer()
         Friend ReadOnly Root As String = Path.Combine(Path.GetTempPath(), "PclDbOptiPayload-" & Guid.NewGuid().ToString("N"), ".minecraft")

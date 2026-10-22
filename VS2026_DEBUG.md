@@ -39,7 +39,7 @@ Debug 构建输出为 `src/PclDownloadBridge.App/bin/Debug/net48/`。启动配�
 
 | 配置 | 覆盖的流程 |
 |---|---|
-| Offline All | 全部本地下载、安装与处理器回归；当前 995 项检查，处理器样本需要本机 Java 8 或更高版本 |
+| Offline All | 全部本地下载、安装与处理器回归；当前 1014 项检查，处理器样本需要本机 Java 8 或更高版本 |
 | Metadata Transfers | 26 项元数据响应、大小上限、JSON 对象类型、备用源、哈希及取消回归；仅使用本地 HTTP 样本 |
 | Component Catalogues | 234 项 Fabric / Fabric API / OptiFine / OptiFabric / LiteLoader 检查，覆盖兼容性、主文件/附件选择、发布时间、实际安装、SHA-1/MD5 校验与缓存、OptiFine 文件大小与损坏回退、合法空列表、损坏条目、重复分页、源偏好及取消；仅使用本地 HTTP 样本 |
 | Processor Log Recovery | 12 项真实 Java 样本检查：日志只读/占用、输出进度、失败原因、取消、恢复后重试；不使用真实游戏目录 |
@@ -56,7 +56,7 @@ Debug 构建输出为 `src/PclDownloadBridge.App/bin/Debug/net48/`。启动配�
 | Native Libraries | 实际安装器中的普通/原生库合并、文件复用和最终配置写入 |
 | Cleanup Cancellation | 占用暂存客户端后取消安装、保留取消状态、解除占用后重试 |
 | Final Commit | 原版和组件安装在最终写入通知处取消、确认未发布，并复用已校验文件重试 |
-| Transfer Completion | 单连接/分段下载完成后的分片占用、清理日志不可写、真实哈希错误和目标写入冲突 |
+| Transfer Completion | 单连接/分段下载完成后的分片占用、清理日志不可写、真实哈希错误和目标写入冲突；另含 19 项完整失败日志、并发追加、日志只读/占用、取消与重试检查 |
 | PCL File Reuse | 跨目录复用的声明要求、旧版本内不同文件名的客户端、损坏回退和实际安装 |
 | Copy Fallback | NTFS 辅助流占用导致复制失败后的本地/HTTP 回退，哈希校验结束处取消，以及真实目标写入错误 |
 | Library Metadata | Maven 路径/仓库回退、空大小、PCL 扩展名路径与架构字段、实际安装/补全及第二实例复用 |
@@ -80,6 +80,7 @@ Debug 构建输出为 `src/PclDownloadBridge.App/bin/Debug/net48/`。启动配�
 | 加载器配置与 Java | `src/PclDownloadBridge.Core/ComponentInstaller.vb`：`MergeProfile`、`ApplyAsync`、`JavaRuntime.RunAsync` |
 | Java 版本检测 | `src/PclDownloadBridge.Core/ComponentInstaller.vb`：`JavaRuntime.Major`、`ReadMajorAsync`、`ParseMajor` |
 | 处理器日志不可写 | `src/PclDownloadBridge.Core/ComponentInstaller.vb`：`ProcessorLine`；预期的 IO/访问异常不会阻止安装及进度 |
+| 完整失败诊断 | `src/PclDownloadBridge.Core/InstallLog.vb`：`Failure` / `Append`；汇总异常在展开前记录，日志不可写不改变返回的具体异常 |
 | 清理异常与日志 | `src/PclDownloadBridge.Core/InstallCleanup.vb`：`DeleteOwnedDirectory` |
 | 下载成功后的分片清理 | `src/PclDownloadBridge.Core/TransferCleanup.vb`：`DeleteCommitted` |
 

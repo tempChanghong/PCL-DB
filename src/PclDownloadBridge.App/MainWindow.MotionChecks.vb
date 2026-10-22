@@ -219,9 +219,25 @@ Partial Public Class MainWindow
             viewer.ScrollDelta(120) : layout()
             viewer.RaiseEvent(New KeyEventArgs(Keyboard.PrimaryDevice, source, Environment.TickCount, Key.PageDown) With {.RoutedEvent = Keyboard.PreviewKeyDownEvent})
             check(viewer.MotionClock Is Nothing, "keyboard navigation cancels smooth scrolling before native page commands")
-            viewer.ScrollDelta(120) : layout()
+            ' Layout can take longer than the 300 ms gesture on a busy machine.
+            ' Verify natural completion separately, then hold the active gesture
+            ' at a known phase while testing an extent change.
+            viewer.ScrollDelta(120)
+            Dim completedBeforeExtent = False
+            AddHandler viewer.MotionClock.Completed, Sub() completedBeforeExtent = True
+            Dim settledBeforeExtent = PumpMotionUntil(Function() viewer.MotionClock Is Nothing)
             body.Children.Add(New Border With {.Height = 300}) : layout()
-            check(viewer.MotionClock IsNot Nothing, "a content extent change preserves wheel input while clamping its remaining displacement")
+            Dim settledStayedStopped = viewer.MotionClock Is Nothing
+            viewer.ScrollDelta(120)
+            Dim extentClock = viewer.MotionClock
+            seek(extentClock, 60)
+            Dim extentBefore = viewer.ExtentHeight, offsetBefore = viewer.VerticalOffset
+            body.Children.Add(New Border With {.Height = 300}) : layout()
+            Dim activePreserved = viewer.MotionClock Is extentClock AndAlso extentClock.IsPaused AndAlso viewer.ExtentHeight > extentBefore AndAlso Math.Abs(viewer.VerticalOffset - offsetBefore) < 0.2
+            IO.File.WriteAllText(IO.Path.Combine(directory, "wheel-extent-timing.json"), Newtonsoft.Json.JsonConvert.SerializeObject(New With {
+                .NaturalCompletion = completedBeforeExtent, .Settled = settledBeforeExtent, .SettledStayedStopped = settledStayedStopped,
+                .ActivePreserved = activePreserved, .PausedTime = extentClock.CurrentTime, .OffsetBefore = offsetBefore, .OffsetAfter = viewer.VerticalOffset}, Newtonsoft.Json.Formatting.Indented))
+            check(completedBeforeExtent AndAlso settledBeforeExtent AndAlso settledStayedStopped AndAlso activePreserved, "a content extent change preserves active wheel input while leaving a naturally completed gesture stopped")
             viewer.SmoothScrollingEnabled = False : viewer.ScrollDelta(120) : layout()
             check(viewer.MotionClock Is Nothing, "disabled scrolling uses immediate positioning")
             viewer.SmoothScrollingEnabled = True : viewer.ScrollDelta(120) : layout()

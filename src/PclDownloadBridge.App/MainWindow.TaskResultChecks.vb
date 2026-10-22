@@ -96,18 +96,24 @@ Partial Public Class MainWindow
             check(actions.Count = count AndAlso Not OpenTaskLogButton.IsEnabled AndAlso TaskActionStatus.Text.Contains("日志"), "a disappeared task log disables its action without falling back to the newly selected root")
             host.Width = 850 : host.Height = 700
             SelectVersion(_versions(0)) : InstanceName.Text = "失败的实例"
+            File.Delete(logB) ' Owned fixture file: failure must create its own diagnostic log.
             Dim cleanReset = False
-            _installRunner = Function(entry, root, name, selection, token)
+            _installRunner = Async Function(entry, root, name, selection, token)
                                  cleanReset = TaskResultActions.Visibility = Visibility.Collapsed AndAlso CancelButton.Visibility = Visibility.Visible AndAlso TaskResultLocation.Text = "" AndAlso TaskActionStatus.Text = "" AndAlso _taskInstancePath Is Nothing
                                  RenderTaskProgress(QueuedTaskValue("失败的下载样本"))
-                                 Return Task.FromException(Of InstallResult)(New IOException("受控的下载失败原因"))
+                                 Using engine As New DownloadEngine(New TaskFailurePolicy(), Nothing, {}, 2, root)
+                                     Await engine.DownloadAsync(root, {New DownloadFile With {.RelativePath = "fixture-failure.jar", .Url = "https://libraries.minecraft.net/fixture-failure"}}, token)
+                                 End Using
+                                 Return New InstallResult()
                              End Function
             StartInstall(Nothing, Nothing) : layout()
             check(cleanReset, "starting a replacement task clears old result paths feedback and actions before its runner starts")
-            check(_taskOutcome = TaskOutcome.Failed AndAlso TaskResultActions.Visibility = Visibility.Visible AndAlso OpenTaskFolderButton.Visibility = Visibility.Collapsed AndAlso _taskRows("files").Icon.Data.ToString() = System.Windows.Media.Geometry.Parse(FailedIcon).ToString(), "a failed install retains the PCL failure icon and does not offer an unpublished instance directory")
+            check(_taskOutcome = TaskOutcome.Failed AndAlso TaskResultActions.Visibility = Visibility.Visible AndAlso OpenTaskFolderButton.Visibility = Visibility.Collapsed AndAlso _taskRows("files").Icon.Data.ToString() = System.Windows.Media.Geometry.Parse(FailedIcon).ToString() AndAlso OpenTaskLogButton.IsEnabled AndAlso File.ReadAllText(logB).Contains("受控的下载失败原因"), "an actual core download failure retains the PCL failure icon, offers its newly created diagnostic log and no unpublished instance directory")
+            click(OpenTaskLogButton)
+            Dim openedFailureLog = actions.Last().Key = "log" AndAlso actions.Last().Value = logB
             click(CopyTaskInfoButton)
             report = actions.Last().Value
-            check(report.Contains("结果：失败") AndAlso report.Contains("受控的下载失败原因") AndAlso report.Contains(rootB) AndAlso Not report.Contains(rootA) AndAlso report.Contains("实例位置：未发布"), "failure information belongs to the new task and includes its actual reason without stale result paths")
+            check(openedFailureLog AndAlso report.Contains("结果：失败") AndAlso report.Contains("受控的下载失败原因") AndAlso report.Contains(rootB) AndAlso Not report.Contains(rootA) AndAlso report.Contains("实例位置：未发布"), "failure information and its log action belong to the new task and include its actual reason without stale result paths")
             DownloadProgress.ScrollToTop() : layout()
             capture("align-task-failed-after-0.29.png")
             ResumeInstallation(Nothing, Nothing) : InstanceName.Text = "取消的实例"
@@ -143,4 +149,11 @@ Partial Public Class MainWindow
             RestoreAppearance(savedAppearance)
         End Try
     End Sub
+
+    Private Class TaskFailurePolicy
+        Inherits SourcePolicy
+        Public Overrides Function Candidates(url As String, category As String) As List(Of String)
+            Throw New IOException("受控的下载失败原因") ' Fail before any HTTP; exercise the real batch logger.
+        End Function
+    End Class
 End Class

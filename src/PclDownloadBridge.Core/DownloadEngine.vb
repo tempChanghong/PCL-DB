@@ -111,6 +111,9 @@ Public Class DownloadEngine
                     Await Task.WhenAll(workers).ConfigureAwait(False)
                 Catch
                     token.ThrowIfCancellationRequested()
+                    ' PCL logs the complete exception group before choosing the
+                    ' task's primary failure. Keep all sources and retries here.
+                    InstallLog.Failure(_cacheRoot, "下载批次失败", workers.Select(Function(task) CType(task.Exception, Exception)))
                     Dim failure = workers.Where(Function(t) t.Exception IsNot Nothing).SelectMany(Function(t) t.Exception.Flatten().InnerExceptions).FirstOrDefault(Function(e) Not TypeOf e Is OperationCanceledException)
                     If failure IsNot Nothing Then Throw failure
                     Throw

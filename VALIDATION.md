@@ -2,6 +2,17 @@
 
 日期：2026-10-22（北京时间）。最新发布为 PCL-DB Beta 1.0（`1.0.0-beta.1`），当前主分支另含尚未发布的后续修复；下方保留先前版本的验证记录。
 
+## Beta 1.0 后续开发：完整失败诊断与任务日志
+
+- 基线 d03e6a3，源码、78 个 dist 文件摘要及七个参考仓库状态保存在 `artifacts/beta1-failure-diagnostics/`。重读固定 PCL 5ef81e4 的 ModNet.OnFileFail / OnFail：收集各来源的错误，选择主要错误用于任务状态，同时将完整 AggregateException 写入日志；片段保存在 pcl-failure-excerpts.txt。
+- baseline-engine/install.log 分别复现：首个文件源返回 503、第二个源返回同大小但哈希错误内容时，以及 OptiFine 两源分别返回过小 JAR 和缺少 Installer.class 的 JAR 时，游戏目录均没有完整失败日志；向外传播的首个具体异常已丢失其他来源诊断。
+- 文件下载批次与并行安装分支在展开异常前追加整组失败原因到 `.vanilla-downloader/installer.log`，保留既有主要异常类型、来源顺序、重试次数与取消优先级。处理器输出和安装清理记录也通过同一写入入口串行追加；日志路径不可写、被占用或为同名文件夹时保留原始操作结果及已有文件。
+- 新增 19 项回环 HTTP 检查，覆盖完整来源/目标文件诊断、实际组件安装、同名重试、旧记录保留、并发批次、日志只读/占用/目录冲突及取消后重试。五份 fixed-*.log 均通过，既有 VS Transfer Completion 自动包含新用例；完整核心从 995 增至 1014 项，全部通过（core-all.log）。
+- 扩展既有任务页检查：删除本样本预置日志，再通过真实 DownloadEngine 的受控来源策略失败，确认失败日志实际生成、按钮启用且分派到本次游戏目录，复制信息不串入旧任务路径。来源策略在 HTTP 前失败，日志按钮通过预览分派验证，不启动真实 Shell。界面断言总数保持 658，task-result-context-0.29.json 保留操作上下文。
+- 首次 VS Debug 动画检查在第 40 项失败，报告保存在 vs-motion-first-failure.json。原样本未暂停 300 ms 的滚轮时钟，却要求布局后时钟仍存在，存在正常完成被误判的计时条件。样本现在分别验证自然完成后改变高度，以及固定在 60 ms 时改变高度；检查同一活动时钟、偏移保留及已完成手势不会重启，动画实现未改。Release 与 Debug 的 wheel-extent-timing.json 均确认两种状态符合预期，328 项动画全部通过，断言总数不变。
+- Release 构建零警告/零错误，658 项界面、328 项动画及 17 项固定源对照通过。VS 2026 Debug/PDB 另通过 638 项精选核心、658 项界面、328 项动画及既有聚焦配置，报告复制到本轮目录。
+- 样本仅使用回环 HTTP、临时游戏目录及离屏 WPF，不作为真实下载端点、桌面帧率或完整游戏启动证明。preservation.json 确认 78 个 dist 文件内容与修改时间、七个参考仓库状态保持，Beta 标签仍指向 c1fe250。本轮只做本地构建、验证与提交，不打包、不发版、不推送。
+
 ## Beta 1.0 后续开发：OptiFine 文件大小与来源回退
 
 - 基线 e926aee，源码、78 个 dist 文件摘要及七个参考仓库状态保存在 `artifacts/beta1-optifine-payload/`。重读固定 PCL 5ef81e4 的 McDownloadOptiFineSaveLoader、McDownloadOptiFineLoader 及 OptiFineAsMod 分支：作为模组下载至少 64 KiB，独立安装至少 300 KiB；片段保存在 pcl-optifine-excerpts.txt。

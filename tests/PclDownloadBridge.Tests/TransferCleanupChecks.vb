@@ -21,6 +21,7 @@ Friend Module TransferCleanupChecks
         If onlyCase Is Nothing OrElse onlyCase = "transfer-cleanup-log" Then Await SuccessAsync(testRoot, False, True, passed)
         If onlyCase Is Nothing OrElse onlyCase = "transfer-cleanup-corrupt" Then Await FailureAsync(testRoot, False, passed)
         If onlyCase Is Nothing OrElse onlyCase = "transfer-cleanup-publish" Then Await FailureAsync(testRoot, True, passed)
+        If onlyCase Is Nothing OrElse onlyCase.StartsWith("transfer-cleanup-diagnostics-", StringComparison.Ordinal) Then passed.AddRange(Await FailureDiagnosticsChecks.RunAsync(testRoot, onlyCase))
         If passed.Count = 0 Then Throw New ArgumentException("Unknown transfer cleanup regression: " & onlyCase)
         Return passed
     End Function

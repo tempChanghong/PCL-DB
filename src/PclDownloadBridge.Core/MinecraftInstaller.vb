@@ -103,6 +103,7 @@ Public Class MinecraftInstaller
                             Await Task.WhenAll(branches).ConfigureAwait(False)
                         Catch
                             token.ThrowIfCancellationRequested()
+                            InstallLog.Failure(root, "安装失败", branches.Select(Function(task) CType(task.Exception, Exception)))
                             Dim failure = branches.Where(Function(t) t.Exception IsNot Nothing).SelectMany(Function(t) t.Exception.Flatten().InnerExceptions).FirstOrDefault(Function(e) Not TypeOf e Is OperationCanceledException)
                             If failure IsNot Nothing Then Throw failure
                             Throw
