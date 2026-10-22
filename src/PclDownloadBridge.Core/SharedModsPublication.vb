@@ -27,12 +27,17 @@ Friend NotInheritable Class SharedModsPublication
         For Each item In expected
             token.ThrowIfCancellationRequested()
             Dim path = SafeFiles.UnderRoot(stage, item.RelativePath)
-            If Not SafeFiles.Matches(path, item) Then Throw New InvalidDataException("待发布的组件 Mods 校验失败：" & item.RelativePath)
             ' OptiFine may have no remote digest. Freeze the verified staged bytes,
             ' so an existing same-name shared mod is compared by content, not size.
-            Using sha = Security.Cryptography.SHA1.Create(), input = File.OpenRead(path)
-                result.Add(New DownloadFile With {.RelativePath = item.RelativePath, .Size = input.Length,
-                    .Sha1 = BitConverter.ToString(sha.ComputeHash(input)).Replace("-", "").ToLowerInvariant(), .Category = "component"})
+            ' Keep one read lease across both checks: a second open must not turn
+            ' changed bytes into the new trusted publication digest.
+            Using input As New FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read)
+                If Not SafeFiles.Matches(path, item) Then Throw New InvalidDataException("待发布的组件 Mods 校验失败：" & item.RelativePath)
+                Using sha = Security.Cryptography.SHA1.Create()
+                    result.Add(New DownloadFile With {.RelativePath = item.RelativePath, .Size = input.Length,
+                        .Sha1 = BitConverter.ToString(sha.ComputeHash(input)).Replace("-", "").ToLowerInvariant(), .Category = "component"})
+                End Using
+                token.ThrowIfCancellationRequested()
             End Using
         Next
         Return result

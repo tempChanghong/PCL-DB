@@ -38,7 +38,7 @@ Friend Module IsolationModeChecks
             Return bytes.ToArray()
         End Using
     End Function
-    Private Function Components(session As IsolationResourceChecks.Session, Optional all As Boolean = False) As ComponentSelection
+    Friend Function Components(session As IsolationResourceChecks.Session, Optional all As Boolean = False) As ComponentSelection
         Dim selected = session.Fixture.Fabric()
         selected.Entries(ComponentKind.FabricApi) = New ComponentEntry With {.Kind = ComponentKind.FabricApi, .Minecraft = session.Fixture.Entry.Id,
             .Version = "fixture", .FileName = "fabric-api.jar", .Url = session.Fixture.Server.Url & "/api", .Sha1 = Hash(Api), .Size = Api.Length}

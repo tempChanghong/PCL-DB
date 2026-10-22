@@ -24,6 +24,7 @@ Friend NotInheritable Class PclIsolationPlan
     End Class
     Private Sub New(root As String, name As String, entry As VersionEntry, metadata As JObject, pclDirectory As String, repair As Boolean, withComponents As Boolean, mode As InstanceIsolationMode, modable As Boolean)
         _root = root : _name = name
+        Dim displayValue As String = Nothing
         If Not [Enum].IsDefined(GetType(InstanceIsolationMode), mode) Then Throw New ArgumentOutOfRangeException(NameOf(mode))
         If Not repair AndAlso mode <> InstanceIsolationMode.FollowPcl Then
             Isolated = mode = InstanceIsolationMode.Enabled : Return
@@ -47,12 +48,20 @@ Friend NotInheritable Class PclIsolationPlan
             If _folderSignal.Value Then
                 Isolated = True : Return
             End If
+            displayValue = ReadValue(settings.Bytes, "DisplayType")
         End If
         Dim strategy = 4 ' Pinned PCL LaunchArgumentIndieV2 default.
         If Not String.IsNullOrWhiteSpace(pclDirectory) Then
             Dim settings = ReadInput(Path.GetFullPath(pclDirectory), "PCL/Setup.ini")
             Dim value = ReadValue(settings.Bytes, "LaunchArgumentIndieV2")
             If value IsNot Nothing AndAlso Not Integer.TryParse(value, strategy) Then Throw New InvalidDataException("PCL 的默认版本隔离设置无效，请先在 PCL 中确认。")
+        End If
+        If repair AndAlso (strategy = 1 OrElse strategy = 3) AndAlso displayValue IsNot Nothing Then
+            Dim display As Integer
+            If Not Integer.TryParse(displayValue, display) Then Throw New InvalidDataException("已有实例的 PCL 显示分类无效，请先在 PCL 中确认。")
+            ' Pinned McInstance.Modable also includes DisplayType = API (2),
+            ' even for an otherwise vanilla instance with no loader flags.
+            modable = modable OrElse display = 2
         End If
         Dim kind = If(CStr(metadata("type")), entry.Kind)
         ' PCL Load() assigns a component state after snapshot/fool detection.

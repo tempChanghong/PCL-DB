@@ -13,11 +13,14 @@ Friend NotInheritable Class LegacyResourcePublication
     Private ReadOnly _isolated As Boolean
     Private ReadOnly _repair As Boolean
     Private ReadOnly _description As String
+    Private ReadOnly _holdTargets As Boolean
+    Private ReadOnly _held As New List(Of FileStream)
     Private ReadOnly _created As New List(Of DownloadFile)
     Private _completed As Boolean
-    Friend Sub New(root As String, stage As String, name As String, files As List(Of DownloadFile), isolated As Boolean, repair As Boolean, Optional description As String = "旧资源")
+    Friend Sub New(root As String, stage As String, name As String, files As List(Of DownloadFile), isolated As Boolean, repair As Boolean, Optional description As String = "旧资源", Optional holdTargets As Boolean = False)
         _root = root : _stage = stage : _name = name : _files = files : _isolated = isolated : _repair = repair
         _description = description
+        _holdTargets = holdTargets
     End Sub
     Friend Shared Sub Validate(root As String, files As IEnumerable(Of DownloadFile), repair As Boolean, Optional description As String = "旧资源")
         Dim targets As New HashSet(Of String)(files.Select(Function(item) SafeFiles.UnderRoot(root, item.RelativePath)), StringComparer.OrdinalIgnoreCase)
@@ -53,6 +56,7 @@ Friend NotInheritable Class LegacyResourcePublication
         For i = 0 To _files.Count - 1
             token.ThrowIfCancellationRequested() : guard?.Verify()
             Dim item = _files(i), target = SafeFiles.UnderRoot(_root, item.RelativePath)
+            If _holdTargets AndAlso File.Exists(target) Then HoldTarget(target)
             If SafeFiles.Matches(target, item) Then
                 token.ThrowIfCancellationRequested() : guard?.Verify()
                 DeleteOwnedFile(SafeFiles.UnderRoot(_stage, staged(i).RelativePath))
@@ -69,6 +73,11 @@ Friend NotInheritable Class LegacyResourcePublication
             Else
                 File.Move(source, target)
                 _created.Add(item)
+                If _holdTargets Then
+                    HoldTarget(target)
+                    If Not SafeFiles.Matches(target, item) Then Throw New IOException(_description & "目标在发布期间发生变化：" & item.RelativePath)
+                    token.ThrowIfCancellationRequested()
+                End If
             End If
         Next
         guard?.Verify()
@@ -76,7 +85,19 @@ Friend NotInheritable Class LegacyResourcePublication
     Friend Sub Complete()
         _completed = True
     End Sub
+    Private Sub HoldTarget(target As String)
+        ' Shared Mods are few, unlike asset aliases. Hold existing or freshly
+        ' moved files only through the short final commit, allowing game readers
+        ' while preventing a later step from observing a changed earlier Mod.
+        _held.Add(New FileStream(target, FileMode.Open, FileAccess.Read, FileShare.Read))
+    End Sub
     Public Sub Dispose() Implements IDisposable.Dispose
+        ' Release our leases before rolling back owned files, including when
+        ' cancellation was raised by a final content check.
+        For Each stream In _held
+            stream.Dispose()
+        Next
+        _held.Clear()
         If _completed OrElse _repair Then Return
         For Each item In _created.AsEnumerable().Reverse()
             Try

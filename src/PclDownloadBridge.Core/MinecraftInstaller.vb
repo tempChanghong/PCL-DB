@@ -112,7 +112,7 @@ Public Class MinecraftInstaller
             Directory.CreateDirectory(stage)
             Try
               Using publication As New LegacyResourcePublication(root, stage, instanceName, mappedFiles, isolation IsNot Nothing AndAlso isolation.Isolated, repairExisting),
-                    modsPublication As New LegacyResourcePublication(root, stage, instanceName, sharedMods, False, False, "Mods")
+                    modsPublication As New LegacyResourcePublication(root, stage, instanceName, sharedMods, False, False, "Mods", holdTargets:=True)
                 Dim newSettings = isolation IsNot Nothing AndAlso Not repairExisting
                 If newSettings Then isolation.WriteNewSettings(stage)
                 ' Client JAR stays outside versions/ until the entire install succeeds.

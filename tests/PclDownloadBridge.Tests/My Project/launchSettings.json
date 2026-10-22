@@ -1,5 +1,11 @@
 {
   "profiles": {
+    "Isolation Boundaries": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression install-boundary-all",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
     "Isolation Options": {
       "commandName": "Project",
       "commandLineArgs": "--regression install-mode-all",
