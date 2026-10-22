@@ -48,12 +48,7 @@ function Assert-BuildManifest([object]$Manifest) {
         if ($file.Name -cnotin $script:PayloadNames -or $seen.ContainsKey($file.Name) -or $file.Length -le 0 -or $file.SHA256 -notmatch '^[0-9A-F]{64}$') { throw 'Invalid build manifest file inventory.' }
         $seen[$file.Name] = $true
     }
-    if ($Manifest.EmbeddedAssemblies.Count -ne 2) { throw 'Incomplete embedded dependency inventory.' }
-    $seen = @{}
-    foreach ($assembly in $Manifest.EmbeddedAssemblies) {
-        if ($assembly.Name -cnotin @('PclDownloadBridge.Core','Newtonsoft.Json') -or $seen.ContainsKey($assembly.Name) -or $assembly.SHA256 -notmatch '^[0-9A-F]{64}$') { throw 'Invalid embedded dependency inventory.' }
-        $seen[$assembly.Name] = $true
-    }
+    Assert-PclDbEmbeddedAssemblies $Manifest.EmbeddedAssemblies
     if ($Manifest.Format -ceq 'PCL-DB-single-exe/v3') {
         $exe = $Manifest.Files | Where-Object Name -CEQ 'PCL-DB.exe'
         try { Assert-PclDbVerification $Manifest.Verification $exe.SHA256 }
@@ -63,6 +58,7 @@ function Assert-BuildManifest([object]$Manifest) {
 
 function New-PclDbBuildManifest([object]$Candidate) {
     Assert-PclDbCandidateVerification $Candidate
+    Assert-PclDbEmbeddedAssemblies $Candidate.EmbeddedAssemblies
     [pscustomobject][ordered]@{
         Format='PCL-DB-single-exe/v3';Version=$Candidate.Version;ReleaseVersion=$Candidate.ReleaseVersion
         Build=[ordered]@{SourceCommit=$Candidate.Source.Commit;SourceBranch=$Candidate.Source.Branch;Dirty=$Candidate.Source.Dirty;InventorySHA256=$Candidate.Source.InventorySHA256

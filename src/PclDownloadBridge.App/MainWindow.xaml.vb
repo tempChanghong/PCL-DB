@@ -242,6 +242,7 @@ Partial Public Class MainWindow
                                                      If Not condition Then Throw New InvalidOperationException(label)
                                                      checks.Add(label)
                                                  End Sub
+        If artifactDirectory IsNot Nothing Then UiCheckRunnerChecks.Verify(artifactDirectory, check)
         check(Shell.RowDefinitions(0).Height.Value = 48, "PCL title bar is 48 DIP")
         check(TopTabs.Children.Count = 2 AndAlso DownloadTab.Text = "下载" AndAlso SettingsTab.Text = "设置", "only Download and Settings remain in main navigation")
         check(FindName("FoldersPage") Is Nothing AndAlso FindName("TasksPage") Is Nothing AndAlso DownloadNav.Children.Count = 2, "download navigation contains only vanilla and modpacks without standalone folder or task pages")

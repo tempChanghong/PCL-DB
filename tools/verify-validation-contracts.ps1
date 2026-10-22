@@ -144,6 +144,23 @@ try {
 
     $manifest = & $packageModule {param($c) New-PclDbBuildManifest $c} $candidate
     Assert-Manifest $manifest
+    foreach ($mode in @('duplicate','unknown','array-name','array-hash','invalid-hash','missing','null')) {
+        $bad = Copy-Object $candidate
+        switch ($mode) {
+            'duplicate' {$bad.EmbeddedAssemblies[1]=$bad.EmbeddedAssemblies[0]}
+            'unknown' {$bad.EmbeddedAssemblies[0].Name='Unexpected.Core'}
+            'array-name' {$bad.EmbeddedAssemblies[0].Name=@($bad.EmbeddedAssemblies[0].Name)}
+            'array-hash' {$bad.EmbeddedAssemblies[0].SHA256=@($bad.EmbeddedAssemblies[0].SHA256)}
+            'invalid-hash' {$bad.EmbeddedAssemblies[0].SHA256='invalid'}
+            'missing' {$bad.EmbeddedAssemblies=@($bad.EmbeddedAssemblies[0])}
+            'null' {$bad.EmbeddedAssemblies=$null}
+        }
+        Assert-Rejected { & $packageModule {param($c) New-PclDbBuildManifest $c} $bad } 'embedded dependency inventory' ("manifest builder rejects malformed dependency inventory: " + $mode)
+        $path=Join-Path $fixture ('dependencies-'+$mode+'.json'); $bad | ConvertTo-Json -Depth 15 | Set-Content -LiteralPath $path -Encoding UTF8
+        Assert-Rejected { Test-PclDbCandidate -ProjectRoot $root -CandidateResultPath $path } 'embedded dependency inventory' ("candidate rejects malformed dependencies before source or payload access: " + $mode)
+        $badManifest=Copy-Object $manifest; $badManifest.EmbeddedAssemblies=$bad.EmbeddedAssemblies
+        Assert-Rejected { Assert-Manifest $badManifest } 'embedded dependency inventory' ("archive parser rejects malformed dependency inventory: " + $mode)
+    }
     Assert-BoundManifest $manifest $candidate
     Assert-Case ($manifest.Format -ceq 'PCL-DB-single-exe/v3' -and $manifest.Verification.PackSearchChecks -eq 171) 'production manifest builder carries complete search evidence into v3'
     $bad=Copy-Object $manifest; $bad.Format=@($bad.Format)

@@ -3,9 +3,9 @@ $ErrorActionPreference = 'Stop'
 
 # Bump the policy ID when the required suites change. Archive integrity never
 # applies today's counts to an older manifest; current candidates always do.
-$script:PolicyId = 'PCL-DB-checks/2026-10-23.2'
+$script:PolicyId = 'PCL-DB-checks/2026-10-23.3'
 $script:CandidateScopes = @('standalone', 'all', 'motion', 'pack-search')
-$script:Counts = @{standalone=25; all=754; motion=538; 'pack-search'=171; appearance=129; developer=36; cards=104; navigation=31; compatibility=49; 'control-motion'=180}
+$script:Counts = @{standalone=25; all=762; motion=538; 'pack-search'=171; appearance=129; developer=36; cards=104; navigation=31; compatibility=49; 'control-motion'=180}
 $script:Fields = @{standalone='StandaloneChecks'; all='UiChecks'; motion='MotionChecks'; 'pack-search'='PackSearchChecks'}
 
 function Get-PclDbCheckPolicy {
@@ -95,4 +95,17 @@ function Assert-PclDbCandidateVerification {
     }
 }
 
-Export-ModuleMember -Function Get-PclDbCheckPolicy, Assert-PclDbCheckReport, Assert-PclDbVerification, New-PclDbVerification, Assert-PclDbCandidateVerification
+function Assert-PclDbEmbeddedAssemblies([object]$Assemblies) {
+    if ($Assemblies -isnot [array] -or $Assemblies.Count -ne 2) { throw 'Incomplete embedded dependency inventory.' }
+    $seen = @{}
+    foreach ($assembly in $Assemblies) {
+        if ($null -eq $assembly -or !$assembly.PSObject.Properties['Name'] -or !$assembly.PSObject.Properties['SHA256'] -or
+            $assembly.Name -isnot [string] -or $assembly.Name -cnotin @('PclDownloadBridge.Core','Newtonsoft.Json') -or
+            $seen.ContainsKey($assembly.Name) -or $assembly.SHA256 -isnot [string] -or $assembly.SHA256 -cnotmatch '^[0-9A-F]{64}$') {
+            throw 'Invalid embedded dependency inventory.'
+        }
+        $seen[$assembly.Name] = $true
+    }
+}
+
+Export-ModuleMember -Function Get-PclDbCheckPolicy, Assert-PclDbCheckReport, Assert-PclDbVerification, New-PclDbVerification, Assert-PclDbCandidateVerification, Assert-PclDbEmbeddedAssemblies

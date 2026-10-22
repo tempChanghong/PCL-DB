@@ -97,6 +97,38 @@ Public NotInheritable Class ModpackArchiveInstaller
         If ModpackFormats.Detect(path) = ModpackFormat.Modrinth Then Return ModrinthPackage.Read(path, token)
         Return CurseForgePackage.Read(path, token)
     End Function
+    Private Shared Function ReadSelectedPackage(path As String, release As ModpackRelease, token As CancellationToken) As Object
+        token.ThrowIfCancellationRequested()
+        ' PCL's detail page hands a completed archive to ModpackInstall. Our cache is
+        ' shared across retries: bind that handoff to the selected release while a
+        ' read lease prevents changes through detection, parsing and SHA-256 capture.
+        ' The import plan checks that captured SHA-256 again after optional selection.
+        Using lease As New FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read)
+            If lease.Length <> release.Size Then Throw New InvalidDataException("整合包归档在下载后发生变化，请重试。")
+            Dim hashes As New List(Of Tuple(Of HashAlgorithm, String))
+            Try
+                If release.Sha1 IsNot Nothing Then hashes.Add(Tuple.Create(Of HashAlgorithm, String)(SHA1.Create(), release.Sha1))
+                If release.Sha512 IsNot Nothing Then hashes.Add(Tuple.Create(Of HashAlgorithm, String)(SHA512.Create(), release.Sha512))
+                If release.Md5 IsNot Nothing Then hashes.Add(Tuple.Create(Of HashAlgorithm, String)(MD5.Create(), release.Md5))
+                If hashes.Count = 0 Then Throw New InvalidDataException("归档缺少校验摘要。")
+                Dim buffer(65535) As Byte
+                Do
+                    token.ThrowIfCancellationRequested()
+                    Dim count = lease.Read(buffer, 0, buffer.Length)
+                    If count = 0 Then Exit Do
+                    For Each hash In hashes : hash.Item1.TransformBlock(buffer, 0, count, buffer, 0) : Next
+                Loop
+                For Each hash In hashes
+                    hash.Item1.TransformFinalBlock(New Byte() {}, 0, 0)
+                    If Not String.Equals(BitConverter.ToString(hash.Item1.Hash).Replace("-", ""), hash.Item2, StringComparison.OrdinalIgnoreCase) Then Throw New InvalidDataException("整合包归档在下载后发生变化，请重试。")
+                Next
+                token.ThrowIfCancellationRequested()
+                Return ReadPackage(path, token)
+            Finally
+                For Each hash In hashes : hash.Item1.Dispose() : Next
+            End Try
+        End Using
+    End Function
     Public Shared Async Function InstallAsync(release As ModpackRelease, root As String, name As String, policy As SourcePolicy, pclDirectory As String, reuse As IEnumerable(Of String), progress As IProgress(Of TransferProgress), token As CancellationToken, Optional connections As Integer = 16, Optional limit As Long = 0, Optional javaPath As String = Nothing, Optional chooseOptional As Func(Of ModrinthPackage, CancellationToken, Task(Of IEnumerable(Of String))) = Nothing) As Task(Of InstallResult)
         release = release.Copy()
         token.ThrowIfCancellationRequested()
@@ -113,7 +145,7 @@ Public NotInheritable Class ModpackArchiveInstaller
                                                  End Sub)
         Dim path = Await AcquireAsync(release, root, policy, archiveProgress, token, connections, limit).ConfigureAwait(False)
         progress?.Report(New TransferProgress With {.Phase = "archive", .Stage = "整合包归档已校验", .StageFraction = 1, .NetworkBytes = archiveBytes, .Reused = archiveReused, .DynamicSplits = archiveSplits})
-        Dim parsed = Await Task.Run(Function() ReadPackage(path, token), token).ConfigureAwait(False)
+        Dim parsed = Await Task.Run(Function() ReadSelectedPackage(path, release, token), token).ConfigureAwait(False)
         token.ThrowIfCancellationRequested()
         Dim result As InstallResult
         If release.Platform = ModpackPlatform.Modrinth Then

@@ -78,6 +78,7 @@ function Test-PclDbCandidate {
     param([Parameter(Mandatory)][string]$ProjectRoot, [Parameter(Mandatory)][string]$CandidateResultPath)
     $result = Get-Content -LiteralPath $CandidateResultPath -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-PclDbCandidateVerification $result
+    Assert-PclDbEmbeddedAssemblies $result.EmbeddedAssemblies
     if (!$result.PSObject.Properties['ReleaseVersion'] -or
         $result.Succeeded -isnot [bool] -or !$result.Succeeded -or
         $result.ColdDirectoryContainsOnlyExe -isnot [bool] -or !$result.ColdDirectoryContainsOnlyExe -or $result.Version -notmatch '^\d+\.\d+\.\d+$' -or

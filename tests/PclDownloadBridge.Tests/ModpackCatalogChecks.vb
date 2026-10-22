@@ -317,6 +317,7 @@ Friend Module ModpackCatalogChecks
                 rejected = True
             End Try
             Check(rejected AndAlso Not Directory.Exists(Path.Combine(fixture.Root, "versions", "cf-mismatch")) AndAlso fixture.Server.Requests.Keys.All(Function(path) path = "/files/1234/567/client.zip"), "CF loader mismatch stops before game transfers and atomic instance publication", passed)
+            Await ArchiveHandoffChecksAsync(fixture, release, bytes, "overrides/config/cf.txt", "overrides/config/xx.txt", passed)
             release.Loaders = {"minecraft"}
             Dim result = Await ModpackArchiveInstaller.InstallAsync(release, fixture.Root, "cf-online", New ModrinthChecks.Policy(fixture.Server.Url), Nothing, {}, Nothing, CancellationToken.None)
             Check(File.ReadAllText(Path.Combine(result.InstancePath, "config", "cf.txt")) = "CF online preserved" AndAlso File.Exists(Path.Combine(result.InstancePath, "cf-online.json")), "CF ZIP acquisition enters the existing isolated importer and publishes atomically", passed)
@@ -334,6 +335,7 @@ Friend Module ModpackCatalogChecks
             Dim release As New ModpackRelease With {.Platform = ModpackPlatform.Modrinth, .ProjectId = "pack1", .Id = "remoteVersion", .Name = "Online fixture", .FileName = "archive.mrpack", .Url = "https://cdn.modrinth.com/archive.mrpack", .Size = bytes.Length, .Sha1 = ModrinthChecks.Hash(bytes), .Sha512 = ModrinthChecks.Hash(bytes, True), .GameVersions = {"1.20.1"}}
             Dim policy As New ModrinthChecks.Policy(fixture.Server.Url), archive = Await ModpackArchiveInstaller.AcquireAsync(release, fixture.Root, policy, Nothing, CancellationToken.None)
             Check(Not Directory.Exists(Path.Combine(fixture.Root, "versions")) AndAlso File.ReadAllBytes(archive).SequenceEqual(bytes), "archive acquisition verifies both hashes without creating a final instance", passed)
+            Await ArchiveHandoffChecksAsync(fixture, release, bytes, "overrides/config/online.txt", "overrides/config/swapxx.txt", passed)
             Dim mismatched = release.Copy() : mismatched.Loaders = {"fabric"}
             Dim loaderRejected = False, requestsBeforeLoaderCheck = fixture.Server.Requests.Values.Sum()
             Try
@@ -431,6 +433,49 @@ Friend Module ModpackCatalogChecks
                                                                                                                                                             End Sub), CancellationToken.None)
             Check(File.ReadAllText(Path.Combine(fabricResult.InstancePath, "mixed-fabric.json")).Contains("fixture.FabricLoader") AndAlso fabric.Loaders(0) = "forge", "mixed Fabric/Quilt labels install the exact Fabric manifest while caller mutations cannot change its snapshot", passed)
         End Using
+    End Function
+
+    Private Async Function ArchiveHandoffChecksAsync(fixture As InstallationChecks.InstallFixture, release As ModpackRelease, original As Byte(), oldEntry As String, newEntry As String, passed As List(Of String)) As Task
+        ' Change both ZIP directory names without changing entry bytes, CRCs or length.
+        ' The resulting pack is valid and compatible, but is not the selected release.
+        Dim replacement = DirectCast(original.Clone(), Byte()), before = Encoding.UTF8.GetBytes(oldEntry), after = Encoding.UTF8.GetBytes(newEntry), renamed As Integer
+        For offset = 0 To replacement.Length - before.Length
+            If replacement.Skip(offset).Take(before.Length).SequenceEqual(before) Then
+                Array.Copy(after, 0, replacement, offset, after.Length) : renamed += 1
+            End If
+        Next
+        Check(before.Length = after.Length AndAlso renamed = 2 AndAlso replacement.Length = original.Length, release.Platform.ToString() & " replacement fixture is a same-size ZIP with a changed override path", passed)
+        Dim policy As New ModrinthChecks.Policy(fixture.Server.Url)
+        Dim algorithms = If(release.Platform = ModpackPlatform.Modrinth, {"sha1", "sha512", "both"}, {"sha1", "md5"})
+        For Each algorithm In algorithms
+            Dim selected = release.Copy()
+            selected.Sha1 = If(algorithm = "sha1" OrElse algorithm = "both", ModrinthChecks.Hash(original), Nothing)
+            selected.Sha512 = If(algorithm = "sha512" OrElse algorithm = "both", ModrinthChecks.Hash(original, True), Nothing)
+            Using digest = System.Security.Cryptography.MD5.Create()
+                selected.Md5 = If(algorithm = "md5", BitConverter.ToString(digest.ComputeHash(original)).Replace("-", ""), Nothing)
+            End Using
+            Dim archive = Await ModpackArchiveInstaller.AcquireAsync(selected, fixture.Root, policy, Nothing, CancellationToken.None)
+            Dim requests = fixture.Server.Requests.Values.Sum(), changed = False, rejected = False, optionalShown = False
+            Dim name = "handoff-" & release.Platform.ToString() & "-" & algorithm
+            Try
+                Await ModpackArchiveInstaller.InstallAsync(selected, fixture.Root, name, policy, Nothing, {}, New ModrinthChecks.Progress(Sub(value)
+                    If value.Stage = "整合包归档已校验" Then
+                        File.WriteAllBytes(archive, replacement) : changed = True
+                    End If
+                End Sub), CancellationToken.None, chooseOptional:=Function(package, token)
+                    optionalShown = True
+                    Return Task.FromResult(Enumerable.Empty(Of String)())
+                End Function)
+            Catch ex As InvalidDataException
+                rejected = True
+            End Try
+            Check(changed AndAlso rejected AndAlso Not optionalShown AndAlso Not Directory.Exists(Path.Combine(fixture.Root, "versions", name)) AndAlso fixture.Server.Requests.Values.Sum() = requests,
+                release.Platform.ToString() & " " & algorithm & " rejects replacement between acquisition and parsing before selection, game transfers or publication", passed)
+            ' A rejected handoff must leave neither a held archive handle nor a poisoned retry.
+            Dim restored = Await ModpackArchiveInstaller.AcquireAsync(selected, fixture.Root, policy, Nothing, CancellationToken.None)
+            Check(File.ReadAllBytes(restored).SequenceEqual(original) AndAlso ModpackArchiveInstaller.ReadPackage(restored, CancellationToken.None) IsNot Nothing,
+                release.Platform.ToString() & " " & algorithm & " handoff failure releases the file and reacquires the selected archive on retry", passed)
+        Next
     End Function
 
     Friend Async Function LiveAsync(root As String, Optional install As Boolean = False) As Task

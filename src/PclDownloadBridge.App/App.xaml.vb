@@ -25,6 +25,10 @@ Partial Public Class App
             Return
         End If
         AddHandler DispatcherUnhandledException, Sub(sender, args)
+                                                    If UiCheckRunner.TryCaptureDispatcherFailure(args.Exception) Then
+                                                        args.Handled = True
+                                                        Return
+                                                    End If
                                                     Dim snapshotIndex = Array.IndexOf(e.Args, "--snapshot")
                                                     If snapshotIndex >= 0 AndAlso e.Args.Length > snapshotIndex + 1 Then
                                                         File.WriteAllText(e.Args(snapshotIndex + 1) & ".error.log", args.Exception.ToString())
@@ -45,8 +49,6 @@ Partial Public Class App
         Dim packSearchChecks = Array.IndexOf(e.Args, "--pack-search-checks")
         Dim compatibilityChecks = Array.IndexOf(e.Args, "--compatibility-checks")
         Dim developerChecks = Array.IndexOf(e.Args, "--developer-checks")
-        Dim window As New MainWindow(preview >= 0 OrElse checks >= 0 OrElse appearanceChecks >= 0 OrElse cardChecks >= 0 OrElse navigationChecks >= 0 OrElse motionChecks >= 0 OrElse controlMotionChecks >= 0 OrElse compatibilityChecks >= 0 OrElse developerChecks >= 0 OrElse packSearchChecks >= 0)
-        MainWindow = window
         Dim checkIndex = {checks, appearanceChecks, cardChecks, navigationChecks, motionChecks, controlMotionChecks, compatibilityChecks, developerChecks, packSearchChecks}.Where(Function(value) value >= 0).DefaultIfEmpty(-1).First()
         If checkIndex >= 0 AndAlso e.Args.Length > checkIndex + 1 Then
             Dim scope = If(checks >= 0, "all", If(appearanceChecks >= 0, "appearance", If(cardChecks >= 0, "cards", If(navigationChecks >= 0, "navigation", If(compatibilityChecks >= 0, "compatibility", "developer")))))
@@ -55,29 +57,33 @@ Partial Public Class App
             If checkIndex = packSearchChecks Then scope = "pack-search"
             Shutdown(UiCheckRunner.Run(e.Args(checkIndex + 1), scope,
                 Sub(directory, passed)
+                    Dim checkWindow As New MainWindow(True)
+                    MainWindow = checkWindow
                     If scope = "pack-search" Then
-                        window.VerifyPackSearchUi(directory, passed)
-                        window.VerifyPackPagingUi(directory, passed)
+                        checkWindow.VerifyPackSearchUi(directory, passed)
+                        checkWindow.VerifyPackPagingUi(directory, passed)
                     ElseIf scope = "all" Then
-                        window.VerifyUi(directory, passed)
+                        checkWindow.VerifyUi(directory, passed)
                     ElseIf scope = "appearance" Then
-                        window.VerifyAppearanceUi(directory, passed)
+                        checkWindow.VerifyAppearanceUi(directory, passed)
                     ElseIf scope = "cards" Then
-                        window.VerifyCardUi(directory, passed)
+                        checkWindow.VerifyCardUi(directory, passed)
                     ElseIf scope = "navigation" Then
-                        window.VerifyNavigationUi(directory, passed)
+                        checkWindow.VerifyNavigationUi(directory, passed)
                     ElseIf scope = "motion" Then
-                        window.VerifyMotionUi(directory, passed)
+                        checkWindow.VerifyMotionUi(directory, passed)
                     ElseIf scope = "control-motion" Then
-                        window.VerifyControlMotionUi(directory, passed)
+                        checkWindow.VerifyControlMotionUi(directory, passed)
                     ElseIf scope = "developer" Then
-                        window.VerifyDeveloperUi(directory, passed)
+                        checkWindow.VerifyDeveloperUi(directory, passed)
                     Else
-                        window.VerifyCompatibilityUi(directory, passed)
+                        checkWindow.VerifyCompatibilityUi(directory, passed)
                     End If
                 End Sub))
             Return
         End If
+        Dim window As New MainWindow(preview >= 0 OrElse checkIndex >= 0)
+        MainWindow = window
         If preview >= 0 AndAlso e.Args.Length > preview + 1 Then
             Dim pageIndex = Array.IndexOf(e.Args, "--page")
             If pageIndex >= 0 AndAlso e.Args.Length > pageIndex + 1 Then window.PreviewPage(e.Args(pageIndex + 1))
