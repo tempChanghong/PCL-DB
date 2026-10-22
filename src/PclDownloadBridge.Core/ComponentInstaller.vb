@@ -26,7 +26,8 @@ Public Class ComponentInstaller
     Private ReadOnly _processorClock As Stopwatch = Stopwatch.StartNew()
     Private _lastProcessorReport As Long
     Public Sub New(policy As SourcePolicy, selection As ComponentSelection, root As String, reuse As IEnumerable(Of String), progress As IProgress(Of TransferProgress), connections As Integer, limit As Long, Optional budget As DownloadBudget = Nothing)
-        _policy = policy : _selection = selection : _root = root : _progress = progress
+        If selection Is Nothing Then Throw New ArgumentNullException(NameOf(selection))
+        _policy = policy : _selection = selection.Copy() : _root = root : _progress = progress
         _reuse = reuse.Concat({root}).Distinct(StringComparer.OrdinalIgnoreCase).ToList()
         _connections = connections : _limit = limit : _budget = budget
     End Sub

@@ -33,6 +33,11 @@ Public Class VersionEntry
     Public Property Released As DateTimeOffset
     ' Original UVMC catalogue ID. Id is the verified canonical Minecraft metadata ID.
     Public Property SupplementalId As String
+    Public Function Copy() As VersionEntry
+        ' Every stored field is a value or immutable string. Keep the identity,
+        ' origin and checksum bound to this request across asynchronous stages.
+        Return DirectCast(MemberwiseClone(), VersionEntry)
+    End Function
     Public ReadOnly Property IsSupplemental As Boolean
         Get
             Return SupplementalId IsNot Nothing

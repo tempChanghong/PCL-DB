@@ -23,6 +23,9 @@ Public Class MinecraftInstaller
     Public Async Function InstallAsync(entry As VersionEntry, root As String, instanceName As String, reuseRoots As IEnumerable(Of String), progress As IProgress(Of TransferProgress), token As CancellationToken, Optional repairExisting As Boolean = False, Optional connections As Integer = 16, Optional limit As Long = 0, Optional components As ComponentSelection = Nothing, Optional isolationMode As InstanceIsolationMode = InstanceIsolationMode.FollowPcl) As Task(Of InstallResult)
         token.ThrowIfCancellationRequested()
         If Not [Enum].IsDefined(GetType(InstanceIsolationMode), isolationMode) Then Throw New ArgumentOutOfRangeException(NameOf(isolationMode))
+        If entry Is Nothing Then Throw New ArgumentNullException(NameOf(entry))
+        If reuseRoots Is Nothing Then Throw New ArgumentNullException(NameOf(reuseRoots))
+        entry = entry.Copy()
         InstallPreflight.ValidateDestination(root, instanceName, repairExisting)
         If components IsNot Nothing Then
             components = components.Copy()
@@ -30,6 +33,10 @@ Public Class MinecraftInstaller
             components.Validate(entry.Id)
             If repairExisting AndAlso components.Entries.Count > 0 Then Throw New InvalidOperationException("组件安装请使用新实例名称；原版校验不会修改加载器实例。")
         End If
+        ' Snapshot caller-owned choices once, before any progress callback or
+        ' await can expose this task to catalogue/list changes. Content reuse is
+        ' still validated later; this captures directories, never trusted bytes.
+        reuseRoots = reuseRoots.ToList()
         root = Path.GetFullPath(root)
         Directory.CreateDirectory(root)
         Dim cache = SafeFiles.UnderRoot(root, ".vanilla-downloader/install.lock")

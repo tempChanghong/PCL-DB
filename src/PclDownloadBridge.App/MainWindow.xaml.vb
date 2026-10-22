@@ -694,7 +694,7 @@ Partial Public Class MainWindow
             StatusText.Text = installProblem
             Return
         End If
-        Dim entry = _selectedEntry
+        Dim entry = _selectedEntry?.Copy()
         If entry Is Nothing Then
             StatusText.Text = "请先选择 Minecraft 版本。"
             Return

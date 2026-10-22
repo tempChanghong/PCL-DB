@@ -26,6 +26,11 @@ Public Class ComponentEntry
     Public Property Size As Long = -1
     Public Property RequiredForge As String
     Public Property Data As JObject
+    Public Function Copy() As ComponentEntry
+        Dim result = DirectCast(MemberwiseClone(), ComponentEntry)
+        result.Data = DirectCast(Data?.DeepClone(), JObject)
+        Return result
+    End Function
     Public ReadOnly Property Title As String
         Get
             Return If(Kind = ComponentKind.FabricApi OrElse Kind = ComponentKind.OptiFabric, CStr(Data?("name")), Version)
@@ -39,7 +44,8 @@ Public Class ComponentSelection
     Public Function Copy() As ComponentSelection
         Dim result As New ComponentSelection With {.JavaPath = JavaPath}
         For Each pair As KeyValuePair(Of ComponentKind, ComponentEntry) In Entries
-            result.Entries.Add(pair.Key, pair.Value)
+            If pair.Value Is Nothing Then Throw New InvalidDataException("组件条目不能为空。")
+            result.Entries.Add(pair.Key, pair.Value.Copy())
         Next
         Return result
     End Function

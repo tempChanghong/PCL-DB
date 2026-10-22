@@ -64,6 +64,7 @@ try {
     if ($Full) {
         $runs += Invoke-OfflineProfile $testProject 'Offline All'
     } else {
+        $runs += Invoke-OfflineProfile $testProject 'Install Inputs'
         $runs += Invoke-OfflineProfile $testProject 'Isolation Boundaries'
         $runs += Invoke-OfflineProfile $testProject 'Isolation Options'
         $runs += Invoke-OfflineProfile $testProject 'Isolation Resources'

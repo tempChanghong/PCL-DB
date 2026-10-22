@@ -2,6 +2,15 @@
 
 日期：2026-10-22（北京时间）。最新发布为 PCL-DB Beta 1.0（`1.0.0-beta.1`），当前主分支另含尚未发布的后续修复；下方保留先前版本的验证记录。
 
+## Beta 1.0 后续修复：任务输入固定与更新后重试
+
+- 基线 `5286a5d97888f5a8698cc94ce34be7a02cd23f17`；源码备份和保护快照位于 `artifacts/beta1-install-inputs/`。先以原生产代码复现：组件复制仍引用原条目（baseline-copy.log），元数据阶段修改原附加组件名导致意外共享 Mod 冲突（baseline-components.log），最后提交时修改原版本 ID 导致 clientVersion 写入新值（baseline-version.log），读取前修改版本 ID 则拒绝原本有效的请求（baseline-version-prepare.log），清空原复用列表导致重复下载支持库（baseline-roots.log），独立组件安装器读取构造后被清空的选择而丢失组件（baseline-direct.log）。
+- 应用提交固定版本条目；核心在首次回调/await 前复制版本条目、组件条目及嵌套 JSON，并将复用目录枚举一次保存。独立组件安装器也复制自己的选择。版本身份、源 URL/摘要、组件文件名/校验/元数据及 Java 选择在本任务中保持，下一任务读取调用方当前选择。复制不回写目录缓存或调用方对象，复用文件仍需重新校验；已有实例隔离和原始配置保护不变。
+- 新增 **71 项**专项（input-checks.log），提供 VS 配置 **Install Inputs**：七种组件的条目/嵌套对象独立与全字段保留、共享/隔离安装中的文件名/完整性/加载器变化、LiteLoader 元数据变化、版本 ID 与元数据 URL/摘要变化、一次性枚举与目录列表变化、损坏源 HTTP 回退且不改写源文件、独立构造后的选择变化、取消后按新文件名零载荷重试、已有实例 UTF-16/只读 INI 与 JSON 保留、非法参数在目录创建和网络请求前失败。使用同步进度回调控制修改时点，不依赖线程睡眠、监视器竞态或生产测试钩子。
+- 不带参数的默认 build.ps1 通过完整核心 **1728 项**、界面 **668 项**、动画 **328 项**及固定源码对照 **17 项**（default-build.log），未进入打包分支。VS 2026 Debug / portable PDB 最终精选核心 **1352 项**、界面 **668 项**、动画 **328 项**通过（vs2026.log / vs2026-report.json），Release 与 Debug 构建均零警告/零错误；新增诊断后另以 Release 复核界面、动画与固定源码对照。
+- 首轮 VS Debug 动画检查在已通过 280 项后，于选中标记调整高度的时间线断言失败；原报告与日志保存在 vs-motion-failed.json、vs2026-first-failure.log。未改变动画生产代码或放宽断言；增加标记实际高度、组/子时钟和曲线采样的 JSON 诊断，独立诊断及最终 Release/Debug 复核均通过。首次失败的数值与原因尚未确定，不能记为已修复的动画缺陷，也未增加自动重试或跳过失败机制。
+- dist 的 **78 个文件**内容/长度/修改时间、七个参考仓库提交/工作区状态和 Beta 标签保持，保护报告为 preservation.json。仅使用回环 HTTP、临时文件和隔离 WPF，未进行真实 CDN、真实 OptiFine 处理器或游戏启动验收；本轮本地 Commit，暂不打包、发版或推送。
+
 ## Beta 1.0 后续修复：三态隔离的共享 Mods、补全与取消重试
 
 - 基线 `0dbba70ac2c16642efb2489803e4364326035216`；源码备份与分发/参考仓库保护快照位于 `artifacts/beta1-isolation-audit/`。先以未修改的生产代码分别复现三处问题：baseline-snapshot.log 的暂存 Mod 在已有摘要校验后仍可被改写并记为新的可信摘要；baseline-mods.log 中较早发布的共享 Mod 可在后续步骤期间被改写，安装仍正常返回；baseline-display.log 中已有实例 `DisplayType:2` 在全局策略 1 下错误选择共享旧资源目录。

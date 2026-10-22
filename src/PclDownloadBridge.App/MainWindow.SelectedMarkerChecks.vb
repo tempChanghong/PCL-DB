@@ -142,6 +142,13 @@ Partial Public Class MainWindow
         check(replacement IsNot selected AndAlso Math.Abs(heightPlan.Sample(0) - originHeight) < 0.00001 AndAlso Math.Abs(heightPlan.Sample(300) - 54) < 0.00001,
             "resizing during marker entry retargets from the displayed height to the new row geometry")
         seek(replacement, 100)
+        IO.File.WriteAllText(IO.Path.Combine(directory, "selected-marker-retarget-clock.json"), New JObject From {
+            {"height", marker.Height}, {"actualHeight", marker.ActualHeight}, {"rowHeight", row.ActualHeight},
+            {"groupTime", replacement.CurrentTime?.TotalMilliseconds}, {"childTime", replacement.Children(0).CurrentTime?.TotalMilliseconds},
+            {"groupPaused", replacement.IsPaused}, {"childPaused", replacement.Children(0).IsPaused},
+            {"sameClock", row.SelectionTransition Is replacement}, {"origin", heightPlan.Sample(0)}, {"target", heightPlan.Sample(300)},
+            {"groupExpected", heightPlan.Sample(replacement.CurrentTime.Value.TotalMilliseconds)},
+            {"childExpected", heightPlan.Sample(replacement.Children(0).CurrentTime.Value.TotalMilliseconds)}}.ToString())
         check(Math.Abs(marker.Height - heightPlan.Sample(replacement.CurrentTime.Value.TotalMilliseconds)) < 0.00001,
             "a resized marker continues on the original parallel source curves")
         selected.Controller.SkipToFill() : layout()

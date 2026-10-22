@@ -1,5 +1,11 @@
 {
   "profiles": {
+    "Install Inputs": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression install-input-all",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
     "Isolation Boundaries": {
       "commandName": "Project",
       "commandLineArgs": "--regression install-boundary-all",
