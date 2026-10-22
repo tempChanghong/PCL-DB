@@ -76,6 +76,8 @@ Friend Module ModrinthChecks
         If onlyCase Is Nothing OrElse onlyCase = "modrinth-all" OrElse onlyCase = "modrinth-package" Then Packages(root, passed)
         If onlyCase Is Nothing OrElse onlyCase = "modrinth-all" OrElse onlyCase = "modrinth-download" Then Await DownloadsAsync(root, passed)
         If onlyCase Is Nothing OrElse onlyCase = "modrinth-all" OrElse onlyCase = "modrinth-install" Then Await InstallsAsync(root, passed)
+        If onlyCase Is Nothing OrElse onlyCase = "modrinth-all" OrElse onlyCase = "modrinth-isolation" Then Await IsolationPublicationAsync(root, passed)
+        If onlyCase Is Nothing OrElse onlyCase = "modrinth-all" OrElse onlyCase = "modrinth-choices" Then Await OptionalTopologyAsync(root, passed)
         If passed.Count = 0 Then Throw New ArgumentException("Unknown Modrinth regression: " & onlyCase)
         Return passed
     End Function
@@ -133,6 +135,61 @@ Friend Module ModrinthChecks
             Check(ModrinthPackage.Read(Pack(root, "loader-" & loader, value)).LoaderKind.HasValue, "MR recognizes PCL dependency identifier " & loader, passed)
         Next
     End Sub
+    Private Async Function IsolationPublicationAsync(root As String, passed As List(Of String)) As Task
+        For Each mode In {"disabled", "missing", "legacy", "duplicate", "malformed", "case-only"}
+            Using fixture As New InstallationChecks.InstallFixture(root, "mr-isolation-" & mode)
+                Configure(fixture)
+                Dim package = ModrinthPackage.Read(Pack(root, "isolation-" & mode, Manifest(False), New Dictionary(Of String, String) From {{"overrides/config/fixture.txt", "config"}}))
+                Dim globalIni = Path.Combine(fixture.Root, "PCL", "Setup.ini"), globalText = "LaunchArgumentIndieV2:0" & vbCrLf & "UserSetting:keep"
+                Directory.CreateDirectory(Path.GetDirectoryName(globalIni)) : File.WriteAllText(globalIni, globalText)
+                Dim rejected = False, installer As New ModrinthInstaller(New Policy(fixture.Server.Url))
+                Try
+                    Await installer.InstallAsync(package, fixture.Root, "pack", {}, {}, New Progress(Sub(value)
+                        If value.Stage <> "完成安装" Then Return
+                        Dim stage = Directory.EnumerateDirectories(Path.Combine(fixture.Root, ".vanilla-downloader", "staging")).Single()
+                        Dim target = Path.Combine(stage, "payload", "PCL", "Setup.ini")
+                        Select Case mode
+                            Case "disabled" : File.WriteAllText(target, "VersionArgumentIndie:2" & vbCrLf & "VersionArgumentIndieV2:False")
+                            Case "missing" : File.Delete(target)
+                            Case "legacy" : File.WriteAllText(target, "VersionArgumentIndie:2" & vbCrLf & "VersionArgumentIndieV2:True")
+                            Case "duplicate" : File.AppendAllText(target, "VersionArgumentIndieV2:False" & vbCrLf)
+                            Case "malformed" : File.WriteAllText(target, "VersionArgumentIndie:1" & vbCrLf & "VersionArgumentIndieV2:invalid")
+                            Case "case-only" : File.WriteAllText(target, "versionargumentindie:1" & vbCrLf & "versionargumentindiev2:True")
+                        End Select
+                    End Sub), CancellationToken.None, connections:=4)
+                Catch ex As Exception When TypeOf ex Is IOException OrElse TypeOf ex Is InvalidDataException
+                    rejected = True
+                End Try
+                Check(rejected AndAlso Not Directory.Exists(Path.Combine(fixture.Root, "versions", "pack")), "MR publication rejects changed generated isolation without a packaged INI: " & mode, passed)
+                Check(File.ReadAllText(globalIni) = globalText, "MR isolation publication failure preserves global settings: " & mode, passed)
+                Dim retry = Await installer.InstallAsync(package, fixture.Root, "pack", {}, {}, Nothing, CancellationToken.None, connections:=4)
+                Check(retry.NetworkBytes = 0 AndAlso PclFolders.ReadIniValue(Path.Combine(retry.InstancePath, "PCL", "Setup.ini"), "VersionArgumentIndieV2") = "True", "MR isolation failure retries with verified content and regenerated settings: " & mode, passed)
+            End Using
+        Next
+    End Function
+    Private Async Function OptionalTopologyAsync(root As String, passed As List(Of String)) As Task
+        For Each mode In {"none", "parent", "child", "both"}
+            Using fixture As New InstallationChecks.InstallFixture(root, "mr-topology-" & mode)
+                Configure(fixture)
+                Dim manifest = ModrinthChecks.Manifest(False)
+                manifest("files")(1)("path") = "config/feature"
+                manifest("files")(2)("path") = "config/feature/settings.json" : manifest("files")(2)("env")("client") = "optional"
+                Dim package = ModrinthPackage.Read(Pack(root, "topology-" & mode, manifest))
+                Dim choices = If(mode = "none", New String() {}, If(mode = "parent", {"config/feature"}, If(mode = "child", {"config/feature/settings.json"}, {"config/feature", "config/feature/settings.json"})))
+                Dim rejected = False, result As InstallResult = Nothing
+                Try
+                    result = Await New ModrinthInstaller(New Policy(fixture.Server.Url)).InstallAsync(package, fixture.Root, "pack", {}, choices, Nothing, CancellationToken.None)
+                Catch ex As InvalidDataException
+                    rejected = True
+                End Try
+                If mode = "both" Then
+                    Check(rejected AndAlso Not Directory.Exists(fixture.Root) AndAlso fixture.Server.Requests.Count = 0, "MR mutually conflicting optional choices stop before network or game writes", passed)
+                Else
+                    Check(Not rejected AndAlso result IsNot Nothing AndAlso File.Exists(Path.Combine(result.InstancePath, "mods", "required.jar")), "MR unselected optional topology does not block valid client installation: " & mode, passed)
+                End If
+            End Using
+        Next
+    End Function
     Private Sub Reject(action As Action, label As String, passed As List(Of String))
         Dim rejected = False
         Try

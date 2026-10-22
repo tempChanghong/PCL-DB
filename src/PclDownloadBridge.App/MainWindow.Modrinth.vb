@@ -39,24 +39,49 @@ Partial Public Class MainWindow
     End Sub
     Private Sub SelectModrinthPackage(package As ModrinthPackage, Optional navigate As Boolean = True, Optional request As System.Threading.CancellationTokenSource = Nothing)
         If _packReadCancellation IsNot request Then CancelPackRead()
+        Dim sameArchive = _modrinthSelection IsNot Nothing AndAlso _modrinthSelection.Sha256 = package.Sha256
+        Dim editedName = ModrinthInstanceName.Text
+        Dim selected As New HashSet(Of String)(If(sameArchive, ModrinthOptionalFiles.Children.OfType(Of PclCheckBox)().Where(Function(box) box.IsChecked.GetValueOrDefault()).Select(Function(box) CStr(box.Tag)), Enumerable.Empty(Of String)()), StringComparer.OrdinalIgnoreCase)
         _modrinthSelection = package : _activeModrinth = True
-        ModrinthInstanceName.Text = package.Name
-        Dim required = package.References.Where(Function(item) item.Client = "required").ToArray(), optionalFiles = package.References.Where(Function(item) item.Client = "optional").ToArray()
-        ModrinthSummary.Text = package.Name & " · " & package.Version & vbCrLf & "Minecraft " & package.Minecraft &
-            If(package.LoaderKind.HasValue, " + " & package.LoaderKind.ToString() & " " & package.LoaderVersion, "") & vbCrLf &
-            required.Length & " 个必需文件 · " & optionalFiles.Length & " 个可选文件 · " & package.OverrideFiles.Count & " 个附带文件" & vbCrLf &
-            "预计下载 " & FormatBytes(required.Sum(Function(item) item.EstimatedSize)) & "（不含游戏与加载器）"
+        ModrinthInstanceName.Text = If(sameArchive, editedName, package.Name)
+        ModrinthPackTitle.Text = package.Name & " · " & package.Version : ModrinthPackTitle.ToolTip = ModrinthPackTitle.Text
+        ModrinthDescription.Text = package.Summary : ModrinthDescription.ToolTip = package.Summary
+        ModrinthDescription.Visibility = If(String.IsNullOrWhiteSpace(package.Summary), Visibility.Collapsed, Visibility.Visible)
+        Dim optionalFiles = package.References.Where(Function(item) item.Client = "optional").ToArray()
         ModrinthSource.Text = package.SourcePath : ModrinthSource.ToolTip = package.SourcePath
         ModrinthOptionalFiles.Children.Clear()
+        Dim basenameCounts = optionalFiles.GroupBy(Function(item) IO.Path.GetFileName(item.Path), StringComparer.OrdinalIgnoreCase).ToDictionary(Function(items) items.Key, Function(items) items.Count(), StringComparer.OrdinalIgnoreCase)
         For Each reference In optionalFiles
-            ModrinthOptionalFiles.Children.Add(New PclCheckBox With {.Content = reference.Path & "（可选 · " & FormatBytes(reference.EstimatedSize) & "）", .Tag = reference.Path, .Margin = New Thickness(0, 0, 0, 6)})
+            Dim basename = IO.Path.GetFileName(reference.Path)
+            Dim label = If(basenameCounts(basename) > 1, reference.Path, basename)
+            Dim box As New PclCheckBox With {.Content = label, .Tag = reference.Path, .IsChecked = selected.Contains(reference.Path),
+                .ToolTip = reference.Path & vbCrLf & "预计大小：" & FormatBytes(reference.EstimatedSize), .Margin = New Thickness(0, 0, 0, 6)}
+            Dim update As RoutedEventHandler = Sub()
+                                                  If _modrinthSelection IsNot package Then Return
+                                                  _activeModrinth = True : RefreshModrinthSummary()
+                                              End Sub
+            AddHandler box.Checked, update : AddHandler box.Unchecked, update
+            ModrinthOptionalFiles.Children.Add(box)
         Next
+        ModrinthOptionalHeader.Visibility = If(optionalFiles.Length > 0, Visibility.Visible, Visibility.Collapsed)
+        RefreshModrinthSummary()
         ModrinthOptionsCard.Visibility = Visibility.Visible : RefreshPackAvailability()
         If navigate Then
             SetDownloadView(DownloadView.Modpacks) : SwitchMainPage(False)
         End If
-        ModrinthReadStatus.Text = "清单已读取。按清单地址下载，校验 SHA-1 与 SHA-512；无需查询文件信息。"
+        ModrinthReadStatus.Text = "清单已读取。确认实例名称和可选文件后即可安装。"
         If navigate Then ModrinthCard.BringIntoView()
+    End Sub
+    Private Sub RefreshModrinthSummary()
+        Dim package = _modrinthSelection
+        If package Is Nothing Then Return
+        Dim selected As New HashSet(Of String)(ModrinthOptionalFiles.Children.OfType(Of PclCheckBox)().Where(Function(box) box.IsChecked.GetValueOrDefault()).Select(Function(box) CStr(box.Tag)), StringComparer.OrdinalIgnoreCase)
+        Dim required = package.References.Where(Function(item) item.Client = "required").ToArray()
+        Dim optionalFiles = package.References.Where(Function(item) item.Client = "optional").ToArray()
+        Dim chosen = optionalFiles.Where(Function(item) selected.Contains(item.Path)).ToArray()
+        ModrinthSummary.Text = "Minecraft " & package.Minecraft & If(package.LoaderKind.HasValue, " + " & package.LoaderKind.ToString() & " " & package.LoaderVersion, "") & vbCrLf &
+            required.Length & " 个必需文件 · " & If(optionalFiles.Length > 0, "已选 " & chosen.Length & " / " & optionalFiles.Length & " 个可选文件", "无可选文件") & " · " & package.OverrideFiles.Count & " 个附带文件" & vbCrLf &
+            "预计下载 " & FormatBytes(required.Sum(Function(item) item.EstimatedSize) + chosen.Sum(Function(item) item.EstimatedSize)) & "（不含游戏与加载器）"
     End Sub
     Private Shared Function IsPackFile(path As String) As Boolean
         Return {".zip", ".mrpack"}.Contains(IO.Path.GetExtension(path), StringComparer.OrdinalIgnoreCase)

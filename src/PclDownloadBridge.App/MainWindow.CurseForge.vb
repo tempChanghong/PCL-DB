@@ -132,6 +132,7 @@ Partial Public Class MainWindow
             Dim file = Await resolver.ResolveFileAsync(reference, package.Minecraft, request.Token)
             If Not CurrentPackRead(package, request) Then Return
             box.Content = IO.Path.GetFileName(file.Download.RelativePath) & "（可选）"
+            box.ToolTip = file.Download.RelativePath
             box.IsEnabled = True
         Catch ex As Exception When Not TypeOf ex Is OperationCanceledException
             If Not CurrentPackRead(package, request) Then Return

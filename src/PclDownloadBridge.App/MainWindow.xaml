@@ -166,13 +166,16 @@
                       </Grid>
                       <TextBlock x:Name="ModrinthReadStatus" Text="也可以将整合包文件直接拖入窗口。" TextWrapping="Wrap" FontSize="12" Opacity="0.65" Margin="0,12,0,0"/>
                       <StackPanel x:Name="ModrinthOptionsCard" Visibility="Collapsed" Margin="0,18,0,0">
-                        <TextBlock x:Name="ModrinthSummary" TextWrapping="Wrap"/>
+                        <TextBlock x:Name="ModrinthPackTitle" FontSize="14" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock x:Name="ModrinthDescription" FontSize="12" Foreground="{DynamicResource ColorBrushGray3}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" LineHeight="16" MaxHeight="48" Margin="0,5,0,0"/>
+                        <TextBlock x:Name="ModrinthSummary" FontSize="12" Foreground="{DynamicResource ColorBrushGray3}" TextWrapping="Wrap" LineHeight="16" Margin="0,6,0,0" ToolTip="下载内容同时校验 SHA-1 和 SHA-512。预计下载量不含游戏和加载器，也未扣除可复用的本地文件。"/>
                         <TextBlock x:Name="ModrinthSource" FontSize="12" Opacity="0.6" TextTrimming="CharacterEllipsis" Margin="0,7,0,15"/>
                         <TextBlock Text="实例名称" Margin="0,0,0,7"/>
                         <p:PclTextBox x:Name="ModrinthInstanceName" Height="30" MaxLength="70" ShowValidateResult="False" ToolTip="Modrinth 整合包实例名称"/>
                         <p:PclHint x:Name="ModrinthNameHint" Visibility="Collapsed" Margin="0,9,0,0"/>
-                        <StackPanel x:Name="ModrinthOptionalFiles" Margin="0,12,0,0"/>
-                        <TextBlock Text="按清单指定版本安装，并开启版本隔离。下载内容校验 SHA-1 与 SHA-512；保留包内配置、脚本、资源包和光影。" TextWrapping="Wrap" FontSize="12" Opacity="0.6" Margin="0,10,0,15"/>
+                        <TextBlock x:Name="ModrinthOptionalHeader" Text="可选文件" FontSize="13" Margin="0,12,0,7" Visibility="Collapsed"/>
+                        <StackPanel x:Name="ModrinthOptionalFiles"/>
+                        <TextBlock Text="将创建新的隔离实例，保留包内配置、资源包和光影。取消后可重试，已校验文件会复用。" TextWrapping="Wrap" FontSize="12" Opacity="0.6" Margin="0,10,0,15"/>
                         <p:PclButton x:Name="ModrinthInstallButton" Text="开始安装" Width="120" Height="32" HorizontalAlignment="Right" Click="StartInstall" ToolTipService.ShowOnDisabled="True"/>
                       </StackPanel>
                     </StackPanel>

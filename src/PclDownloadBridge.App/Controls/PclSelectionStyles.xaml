@@ -104,7 +104,7 @@
     <Setter Property="Cursor" Value="Hand"/>
     <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="p:PclCheckBox">
       <Grid Background="{StaticResource ColorBrushSemiTransparent}" SnapsToDevicePixels="False" UseLayoutRounding="False">
-        <AccessText x:Name="Label" Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" IsHitTestVisible="False" Margin="26,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+        <TextBlock x:Name="Label" Text="{TemplateBinding Content}" FontSize="13" TextTrimming="CharacterEllipsis" Foreground="{TemplateBinding Foreground}" IsHitTestVisible="False" Margin="26,0,0,0" HorizontalAlignment="Stretch" VerticalAlignment="Center"/>
         <Border x:Name="ShapeBorder" IsHitTestVisible="False" BorderThickness="1.1" HorizontalAlignment="Left" VerticalAlignment="Center" Width="18" Height="18" BorderBrush="{DynamicResource ColorBrush1}" CornerRadius="3" Margin="1,0,0,0" Background="{DynamicResource ColorBrushHalfWhite}"/>
         <Path x:Name="ShapeCheck" IsHitTestVisible="False" HorizontalAlignment="Left" VerticalAlignment="Center" Fill="{Binding BorderBrush, ElementName=ShapeBorder}" Width="12" Height="12" Margin="4,0,0,0" Data="M0,6L1.5,4.5 4.5,7.5 10.5,1.5 12,3 4.5,10.5 0,6z">
           <Path.RenderTransform><ScaleTransform CenterX="6" CenterY="6" ScaleX="0" ScaleY="0"/></Path.RenderTransform>

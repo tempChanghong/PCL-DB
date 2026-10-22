@@ -1,5 +1,6 @@
 Imports System.IO
 Imports System.Text
+Imports System.Threading
 Imports Newtonsoft.Json.Linq
 
 Public Enum InstanceIsolationMode
@@ -83,6 +84,20 @@ Friend NotInheritable Class PclIsolationPlan
         Dim target = SafeFiles.UnderRoot(stage, "PCL/Setup.ini")
         Directory.CreateDirectory(Path.GetDirectoryName(target))
         File.WriteAllText(target, "VersionArgumentIndie:" & If(Isolated, "1", "2") & vbCrLf & "VersionArgumentIndieV2:" & Isolated.ToString() & vbCrLf, New UTF8Encoding(False))
+    End Sub
+    Friend Shared Sub ValidatePackSettings(stage As String, token As CancellationToken)
+        ' CopyOverrideDirectory in pinned PCL forces both old and V2 isolation.
+        ' A generated INI needs this check even when the pack supplies no INI to hash.
+        token.ThrowIfCancellationRequested()
+        Dim bytes As Byte()
+        Using input As New FileStream(SafeFiles.UnderRoot(stage, "PCL/Setup.ini"), FileMode.Open, FileAccess.Read, FileShare.Read), buffer As New MemoryStream()
+            If input.Length > 2 * 1024 * 1024 Then Throw New InvalidDataException("整合包隔离设置过大，请重试安装。")
+            input.CopyTo(buffer) : bytes = buffer.ToArray()
+        End Using
+        token.ThrowIfCancellationRequested()
+        Dim legacy As Integer, enabled As Boolean
+        If Not Integer.TryParse(ReadValue(bytes, "VersionArgumentIndie"), legacy) OrElse legacy <> 1 OrElse
+            Not Boolean.TryParse(ReadValue(bytes, "VersionArgumentIndieV2"), enabled) OrElse Not enabled Then Throw New InvalidDataException("整合包隔离设置在发布前发生变化，请重试安装。")
     End Sub
     Private Function ReadInput(root As String, relative As String) As Input
         Dim path = SafeFiles.UnderRoot(root, relative)

@@ -62,7 +62,7 @@ try {
         if ($document.Name -notin @('LICENCE','README.md','SOURCE_REFERENCES.md','THIRD_PARTY_NOTICES.md','VALIDATION.md','PATCH_MECHANISMS.md','VS2026_DEBUG.md')) { throw 'Unexpected embedded document.' }
         if ((Get-FileHash -LiteralPath (Join-Path $root $document.Name) -Algorithm SHA256).Hash -ne $document.SHA256) { throw "Embedded documentation differs from source: $($document.Name)" }
     }
-    $ui = Invoke-IsolatedCheck '--ui-checks' 'ui' 734
+    $ui = Invoke-IsolatedCheck '--ui-checks' 'ui' 745
     $motion = Invoke-IsolatedCheck '--motion-checks' 'motion' 349
     if (@(Get-ChildItem -LiteralPath $cold -Force).Count -ne 1) { throw 'The isolated run left extra files beside the executable.' }
     if ((Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash -cne $candidateHash) { throw 'Candidate changed during isolated verification.' }

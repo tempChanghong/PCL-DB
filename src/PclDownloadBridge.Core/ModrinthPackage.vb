@@ -133,7 +133,10 @@ Public NotInheritable Class ModrinthPackage
         ' Check ZIP topology as well as the final client view. Server-only files
         ' are never applied, but cannot smuggle a link or escaping archive path.
         ValidateParents(names.Keys, Function(key) Not CurseForgePackage.IsDirectory(names(key)))
-        ValidateParents(refs.Where(Function(item) item.Client <> "unsupported").Select(Function(item) item.Path).Concat(winning.Keys).Distinct(StringComparer.OrdinalIgnoreCase), Function(key) True)
+        ' PCL skips unchosen optional files before checking their destination.
+        ' Check required content here; the install plan checks the actual choices
+        ' together before metadata requests or any game-directory writes.
+        ValidateParents(refs.Where(Function(item) item.Client = "required").Select(Function(item) item.Path).Concat(winning.Keys).Distinct(StringComparer.OrdinalIgnoreCase), Function(key) True)
         OverrideSources = New ReadOnlyDictionary(Of String, String)(winning)
         OverrideFiles = winning.Keys.ToList().AsReadOnly()
     End Sub

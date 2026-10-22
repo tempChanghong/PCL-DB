@@ -1,5 +1,12 @@
 # PCL2 代码依据
 
+## Beta 1.0 后续修复：Modrinth 选择状态、页面与隔离复核
+
+- 再次核对固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModModpack.InstallPackModrinth`（361–485 行）：先跳过客户端不支持或未选择的可选文件，再检查实际下载路径。清单读取仍校验所有条目的格式、摘要、地址和路径；文件与目录冲突按必需文件及实际选中项判断，在请求元数据或写入游戏目录前拒绝互相冲突的选择，未勾选项不阻止有效安装。
+- `MyCheckBox.xaml` 使用 FontSize 13 的 TextBlock、26 DIP 文本留白和 18 DIP 勾选框；本工具移除会把下划线当访问键的 AccessText，保留既有选择动画，增加省略及完整路径提示。可选文件按上游提示使用文件名，同名文件才显示相对路径以区分。`PageDownloadInstall.xaml` 的名称及次要说明、`MyListItem.xaml` 的文本省略作为信息层级参照；独立导入卡片适配标题、简介和统计，并非声称上游已有相同的本地导入页面。
+- `CopyOverrideDirectory`（121–144 行）为整合包同时设置 `VersionArgumentIndie:1` 和 `VersionArgumentIndieV2:True`。发布前现在始终重读并校验这两个值，即使包内未附带 Setup.ini；沿用 PCL 的冒号、区分大小写和后值覆盖规则。设置被删除或变为无效/非隔离时不发布实例，缓存保留供重试；原有实例和全局设置不改写。共享的整合包校验同时用于 CurseForge。
+- 实际选择立即重算可选文件数量及预计载荷；重新读取相同 SHA-256 的原包保留自定义名称和选项，不同内容重新初始化。这是本工具独立卡片的状态修复，未归为 PCL 原有机制；统计继续注明不含游戏和加载器，详细校验信息放在提示中。
+
 ## Beta 1.0 后续开发：Modrinth MRPACK 导入
 
 - 主要参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModModpack.InstallPackModrinth`（361–485 行）、根清单优先/单层包装目录探测和 `CopyOverrideDirectory`（121–144 行）：固定加载器、client required/optional/unsupported、downloads 数组、overrides 后 client-overrides、隔离设置，以及整合包与游戏安装的非阻塞组合。`ModDownload.DlSourceModGet` 和 `ResourceVersion.ParseModrinthTrackArguments` 用于比较选源；本轮使用包内原始地址和顺序回退，未把 Modrinth CDN 错配为 BMCL，也未把未经实测的 MCIM 映射当作可用来源。

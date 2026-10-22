@@ -89,6 +89,7 @@ Friend MustInherit Class ModpackInstallPlan
         Next
     End Sub
     Protected Sub ValidatePayload(stage As String, token As CancellationToken)
+        PclIsolationPlan.ValidatePackSettings(stage, token)
         For Each pair In OverrideHashes
             token.ThrowIfCancellationRequested()
             Using stream = File.OpenRead(SafeFiles.UnderRoot(stage, pair.Key)), sha = Security.Cryptography.SHA256.Create()

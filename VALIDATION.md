@@ -2,6 +2,17 @@
 
 日期：2026-10-22（北京时间）。最新发布为 PCL-DB Beta 1.0（`1.0.0-beta.1`），当前主分支另含尚未发布的后续修复；下方保留先前版本的验证记录。
 
+## Beta 1.0 后续修复：Modrinth 页面、选择状态与隔离检查（2026-10-22）
+
+- 再读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 InstallPackModrinth、CopyOverrideDirectory、MyCheckBox、MyListItem 和安装页 XAML，摘录见 `artifacts/modrinth-polish/pcl-reference.txt`。页面仍使用现有 PCL 卡片、控件与动画；本地导入卡片的信息层级属于独立适配，没有把它称为上游已有的相同页面。
+- 先复现三处问题：没有附带 INI 的整合包，其生成的隔离设置被改为关闭后仍能发布（isolation-before.log）；未勾选可选文件之间的目录冲突提前阻止有效安装（choices-before.log）；勾选可选文件不更新预计下载量（ui-before.json）。现在发布前始终检查旧版和 V2 隔离值，按实际选择检查路径拓扑，并立即更新文件数量和估算。原有全局及实例设置不改写。
+- Modrinth 专项由 106 增至 **128 项**（modrinth-fixed.log）。新增 18 项覆盖生成设置被关闭、删除、旧版值不匹配、末尾重复键覆盖、无效值和仅有错误大小写键时不发布、保留全局设置及缓存重试；新增 4 项覆盖可选父/子路径分别不选、单选和同时选择，冲突时在网络请求及游戏目录写入前停止。公共隔离校验同时用于 CurseForge，既有 **135 项**随全量检查通过。
+- 界面新增 **11 项**，全量 **745 项**：名称/简介/次要统计分层；13 DIP TextBlock 原样显示下划线，长文件名省略及完整路径提示；同名文件按路径区分；勾选/取消即时重算；相同 SHA-256 原包再次读取或复制到另一位置时保留名称及选项，内容变化则重置。最后移除检查中会重新赋值名称的步骤，Debug/Release 完整界面报告均以实际保留状态通过。真实包浅色/深色截图为 zombie-after.png、zombie-dark.png；810×470 最小窗口和可选项截图为 download-modrinth-optional-minimum.png。未进行桌面帧率或人工设备验收。
+- 在新的 `artifacts/modrinth-polish/live/game/.minecraft` 中使用前一轮已验证内容作只读复用来源，再次完整安装 Zombie Invade 100 Days 2.3；**129 个下载双哈希、1176 个覆盖文件逐项比对通过**。发布前取消没有留下实例，随后重试 **0 载荷传输字节**；元数据仍实际请求，Forge 处理器实际执行，约 63.58 秒完成（live/report.json）。最终 profile 为 Minecraft 1.20.1 + Forge 47.4.10，143 个 Mod JAR、3 个资源包和 797 个光影文件；没有 Fabric Loader，旧版/V2 隔离均开启（live-profile.json）。共享 Mod 和全局设置字节保留；没有启动游戏。
+- 默认 `build.ps1` 无 Package 参数通过：核心 **1991 项**、界面 **745 项**、动画 **349 项**、固定 PCL 比对 **17 项**，Release 零警告、零错误（build-full.log、ui-default.json、motion-default.json）。VS 2026 Debug / portable PDB 验证通过精选控制台 **1615 项**、界面 **745 项**、动画 **349 项**；外观 129、卡片 104、导航 31、设置兼容 49 为独立配置子集，不另相加（vs2026-report.json）。未进行 IDE F5 人工断点验收。
+- 默认构建、VS、单 EXE 及打包候选的界面门槛同步为 745，五份相关 PowerShell 脚本解析及门槛核对通过。未执行单 EXE 候选、打包或发布验证，不将脚本检查称为打包验收。
+- `preservation.json` 核对 dist 的 **78 个文件**字节、长度和修改时间、七个参考仓库提交/工作区状态及原 MRPACK SHA-256 全部保持。原包仍为 `d470acdf9bbccc87e2e064a3d8867ad5570e3631dd1ca28f5d9147406be1de6d`。证据位于忽略目录 `artifacts/modrinth-polish/`；本轮仅本地 Commit，未打包、发版或推送。
+
 
 ## Beta 1.0 后续开发：Modrinth MRPACK 导入（2026-10-22）
 
