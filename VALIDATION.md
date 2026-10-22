@@ -2,6 +2,15 @@
 
 日期：2026-10-22（北京时间）。最新发布为 PCL-DB Beta 1.0（`1.0.0-beta.1`），当前主分支另含尚未发布的后续修复；下方保留先前版本的验证记录。
 
+## Beta 1.0 后续开发：大文件分段响应回退与取消恢复
+
+- 基线 `27cf94319c48f73276a5e1b116e99e5394332941`，源码备份及保护快照位于 `artifacts/beta1-segment-response/`。重读固定 PCL `ModNet.vb` 的 Range 请求、长度检查和 RangeNotSupportedException 路径，片段见 pcl-range-source.txt；本轮修正本工具动态分段器的响应门禁。
+- baseline-length.log 使用 8 MiB 真实回环响应复现：Content-Range 数字正确但 Content-Length 少一字节，原逻辑在接收正文后按断线重试，最终报「分片连接提前结束」，没有回退到同一来源可用的完整响应。baseline-unit.log 和 baseline-wildcard.log 另确认非 bytes 单位及缺少起止点的响应未触发回退。
+- 现在分片落盘前检查 206、bytes 单位、明确且匹配的起点/终点/总长，以及存在时必须匹配的 Content-Length。检查使用发出请求时的边界，保持动态 60/40 切分兼容。无效响应走既有分段工作收尾及单连接回退；没有 Content-Length 但有完整有效 Content-Range 的响应继续支持，最终大小/SHA-1 校验保持。
+- 新增 **33 项**检查（segment-responses.log）：九种错误区间/长度、三种有效响应、四种已有分片后的回退取消与再次续传、错误完整内容拒绝及重试恢复，以及实际大客户端安装和最终 JSON 发布。取消检查用正文门禁等待完整请求开始，确认既有分片字节不变、不发布目标文件，重试只传缺少的后缀。测试服务器的 start 样本修正为起点 0 时也产生错误边界；此前 max(0, first-1) 在该情况下实际上返回有效起点，没有为通过测试放松生产检查。
+- 新增 VS 配置 **Segment Responses**。完整核心 **1208 项**、VS 2026 Debug/PDB 精选核心 **832 项**通过；Release/Debug 的 **658 项界面、328 项动画**及 **17 项固定源码对照**通过，构建零警告/零错误。检查仅使用回环 HTTP、临时目录及隔离 WPF，没有真实 CDN 或游戏启动实测。
+- preservation.json 确认 78 个 dist 文件内容与修改时间、七个参考仓库及 Beta 标签保持。本轮只本地验证与 Commit，不打包、不发版、不推送。
+
 ## Beta 1.0 后续开发：资源对象地址与严格索引校验
 
 - 基线 `f0d6c72001c49a746d48656e081529ab48167e2d`，源码备份及保护快照位于 `artifacts/beta1-asset-object-validation/`。重读固定 PCL 的 `McAssetsListGet/McAssetsFixList`、`DlSourceAssetsGet`，保留资源哈希寻址、旧版逻辑名称映射、官方/BMCLAPI 选源及下载器校验/复用分层。

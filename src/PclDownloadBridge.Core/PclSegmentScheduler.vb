@@ -152,7 +152,14 @@ Friend Class PclSegmentScheduler
         Await _send.Invoke(url, requestFirst, requestLast, token,
             Async Function(response)
                 Dim range = response.Content.Headers.ContentRange
-                If response.StatusCode <> HttpStatusCode.PartialContent OrElse range Is Nothing OrElse range.From <> requestFirst OrElse range.To <> requestLast OrElse range.Length <> _size Then Throw New RangeUnavailableException()
+                Dim length = response.Content.Headers.ContentLength
+                ' Reject unreliable range headers before opening a retained fragment.
+                ' The caller joins these workers before falling back to a full request.
+                If response.StatusCode <> HttpStatusCode.PartialContent OrElse range Is Nothing OrElse
+                    Not String.Equals(range.Unit, "bytes", StringComparison.OrdinalIgnoreCase) OrElse
+                    Not range.From.HasValue OrElse Not range.To.HasValue OrElse Not range.Length.HasValue OrElse
+                    range.From.Value <> requestFirst OrElse range.To.Value <> requestLast OrElse range.Length.Value <> _size OrElse
+                    (length.HasValue AndAlso length.Value <> requestLast - requestFirst + 1) Then Throw New RangeUnavailableException()
                 piece.Phase = 1
                 Using input = Await response.Content.ReadAsStreamAsync().ConfigureAwait(False), output As New FileStream(PartPath(piece), FileMode.Append, FileAccess.Write, FileShare.Read, 65536, True)
                     Dim buffer(65535) As Byte

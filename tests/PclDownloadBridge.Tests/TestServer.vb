@@ -93,18 +93,20 @@ Public Class TestServer
                         last = If(match.Groups(2).Length > 0, Integer.Parse(match.Groups(2).Value), last)
                         status = "206 Partial Content"
                         extra = "Content-Range: bytes " & first & "-" & last & "/" & bytes.Length & vbCrLf
-                        If InvalidRange = "start" Then extra = "Content-Range: bytes " & Math.Max(0, first - 1) & "-" & last & "/" & bytes.Length & vbCrLf
+                        If InvalidRange = "start" Then extra = "Content-Range: bytes " & If(first = 0, 1, first - 1) & "-" & last & "/" & bytes.Length & vbCrLf
                         If InvalidRange = "end" Then extra = "Content-Range: bytes " & first & "-" & (last - 1) & "/" & bytes.Length & vbCrLf
                         If InvalidRange = "total" Then extra = "Content-Range: bytes " & first & "-" & last & "/" & (bytes.Length + 1) & vbCrLf
                         If InvalidRange = "missing" Then extra = ""
                         If InvalidRange = "wildcard" Then extra = "Content-Range: bytes */" & bytes.Length & vbCrLf
                         If InvalidRange = "nototal" Then extra = "Content-Range: bytes " & first & "-" & last & "/*" & vbCrLf
                         If InvalidRange = "unit" Then extra = "Content-Range: items " & first & "-" & last & "/" & bytes.Length & vbCrLf
+                        If InvalidRange = "unitcase" Then extra = "Content-Range: Bytes " & first & "-" & last & "/" & bytes.Length & vbCrLf
                     End If
                 End If
                 If HeaderDelayMs > 0 Then Thread.Sleep(HeaderDelayMs)
                 Dim contentLength = last - first + 1
                 If range IsNot Nothing AndAlso InvalidRange = "length" Then contentLength -= 1
+                If range IsNot Nothing AndAlso InvalidRange = "length-long" Then contentLength += 1
                 Dim declared As Long
                 Dim lengthHeader = "Content-Length: " & If(DeclaredLengths.TryGetValue(path, declared), declared, CLng(contentLength)) & vbCrLf
                 Dim omitLength As Boolean

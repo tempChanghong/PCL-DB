@@ -39,7 +39,8 @@ Debug 构建输出为 `src/PclDownloadBridge.App/bin/Debug/net48/`。启动配�
 
 | 配置 | 覆盖的流程 |
 |---|---|
-| Offline All | 全部本地下载、安装与处理器回归；当前 1175 项检查，处理器样本需要本机 Java 8 或更高版本 |
+| Offline All | 全部本地下载、安装与处理器回归；当前 1208 项检查，处理器样本需要本机 Java 8 或更高版本 |
+| Segment Responses | 33 项大文件分段响应检查：错误长度/单位/缺失区间回退、有效响应及无长度正文、保留分片后的取消/重试、坏哈希拒绝及实际客户端安装；可用 `--regression single-resume-segment-all` 单独运行，只使用回环 HTTP 与临时目录 |
 | Asset Objects | 31 项资源对象检查：大写摘要归一、三种来源偏好及坏哈希回退、实际安装/修复、旧版映射、跨目录复用与损坏回退、严格字段/整数边界、下载前拒绝异常索引；只使用回环 HTTP 与临时目录 |
 | Supplemental Versions | 111 项补充版本检查：20 个目标身份、显式别名、分类信息、重复冲突、官方优先、来源失败/超时/取消及编码恢复、实际安装与校验补全、错误元数据和文件拒绝；另含 21 项资源索引隔离、共享、旧实例兼容、取消/失败后重试检查，可用 `--regression supplemental-indexes` 单独运行；只使用回环 HTTP 与临时目录 |
 | Metadata Transfers | 45 项元数据响应、大小上限、JSON 对象类型、备用源、哈希及取消回归，含 19 项 UTF-8 BOM、原始字节摘要、主清单选源、实际安装与修复检查；可用 `--regression metadata-transfer-bom` 单独运行新增组，仅使用本地 HTTP 与临时目录 |

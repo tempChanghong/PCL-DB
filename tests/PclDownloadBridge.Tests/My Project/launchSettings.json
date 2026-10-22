@@ -1,5 +1,11 @@
 {
   "profiles": {
+    "Segment Responses": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression single-resume-segment-all",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
     "Asset Objects": {
       "commandName": "Project",
       "commandLineArgs": "--regression plan-asset-objects",

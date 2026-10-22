@@ -59,6 +59,7 @@ Friend Module SingleResumeChecks
         If onlyCase Is Nothing OrElse onlyCase = "single-resume-disconnect" Then Await DisconnectAsync(testRoot, passed)
         If onlyCase Is Nothing OrElse onlyCase = "single-resume-install" Then Await InstallAsync(testRoot, passed)
         If onlyCase Is Nothing OrElse onlyCase = "single-resume-complete" Then Await CompleteAsync(testRoot, passed)
+        If onlyCase Is Nothing OrElse onlyCase.StartsWith("single-resume-segment-", StringComparison.Ordinal) Then passed.AddRange(Await SegmentResponseChecks.RunAsync(testRoot, onlyCase))
         If passed.Count = 0 Then Throw New ArgumentException("Unknown single resume case: " & onlyCase)
         Return passed
     End Function

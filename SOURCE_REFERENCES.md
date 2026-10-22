@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## Beta 1.0 后续开发：可靠分段响应与单连接回退
+
+- 重读固定 `5ef81e4` 的 `Modules/Base/ModNet.vb` 第 917–977 行：后续线程从 DownloadStart 请求 Range，响应长度与预期剩余长度不符时抛出 RangeNotSupportedException，进入不支持分段的处理；不会将明确错误的长度仅当作普通连接中断。本工具继续使用自身“结束并等待分段工作，再回退单连接”的结构。
+- 分段响应现在和既有单连接续传检查一致：要求 206、bytes 单位、明确且匹配的起点/终点/总长；如有 Content-Length，须等于本次请求的完整区间长度。验证在打开已保留分片之前进行，不使用并行切分后可能缩短的动态边界。没有 Content-Length 但有完整有效 Content-Range 的响应仍按边界读取并校验最终文件。单位和字段存在性门禁属于本工具对 HttpContentHeaders 的适配，未宣称原 PCL 使用相同解析代码。
+
 ## Beta 1.0 后续开发：资源对象地址、校验与复用
 
 - 重读固定 `5ef81e4` 的 `ModMinecraft.McAssetsListGet/McAssetsFixList`：资源对象使用哈希前两位及完整哈希寻址，旧版 virtual/remap 使用逻辑名称，下载器核对声明大小和哈希；`ModDownload.DlSourceAssetsGet` 将资源地址映射到官方/BMCLAPI，并沿用来源顺序。片段保存在 `artifacts/beta1-asset-object-validation/pcl-assets.txt`。
