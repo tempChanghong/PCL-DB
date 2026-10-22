@@ -1,5 +1,11 @@
 {
   "profiles": {
+    "Asset Objects": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression plan-asset-objects",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
     "Supplemental Versions": {
       "commandName": "Project",
       "commandLineArgs": "--regression supplemental-versions",

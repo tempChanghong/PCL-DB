@@ -199,11 +199,20 @@ Public Class MinecraftInstaller
 
     Public Shared Function BuildAssetsPlan(index As JObject) As List(Of DownloadFile)
         Dim result As New List(Of DownloadFile)
-        For Each item In DirectCast(index("objects"), JObject).Properties()
-            Dim hash = CStr(item.Value("hash"))
-            If Not Regex.IsMatch(hash, "\A[0-9a-fA-F]{40}\z") Then Throw New InvalidDataException("资源哈希无效。")
+        Dim objects = If(index Is Nothing, Nothing, TryCast(index("objects"), JObject))
+        If objects Is Nothing Then Throw New InvalidDataException("资源索引缺少有效的 objects 清单。")
+        For Each item In objects.Properties()
+            Dim entry = TryCast(item.Value, JObject)
+            If entry Is Nothing Then Throw New InvalidDataException("资源条目无效：" & item.Name)
+            Dim hashToken = entry("hash"), sizeToken = entry("size")
+            If hashToken Is Nothing OrElse hashToken.Type <> JTokenType.String OrElse Not Regex.IsMatch(CStr(hashToken), "\A[0-9a-fA-F]{40}\z") Then Throw New InvalidDataException("资源哈希无效：" & item.Name)
+            ' Normalize object addresses only; retain the verified index and logical names.
+            Dim hash = CStr(hashToken).ToLowerInvariant()
+            Dim size As Long
+            If sizeToken Is Nothing OrElse sizeToken.Type <> JTokenType.Integer OrElse
+                Not Long.TryParse(sizeToken.ToString(Newtonsoft.Json.Formatting.None), Globalization.NumberStyles.None, Globalization.CultureInfo.InvariantCulture, size) Then Throw New InvalidDataException("资源大小无效：" & item.Name)
             Dim source = "https://resources.download.minecraft.net/" & hash.Substring(0, 2) & "/" & hash
-            Dim file = New DownloadFile With {.RelativePath = "assets/objects/" & hash.Substring(0, 2) & "/" & hash, .Url = source, .Size = CLng(item.Value("size")), .Sha1 = hash, .Category = "asset"}
+            Dim file = New DownloadFile With {.RelativePath = "assets/objects/" & hash.Substring(0, 2) & "/" & hash, .Url = source, .Size = size, .Sha1 = hash, .Category = "asset"}
             result.Add(file)
             ' PCL McAssetsListGet: old virtual/resource mappings. Also retain the object
             ' store, making future reuse and modern launcher checks straightforward.

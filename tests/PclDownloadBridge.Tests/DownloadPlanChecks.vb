@@ -14,6 +14,7 @@ Friend Module DownloadPlanChecks
         If onlyCase Is Nothing OrElse onlyCase = "plan-md5" Then Await Md5Async(testRoot, passed)
         If onlyCase Is Nothing OrElse onlyCase = "plan-install" Then Await InstallAsync(testRoot, passed)
         If onlyCase Is Nothing OrElse onlyCase = "plan-assets" Then Assets(passed)
+        If onlyCase Is Nothing OrElse onlyCase.StartsWith("plan-asset-", StringComparison.Ordinal) Then passed.AddRange(Await AssetObjectChecks.RunAsync(testRoot, onlyCase))
         If passed.Count = 0 Then Throw New ArgumentException("Unknown download-plan regression: " & onlyCase)
         Return passed
     End Function

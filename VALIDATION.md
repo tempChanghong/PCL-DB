@@ -2,6 +2,15 @@
 
 日期：2026-10-22（北京时间）。最新发布为 PCL-DB Beta 1.0（`1.0.0-beta.1`），当前主分支另含尚未发布的后续修复；下方保留先前版本的验证记录。
 
+## Beta 1.0 后续开发：资源对象地址与严格索引校验
+
+- 基线 `f0d6c72001c49a746d48656e081529ab48167e2d`，源码备份及保护快照位于 `artifacts/beta1-asset-object-validation/`。重读固定 PCL 的 `McAssetsListGet/McAssetsFixList`、`DlSourceAssetsGet`，保留资源哈希寻址、旧版逻辑名称映射、官方/BMCLAPI 选源及下载器校验/复用分层。
+- baseline-address.log 通过实际安装器和回环 HTTP 复现：索引内的大写 SHA-1 被原样拼入资源 URL，服务端只有正确小写对象时两种来源均返回 404。现在仅将计划中的哈希、对象路径与 URL 归一为小写；索引原始字节和旧版逻辑名称保持，不改写已安装实例 JSON。
+- baseline-schema.log 复现缺少 objects 时的空引用异常。资源解析现统一检查索引/条目对象、40 位十六进制字符串哈希及非负 Int64 整数大小；避免原 CLng 对字符串、布尔值及小数的隐式转换，拒绝缺失、负数及溢出，仍接受合法零字节和 Long.MaxValue。无效条目在任何客户端、支持库或资源载荷下载前停止。
+- 新增 **31 项**检查（asset-objects.log）：三种来源偏好下实际安装、首选源同大小坏文件后切换恢复、已有对象损坏后的补全、实例 JSON 保持、virtual/remap 映射、三个目标跨目录复用且无 HTTP、坏复用文件回退且来源目录不变，以及异常字段、整数边界和下载前门禁。新增 VS 配置 **Asset Objects**；完整核心 **1175 项**、VS 2026 Debug/PDB 精选核心 **799 项**通过。
+- Release/Debug 的 **658 项界面、328 项动画**及 **17 项固定源码对照**通过，构建零警告/零错误。证据只来自回环 HTTP、临时目录及隔离 WPF，不代表公网源可用性、真实游戏启动或桌面流畅度验收。
+- preservation.json 确认 78 个 dist 文件内容与修改时间、七个参考仓库和 Beta 标签保持。本轮只本地验证与 Commit，不打包、不发版、不推送。
+
 ## Beta 1.0 后续开发：UTF-8 BOM 元数据解析与修复
 
 - 基线 `c70680934fdc6fcd67b5c72400199ad701c519c5`，源码备份和保护快照位于 `artifacts/beta1-metadata-bom/`。重读固定 PCL `ModNet.NetRequestByClient` 的响应解码、JSON 检查和失败重试分层，片段见 pcl-json-source.txt；本轮修复的是本工具自身的 UTF-8 前导字节处理。

@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## Beta 1.0 后续开发：资源对象地址、校验与复用
+
+- 重读固定 `5ef81e4` 的 `ModMinecraft.McAssetsListGet/McAssetsFixList`：资源对象使用哈希前两位及完整哈希寻址，旧版 virtual/remap 使用逻辑名称，下载器核对声明大小和哈希；`ModDownload.DlSourceAssetsGet` 将资源地址映射到官方/BMCLAPI，并沿用来源顺序。片段保存在 `artifacts/beta1-asset-object-validation/pcl-assets.txt`。
+- 本工具原先允许大写 SHA-1，却直接将其拼入大小写敏感的下载地址。现仅将计划中的对象哈希、地址及对象路径归一为小写，保留索引原始字节和逻辑名称，旧版映射及资源复用仍使用既有下载器。额外严格要求 objects/条目为对象、hash 为 40 位十六进制字符串、size 为非负 Int64 整数，在任何载荷下载之前拒绝隐式字符串/布尔转换、小数取整及溢出。这些归一化和结构门禁属于本工具适配，不宣称上游执行同样的严格解析。
+
 ## Beta 1.0 后续开发：UTF-8 BOM 元数据兼容
 
 - 重读固定 `5ef81e4` 的 `Modules/Base/ModNet.vb`：`NetRequestByClient` 在响应解码后检查 JSON 格式，失败可由重试/备用来源处理。本工具保留“读取完整响应、校验摘要、解码解析、检查结构、再确认来源”的流程，仅修复自身 UTF-8 解码到 JSON 解析之间未处理前导 BOM 的兼容缺口。
