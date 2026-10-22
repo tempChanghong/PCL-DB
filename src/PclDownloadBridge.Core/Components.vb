@@ -151,7 +151,9 @@ Public Class ComponentCatalog
                     Dim publicUrl = "https://www.curseforge.com/api/v1/mods/322385/files?pageSize=50&pageIndex=" & (offset \ 50)
                     Dim mirrorUrl = "https://mod.mcimirror.top/curseforge/v1/mods/322385/files?pageSize=50&index=" & offset
                     Dim sources = If(_policy.EffectiveVersionPreference <> SourcePreference.MirrorFirst, {publicUrl, mirrorUrl}, {mirrorUrl, publicUrl})
-                    Dim data = Await _policy.RaceVersionListTokenAsync(sources.SelectMany(Function(u) _policy.Candidates(u, "version")).Distinct(), token).ConfigureAwait(False)
+                    Dim acceptedIds = seen.ToArray()
+                    Dim data = Await _policy.RaceVersionListTokenAsync(sources.SelectMany(Function(u) _policy.Candidates(u, "version")).Distinct(), token,
+                        Function(body) ParseOptiFabricPage(body, mc, acceptedIds)).ConfigureAwait(False)
                     Dim files = DirectCast(data("data"), JArray)
                     For Each item As JObject In files
                         If Not seen.Add(CLng(item("id"))) Then Throw New InvalidDataException("OptiFabric 列表返回了重复的分页。")
@@ -163,7 +165,8 @@ Public Class ComponentCatalog
                         If String.IsNullOrWhiteSpace(url) Then url = "https://edge.forgecdn.net/files/" & (id \ 1000) & "/" & (id Mod 1000) & "/" & Uri.EscapeDataString(fileName)
                         Dim version = fileName.Replace("optifabric-", "").Replace(".jar", "").TrimStart("v"c)
                         item("name") = CStr(item("displayName"))
-                        result.Add(New ComponentEntry With {.Kind = kind, .Minecraft = mc, .Version = version, .Stable = CInt(item("releaseType")) = 1, .Url = url, .FileName = fileName, .Sha1 = CStr(hash?("value")), .Size = CLng(item("fileLength")), .Data = item})
+                        Dim size = CLng(item("fileLength"))
+                        result.Add(New ComponentEntry With {.Kind = kind, .Minecraft = mc, .Version = version, .Stable = CInt(item("releaseType")) = 1, .Url = url, .FileName = fileName, .Sha1 = CStr(hash?("value")), .Size = If(size = 0, -1L, size), .Data = item})
                     Next
                     offset += files.Count
                     If files.Count < 50 Then Exit Do
@@ -211,11 +214,12 @@ Public Class ComponentCatalog
                 Next
                 result = result.OrderByDescending(Function(v) v.Stable).ThenByDescending(Function(v) SortKey(v.Version), StringComparer.Ordinal).ToList()
             Case ComponentKind.LiteLoader
-                If ComponentSelection.CompareMc(mc, "1.12.2") > 0 Then Return result
-                Dim data = Await _policy.GetVersionListTokenAsync("https://dl.liteloader.com/versions/versions.json", token).ConfigureAwait(False)
+                If ComponentSelection.CompareMc(mc, "1.12.2") > 0 OrElse mc.StartsWith("1.5", StringComparison.Ordinal) OrElse mc.StartsWith("1.6", StringComparison.Ordinal) Then Return result
+                Dim data = Await _policy.GetVersionListTokenAsync("https://dl.liteloader.com/versions/versions.json", token,
+                    Function(body) ParseLiteLoaderMetadata(body, mc)).ConfigureAwait(False)
                 Dim game = data("versions")?(mc)
                 Dim latest = If(game?("artefacts"), game?("snapshots"))?("com.mumfrey:liteloader")?("latest")
-                If latest IsNot Nothing AndAlso Not mc.StartsWith("1.5", StringComparison.Ordinal) AndAlso Not mc.StartsWith("1.6", StringComparison.Ordinal) Then result.Add(New ComponentEntry With {.Kind = kind, .Minecraft = mc, .Version = CStr(latest("version")), .Stable = CStr(latest("stream")) <> "SNAPSHOT", .Data = DirectCast(latest, JObject)})
+                If latest IsNot Nothing Then result.Add(New ComponentEntry With {.Kind = kind, .Minecraft = mc, .Version = CStr(latest("version")), .Stable = Not String.Equals(CStr(latest("stream")), "SNAPSHOT", StringComparison.OrdinalIgnoreCase), .Data = DirectCast(latest, JObject)})
         End Select
         Return result
     End Function
@@ -254,6 +258,68 @@ Public Class ComponentCatalog
         Dim value = item(field)
         If value Is Nothing OrElse value.Type <> JTokenType.String OrElse String.IsNullOrWhiteSpace(CStr(value)) Then Throw New InvalidDataException(catalogue & " 版本条目的 " & field & " 字段无效。")
     End Sub
+
+    Private Shared Function ParseOptiFabricPage(body As String, mc As String, acceptedIds As IEnumerable(Of Long)) As JToken
+        Dim data = JObject.Parse(body)
+        Dim files = TryCast(data("data"), JArray)
+        If files Is Nothing OrElse files.Count > 50 Then Throw New InvalidDataException("OptiFabric 分页格式或大小无效。")
+        ' Each racing source owns its tentative IDs. Only the accepted page may
+        ' update the caller's set after all losing requests have finished.
+        Dim ids As New HashSet(Of Long)(acceptedIds)
+        For Each value In files
+            Dim item = TryCast(value, JObject)
+            If item Is Nothing Then Throw New InvalidDataException("OptiFabric 文件条目格式无效。")
+            Dim id = ReadCatalogueInteger(item, "id", "OptiFabric", 1)
+            If Not ids.Add(id) Then Throw New InvalidDataException("OptiFabric 列表返回了重复的分页。")
+            Dim games = TryCast(item("gameVersions"), JArray)
+            If games Is Nothing OrElse games.Any(Function(game) game.Type <> JTokenType.String) Then Throw New InvalidDataException("OptiFabric 游戏版本列表格式无效。")
+            If Not games.Values(Of String)().Contains(mc) Then Continue For
+            If item("projectId") IsNot Nothing AndAlso ReadCatalogueInteger(item, "projectId", "OptiFabric", 1) <> 322385 Then Throw New InvalidDataException("OptiFabric 项目编号不匹配。")
+            ValidateCatalogueText(item, "fileName", "OptiFabric")
+            ValidateCatalogueText(item, "displayName", "OptiFabric")
+            ReadCatalogueInteger(item, "fileLength", "OptiFabric", -1)
+            If ReadCatalogueInteger(item, "releaseType", "OptiFabric") > Integer.MaxValue Then Throw New InvalidDataException("OptiFabric 发布类型无效。")
+            Dim url = item("downloadUrl")
+            If url IsNot Nothing AndAlso url.Type <> JTokenType.Null AndAlso url.Type <> JTokenType.String Then Throw New InvalidDataException("OptiFabric 下载地址字段无效。")
+            Dim hashes = item("hashes")
+            If hashes Is Nothing OrElse hashes.Type = JTokenType.Null Then Continue For
+            If Not TypeOf hashes Is JArray Then Throw New InvalidDataException("OptiFabric 校验列表格式无效。")
+            For Each hashValue In hashes
+                Dim hash = TryCast(hashValue, JObject)
+                If hash Is Nothing Then Throw New InvalidDataException("OptiFabric 校验条目格式无效。")
+                Dim algorithm = ReadCatalogueInteger(hash, "algo", "OptiFabric")
+                If algorithm > Integer.MaxValue Then Throw New InvalidDataException("OptiFabric 校验类型无效。")
+                If algorithm <> 1 Then Continue For
+                ValidateCatalogueText(hash, "value", "OptiFabric")
+                If Not Regex.IsMatch(CStr(hash("value")), "\A[0-9a-fA-F]{40}\z") Then Throw New InvalidDataException("OptiFabric SHA-1 校验字段无效。")
+            Next
+        Next
+        Return data
+    End Function
+
+    Private Shared Function ReadCatalogueInteger(item As JObject, field As String, catalogue As String, Optional minimum As Long = 0) As Long
+        Dim value = item(field)
+        If value Is Nothing OrElse value.Type <> JTokenType.Integer OrElse CLng(value) < minimum Then Throw New InvalidDataException(catalogue & " 版本条目的 " & field & " 字段无效。")
+        Return CLng(value)
+    End Function
+
+    Private Shared Function ParseLiteLoaderMetadata(body As String, mc As String) As JToken
+        Dim data = JObject.Parse(body)
+        Dim versions = TryCast(data("versions"), JObject)
+        If versions Is Nothing Then Throw New InvalidDataException("LiteLoader 缺少 versions 对象。")
+        If versions(mc) Is Nothing Then Return data
+        Dim game = TryCast(versions(mc), JObject)
+        Dim releases = If(game Is Nothing, Nothing, TryCast(If(game("artefacts"), game("snapshots")), JObject))
+        Dim package = If(releases Is Nothing, Nothing, TryCast(releases("com.mumfrey:liteloader"), JObject))
+        Dim latest = If(package Is Nothing, Nothing, TryCast(package("latest"), JObject))
+        If latest Is Nothing Then Throw New InvalidDataException("LiteLoader 所选游戏版本缺少 latest 对象。")
+        For Each field In {"version", "stream", "tweakClass"}
+            ValidateCatalogueText(latest, field, "LiteLoader")
+        Next
+        Dim libraries = TryCast(latest("libraries"), JArray)
+        If libraries Is Nothing OrElse libraries.Any(Function(library) Not TypeOf library Is JObject) Then Throw New InvalidDataException("LiteLoader 支持库列表格式无效。")
+        Return data
+    End Function
 
     Private Shared Function ParseForgeMirrorMetadata(body As String) As JToken
         Dim entries = JArray.Parse(body)

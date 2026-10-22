@@ -2,6 +2,16 @@
 
 日期：2026-10-22（北京时间）。最新发布为 PCL-DB Beta 1.0（`1.0.0-beta.1`），当前主分支另含尚未发布的后续修复；下方保留先前版本的验证记录。
 
+## Beta 1.0 后续开发：OptiFabric 分页与 LiteLoader 元数据
+
+- 基线 c680148，源码、78 个 dist 文件摘要和七个参考仓库状态保存在 `artifacts/beta1-legacy-catalogue-fallback/`。重读固定 PCL 5ef81e4 的 LiteLoader 各源解析、忽略大小写的 snapshot 比较、OptiFabric 项目来源、ResourceVersion 的 CurseForge 字段及零大小处理，以及 DlSourceLoader 的成功/失败交接。
+- 四组基线样本分别记录于 baseline-paging/optifabric/liteloader/behavior.log：重复第二页在选源后抛 InvalidDataException、未启动健康备用页；缺少 data 的 OptiFabric 响应在选源后空引用；缺少 versions 的 LiteLoader 响应返回零条且 failure=none；小写 snapshot 被错误标成稳定版。各测试均以非零状态结束。
+- OptiFabric 每个来源先检查 data 数组、页大小、ID、游戏版本及适用条目的必要字段；候选页使用已接受 ID 的独立副本，整页通过后再进入原有累积流程。重复页、重复条目和损坏字段可提前启用同偏移备用源，失败来源不会占用 ID。保留原有总量保护，取消仍停止分页；两源都坏时保留错误，不返回部分列表。CurseForge 的零大小按 PCL 转成未知大小 -1，并保留显式 -1。
+- LiteLoader 在选源前检查 versions、所选版本的 latest、版本/stream/tweakClass 与支持库结构；保留 artefacts 优先、合法空列表和所选游戏不存在时的空结果。snapshot 比较忽略大小写；1.5、1.6 及高于 1.12.2 的不适用版本直接返回空结果。新检查还实际调用 LiteProfile，确认接受的元数据仍能生成配置。
+- 新增 57 项检查，与前轮 46 项合计 103 项组件列表检查，fixed-catalogues.log 全部通过。三种版本源偏好下的重复第二页均能保留已接受的 50 条并从备用页取得第 51 条；单页内部重复与 51 条超额页也覆盖。取消样本等待实际请求到达，OptiFabric 确认第二页已发出再取消。可用 `--regression component-catalogue-all` 或 component-catalogue-legacy-paging/optifabric/liteloader/behavior 子组重现；现有 VS Component Catalogues 配置自动纳入。
+- 完整下载/安装核心从 807 增至 864 项并全部通过（core-all.log）；Release 构建零警告/零错误，658 项完整界面、328 项动画及 17 项固定源对照通过。VS 2026 Debug/PDB 另通过 488 项精选核心、658 项界面、328 项动画及既有聚焦配置。关键报告复制到本轮目录；preservation.json 确认 78 个 dist 文件的内容与修改时间、七个参考仓库的提交和状态保持，Beta 标签仍指向 c1fe250。
+- 本轮使用回环 HTTP、隔离预览和临时目录，不访问真实官方/镜像端点，不作为完整游戏安装或启动的证明；只做本地构建、验证及提交，不打包、不发版、不推送。
+
 ## Beta 1.0 后续开发：Fabric 与 OptiFine 列表的来源校验
 
 - 基线 811ca48，源码、78 个 dist 文件摘要与七个参考仓库状态保存在 `artifacts/beta1-component-catalogue-fallback/`。重读固定 PCL 5ef81e4 的 Fabric 各源必要项检查、OptiFine BMCLAPI 条目解析及 DlSourceLoader；源码片段保存在 pcl-source-excerpts.txt。PCL Fabric 使用全量列表，本项目使用按游戏版本返回加载器的端点，按实际消费的 loader/version/stable 结构适配检查。
