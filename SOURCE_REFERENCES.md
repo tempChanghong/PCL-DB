@@ -1,5 +1,13 @@
 # PCL2 代码依据
 
+## Beta 1.0 后续开发：补充版本清单
+
+- 重读固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `Modules/Minecraft/ModDownload.vb` 中 `DlClientListBmclapiMain`：读取正常列表后合并 `Cache/download.json`。`Pages/PageDownload/ModDownloadLib.vb` 的 `McDownloadListItem` 使用原条目 Tag、42 DIP 行、分类方块图标、说明文字及来源前缀，安装继续进入正常客户端/支持库/资源流程；`PageDownloadInstall.xaml.vb` 按 release/snapshot/special/历史版本分类，并避免把 combat、experimental 名称误改成正式版。
+- 本工具采用“合并额外条目、沿用原版安装器”的机制。正常官方/BMCL 清单及其 SHA-1 要求保持原实现；补充请求独立限时，正常列表先显示，结果以两个折叠卡片追加，避免改变用户已经展开、聚焦的普通行。过期代次、安装期间、关闭期间和可选请求取消不会覆盖正常结果。这些异步交接、去重和身份门禁属于本工具适配。
+- 补充数据来自公开 [unlisted-versions-of-minecraft / UVMC](https://zkitefly.github.io/unlisted-versions-of-minecraft/)，使用其 [version_manifest.json](https://zkitefly.github.io/unlisted-versions-of-minecraft/version_manifest.json)。另外阅读本地 PCL-CE `1a7653127d578efdb2a9388999a3fdc67d9e49d5` 的 `Modules/Minecraft/ModDownload.cs`：其官方/BMCL 列表会合并公开 UVMC 镜像清单，补充异常被记录并忽略；本阶段使用 UVMC 项目自身端点，没有移植其缓存和镜像实现，也不宣称恢复了 PCL 私有特供数据。
+- 2026-10-22 逐个核对 12 个战斗测试版及 8 个实验快照的列表 ID、元数据 ID、客户端和资源索引摘要；明确映射战斗测试条目的 `1_14/15/16` 前缀至实际元数据的 `1.14/15/16`，其余下划线保持原样。不进行通用下划线替换，不扩展到未经核对的历史版本。普通清单优先、矛盾补充条目排除、补充元数据结构和实际文件的完整校验在本工具中独立实现。
+- UVMC 当前没有为这些 JSON 提供清单 SHA-1。该阶段依赖固定公开来源与结构/身份门禁，不能将文件声明的 SHA-1 等同于上游签名或清单外的独立真实性证明；声明摘要时仍必须通过验证。真实端点检查只读取版本 JSON 和有摘要的资源索引，不下载游戏载荷或验证游戏启动。详细离线安装与界面证据见 `VALIDATION.md`。
+
 ## 0.57 收起期间的组件刷新
 
 - 重读固定 MyCard.IsSwapped、StartHeightAnimation 的完成回调及 PageDownloadInstall 的选中/折叠路径。上游在切换时保持 SwapControl 可见，到收起完成才设为 Collapsed。本工具原 RefreshBody 在 Collapsed=True 时立即移除内容，即使旧高度动画仍在进行；现保留旧内容完成退出，保持既有高度曲线、目标和箭头时序。

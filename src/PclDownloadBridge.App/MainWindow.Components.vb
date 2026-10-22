@@ -67,7 +67,11 @@ Partial Public Class MainWindow
             AddHandler card.FoldChanged, Sub() RefreshComponentHeader(kind)
             ComponentCards.Children.Add(card)
         Next
-        If _preview AndAlso _componentProvider Is Nothing Then
+        If _selectedEntry.IsSupplemental Then
+            For Each kind In _componentViews.Keys
+                _componentEntries(kind) = New List(Of ComponentEntry)()
+            Next
+        ElseIf _preview AndAlso _componentProvider Is Nothing Then
             PreviewComponents()
         Else
             LoadComponentsAsync(_selectedEntry)
@@ -88,6 +92,11 @@ Partial Public Class MainWindow
 
     Private Async Function RefreshComponentListsAsync(Optional onlyKind As ComponentKind? = Nothing) As Task
         If _busy OrElse _closing OrElse _selectedEntry Is Nothing Then Return
+        If _selectedEntry.IsSupplemental Then
+            _componentsDirty = False
+            RefreshComponents()
+            Return
+        End If
         If _componentsDirty Then onlyKind = Nothing
         If Not onlyKind.HasValue Then CancelComponentRequests()
         _componentsDirty = False
@@ -199,6 +208,7 @@ Partial Public Class MainWindow
             If kind = ComponentKind.Fabric Then visible = Not _selectedEntry.Kind.StartsWith("old_", StringComparison.Ordinal) AndAlso versionDrop > 130
             If kind = ComponentKind.FabricApi Then visible = _componentSelection.Has(ComponentKind.Fabric)
             If kind = ComponentKind.OptiFabric Then visible = _componentSelection.Has(ComponentKind.Fabric) AndAlso _componentSelection.Has(ComponentKind.OptiFine)
+            If _selectedEntry.IsSupplemental Then visible = False
             view.Card.Visibility = If(visible, Visibility.Visible, Visibility.Collapsed)
             Dim selected = _componentSelection.Item(kind)
             Dim restriction = _componentSelection.Unavailable(kind, _selectedEntry.Id)
@@ -245,6 +255,8 @@ Partial Public Class MainWindow
         Dim installProblem = RefreshInstallAvailability()
         If installProblem IsNot Nothing AndAlso InstanceName.ValidationMessage.Length = 0 Then
             ComponentHint.Text = installProblem
+        ElseIf _selectedEntry.IsSupplemental Then
+            ComponentHint.Text = "补充来源 UVMC · " & SupplementalVersions.Label(_selectedEntry) & "。目前仅支持原版安装；客户端、支持库与资源仍会校验。"
         ElseIf _componentSelection.Has(ComponentKind.Fabric) AndAlso Not _componentSelection.Has(ComponentKind.FabricApi) Then
             ComponentHint.Text = "大多数 Fabric 模组需要 Fabric API，建议一并安装。"
         ElseIf _componentSelection.Has(ComponentKind.OptiFine) AndAlso _componentSelection.Entries.Count > 1 Then
@@ -286,6 +298,7 @@ Partial Public Class MainWindow
 
     Private Sub SelectComponent(entry As ComponentEntry)
         If _busy Then Return
+        If _selectedEntry Is Nothing OrElse _selectedEntry.IsSupplemental Then Return
         If _componentSelection.Unavailable(entry.Kind, _selectedEntry.Id, entry) IsNot Nothing Then Return
         _componentSelection.Entries(entry.Kind) = entry
         _unresolvedComponents.Remove(entry.Kind)

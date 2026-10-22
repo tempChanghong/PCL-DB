@@ -31,9 +31,16 @@ Public Class VersionEntry
     Public Property Url As String
     Public Property Sha1 As String
     Public Property Released As DateTimeOffset
+    ' Original UVMC catalogue ID. Id is the verified canonical Minecraft metadata ID.
+    Public Property SupplementalId As String
+    Public ReadOnly Property IsSupplemental As Boolean
+        Get
+            Return SupplementalId IsNot Nothing
+        End Get
+    End Property
     Public ReadOnly Property Subtitle As String
         Get
-            Return If(Kind = "release", "正式版", If(Kind = "snapshot", "快照版", "历史版本")) & " · " & Released.ToString("yyyy/MM/dd")
+            Return If(IsSupplemental, SupplementalVersions.Label(Me) & " · 补充来源 UVMC", If(Kind = "release", "正式版", If(Kind = "snapshot", "快照版", "历史版本"))) & " · " & Released.ToString("yyyy/MM/dd")
         End Get
     End Property
 End Class

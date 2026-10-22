@@ -1,5 +1,11 @@
 {
   "profiles": {
+    "Supplemental Versions": {
+      "commandName": "Project",
+      "commandLineArgs": "--regression supplemental-versions",
+      "workingDirectory": "$(ProjectDir)",
+      "nativeDebugging": false
+    },
     "Offline All": {
       "commandName": "Project",
       "commandLineArgs": "",

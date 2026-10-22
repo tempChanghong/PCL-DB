@@ -24,6 +24,7 @@ Public Class MinecraftInstaller
         InstallPreflight.ValidateDestination(root, instanceName, repairExisting)
         If components IsNot Nothing Then
             components = components.Copy()
+            If entry.IsSupplemental AndAlso components.Entries.Count > 0 Then Throw New InvalidOperationException("补充版本目前仅支持原版安装，请取消加载器选择。")
             components.Validate(entry.Id)
             If repairExisting AndAlso components.Entries.Count > 0 Then Throw New InvalidOperationException("组件安装请使用新实例名称；原版校验不会修改加载器实例。")
         End If
@@ -37,7 +38,7 @@ Public Class MinecraftInstaller
         Using rootLock As New FileStream(cache, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None)
             Report(progress, "准备安装", "读取并校验版本元数据")
             Dim metadata = Await _policy.GetJsonAsync(entry.Url, token, entry.Sha1).ConfigureAwait(False)
-            If CStr(metadata("id")) <> entry.Id OrElse metadata("inheritsFrom") IsNot Nothing Then Throw New InvalidDataException("版本元数据不是所选原版版本。")
+            SupplementalVersions.ValidateMetadata(entry, metadata)
             metadata = PreparePclLibraryPaths(metadata)
             Report(progress, "准备安装", "检查组件安装所需的 Java 环境")
             InstallPreflight.VerifyJava(components, metadata)
@@ -50,15 +51,18 @@ Public Class MinecraftInstaller
                 If Not JToken.DeepEquals(existing.SelectToken("logging.client.file"), metadata.SelectToken("logging.client.file")) Then Throw New InvalidDataException("现有实例的日志文件声明经过修改，请使用新名称安装原版。")
             End If
             Dim plan = BuildBasePlan(metadata, instanceName)
+            If entry.IsSupplemental Then SupplementalVersions.ValidatePlan(plan)
             Dim index = TryCast(metadata("assetIndex"), JObject)
             If index Is Nothing Then Throw New NotSupportedException("这个早期版本没有资源索引，首版暂不支持安装。")
             Dim indexId = CStr(index("id"))
+            If entry.IsSupplemental Then SupplementalVersions.ValidatePlan({ToFile(index, "assets/indexes/index.json", "meta")})
             SafeFiles.ValidateInstanceName(indexId)
             Report(progress, "准备安装", "解析资源索引与支持库")
             Dim assets = Await _policy.GetJsonAsync(CStr(index("url")), token, CStr(index("sha1"))).ConfigureAwait(False)
             Dim indexRelative = "assets/indexes/" & indexId & ".json"
             plan.Add(New DownloadFile With {.RelativePath = indexRelative, .Url = CStr(index("url")), .Size = If(index("size") Is Nothing, -1, CLng(index("size"))), .Sha1 = CStr(index("sha1"))})
             plan.AddRange(BuildAssetsPlan(assets))
+            If entry.IsSupplemental Then SupplementalVersions.ValidatePlan(plan)
             ' Merge and validate every destination across all branches before content
             ' downloads start, so duplicate checks cannot disappear between stages.
             plan = DownloadPlan.Merge(plan, root)

@@ -19,11 +19,11 @@ Partial Public Class MainWindow
         check(RefreshButton.Visibility = Visibility.Visible, "install options expose a refresh action for component catalogues")
     End Sub
 
-    Private Sub VerifyRefreshWorkflow(check As Action(Of Boolean, String))
+    Private Sub VerifyRefreshWorkflow(check As Action(Of Boolean, String), artifactDirectory As String)
         Dim previous = SynchronizationContext.Current
         SynchronizationContext.SetSynchronizationContext(New DispatcherSynchronizationContext(Dispatcher))
         Try
-            Dim work = VerifyRefreshWorkflowAsync(check)
+            Dim work = VerifyRefreshWorkflowAsync(check, artifactDirectory)
             If Not work.IsCompleted Then
                 Dim frame As New DispatcherFrame()
                 Dim timer As New DispatcherTimer With {.Interval = TimeSpan.FromSeconds(10)}
@@ -46,7 +46,7 @@ Partial Public Class MainWindow
         Return New TaskCompletionSource(Of List(Of T))(TaskCreationOptions.RunContinuationsAsynchronously)
     End Function
 
-    Private Async Function VerifyRefreshWorkflowAsync(check As Action(Of Boolean, String)) As Task
+    Private Async Function VerifyRefreshWorkflowAsync(check As Action(Of Boolean, String), artifactDirectory As String) As Task
         Dim originalVersions = _versions
         Try
             SelectVersion(_versions.Single(Function(v) v.Id = "1.20.1"))
@@ -146,7 +146,7 @@ Partial Public Class MainWindow
             Await currentVersionLoad
             oldVersions.SetResult(originalVersions)
             Await firstVersionLoad
-            check(firstToken.IsCancellationRequested AndAlso _versions Is freshVersions AndAlso Not _loading AndAlso Not _versionsDirty, "new-source manifest wins while a late cancelled manifest cannot overwrite it")
+            check(firstToken.IsCancellationRequested AndAlso _versions Is freshVersions AndAlso Not _loading AndAlso Not _versionsDirty AndAlso Await VerifySupplementalRefreshAsync(artifactDirectory), "new-source manifests and optional supplements preserve normal rows and reject stale busy or closing results")
 
             Dim olderManifest = ListGate(Of VersionEntry)()
             _versionProvider = Function(sourcePolicy, token) olderManifest.Task

@@ -12,6 +12,10 @@ Module Program
         Net.ServicePointManager.SecurityProtocol = Net.SecurityProtocolType.Tls12
         Try
             If ProcessorStreamChecks.TryRunFixture(args) Then Return
+            If args.Length = 2 AndAlso args(0) = "--live-supplemental" Then
+                SupplementalVersionChecks.LiveAsync(args(1)).GetAwaiter().GetResult()
+                Return
+            End If
             If JavaProbeChecks.TryRunFixture(args) Then Return
             If args.Length = 2 AndAlso args(0) = "--live-source-selection" Then
                 SourcePreferenceChecks.LiveAsync(args(1)).GetAwaiter().GetResult()
@@ -32,7 +36,9 @@ Module Program
             Directory.CreateDirectory(TestRoot)
             If args.Length = 2 AndAlso args(0) = "--regression" Then
                 Dim run As Task(Of List(Of String))
-                If args(1).StartsWith("processor-streams-", StringComparison.Ordinal) Then
+                If args(1) = "supplemental-versions" Then
+                    run = SupplementalVersionChecks.RunAsync(TestRoot)
+                ElseIf args(1).StartsWith("processor-streams-", StringComparison.Ordinal) Then
                     run = ProcessorStreamChecks.RunAsync(TestRoot, args(1))
                 ElseIf args(1).StartsWith("component-catalogue-", StringComparison.Ordinal) Then
                     run = ComponentCatalogueChecks.RunAsync(args(1))
@@ -102,6 +108,9 @@ Module Program
                 Return
             End If
             For Each label In ComponentChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
+                Check(True, label)
+            Next
+            For Each label In SupplementalVersionChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
                 Check(True, label)
             Next
             For Each label In JavaProbeChecks.RunAsync(TestRoot).GetAwaiter().GetResult()

@@ -281,7 +281,7 @@ Partial Public Class MainWindow
         VerifyPclDetails(check)
         VerifySourcePreferences(check, artifactDirectory)
         VerifyRefreshRebinding(check)
-        VerifyRefreshWorkflow(check)
+        VerifyRefreshWorkflow(check, artifactDirectory)
         VerifyCompatibilityWorkflow(check)
         VerifyTaskLifecycle(check, artifactDirectory)
         VerifyPointerAlignment(check)
@@ -347,6 +347,7 @@ Partial Public Class MainWindow
     End Sub
 
     Private ReadOnly _sourceSelection As New SourceSelectionState()
+    Private _supplementalProvider As Func(Of SourcePolicy, CancellationToken, Task(Of List(Of VersionEntry)))
     Private Function Policy() As SourcePolicy
         Return New SourcePolicy(_sourceSelection) With {.Preference = SelectedSource(SourceBox), .VersionPreference = SelectedSource(VersionSourceBox)}
     End Function
@@ -379,6 +380,27 @@ Partial Public Class MainWindow
             _versionsDirty = False
             UpdateVersions()
             StatusText.Text = "已读取 " & _versions.Count & " 个版本，选择版本后可开始安装。"
+            ' Keep the ordinary list interactive while optional UVMC metadata loads.
+            _loading = False
+            If _supplementalProvider IsNot Nothing OrElse (_versionProvider Is Nothing AndAlso Not _preview) Then
+                Dim status = StatusText.Text
+                Dim extra As List(Of VersionEntry)
+                Try
+                    extra = Await If(_supplementalProvider Is Nothing, SupplementalVersions.LoadAsync(Policy(), request.Token), _supplementalProvider(Policy(), request.Token))
+                Catch ex As OperationCanceledException
+                    ' The main list has already succeeded. Its deadline or a cancelled
+                    ' optional request must not turn that success into a refresh error.
+                    Return
+                End Try
+                If _closing OrElse generation <> _versionGeneration OrElse _busy Then Return
+                _versions = SupplementalVersions.Merge(_versions, extra)
+                ' Append separate PCL-style folded groups without rebuilding rows the
+                ' user has already opened, focused or scrolled through.
+                AddSupplementalVersionCards()
+                If _downloadView = DownloadView.Versions Then
+                    If StatusText.Text = status Then StatusText.Text = "已读取 " & _versions.Count & " 个版本" & If(extra.Count = 0, "（补充清单暂不可用，可刷新重试）", "，含战斗测试版与实验快照") & "。"
+                End If
+            End If
         Catch ex As Exception
             If _closing OrElse generation <> _versionGeneration Then Return
             _versionsDirty = True
@@ -449,13 +471,23 @@ Partial Public Class MainWindow
         If _versions.Count = 0 Then Return
         Dim versions = _versions.Select(Function(v) New VersionPresentation(v)).OrderByDescending(Function(v) v.Entry.Released).ToList()
         Dim releases = versions.Where(Function(v) v.Kind = "release").ToList()
-        Dim snapshots = versions.Where(Function(v) v.Kind = "snapshot").ToList()
+        Dim snapshots = versions.Where(Function(v) v.Kind = "snapshot" AndAlso Not v.Entry.IsSupplemental).ToList()
         Dim latest As New List(Of VersionPresentation)
         If releases.Count > 0 Then latest.Add(releases(0))
         If snapshots.Count > 0 AndAlso (releases.Count = 0 OrElse snapshots(0).Entry.Released > releases(0).Entry.Released) Then latest.Add(snapshots(0))
         AddVersionCard("最新版本", latest, False, True)
         For Each category In {"正式版", "预览版", "远古版", "愚人节版"}
             AddVersionCard(category, versions.Where(Function(v) v.Category = category).ToList(), True, False)
+        Next
+        AddSupplementalVersionCards()
+    End Sub
+
+    Private Sub AddSupplementalVersionCards()
+        For Each category In {"战斗测试版", "实验快照"}
+            If VersionCards.Children.OfType(Of PclCard)().Any(Function(card) card.Title.StartsWith(category & " (", StringComparison.Ordinal)) Then Continue For
+            Dim entries = _versions.Where(Function(entry) entry.IsSupplemental).Select(Function(entry) New VersionPresentation(entry)).
+                Where(Function(entry) entry.Category = category).OrderByDescending(Function(entry) entry.Entry.Released).ToList()
+            AddVersionCard(category, entries, True, False)
         Next
     End Sub
 

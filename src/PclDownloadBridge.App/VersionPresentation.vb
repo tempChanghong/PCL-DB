@@ -22,6 +22,11 @@ Friend NotInheritable Class VersionPresentation
         Entry = value
         Kind = value.Kind
         DisplayId = value.Id
+        If value.IsSupplemental Then
+            Kind = "snapshot"
+            Lore = "[补充版本 · UVMC] " & SupplementalVersions.Label(value) & " · " & value.Released.ToString("yyyy/MM/dd HH:mm")
+            Return
+        End If
         If Kind <> "snapshot" Then Return
         Dim id = value.Id.ToLowerInvariant()
         If id.StartsWith("1.", StringComparison.Ordinal) AndAlso Not {"combat", "rc", "experimental", "pre"}.Any(Function(marker) id.Contains(marker)) Then Kind = "release"
@@ -54,6 +59,7 @@ Friend NotInheritable Class VersionPresentation
 
     Public ReadOnly Property Category As String
         Get
+            If Entry.IsSupplemental Then Return SupplementalVersions.Label(Entry)
             Select Case Kind
                 Case "release" : Return "正式版"
                 Case "snapshot" : Return "预览版"

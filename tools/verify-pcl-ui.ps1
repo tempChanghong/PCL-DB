@@ -126,7 +126,7 @@ Write-Output 'PASS PCL red name-hint geometry and theme from fixed MyHint source
 
 $versionSource = Get-Content -LiteralPath (Join-Path $root 'reference/PCL/Modules/Minecraft/ModMinecraft.vb') -Raw
 $versionAdapter = Get-Content -LiteralPath (Join-Path $root 'src/PclDownloadBridge.App/VersionPresentation.vb') -Raw
-$descriptions = [regex]::Matches($versionAdapter, 'Lore = "([^"]+)"')
+$descriptions = [regex]::Matches($versionAdapter, '(?m)^\s*Lore = "([^"]+)"[ \t]*\r?$')
 if ($descriptions.Count -ne 10) { throw 'PCL April Fools description count mismatch.' }
 foreach ($description in $descriptions) {
     if (!$versionSource.Contains('Return "' + $description.Groups[1].Value + '"')) { throw 'PCL April Fools description mismatch.' }
