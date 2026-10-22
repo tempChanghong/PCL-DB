@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## Beta 1.0 后续开发：UTF-8 BOM 元数据兼容
+
+- 重读固定 `5ef81e4` 的 `Modules/Base/ModNet.vb`：`NetRequestByClient` 在响应解码后检查 JSON 格式，失败可由重试/备用来源处理。本工具保留“读取完整响应、校验摘要、解码解析、检查结构、再确认来源”的流程，仅修复自身 UTF-8 解码到 JSON 解析之间未处理前导 BOM 的兼容缺口。
+- SHA-1 始终覆盖完整原始字节；通过后仅跳过字节流最开头的一次 UTF-8 BOM，不改 JSON 字符串中的 U+FEFF，JSON 解析仍拒绝重复/截断或出现在空白之后的 BOM。下载到磁盘的资源索引保留原始字节及其摘要；这是本工具适配，没有宣称移植或复现上游 `GetString` 扩展的所有编码行为。
+
 ## Beta 1.0 后续开发：补充版本清单
 
 - 安装后续检查阅读固定 `ModMinecraft.vb` 的 `McAssetsGetIndex/McAssetsGetIndexName`，以及固定 `ModLaunch.vb` 生成 `${assets_index_name}` 的路径：PCL 优先读取 `assetIndex.id`，该名称与索引 URL 相互独立。同一上游资源索引 ID 在不同战斗测试版中可能对应不同 SHA-1；本工具因此仅为新补充实例改写索引名为 `pcldb-` 加完整小写 SHA-1，仍保留原 URL、摘要、大小、assets 字段及客户端身份，普通实例不改名，资源对象库继续共享。旧补充实例的补全保留 JSON；遇到已有共享索引内容不匹配时拒绝覆盖。独立命名及旧格式保护属于本工具的冲突处理适配，不宣称 PCL 上游采取相同命名。

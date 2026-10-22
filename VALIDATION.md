@@ -2,6 +2,14 @@
 
 日期：2026-10-22（北京时间）。最新发布为 PCL-DB Beta 1.0（`1.0.0-beta.1`），当前主分支另含尚未发布的后续修复；下方保留先前版本的验证记录。
 
+## Beta 1.0 后续开发：UTF-8 BOM 元数据解析与修复
+
+- 基线 `c70680934fdc6fcd67b5c72400199ad701c519c5`，源码备份和保护快照位于 `artifacts/beta1-metadata-bom/`。重读固定 PCL `ModNet.NetRequestByClient` 的响应解码、JSON 检查和失败重试分层，片段见 pcl-json-source.txt；本轮修复的是本工具自身的 UTF-8 前导字节处理。
+- baseline-bom.log 在真实回环 HTTP 下复现：响应完整，SHA-1 与包含 BOM 的原始字节一致，但 UTF-8 解码保留的 U+FEFF 使 `JToken.Parse` 抛出 JsonReaderException，合法首选来源被拒绝。现在摘要验证仍先使用完整响应，随后仅为解析跳过最开头一次 UTF-8 BOM。
+- 新增 **19 项**检查（bom-final.log）：带原始摘要及 Unicode 的 JSON、首选来源不启动备用请求、通用数组和自定义 XML 解析、字符串内部 U+FEFF 保持、截断/重复/空白后 BOM 拒绝、摘要不能按去掉 BOM 后的文本计算、对象形状门禁、三种主清单选源偏好，以及普通版/补充版的实际安装与损坏索引修复。两个安装样本同时给版本 JSON 和资源索引加入 BOM，并声明含 BOM 的摘要；索引落盘字节及补充索引的 SHA-1 名称保持正确，修复保留实例 JSON。
+- Metadata Transfers 配置从 26 增至 **45 项**，完整核心 **1144 项**、VS 2026 Debug/PDB 精选核心 **768 项**通过；Release/Debug 的 **658 项界面、328 项动画**以及 **17 项固定源码对照**通过，Release 构建零警告/零错误。检查使用回环 HTTP、临时目录和隔离 WPF，没有真实端点可用性或游戏启动实测。
+- preservation.json 确认 78 个 dist 文件内容与修改时间、七个参考仓库和 Beta 标签保持。本轮只本地验证与 Commit，不打包、不发版、不推送。
+
 ## Beta 1.0 后续开发：补充版本资源索引冲突
 
 - 基线 `4a1ee81cb21d5682f5b96cfae7a7487ca9743fd5`，源码备份及保护快照位于 `artifacts/beta1-supplemental-asset-index/`。重读固定 PCL 的 `McAssetsGetIndex/McAssetsGetIndexName` 和 `ModLaunch.vb` 的 `${assets_index_name}` 替换，片段保存在 pcl-asset-index.txt；其资源索引路径优先来自 `assetIndex.id`，不要求文件名与 URL 相同。

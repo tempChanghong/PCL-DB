@@ -63,7 +63,7 @@ Module Program
                 ElseIf args(1).StartsWith("lib-select-", StringComparison.Ordinal) Then
                     run = LibrarySelectionChecks.RunAsync(TestRoot, args(1))
                 ElseIf args(1).StartsWith("metadata-transfer-", StringComparison.Ordinal) Then
-                    run = MetadataTransferChecks.RunAsync(args(1))
+                    run = MetadataTransferChecks.RunAsync(args(1), TestRoot)
                 ElseIf args(1).StartsWith("library-meta-", StringComparison.Ordinal) Then
                     run = LibraryMetadataChecks.RunAsync(TestRoot, args(1))
                 ElseIf args(1).StartsWith("copy-", StringComparison.Ordinal) Then
@@ -143,7 +143,7 @@ Module Program
             MetadataTests()
             TransferTestsAsync().GetAwaiter().GetResult()
             MetadataRaceTestsAsync().GetAwaiter().GetResult()
-            For Each label In MetadataTransferChecks.RunAsync().GetAwaiter().GetResult()
+            For Each label In MetadataTransferChecks.RunAsync(root:=TestRoot).GetAwaiter().GetResult()
                 Check(True, label)
             Next
             SlowSourceTestsAsync().GetAwaiter().GetResult()

@@ -39,9 +39,9 @@ Debug 构建输出为 `src/PclDownloadBridge.App/bin/Debug/net48/`。启动配�
 
 | 配置 | 覆盖的流程 |
 |---|---|
-| Offline All | 全部本地下载、安装与处理器回归；当前 1125 项检查，处理器样本需要本机 Java 8 或更高版本 |
+| Offline All | 全部本地下载、安装与处理器回归；当前 1144 项检查，处理器样本需要本机 Java 8 或更高版本 |
 | Supplemental Versions | 111 项补充版本检查：20 个目标身份、显式别名、分类信息、重复冲突、官方优先、来源失败/超时/取消及编码恢复、实际安装与校验补全、错误元数据和文件拒绝；另含 21 项资源索引隔离、共享、旧实例兼容、取消/失败后重试检查，可用 `--regression supplemental-indexes` 单独运行；只使用回环 HTTP 与临时目录 |
-| Metadata Transfers | 26 项元数据响应、大小上限、JSON 对象类型、备用源、哈希及取消回归；仅使用本地 HTTP 样本 |
+| Metadata Transfers | 45 项元数据响应、大小上限、JSON 对象类型、备用源、哈希及取消回归，含 19 项 UTF-8 BOM、原始字节摘要、主清单选源、实际安装与修复检查；可用 `--regression metadata-transfer-bom` 单独运行新增组，仅使用本地 HTTP 与临时目录 |
 | Component Catalogues | 234 项 Fabric / Fabric API / OptiFine / OptiFabric / LiteLoader 检查，覆盖兼容性、主文件/附件选择、发布时间、实际安装、SHA-1/MD5 校验与缓存、OptiFine 文件大小与损坏回退、合法空列表、损坏条目、重复分页、源偏好及取消；仅使用本地 HTTP 样本 |
 | Processor Log Recovery | 12 项真实 Java 样本检查：日志只读/占用、输出进度、失败原因、取消、恢复后重试；不使用真实游戏目录 |
 | Processor Streams | 22 项进程输出检查：双流收尾、末尾无换行、错误码、继承管道、取消、输出收尾超时和同名安装重试；用临时托管进程模拟 Java，不执行真实上游安装器 |

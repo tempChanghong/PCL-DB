@@ -7,7 +7,7 @@ Imports PclDownloadBridge.Core
 Friend Module MetadataTransferChecks
     Private Const Limit As Integer = 32 * 1024 * 1024
 
-    Friend Async Function RunAsync(Optional onlyCase As String = Nothing) As Task(Of List(Of String))
+    Friend Async Function RunAsync(Optional onlyCase As String = Nothing, Optional root As String = Nothing) As Task(Of List(Of String))
         If onlyCase = "metadata-transfer-all" Then onlyCase = Nothing
         Dim passed As New List(Of String)
         If onlyCase Is Nothing OrElse onlyCase = "metadata-transfer-header" Then Await HeaderAsync(False, passed)
@@ -16,6 +16,7 @@ Friend Module MetadataTransferChecks
         If onlyCase Is Nothing OrElse onlyCase = "metadata-transfer-text" Then Await TextAsync(passed)
         If onlyCase Is Nothing OrElse onlyCase = "metadata-transfer-cancel" Then Await CancelAsync(passed)
         If onlyCase Is Nothing OrElse onlyCase = "metadata-transfer-shape" Then passed.AddRange(Await MetadataShapeChecks.RunAsync())
+        If onlyCase Is Nothing OrElse onlyCase = "metadata-transfer-bom" Then passed.AddRange(Await MetadataBomChecks.RunAsync(If(root, Path.Combine(Path.GetTempPath(), "PclDownloadBridgeBom-" & Guid.NewGuid().ToString("N")))))
         If passed.Count = 0 Then Throw New ArgumentException(onlyCase)
         Return passed
     End Function

@@ -287,7 +287,10 @@ Public Class SourcePolicy
                             If Not String.Equals(BitConverter.ToString(hash.ComputeHash(bytes)).Replace("-", ""), sha1, StringComparison.OrdinalIgnoreCase) Then Throw New IO.InvalidDataException("元数据 SHA-1 校验失败。")
                         End Using
                     End If
-                    Dim body = Text.Encoding.UTF8.GetString(bytes)
+                    ' Hash the complete response above, including any BOM. Skip just
+                    ' one UTF-8 preamble for parsing, preserving embedded characters.
+                    Dim start = If(bytes.Length >= 3 AndAlso bytes(0) = &HEF AndAlso bytes(1) = &HBB AndAlso bytes(2) = &HBF, 3, 0)
+                    Dim body = Text.Encoding.UTF8.GetString(bytes, start, bytes.Length - start)
                     Dim result = If(parse Is Nothing, JToken.Parse(body), parse(source, body))
                     validate?.Invoke(result)
                     token.ThrowIfCancellationRequested()
