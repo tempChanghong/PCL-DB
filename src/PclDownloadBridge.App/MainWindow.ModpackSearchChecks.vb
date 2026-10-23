@@ -6,6 +6,7 @@ Imports System.Threading
 Imports System.Windows
 Imports System.Windows.Controls
 Imports System.Windows.Input
+Imports System.Windows.Media
 Imports System.Windows.Threading
 Imports Newtonsoft.Json.Linq
 Imports PclDownloadBridge.Core
@@ -183,16 +184,16 @@ Partial Public Class MainWindow
         _packReleases = New List(Of ModpackRelease) From {multi, originalReleases(1)}
         InitializePackVersions() : layout()
         check(PackVersionCards.Children.Count = 2, "an unfiltered multi-game release appears in each compatible Minecraft card")
-        Dim secondFilter = PackVersionFilters.Children.OfType(Of PclButton)().Single(Function(button) button.Text = "1.20.2")
+        Dim secondFilter = PackVersionFilters.Children.OfType(Of PclRadioButton)().Single(Function(button) button.Text = "1.20.2")
         SelectPackVersionFilter(secondFilter) : layout()
         check(PackVersionCards.Children.Count = 1 AndAlso DirectCast(PackVersionCards.Children(0), PclCard).Title.StartsWith("1.20.2", StringComparison.Ordinal), "filtering a multi-game release uses the matching Minecraft card rather than its first advertised version")
         Dim multiCard = DirectCast(PackVersionCards.Children(0), PclCard), multiRows = DirectCast(multiCard.Body, StackPanel)
         check(multiRows.Children.Count = 1 AndAlso DirectCast(multiRows.Children(0), PclListItem).Tag Is multi, "repeated compatibility declarations produce one install action per release and game card")
-        SelectPackVersionFilter(DirectCast(PackVersionFilters.Children(0), PclButton)) : layout()
+        SelectPackVersionFilter(DirectCast(PackVersionFilters.Children(0), PclRadioButton)) : layout()
         check(PackVersionCards.Children.Contains(multiCard) AndAlso multiCard.Body Is multiRows AndAlso Not multiCard.Collapsed AndAlso PackVersionFilters.Children.Contains(secondFilter), "filter changes retain button identity, expansion state and already built release rows")
         multiCard.Collapsed = True : layout()
         Dim obsoleteFold = multiCard.HeightTransition
-        SelectPackVersionFilter(PackVersionFilters.Children.OfType(Of PclButton)().Single(Function(button) button.Text = "1.20.1")) : layout()
+        SelectPackVersionFilter(PackVersionFilters.Children.OfType(Of PclRadioButton)().Single(Function(button) button.Text = "1.20.1")) : layout()
         Dim generationBeforeHiddenRow = _taskGeneration
         DirectCast(multiRows.Children(0), PclListItem).Activate() : layout()
         check(_onlinePrompt Is Nothing AndAlso Not _choosingOnline AndAlso _taskGeneration = generationBeforeHiddenRow, "a filtered-away cached row cannot start a name prompt or install task")
@@ -207,14 +208,51 @@ Partial Public Class MainWindow
             many.Add(item)
         Next
         _packReleases = many : _packTargetGame = "1.20.4" : InitializePackVersions() : layout()
-        check(PackVersionFilters.Children.OfType(Of PclButton)().Select(Function(button) button.Text).SequenceEqual({"全部", "1.21", "1.20"}) AndAlso _packGameFilter = "1.20", "nine or more exact version filters fold into PCL release families while retaining the requested family")
+        check(PackVersionFilters.Children.OfType(Of PclRadioButton)().Count() = PackVersionFilters.Children.Count,
+            "version filters use PCL capsule radios instead of rectangular command buttons")
+        check(PackVersionFilterCard.BodyMargin = New Thickness(10, 10, 0, 10) AndAlso PackVersionFilters.Children.OfType(Of PclRadioButton)().All(Function(button)
+                    Return button.ColorType = PclRadioButton.ColorState.Highlight AndAlso button.MinHeight = 27 AndAlso button.MaxHeight = 27 AndAlso
+                        button.CornerRadius = New CornerRadius(13.5) AndAlso button.Margin = New Thickness(2, 0, 2, 0) AndAlso button.LabText.Margin = New Thickness(-2, 0, 10, 0)
+                End Function), "version filter capsule radius, label inset, height and card padding match fixed PCL source")
+        check(PackVersionFilters.Children.OfType(Of PclRadioButton)().Select(Function(button) button.Text).SequenceEqual({"全部", "1.21", "1.20"}) AndAlso _packGameFilter = "1.20", "nine or more exact version filters fold into PCL release families while retaining the requested family")
         Dim targetCard = DirectCast(PackVersionCards.Children(0), PclCard)
         check(CStr(targetCard.Tag) = "1.20.4（所选版本）" AndAlso Not targetCard.Collapsed AndAlso Not PackVersionCards.Children.OfType(Of PclCard)().Any(Function(card) CStr(card.Tag) = "1.20.4"), "the requested Minecraft version is expanded first without a duplicate ordinary card")
         check(PackVersionCards.Children.OfType(Of PclCard)().All(Function(card) card.Title.StartsWith("1.20", StringComparison.Ordinal)), "a grouped version filter excludes other families but retains exact patch cards")
-        SelectPackVersionFilter(DirectCast(PackVersionFilters.Children(0), PclButton)) : layout()
+        Dim allFilter = DirectCast(PackVersionFilters.Children(0), PclRadioButton)
+        Dim familyFilter = PackVersionFilters.Children.OfType(Of PclRadioButton)().Single(Function(button) CStr(button.Tag) = "1.20")
+        ControlKey(allFilter, Key.Space, True) : layout()
+        check(_packGameFilter = "" AndAlso allFilter.Checked AndAlso PackVersionFilters.Children.OfType(Of PclRadioButton)().Where(Function(button) button.Checked).Count() = 1 AndAlso PackVersionCards.Children(0) Is targetCard,
+            "Space selects the all-version capsule exclusively without replacing the cached target card")
+        ControlKey(familyFilter, Key.Enter, True) : layout()
+        check(_packGameFilter = "1.20" AndAlso familyFilter.Checked AndAlso Not allFilter.Checked AndAlso PackVersionFilters.Children.OfType(Of PclRadioButton)().Where(Function(button) button.Checked).Count() = 1,
+            "Enter restores the requested version family with exactly one selected capsule")
+        Dim busyBeforeFilter = _busy, generationBeforeFilter = _taskGeneration
+        Try
+            _busy = True : ControlKey(allFilter, Key.Enter, True) : layout()
+            check(_packGameFilter = "1.20" AndAlso familyFilter.Checked AndAlso Not allFilter.Checked AndAlso _taskGeneration = generationBeforeFilter,
+                "a blocked capsule click cannot visually select a different family while installation is busy")
+        Finally
+            _busy = busyBeforeFilter
+        End Try
+        PackDetailResultsHost.IsHitTestVisible = False : ControlKey(allFilter, Key.Enter, True)
+        check(_packGameFilter = "1.20" AndAlso familyFilter.Checked AndAlso Not allFilter.Checked,
+            "keyboard activation cannot change capsule filters inside a gated detail surface")
+        PackDetailResultsHost.IsHitTestVisible = True : layout()
+        SelectPackVersionFilter(DirectCast(PackVersionFilters.Children(0), PclRadioButton)) : layout()
         check(PackVersionCards.Children.Count = 11 AndAlso PackVersionCards.Children(0) Is targetCard, "the all filter restores every exact version while preserving the selected-version card")
         Await Task.Delay(220) : layout() ' Capture the settled filter colors, not their 200ms transition.
         SaveControlVisual(host, Path.Combine(directory, "pack-search-version-families.png"))
+        Dim filterAppearance = _appearance.ToJson()
+        Try
+            RestoreAppearance(New JObject From {{"theme", "blue"}, {"darkMode", True}}) : layout()
+            check(DirectCast(allFilter.Background, SolidColorBrush).Color = PclAnimation.Brush("ColorBrush3").Color AndAlso
+                DirectCast(allFilter.LabText.Foreground, SolidColorBrush).Color = Colors.White AndAlso
+                DirectCast(familyFilter.LabText.Foreground, SolidColorBrush).Color = PclAnimation.Brush("ColorBrush3").Color,
+                "dark mode keeps the selected filter accent-filled with white text and other filters accent-colored")
+            SaveControlVisual(host, Path.Combine(directory, "pack-search-version-families-dark.png"))
+        Finally
+            RestoreAppearance(filterAppearance)
+        End Try
         _packTargetGame = "1.19.4" : InitializePackVersions() : layout()
         check(_packGameFilter = "" AndAlso PackVersionCards.Children.Count = 11, "a requested version with no downloadable file falls back to all instead of an empty phantom filter")
         SelectPackVersionFilter(secondFilter)
@@ -225,11 +263,11 @@ Partial Public Class MainWindow
             oldVersions.Add(item)
         Next
         _packReleases = oldVersions : _packTargetGame = "" : InitializePackVersions() : layout()
-        Dim folded = PackVersionFilters.Children.OfType(Of PclButton)().Select(Function(button) button.Text).ToList()
+        Dim folded = PackVersionFilters.Children.OfType(Of PclRadioButton)().Select(Function(button) button.Text).ToList()
         check(folded.SequenceEqual({"全部", "26.2", "26.1", "1.20.2", "1.20.1", "快照版", "远古版"}), "old releases fold only after minor grouping is insufficient, while new numbering and snapshot groups remain distinct")
-        SelectPackVersionFilter(PackVersionFilters.Children.OfType(Of PclButton)().Single(Function(button) button.Text = "远古版")) : layout()
+        SelectPackVersionFilter(PackVersionFilters.Children.OfType(Of PclRadioButton)().Single(Function(button) button.Text = "远古版")) : layout()
         check(PackVersionCards.Children.Count = 10 AndAlso PackVersionCards.Children.OfType(Of PclCard)().All(Function(card) MinecraftVersionRules.ReleaseFamily(CStr(card.Tag)) < 120), "the old-version filter retains every exact old release card without newer or snapshot files")
-        SelectPackVersionFilter(PackVersionFilters.Children.OfType(Of PclButton)().Single(Function(button) button.Text = "快照版")) : layout()
+        SelectPackVersionFilter(PackVersionFilters.Children.OfType(Of PclRadioButton)().Single(Function(button) button.Text = "快照版")) : layout()
         Dim snapshots = DirectCast(DirectCast(PackVersionCards.Children(0), PclCard).Body, StackPanel)
         check(PackVersionCards.Children.Count = 1 AndAlso snapshots.Children.Count = 2, "snapshot compatibility labels share one expanded card without losing either file")
         Dim unlabelled = multi.Copy() : unlabelled.GameVersions = {}

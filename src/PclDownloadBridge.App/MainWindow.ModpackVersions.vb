@@ -28,7 +28,9 @@ Partial Public Class MainWindow
         _packGameFilter = If(filters.Count > 1 AndAlso _packTargetGame <> "" AndAlso games.Contains(_packTargetGame, StringComparer.OrdinalIgnoreCase), PackGroupedVersionName(_packTargetGame, _packGroupedDrop, _packGroupedOld), "")
         PackVersionFilterCard.Visibility = If(filters.Count > 1, Visibility.Visible, Visibility.Collapsed)
         For Each game In New String() {""}.Concat(filters)
-            Dim button As New PclButton With {.Text = If(game = "", "全部", game), .Tag = game, .Height = 28, .MinWidth = 66, .Margin = New Thickness(0, 0, 8, 6), .Highlight = String.Equals(game, _packGameFilter, StringComparison.OrdinalIgnoreCase)}
+            Dim button As New PclRadioButton With {.Text = If(game = "", "全部", game), .Tag = game, .Margin = New Thickness(2, 0, 2, 0), .ColorType = PclRadioButton.ColorState.Highlight,
+                .Checked = String.Equals(game, _packGameFilter, StringComparison.OrdinalIgnoreCase)}
+            button.LabText.Margin = New Thickness(-2, 0, 10, 0)
             AddHandler button.Click, Sub() SelectPackVersionFilter(button)
             PackVersionFilters.Children.Add(button)
         Next
@@ -48,7 +50,7 @@ Partial Public Class MainWindow
         RenderPackVersions()
     End Sub
 
-    Private Sub SelectPackVersionFilter(button As PclButton)
+    Private Sub SelectPackVersionFilter(button As PclRadioButton)
         If _busy OrElse _choosingOnline OrElse _closing OrElse _packMode <> PackBrowserMode.Detail OrElse _downloadView <> DownloadView.Modpacks OrElse Not PackDetailSurface.IsVisible OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible OrElse Not PackDetailResultsHost.IsHitTestVisible OrElse Not PackVersionFilters.Children.Contains(button) Then Return
         Dim selected = CStr(button.Tag)
         If _packGameFilter = selected Then Return
@@ -58,9 +60,9 @@ Partial Public Class MainWindow
     End Sub
 
     Private Sub RenderPackVersions()
-        For Each button In PackVersionFilters.Children.OfType(Of PclButton)()
+        For Each button In PackVersionFilters.Children.OfType(Of PclRadioButton)()
             Dim highlighted = String.Equals(CStr(button.Tag), _packGameFilter, StringComparison.OrdinalIgnoreCase)
-            If button.Highlight <> highlighted Then button.Highlight = highlighted
+            If button.Checked <> highlighted Then button.Checked = highlighted
         Next
         Dim target = _packTargetGame & "（所选版本）"
         Dim names = _packVersionGroups.Keys.Where(Function(name) _packGameFilter = "" OrElse

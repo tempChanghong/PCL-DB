@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 整合包版本筛选胶囊与颜色动画
+
+- 再次读取固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadCompDetail.xaml(.vb)` 和 `MyRadioButton.xaml(.vb)`：详情筛选使用 Highlight 单选按钮、27 DIP 高度、13.5 DIP 圆角、按钮边距 `2,0,2,0`、文字边距 `-2,0,10,0` 和筛选容器边距 `10,10,0,10`。选中为 ColorBrush3 背景／白字 120ms，按下 ColorBrush6 90ms，悬停 ColorBrush7／主题文字 90ms，离开半透明背景／主题文字 150ms；按下分支只改变背景，不重启文字过渡。
+- 读取同提交 `ModAnimation.AniType.Color` 与 `ModBase.MyColor.Lerp/ClampToByte` 的 ARGB 通道插值和字节舍入。新 `PclRadioColorAnimation` 使用线性字节通道插值，并沿用本工具的 `PclMotionSlot` 所有权与完成清理；修复旧顶部选项在颜色过渡结束后仍保留 HoldEnd 时钟的问题。原始 MyRadioButton XAML 保持不变，White 模式保留既有顶部导航色彩和 60ms 按下时序。
+- WPF 适配：筛选容器保留 WrapPanel，窄窗口可以换行；键盘焦点使用悬停色，Space／Enter 交给当前详情所有者决定是否切换，不由控件自动修改 Checked。保留已有版本卡片／行及请求代次，忙碌、页面门控、隐藏、禁用、卸载与主题切换遵守统一控件动画策略。源码快照及六项摘要保存在忽略目录 `artifacts/pack-filter-capsules/source/`；详见 `docs/reviews/pack-filter-capsules-2026-10-23.md`。
+
 ## 历史补充版本首批接入
 
 - 继续参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `DlClientListBmclapiMain` 附加清单合并、`ShowMinecraftVersionList` 分类排序、`McDownloadListItem` 的 42 DIP 行、远古圆石／快照命令方块图标及日期。补充卡片仍延迟构造、复用现有进出动画，异步补充不重建普通行，不参与最新推荐。
