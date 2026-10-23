@@ -6,6 +6,8 @@ VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，简称
 
 当前源码已按固定 PCL2 代码补齐标题栏图标的按压回弹、滚动条悬停/拖动变色和个性化单选框的环/点动画。蓝色与深色模式即时换色；快速切换、隐藏及卸载会清理旧动画，Windows 关闭客户端动画时这三类控件直接呈现终态。单选框只重绘固定大小的图形，不逐帧重排设置页。
 
+原版安装页保留 PCL 的横向切换，“开始下载”按钮按 MyExtraTextButton 源码独立弹出、回弹与收起；快速返回和切到设置、整合包、任务页时清理所属动画，名称、组件选择和进行中的元数据请求继续保留。[修改与验证说明](docs/reviews/version-entry-action-motion-2026-10-23.md)。
+
 ## 使用
 
 从 [Beta 2.0](https://github.com/tempChanghong/PCL-DB/releases/tag/v2.0.0-beta.1) 下载 `PCL-DB-2.0.0-beta.1.exe` 直接运行，或下载 ZIP 解压后运行其中的 `PCL-DB.exe`。源码构建方法见下文。

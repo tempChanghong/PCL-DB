@@ -42,6 +42,7 @@ Partial Public Class MainWindow
         VerifyClippedLazyRows(check)
         Dim downloads As New MainWindow(True)
         downloads.VerifyDownloadCategoryMotion(directory, check)
+        VerifyInstallActionMotion(directory, check)
         VerifyControlMotionUi(directory, passed)
         VerifyTitleNavigation(check, directory, True)
         Return passed

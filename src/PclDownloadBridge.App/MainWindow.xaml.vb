@@ -64,6 +64,7 @@ Partial Public Class MainWindow
         AddHandler Shell.SizeChanged, Sub() Shell.Clip = New RectangleGeometry(New Rect(0, 0, Shell.ActualWidth, Shell.ActualHeight), 6, 6)
         DownloadTab.Checked = True
         _preview = preview
+        _installActionMotion = New PclInstallActionMotion(InstallActionHost, AddressOf AllowPageMotion)
         _titleNavigation = New PclTitleNavigation(TitleBar, TitleMain, TitleInner, InnerTitle, AddressOf AllowPageMotion)
         _surfaceMotion = New PclSurfaceMotion(PageSurface, PageGhost,
             AddressOf AllowPageMotion, AddressOf SurfaceUnits)
@@ -775,6 +776,8 @@ Partial Public Class MainWindow
 
     Private Async Sub StartInstall(sender As Object, e As RoutedEventArgs)
         If _busy OrElse _closing OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible Then Return
+        If _downloadView <> DownloadView.Install AndAlso _downloadView <> DownloadView.Modpacks Then Return
+        If sender Is InstallButton AndAlso (Not InstallActionHost.IsVisible OrElse Not InstallActionHost.IsHitTestVisible) Then Return
         If sender Is ModrinthInstallButton OrElse sender Is ModrinthInstanceName Then _activeModrinth = True
         If sender Is PackInstallButton OrElse sender Is PackInstanceName Then _activeModrinth = False
         Dim pack = If(_downloadView = DownloadView.Modpacks AndAlso Not _activeModrinth, _packSelection, Nothing)
@@ -949,6 +952,7 @@ Partial Public Class MainWindow
             End If
         End If
         _closing = True
+        RefreshInstallAction()
         _versionLoading.Reset()
         ClearVersionLoadingVisual()
         _packSearchLoading?.Reset() : _packDetailLoading?.Reset()

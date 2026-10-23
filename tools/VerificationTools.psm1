@@ -3,9 +3,9 @@ $ErrorActionPreference = 'Stop'
 
 # Bump the policy ID when the required suites change. Archive integrity never
 # applies today's counts to an older manifest; current candidates always do.
-$script:PolicyId = 'PCL-DB-checks/2026-10-23.18'
+$script:PolicyId = 'PCL-DB-checks/2026-10-23.19'
 $script:CandidateScopes = @('standalone', 'all', 'motion', 'pack-search')
-$script:Counts = @{standalone=25; all=876; motion=637; 'pack-search'=320; appearance=129; developer=36; cards=104; navigation=68; compatibility=49; 'control-motion'=263}
+$script:Counts = @{standalone=25; all=876; motion=716; 'pack-search'=320; appearance=129; developer=36; cards=104; navigation=68; compatibility=49; 'control-motion'=263}
 $script:Fields = @{standalone='StandaloneChecks'; all='UiChecks'; motion='MotionChecks'; 'pack-search'='PackSearchChecks'}
 
 function Get-PclDbCheckPolicy {

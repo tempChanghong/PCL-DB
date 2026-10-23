@@ -21,6 +21,7 @@ Partial Public Class MainWindow
         DownloadSidebar.Visibility = If(child, Visibility.Collapsed, Visibility.Visible)
         DownloadPage.ColumnDefinitions(0).Width = New GridLength(If(child, 0, 135))
         DownloadToolbar.Visibility = If(child, Visibility.Collapsed, Visibility.Visible)
+        RefreshInstallAction()
     End Sub
 
     ' The existing page owners are the return stack: task -> selected options or
