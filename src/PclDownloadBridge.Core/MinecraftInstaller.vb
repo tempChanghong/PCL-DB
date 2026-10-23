@@ -9,8 +9,10 @@ Imports Newtonsoft.Json.Linq
 Public Class MinecraftInstaller
     Private ReadOnly _policy As SourcePolicy
     Private ReadOnly _pclDirectory As String
-    Public Sub New(policy As SourcePolicy, Optional pclDirectory As String = Nothing)
-        _policy = policy : _pclDirectory = pclDirectory
+    Private ReadOnly _newInstanceIsolationStrategy As Integer?
+    Public Sub New(policy As SourcePolicy, Optional pclDirectory As String = Nothing, Optional newInstanceIsolationStrategy As Integer? = Nothing)
+        If newInstanceIsolationStrategy.HasValue AndAlso (newInstanceIsolationStrategy.Value < 0 OrElse newInstanceIsolationStrategy.Value > 4) Then Throw New ArgumentOutOfRangeException(NameOf(newInstanceIsolationStrategy))
+        _policy = policy : _pclDirectory = pclDirectory : _newInstanceIsolationStrategy = newInstanceIsolationStrategy
     End Sub
 
     Public Async Function VersionsAsync(token As CancellationToken) As Task(Of List(Of VersionEntry))
@@ -106,8 +108,8 @@ Public Class MinecraftInstaller
             Dim modable = ComponentInstaller.IsModable(components)
             Dim componentMods = ComponentInstaller.ModFiles(components, entry.Id)
             Dim isolation As PclIsolationPlan = Nothing
-            If mappedFiles.Count > 0 OrElse (Not repairExisting AndAlso (withComponents OrElse isolationMode <> InstanceIsolationMode.FollowPcl)) Then
-                isolation = PclIsolationPlan.Resolve(root, instanceName, entry, metadata, _pclDirectory, repairExisting, withComponents, isolationMode, modable)
+            If mappedFiles.Count > 0 OrElse (Not repairExisting AndAlso (withComponents OrElse isolationMode <> InstanceIsolationMode.FollowPcl OrElse _newInstanceIsolationStrategy.HasValue)) Then
+                isolation = PclIsolationPlan.Resolve(root, instanceName, entry, metadata, _pclDirectory, repairExisting, withComponents, isolationMode, modable, _newInstanceIsolationStrategy)
                 If isolation.Isolated Then
                     For Each item In mappedFiles
                         item.RelativePath = "versions/" & instanceName & "/" & item.RelativePath

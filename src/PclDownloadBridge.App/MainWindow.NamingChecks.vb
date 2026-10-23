@@ -114,26 +114,26 @@ Partial Public Class MainWindow
             InstanceName.Text = "blocked"
             check(Not InstallButton.IsEnabled AndAlso NameHint.Text.Contains("同名文件"), "a same-name file is shown as an occupied installation target")
 
-            Dim requests = 0, submittedName As String = Nothing, submittedRoot As String = Nothing, submittedIsolation As InstanceIsolationMode
+            Dim requests = 0, submittedName As String = Nothing, submittedRoot As String = Nothing, submittedIsolation As InstanceIsolationMode, submittedDefault As Integer?
             Dim gate As New TaskCompletionSource(Of InstallResult)(TaskCreationOptions.RunContinuationsAsynchronously)
-            _installRunner = Function(entry, root, name, selection, isolation, token)
+            _installRunner = Function(entry, root, name, selection, isolation, defaultIsolation, token)
                 requests += 1 : submittedName = name : submittedRoot = root
-                submittedIsolation = isolation
+                submittedIsolation = isolation : submittedDefault = defaultIsolation
                 Return gate.Task
             End Function
             InstanceName.Text = "bad/name"
             PressNameEnter()
             check(requests = 0 AndAlso Not _busy AndAlso StatusText.Text = NameHint.Text, "Enter on an invalid name reports the same validation reason without starting installation")
             InstanceName.Text = "键盘安装样本"
-            IsolationBox.SelectedIndex = 1
+            IsolationBox.SelectedIndex = 5
             ShowSettings(Nothing, Nothing)
             PressNameEnter()
             check(requests = 0, "a hidden install name cannot submit from the settings page")
             ShowDownload(Nothing, Nothing)
             PressNameEnter()
             check(requests = 1 AndAlso _busy AndAlso submittedName = "键盘安装样本" AndAlso submittedRoot = fixtureRoot AndAlso DownloadProgress.Visibility = Visibility.Visible, "Enter submits the actual selected name and folder through the shared install workflow")
-            IsolationBox.SelectedIndex = 2
-            check(submittedIsolation = InstanceIsolationMode.Enabled AndAlso Not IsolationBox.IsEnabled, "actual install submission captures isolation before later UI changes")
+            IsolationBox.SelectedIndex = 1
+            check(submittedIsolation = InstanceIsolationMode.FollowPcl AndAlso submittedDefault.GetValueOrDefault(-1) = 4 AndAlso Not IsolationBox.IsEnabled, "actual install submission captures its global isolation strategy before later UI changes")
             PressNameEnter()
             check(requests = 1, "repeated Enter during installation cannot submit a second request")
             gate.SetResult(New InstallResult With {.InstancePath = Path.Combine(fixtureRoot, "versions", submittedName), .FileCount = 3})

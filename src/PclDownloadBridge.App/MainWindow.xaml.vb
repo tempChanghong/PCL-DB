@@ -96,8 +96,6 @@ Partial Public Class MainWindow
         AddHandler InstanceName.KeyDown, AddressOf InstanceNameKeyDown
         AddHandler RepairBox.Checked, Sub() RefreshComponents()
         AddHandler RepairBox.Unchecked, Sub() RefreshComponents()
-        AddHandler RepairBox.Checked, AddressOf IsolationChanged
-        AddHandler RepairBox.Unchecked, AddressOf IsolationChanged
         AddHandler IsolationBox.SelectionChanged, AddressOf IsolationChanged
         RefreshIsolation(False)
         If preview Then
@@ -314,7 +312,7 @@ Partial Public Class MainWindow
         VerifyPageAlignment(check)
         VerifyPclDetails(check)
         VerifySourcePreferences(check, artifactDirectory)
-        VerifyIsolationOptions(check)
+        VerifyIsolationOptions(check, artifactDirectory)
         VerifyRefreshRebinding(check)
         VerifyRefreshWorkflow(check, artifactDirectory)
         VerifyVersionLoading(check, artifactDirectory)
@@ -359,6 +357,7 @@ Partial Public Class MainWindow
                 RestoreAppearance(settings("appearance"))
                 _pclBase = If(CStr(settings("pclBase")), _pclBase)
                 RestoreSourcePreferences(settings)
+                RestoreIsolationPreference(settings)
                 ConnectionsSlider.Value = ConnectionLevels(Math.Max(0, Math.Min(3, CInt(If(settings("connectionsIndex"), New JValue(1))))))
                 Dim storedSpeed = If(CStr(settings("speed")), "0")
                 Dim restoredSpeed As Double
@@ -854,9 +853,10 @@ Partial Public Class MainWindow
             Return
         End Try
         Dim connections = ConnectionCount()
-        Dim isolation = If(isPack, InstanceIsolationMode.Enabled, If(repair, InstanceIsolationMode.FollowPcl, SelectedIsolation()))
+        Dim isolation = If(isPack, InstanceIsolationMode.Enabled, InstanceIsolationMode.FollowPcl)
+        Dim defaultIsolation As Integer? = If(isPack OrElse repair, Nothing, SelectedIsolationStrategy())
         Dim reuse = If(ReuseBox.IsChecked = True, _folders.Select(Function(f) f.Location).ToList(), New List(Of String))
-        Dim installer As New MinecraftInstaller(Policy(), _pclBase)
+        Dim installer As New MinecraftInstaller(Policy(), _pclBase, newInstanceIsolationStrategy:=defaultIsolation)
         Dim packInstaller As New CurseForgeInstaller(Policy(), _pclBase)
         _cancellation = New CancellationTokenSource()
         _busy = True
@@ -880,7 +880,7 @@ Partial Public Class MainWindow
             Dim progress = CreateTaskProgress()
             Dim result As InstallResult
             If _installRunner IsNot Nothing Then
-                result = Await _installRunner(entry, root, name, selection, isolation, _cancellation.Token)
+                result = Await _installRunner(entry, root, name, selection, isolation, defaultIsolation, _cancellation.Token)
             ElseIf _preview Then
                 Throw New InvalidOperationException("界面预览不会执行实际安装。")
             ElseIf modrinth IsNot Nothing Then
@@ -939,22 +939,6 @@ Partial Public Class MainWindow
         ChangeFolderButton.IsEnabled = Not value
         RefreshButton.IsEnabled = Not value
         CancelButton.IsEnabled = value
-    End Sub
-
-    Private Function SelectedIsolation() As InstanceIsolationMode
-        Return If(IsolationBox.SelectedIndex >= 0 AndAlso IsolationBox.SelectedIndex <= 2, CType(IsolationBox.SelectedIndex, InstanceIsolationMode), InstanceIsolationMode.FollowPcl)
-    End Function
-    Private Sub IsolationChanged(sender As Object, e As RoutedEventArgs)
-        RefreshIsolation(_busy)
-    End Sub
-    Private Sub RefreshIsolation(busy As Boolean)
-        If IsolationBox Is Nothing OrElse IsolationHint Is Nothing OrElse RepairBox Is Nothing Then Return
-        Dim repair As Boolean = RepairBox.IsChecked.GetValueOrDefault()
-        IsolationBox.IsEnabled = Not busy AndAlso Not repair
-        IsolationHint.Text = If(repair, "补全时保留已有实例的隔离设置，此选项不参与修改。",
-            If(SelectedIsolation() = InstanceIsolationMode.Disabled, "Mods、资源包与旧版 resources 使用游戏根目录。多个版本会共用 Mods，请留意兼容性；同名不同内容的文件不会被覆盖。",
-            If(SelectedIsolation() = InstanceIsolationMode.Enabled, "Mods、资源包与旧版 resources 使用实例目录；支持库与 assets 仍在游戏根目录共享。",
-                "跟随所选 PCL 的默认隔离策略；未找到设置时使用 PCL 默认值。关闭隔离时，多个版本会共用 Mods。")))
     End Sub
 
     Private Function CreateTaskProgress() As IProgress(Of TransferProgress)

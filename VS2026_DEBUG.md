@@ -47,7 +47,7 @@ Debug 构建输出为 `src/PclDownloadBridge.App/bin/Debug/net48/`。启动配�
 | CurseForge Import | 135 项 ZIP 清单、文件查询/身份/远端校验、可选项、隔离、路径冲突、取消与缓存重试检查；使用回环载荷和受控 HTTP 元数据，不连接真实 CDN |
 | Install Inputs | 71 项安装参数检查：组件标量/嵌套 JSON 复制、安装中修改文件名/校验/加载器/版本与来源、一次性或变化的复用目录、损坏源回退、直接组件构造、取消后更新参数重试、已有实例补全及非法参数无副作用；仅使用临时文件、回环 HTTP 与同步进度回调 |
 | Isolation Boundaries | 91 项隔离发布边界检查：暂存 Mod 校验/摘要之间的写保护，共享 Mod 发布期读取、改写/删除/重命名和取消，后续步骤失败释放/回收/重试，PCL DisplayType API 分类、优先级、并发变化及已有设置保留；使用临时文件、回环 HTTP 和测试进程内真实 SHA-1 回调，不执行真实 OptiFine 处理器或启动游戏 |
-| Isolation Options | 115 项三态隔离与共享 Mods 检查：五种全局策略与组件状态、显式覆盖、已有设置保留、冲突/联接、只读同内容文件、LiteLoader 子目录、OptiFine 同尺寸冲突、分支并行、取消回收与零载荷重试；仅使用回环 HTTP、临时文件和测试进程哈希回调，不执行真实 OptiFine 处理器或启动游戏 |
+| Isolation Options | 231 项隔离与共享 Mods 检查：三态安装 API、PCL 五种默认策略、PCL-DB 全局默认覆盖与 metadata 分类、现代原版设置发布、已有设置保留、冲突/联接、只读同内容文件、LiteLoader 子目录、OptiFine 同尺寸冲突、分支并行、取消回收与零载荷重试；其中新增全局默认专项 116 项可用 `--regression install-mode-default-strategy` 单独运行。仅使用回环 HTTP、临时文件和测试进程哈希回调，不执行真实 OptiFine 处理器或启动游戏 |
 | Isolation Resources | 177 项旧资源与隔离检查：五种全局策略、实例设置/旧设置迁移、只读/BOM 配置、修复与设置变化、共享冲突回收、路径/联接、组件文件目录限制、并行取消、原子发布和重试；仅使用回环 HTTP、临时文件及测试进程哈希回调 |
 | Repair Metadata | 36 项校验补全检查：提交前 JSON 改写/删除/写占用、同长度和格式变化、UTF-8 BOM/UTF-16/只读 JSON、提交期间读写共享、取消及保留客户端缓存后重试；只使用回环 HTTP、临时文件和测试进程内哈希回调 |
 | Cache Boundaries | 30 项缓存复用检查：目标占用/目录冲突及解除后重试、损坏/锁定缓存回退到下一缓存或 HTTP、源及副本校验后取消与重试；使用真实临时文件锁、回环 HTTP 和测试进程内哈希回调，不操作用户目录 |

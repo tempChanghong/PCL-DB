@@ -80,9 +80,9 @@ Partial Public Class MainWindow
         reading = ReadLocalPackAsync(source) : ShowSettings(Me, New RoutedEventArgs()) : Await reading
         check(SettingsPage.IsVisible AndAlso _modrinthSelection IsNot Nothing, "MR late parsing does not hijack settings navigation")
         ShowDownload(Me, New RoutedEventArgs()) : layout() : ModrinthInstanceName.Text = "mr-custom"
-        Dim starts = 0, gate As New TaskCompletionSource(Of InstallResult)(), seenName As String = Nothing, seenMode As InstanceIsolationMode, seenGame As VersionEntry = Nothing
-        _installRunner = Function(game, gameRoot, name, components, isolation, token)
-                             starts += 1 : seenName = name : seenMode = isolation : seenGame = game
+        Dim starts = 0, gate As New TaskCompletionSource(Of InstallResult)(), seenName As String = Nothing, seenMode As InstanceIsolationMode, seenGame As VersionEntry = Nothing, seenDefault As Integer?
+        _installRunner = Function(game, gameRoot, name, components, isolation, defaultIsolation, token)
+                             starts += 1 : seenName = name : seenMode = isolation : seenGame = game : seenDefault = defaultIsolation
                              Return gate.Task
                          End Function
         _motionPreview = True : _categoryMotion.Finish() : _surfaceMotion.Finish()
@@ -91,7 +91,7 @@ Partial Public Class MainWindow
         check(starts = 0, "MR animation input gate prevents hidden card installation")
         DownloadViewHost.IsHitTestVisible = True
         StartInstall(ModrinthInstallButton, New RoutedEventArgs()) : layout()
-        check(_busy AndAlso starts = 1 AndAlso seenName = "mr-custom" AndAlso seenMode = InstanceIsolationMode.Enabled AndAlso seenGame.Id = "1.20.1", "MR starts its own exact isolated instance despite vanilla repair preferences")
+        check(_busy AndAlso starts = 1 AndAlso seenName = "mr-custom" AndAlso seenMode = InstanceIsolationMode.Enabled AndAlso Not seenDefault.HasValue AndAlso seenGame.Id = "1.20.1", "MR starts its own exact isolated instance despite global defaults and vanilla repair preferences")
         check(Not ImportModrinthButton.IsEnabled AndAlso Not ImportPackButton.IsEnabled AndAlso Not ModrinthOptionsCard.IsEnabled AndAlso Not DownloadNav.IsEnabled, "MR active installation freezes both format cards and category switching")
         check(_taskComponents.StartsWith("Modrinth Zombie preview", StringComparison.Ordinal) AndAlso _taskRows("metadata").Label.Text.Contains("校验整合包"), "MR progress describes the selected format without CurseForge metadata queries")
         ResumeInstallation(Me, New RoutedEventArgs()) : layout()

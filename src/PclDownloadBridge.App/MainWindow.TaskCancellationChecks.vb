@@ -28,7 +28,7 @@ Partial Public Class MainWindow
                 Dim tokenOwned As CancellationToken
                 Dim deferred = mode.Contains("deferred"), closing = mode.StartsWith("close-", StringComparison.Ordinal)
                 Dim successful = mode.EndsWith("success", StringComparison.Ordinal), cleanup = mode.EndsWith("cleanup", StringComparison.Ordinal)
-                owner._installRunner = Function(entry, gameRoot, name, selection, isolation, token)
+                owner._installRunner = Function(entry, gameRoot, name, selection, isolation, defaultIsolation, token)
                                            requests += 1 : tokenOwned = token
                                            Dim progress = owner.CreateTaskProgress()
                                            registration = token.Register(Sub()

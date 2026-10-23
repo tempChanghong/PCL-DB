@@ -54,7 +54,7 @@ Partial Public Class MainWindow
         check(DownloadSidebar.ActualWidth = 135 AndAlso VanillaNav.Height = 36 AndAlso ModpackNav.Height = 36 AndAlso VanillaNav.IsSidebar AndAlso ModpackNav.IsSidebar, "sidebar uses PCL dimensions and animated list controls")
         SelectVersion(_versions(0)) : _pageSwitch.Finish()
         SelectComponent(_componentEntries(ComponentKind.Fabric)(0))
-        InstanceName.Text = "保留原版方案" : IsolationBox.SelectedIndex = 2 : RepairBox.IsChecked = True
+        InstanceName.Text = "保留原版方案" : IsolationBox.SelectedIndex = 1 : RepairBox.IsChecked = True
         Dim entry = _selectedEntry, selection = _componentSelection, fabric = selection.Item(ComponentKind.Fabric), card = _componentViews(ComponentKind.Fabric).Card
         card.Collapsed = False : layout()
         Dim body = card.Body
@@ -69,7 +69,7 @@ Partial Public Class MainWindow
         check(PackInstanceName.Text = "BetterMC preview" AndAlso _selectedEntry Is entry AndAlso InstanceName.Text = "保留原版方案", "pack identity and name do not replace the vanilla form")
         check(PackTitle.Text = "BetterMC preview · 1.5" AndAlso PackTitle.FontSize = 14 AndAlso PackSummary.FontSize = 12 AndAlso PackOptionalHeader.IsVisible, "CF import separates its PCL-style title statistics and optional heading")
         check(_componentSelection Is selection AndAlso selection.Item(ComponentKind.Fabric) Is fabric AndAlso card.Body Is body AndAlso Not card.Collapsed, "import retains vanilla components and expanded row bodies")
-        check(IsolationBox.SelectedIndex = 2 AndAlso RepairBox.IsChecked.GetValueOrDefault(), "import retains vanilla isolation and repair preferences")
+        check(IsolationBox.SelectedIndex = 1 AndAlso RepairBox.IsChecked.GetValueOrDefault(), "import retains the global default isolation and separate repair preference")
         Dim box = DirectCast(PackOptionalFiles.Children(0), PclCheckBox)
         check(PackOptionalFiles.Children.Count = 1 AndAlso Not box.IsChecked.GetValueOrDefault() AndAlso Not box.IsEnabled, "optional files start unselected until metadata is available")
         box.Content = "optional.jar（可选）" : box.ToolTip = "mods/optional.jar"
@@ -118,15 +118,15 @@ Partial Public Class MainWindow
         check(_packSelection IsNot loaded AndAlso PackInstallButton.IsEnabled, "ZIP parsing succeeds on retry after cancellation")
         Await VerifyStalePackMetadataAsync(check)
         PackInstanceName.Text = "pack-retry"
-        Dim starts = 0, seenName As String = Nothing, seenEntry As VersionEntry = Nothing, seenSelection As ComponentSelection = Nothing, seenIsolation As InstanceIsolationMode
+        Dim starts = 0, seenName As String = Nothing, seenEntry As VersionEntry = Nothing, seenSelection As ComponentSelection = Nothing, seenIsolation As InstanceIsolationMode, seenDefault As Integer?
         Dim gate As New TaskCompletionSource(Of InstallResult)()
-        _installRunner = Function(game, gameRoot, name, components, isolation, token)
-                             starts += 1 : seenName = name : seenEntry = game : seenSelection = components : seenIsolation = isolation
+        _installRunner = Function(game, gameRoot, name, components, isolation, defaultIsolation, token)
+                             starts += 1 : seenName = name : seenEntry = game : seenSelection = components : seenIsolation = isolation : seenDefault = defaultIsolation
                              Return gate.Task
                          End Function
         StartInstall(Me, New RoutedEventArgs()) : layout()
         check(_busy AndAlso starts = 1 AndAlso seenName = "pack-retry" AndAlso seenEntry.Id = "1.20.1" AndAlso _taskMinecraft = "1.20.1" AndAlso _selectedEntry.Id <> _taskMinecraft, "pack install and task summary capture its own game version and name independently of vanilla")
-        check(seenSelection.Entries.Count = 0 AndAlso seenIsolation = InstanceIsolationMode.Enabled AndAlso _componentSelection Is selection, "pack install ignores vanilla components and repair and forces isolation")
+        check(seenSelection.Entries.Count = 0 AndAlso seenIsolation = InstanceIsolationMode.Enabled AndAlso Not seenDefault.HasValue AndAlso _componentSelection Is selection, "pack install ignores global defaults, vanilla components and repair and forces isolation")
         check(Not DownloadNav.IsEnabled AndAlso Not ImportPackButton.IsEnabled AndAlso Not PackOptionsCard.IsEnabled AndAlso Not PackInstallButton.IsEnabled, "active task freezes category switching and pack edits")
         ShowVanillaDownloads(Me, New RoutedEventArgs()) : StartInstall(Me, New RoutedEventArgs())
         check(_downloadView = DownloadView.Progress AndAlso starts = 1 AndAlso ModpackNav.Selected, "active task retains category and rejects duplicate starts")
@@ -151,7 +151,7 @@ Partial Public Class MainWindow
         ShowVanillaDownloads(Me, New RoutedEventArgs()) : _categoryMotion.Finish()
         ShowModpackDownloads(Me, New RoutedEventArgs()) : layout()
         Dim keyboardStarts = 0
-        _installRunner = Function(game, gameRoot, name, components, isolation, token)
+        _installRunner = Function(game, gameRoot, name, components, isolation, defaultIsolation, token)
                              keyboardStarts += 1
                              Return Task.FromResult(New InstallResult With {.InstancePath = Path.Combine(gameRoot, "versions", name), .FileCount = 1})
                          End Function
@@ -169,7 +169,7 @@ Partial Public Class MainWindow
         Dim cold As New MainWindow(True)
         cold._selectedFolder = _selectedFolder
         cold.SelectCurseForgePackage(CurseForgePackage.Read(vanillaPack)) : cold.PackInstanceName.Text = "cold-pack"
-        cold._installRunner = Function(game, gameRoot, name, components, isolation, token) Task.FromResult(New InstallResult With {.InstancePath = Path.Combine(gameRoot, "versions", name), .FileCount = 1})
+        cold._installRunner = Function(game, gameRoot, name, components, isolation, defaultIsolation, token) Task.FromResult(New InstallResult With {.InstancePath = Path.Combine(gameRoot, "versions", name), .FileCount = 1})
         cold.StartInstall(cold, New RoutedEventArgs()) : Await cold.WaitForNameInstallAsync()
         check(cold._taskOutcome = TaskOutcome.Succeeded AndAlso cold._taskMinecraft = package.Minecraft AndAlso cold._selectedEntry Is Nothing AndAlso cold._taskRows.Count = 3 AndAlso Not cold._taskHasComponents, "a pack without loaders works on a cold window without a vanilla selection or phantom processor phases")
         Dim changed = Path.Combine(directory, "changed-cf-" & Guid.NewGuid().ToString("N") & ".zip")

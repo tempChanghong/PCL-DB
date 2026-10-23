@@ -12,6 +12,7 @@ Partial Public Class MainWindow
     Private Sub InitializeSettingsFeedback()
         AddHandler SourceBox.SelectionChanged, AddressOf ClearSettingsFeedback
         AddHandler VersionSourceBox.SelectionChanged, AddressOf ClearSettingsFeedback
+        AddHandler IsolationBox.SelectionChanged, AddressOf ClearSettingsFeedback
         AddHandler FolderList.SelectionChanged, AddressOf ClearSettingsFeedback
         AddHandler ConnectionsSlider.ValueChanged, AddressOf ClearSettingsFeedback
         AddHandler SpeedLimitBox.TextChanged, AddressOf ClearSettingsFeedback
@@ -69,6 +70,7 @@ Partial Public Class MainWindow
     Private Function BuildSettings(limit As Double) As JObject
         Return New JObject From {{"pclBase", _pclBase}, {"gameRoot", If(_selectedFolder?.Location, "")},
             {"source", CInt(SelectedSource(SourceBox))}, {"versionSource", CInt(SelectedSource(VersionSourceBox))},
+            {"defaultIsolation", SelectedIsolationStrategy().GetValueOrDefault(-1)},
             {"connectionsIndex", Array.IndexOf(ConnectionLevels, ConnectionCount())},
             {"speed", limit.ToString(CultureInfo.InvariantCulture)}, {"reuse", ReuseBox.IsChecked = True}, {"java", JavaPathBox.Text.Trim()}, {"appearance", _appearance.ToJson()}, {"developer", _developer.ToJson()}}
     End Function

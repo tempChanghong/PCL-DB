@@ -54,7 +54,7 @@ Partial Public Class MainWindow
             RepairBox.IsChecked = False : SpeedLimitBox.Text = "0"
             InstanceName.Text = "任务 A 的原版实例"
             Dim instancePath = Path.Combine(rootA, "versions", InstanceName.Text)
-            _installRunner = Function(entry, root, name, selection, isolation, token)
+            _installRunner = Function(entry, root, name, selection, isolation, defaultIsolation, token)
                                  Directory.CreateDirectory(instancePath)
                                  RenderTaskProgress(New TransferProgress With {.Phase = "files", .Stage = "下载原版游戏与资源文件", .StageFraction = 1, .Total = 3, .Completed = 3, .NetworkBytes = 1024, .Reused = 2})
                                  Return Task.FromResult(New InstallResult With {.InstancePath = instancePath, .FileCount = 3, .Reused = 2, .NetworkBytes = 1024})
@@ -99,7 +99,7 @@ Partial Public Class MainWindow
             SelectVersion(_versions(0)) : InstanceName.Text = "失败的实例"
             File.Delete(logB) ' Owned fixture file: failure must create its own diagnostic log.
             Dim cleanReset = False
-            _installRunner = Async Function(entry, root, name, selection, isolation, token)
+            _installRunner = Async Function(entry, root, name, selection, isolation, defaultIsolation, token)
                                  cleanReset = TaskResultActions.Visibility = Visibility.Collapsed AndAlso CancelButton.Visibility = Visibility.Visible AndAlso TaskResultLocation.Text = "" AndAlso TaskActionStatus.Text = "" AndAlso _taskInstancePath Is Nothing
                                  RenderTaskProgress(QueuedTaskValue("失败的下载样本"))
                                  Using engine As New DownloadEngine(New TaskFailurePolicy(), Nothing, {}, 2, root)
@@ -118,7 +118,7 @@ Partial Public Class MainWindow
             DownloadProgress.ScrollToTop() : layout()
             capture("align-task-failed-after-0.29.png")
             ResumeInstallation(Nothing, Nothing) : InstanceName.Text = "取消的实例"
-            _installRunner = Function(entry, root, name, selection, isolation, token)
+            _installRunner = Function(entry, root, name, selection, isolation, defaultIsolation, token)
                                  RenderTaskProgress(QueuedTaskValue("取消前的下载样本"))
                                  click(CancelButton)
                                  Return Task.FromCanceled(Of InstallResult)(token)
@@ -129,7 +129,7 @@ Partial Public Class MainWindow
             check(actions.Last().Value.Contains("结果：已取消") AndAlso Not actions.Last().Value.Contains("结果：失败"), "copied cancellation information distinguishes user cancellation from download failure")
             capture("align-task-cancelled-after-0.29.png")
             ResumeInstallation(Nothing, Nothing) : InstanceName.Text = "取消后退出异常的实例"
-            _installRunner = Function(entry, root, name, selection, isolation, token)
+            _installRunner = Function(entry, root, name, selection, isolation, defaultIsolation, token)
                                  click(CancelButton)
                                  Return Task.FromException(Of InstallResult)(New IOException("受控的取消清理异常"))
                              End Function

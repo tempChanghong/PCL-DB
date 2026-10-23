@@ -23,10 +23,11 @@ Friend NotInheritable Class PclIsolationPlan
         Friend Relative As String
         Friend Bytes As Byte()
     End Class
-    Private Sub New(root As String, name As String, entry As VersionEntry, metadata As JObject, pclDirectory As String, repair As Boolean, withComponents As Boolean, mode As InstanceIsolationMode, modable As Boolean)
+    Private Sub New(root As String, name As String, entry As VersionEntry, metadata As JObject, pclDirectory As String, repair As Boolean, withComponents As Boolean, mode As InstanceIsolationMode, modable As Boolean, newInstanceIsolationStrategy As Integer?)
         _root = root : _name = name
         Dim displayValue As String = Nothing
         If Not [Enum].IsDefined(GetType(InstanceIsolationMode), mode) Then Throw New ArgumentOutOfRangeException(NameOf(mode))
+        If newInstanceIsolationStrategy.HasValue AndAlso (newInstanceIsolationStrategy.Value < 0 OrElse newInstanceIsolationStrategy.Value > 4) Then Throw New ArgumentOutOfRangeException(NameOf(newInstanceIsolationStrategy))
         If Not repair AndAlso mode <> InstanceIsolationMode.FollowPcl Then
             Isolated = mode = InstanceIsolationMode.Enabled : Return
         End If
@@ -52,7 +53,11 @@ Friend NotInheritable Class PclIsolationPlan
             displayValue = ReadValue(settings.Bytes, "DisplayType")
         End If
         Dim strategy = 4 ' Pinned PCL LaunchArgumentIndieV2 default.
-        If Not String.IsNullOrWhiteSpace(pclDirectory) Then
+        ' The bridge default applies only to a new instance. Repairs retain the
+        ' original PCL decision, including legacy, data-folder and global fallbacks.
+        If Not repair AndAlso newInstanceIsolationStrategy.HasValue Then
+            strategy = newInstanceIsolationStrategy.Value
+        ElseIf Not String.IsNullOrWhiteSpace(pclDirectory) Then
             Dim settings = ReadInput(Path.GetFullPath(pclDirectory), "PCL/Setup.ini")
             Dim value = ReadValue(settings.Bytes, "LaunchArgumentIndieV2")
             If value IsNot Nothing AndAlso Not Integer.TryParse(value, strategy) Then Throw New InvalidDataException("PCL 的默认版本隔离设置无效，请先在 PCL 中确认。")
@@ -77,8 +82,8 @@ Friend NotInheritable Class PclIsolationPlan
             Case Else : Isolated = True
         End Select
     End Sub
-    Friend Shared Function Resolve(root As String, name As String, entry As VersionEntry, metadata As JObject, pclDirectory As String, repair As Boolean, withComponents As Boolean, Optional mode As InstanceIsolationMode = InstanceIsolationMode.FollowPcl, Optional modable As Boolean = False) As PclIsolationPlan
-        Return New PclIsolationPlan(root, name, entry, metadata, pclDirectory, repair, withComponents, mode, modable)
+    Friend Shared Function Resolve(root As String, name As String, entry As VersionEntry, metadata As JObject, pclDirectory As String, repair As Boolean, withComponents As Boolean, Optional mode As InstanceIsolationMode = InstanceIsolationMode.FollowPcl, Optional modable As Boolean = False, Optional newInstanceIsolationStrategy As Integer? = Nothing) As PclIsolationPlan
+        Return New PclIsolationPlan(root, name, entry, metadata, pclDirectory, repair, withComponents, mode, modable, newInstanceIsolationStrategy)
     End Function
     Friend Sub WriteNewSettings(stage As String)
         Dim target = SafeFiles.UnderRoot(stage, "PCL/Setup.ini")

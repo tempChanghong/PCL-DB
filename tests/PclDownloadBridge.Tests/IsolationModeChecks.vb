@@ -74,6 +74,7 @@ Friend Module IsolationModeChecks
         If onlyCase Is Nothing OrElse onlyCase = "install-mode-legacy" Then Await LegacyAsync(root, passed)
         If onlyCase Is Nothing OrElse onlyCase = "install-mode-classification" Then Await ClassificationAsync(root, passed)
         If onlyCase Is Nothing OrElse onlyCase = "install-mode-links" Then Await LinksAsync(root, passed)
+        If onlyCase Is Nothing OrElse onlyCase = "install-mode-default-strategy" Then passed.AddRange(Await IsolationDefaultStrategyChecks.RunAsync(root))
         If passed.Count = 0 Then Throw New ArgumentException(onlyCase)
         Return passed
     End Function

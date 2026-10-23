@@ -95,8 +95,8 @@ Friend Module IsolationResourceChecks
         Friend Sub Put(path As String, bytes As Byte())
             Directory.CreateDirectory(IO.Path.GetDirectoryName(path)) : File.WriteAllBytes(path, bytes)
         End Sub
-        Friend Function StartAsync(Optional repair As Boolean = False, Optional progress As IProgress(Of TransferProgress) = Nothing, Optional token As CancellationToken = Nothing, Optional components As ComponentSelection = Nothing, Optional isolation As InstanceIsolationMode = InstanceIsolationMode.FollowPcl) As Task(Of InstallResult)
-            Return New MinecraftInstaller(New Policy(Fixture.Server.Url), PclBase).InstallAsync(Fixture.Entry, Root, "legacy", {}, progress, token, repair, 4, components:=components, isolationMode:=isolation)
+        Friend Function StartAsync(Optional repair As Boolean = False, Optional progress As IProgress(Of TransferProgress) = Nothing, Optional token As CancellationToken = Nothing, Optional components As ComponentSelection = Nothing, Optional isolation As InstanceIsolationMode = InstanceIsolationMode.FollowPcl, Optional newInstanceIsolationStrategy As Integer? = Nothing) As Task(Of InstallResult)
+            Return New MinecraftInstaller(New Policy(Fixture.Server.Url), PclBase, newInstanceIsolationStrategy).InstallAsync(Fixture.Entry, Root, "legacy", {}, progress, token, repair, 4, components:=components, isolationMode:=isolation)
         End Function
         Friend Async Function SeedAsync() As Task
             SetGlobal("0") : Await StartAsync()
