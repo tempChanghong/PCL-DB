@@ -4,6 +4,9 @@ Imports PclDownloadBridge.Core
 
 Partial Public Class MainWindow
     Private _packVerifiedProject As ModpackProject
+    ' A finished loader may legitimately contain no downloadable files. Keep its
+    ' accepted owner separate from the output count, as PCL's loader state does.
+    Private _packDetailCompletedProject As ModpackProject
 
     ' The accepted search object remains the detail request's owner. Fresh project
     ' metadata supplies presentation/actions without modifying the search snapshot.

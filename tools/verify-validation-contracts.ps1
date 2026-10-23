@@ -5,6 +5,7 @@ $root = Split-Path $PSScriptRoot -Parent
 Import-Module (Join-Path $PSScriptRoot 'VerificationTools.psm1')
 Import-Module (Join-Path $PSScriptRoot 'PackageCandidateTools.psm1')
 Import-Module (Join-Path $PSScriptRoot 'PackageTools.psm1')
+$requiredSearchCount = (Get-PclDbCheckPolicy 'pack-search').Count
 if (!$ReportPath) { $ReportPath = Join-Path $root 'artifacts/validation-contract-checks.json' }
 $fixture = Join-Path ([IO.Path]::GetTempPath()) ('PCL-DB-ValidationContracts-' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $fixture | Out-Null
@@ -67,7 +68,7 @@ try {
     $reduced = New-Receipt 'pack-search' $hash $false
     Assert-PclDbCheckReport $reduced 'pack-search' -ExecutableSHA256 $hash -RequireStandalone
     Assert-Case ($reduced.Count -eq $receipts[3].Count) 'Windows animations on and off require the same complete search suite'
-    foreach ($count in @(146,170)) {
+    foreach ($count in (@(146,170,171,($requiredSearchCount - 1)) | Select-Object -Unique)) {
         $bad = Copy-Object $reduced; $bad.Count = $count; $bad.Passed = @($bad.Passed | Select-Object -First $count)
         Assert-Rejected { Assert-PclDbCheckReport $bad 'pack-search' } 'check count' ("truncated search suite cannot pass: $count")
     }
@@ -98,7 +99,7 @@ try {
     }
     $verification = New-PclDbVerification $receipts $hash
     Assert-PclDbVerification $verification $hash -Current
-    Assert-Case ($verification.Reports.Count -eq 4 -and $verification.PackSearchChecks -eq 171) 'portable evidence retains all four scopes and complete assertion lists'
+    Assert-Case ($verification.Reports.Count -eq 4 -and $verification.PackSearchChecks -eq $requiredSearchCount) 'portable evidence retains all four scopes and complete assertion lists'
     $disabledEvidence = New-PclDbVerification @($receipts[0],$receipts[1],$receipts[2],$reduced) $hash
     Assert-PclDbVerification $disabledEvidence $hash -Current
     Assert-Case (!$disabledEvidence.Reports[3].ClientAreaAnimation) 'portable search evidence retains the observed Windows animation branch'
@@ -162,7 +163,7 @@ try {
         Assert-Rejected { Assert-Manifest $badManifest } 'embedded dependency inventory' ("archive parser rejects malformed dependency inventory: " + $mode)
     }
     Assert-BoundManifest $manifest $candidate
-    Assert-Case ($manifest.Format -ceq 'PCL-DB-single-exe/v3' -and $manifest.Verification.PackSearchChecks -eq 171) 'production manifest builder carries complete search evidence into v3'
+    Assert-Case ($manifest.Format -ceq 'PCL-DB-single-exe/v3' -and $manifest.Verification.PackSearchChecks -eq $requiredSearchCount) 'production manifest builder carries complete search evidence into v3'
     $bad=Copy-Object $manifest; $bad.Format=@($bad.Format)
     Assert-Rejected { Assert-Manifest $bad } 'Invalid build manifest' 'archive format cannot be a JSON array'
     $archive = Join-Path $fixture 'v3-fixture.zip'; Write-FixtureZip $archive $manifest

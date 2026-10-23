@@ -132,7 +132,7 @@ Partial Public Class MainWindow
         _packDetailRequest?.Cancel()
         If candidate IsNot _packSearchSession Then _packLastSearch = DateTime.UtcNow
         _packSearchSession = candidate : _packLastQuery = key
-        _packProject = Nothing : _packVerifiedProject = Nothing : _packReleases.Clear()
+        _packProject = Nothing : _packVerifiedProject = Nothing : _packDetailCompletedProject = Nothing : _packReleases.Clear()
         _packSearchPage = 0 : _packSearchScroll = 0
         ChangePackMode(PackBrowserMode.Search)
         Await LoadPackSearchPageAsync(0)
@@ -290,20 +290,24 @@ Partial Public Class MainWindow
         If _busy OrElse _choosingOnline OrElse _closing OrElse Not DownloadViewHost.IsHitTestVisible OrElse Not PackSearchResultsHost.IsHitTestVisible Then Return
         Dim changingProject = _packProject Is Nothing OrElse _packProject.Key <> project.Key
         If changingProject Then
-            _packProject = project : _packVerifiedProject = Nothing : _packReleases.Clear() : _packDetailScroll = 0
+            _packProject = project : _packVerifiedProject = Nothing : _packDetailCompletedProject = Nothing : _packReleases.Clear() : _packDetailScroll = 0
             _packTargetGame = If(_packSearchSession?.Query.Minecraft, "")
             _packVersionCache.Clear()
         End If
         RenderPackProject(ActivePackProject())
         ChangePackMode(PackBrowserMode.Detail)
-        If _packReleases.Count = 0 AndAlso (changingProject OrElse _packDetailRequest Is Nothing OrElse _packDetailRequest.IsCancellationRequested) Then Await LoadPackDetailsAsync(_packProject)
+        If _packDetailCompletedProject IsNot _packProject AndAlso (changingProject OrElse _packDetailRequest Is Nothing OrElse _packDetailRequest.IsCancellationRequested) Then
+            Await LoadPackDetailsAsync(_packProject)
+        End If
     End Sub
     Private Async Sub RetryPackDetails(sender As Object, e As RoutedEventArgs)
         If _packProject Is Nothing OrElse _busy OrElse _choosingOnline OrElse _closing OrElse _packMode <> PackBrowserMode.Detail OrElse _downloadView <> DownloadView.Modpacks OrElse Not PackDetailSurface.IsVisible OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible OrElse Not PackDetailResultsHost.IsHitTestVisible Then Return
         Await LoadPackDetailsAsync(_packProject)
     End Sub
     Private Async Function LoadPackDetailsAsync(project As ModpackProject) As Task
+        If project Is Nothing OrElse project IsNot _packProject OrElse _closing Then Return
         _packDetailRequest?.Cancel()
+        _packDetailCompletedProject = Nothing
         Dim request As New CancellationTokenSource : _packDetailRequest = request
         ChangePackContent(PackBrowserMode.Detail, Sub()
                                                      PackVersionCards.Children.Clear() : PackVersionFilters.Children.Clear()
@@ -322,9 +326,13 @@ Partial Public Class MainWindow
                                                              RenderPackProject(verified)
                                                              PackDetailHint.Visibility = Visibility.Collapsed : InitializePackVersions()
                                                          End Sub)
+                If Not _closing AndAlso Not request.IsCancellationRequested AndAlso _packDetailRequest Is request AndAlso _packProject Is project Then
+                    _packDetailCompletedProject = project
+                End If
             End Using
         Catch ex As Exception
             If Not _closing AndAlso Not request.IsCancellationRequested AndAlso _packDetailRequest Is request AndAlso _packProject Is project Then
+                _packDetailCompletedProject = Nothing
                 ChangePackContent(PackBrowserMode.Detail, Sub()
                                                              PackVersionCards.Children.Clear()
                                                              PackDetailHint.Theme = PclHintTheme.Red : PackDetailHint.Text = "无法获取可安装的客户端版本，请重试。" : PackDetailHint.ToolTip = ex.GetBaseException().Message : PackDetailHint.Visibility = Visibility.Visible : PackDetailRetry.Visibility = Visibility.Visible

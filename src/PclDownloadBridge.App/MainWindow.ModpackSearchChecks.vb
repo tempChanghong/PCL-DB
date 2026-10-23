@@ -265,6 +265,7 @@ Partial Public Class MainWindow
         Await VerifyPackPagingAsync(directory, host, layout, check)
         Await VerifyPackRecoveryAsync(directory, host, layout, check)
         Await VerifyPackProjectCacheAsync(directory, host, layout, check)
+        Await VerifyPackDetailCompletionAsync(directory, host, layout, check)
         Await VerifyPackCompatibilityUiAsync(directory, host, layout, check)
         Await VerifyPackReleaseLabelsAsync(directory, host, layout, check)
 
@@ -322,6 +323,7 @@ Partial Public Class MainWindow
         Public Property BeforeSendAsync As Func(Of Uri, CancellationToken, Task)
         Public Property SearchPage As Func(Of Uri, JObject)
         Public Property ProjectPage As Func(Of Uri, JObject)
+        Public Property VersionPage As Func(Of Uri, JArray)
         Protected Overrides Async Function SendAsync(request As HttpRequestMessage, token As CancellationToken) As Task(Of HttpResponseMessage)
             If Delay > 0 Then Await Task.Delay(Delay)
             Dim address = request.RequestUri, result As JToken
@@ -337,6 +339,8 @@ Partial Public Class MainWindow
                     hits.Add(item)
                 Next
                 result = New JObject From {{"hits", hits}, {"total_hits", 80}}
+            ElseIf address.AbsolutePath.EndsWith("/version", StringComparison.Ordinal) AndAlso VersionPage IsNot Nothing Then
+                result = VersionPage(address)
             ElseIf address.AbsolutePath.EndsWith("/version", StringComparison.Ordinal) Then
                 Dim id = address.Segments(address.Segments.Length - 2).TrimEnd("/"c)
                 Dim versions As New JArray()
