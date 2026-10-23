@@ -34,6 +34,10 @@ Public NotInheritable Class ModpackProject
     Public Property Downloads As Long
     Public Property Updated As DateTimeOffset
     Public Property GameVersions As String() = {}
+    ' Advisory project declarations. File compatibility and install identity
+    ' continue to come exclusively from the selected ModpackRelease/archive.
+    Public Property Tags As String() = {}
+    Public Property Loaders As String() = {}
     Public ReadOnly Property Key As String
         Get
             Return Platform.ToString() & ":" & Id
@@ -280,6 +284,8 @@ Public NotInheritable Class ModpackCatalogClient
             result.Downloads = Number(data, "downloadCount") : result.Updated = DateValue(data, "dateModified")
         End If
         ValidateId(platform, result.Id)
+        result.Tags = ModpackProjectMetadata.ReadTags(platform, data("categories"))
+        result.Loaders = ModpackProjectMetadata.ReadLoaders(result, data)
         Return result
     End Function
 

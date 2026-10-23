@@ -1474,3 +1474,9 @@
 - 修复详情头部关闭命中检测导致提示不可达；新增 CanInteract 分离静态展示与输入，撤销旧手势，保留已有行动画和输入门控。简短时间修正 24–47 小时回绕，详细时间签名及行为不变；图标几何冻结并复用，颜色跟随深色模式。
 - 新增 Core 72 项、搜索 UI 17 项断言；当前主套件预期 Core 5918 / UI 799 / motion 637 / pack-search 249，合计 7603 项。最终状态以本轮 `artifacts/project-summary-alignment/validation.json` 及提交绑定为准。详见 `docs/reviews/project-summary-alignment-2026-10-23.md`。
 - 只修改项目展示与纯格式化；平台身份、文件校验、安装和隔离等语义保持原状。隐藏呈现源检查不代替真人桌面、DPI、帧率、联网查询或真实游戏安装。未推送、打包、发版。
+## 项目分类徽章与加载器声明（2026-10-23，尚未发行）
+
+- 基线 `a447d50`；重新读取固定 PCL `5ef81e4` 的 ResourceProject / ResourceVersion / MyResourceItem / PageDownloadCompDetail 及 PCLCS 加载器枚举。补齐 CF 与 MR 的分类、项目加载器标签和原样式徽章；可选字段错误仅使相应标签缺失，项目必需字段的校验保持原有规则。
+- CF 服务端、外来和不可用文件不参与客户端项目标签；MR 兼容 categories 和 loaders 两种声明位置。不由项目标签替代具体文件兼容关系，不新增组件安装能力，不推断完整游戏版本范围。
+- 新增 Core 89 项、搜索 UI 20 项；当前策略 `PCL-DB-checks/2026-10-23.13` 的主套件预期 6007 / 799 / 637 / 269，共 7712 项。最终结果以 `artifacts/project-tags-alignment/validation.json` 与 Commit 绑定为准，详情见 `docs/reviews/project-tags-alignment-2026-10-23.md`。
+- 明暗主题、多分类单行省略、64 DIP 行高、旧手势、静态头部、详情/搜索快照与文件身份独立均有隐藏呈现源检查。未联网查询或安装真实整合包，不把离屏截图当作真人桌面/帧率证据；未推送、打包、发版。

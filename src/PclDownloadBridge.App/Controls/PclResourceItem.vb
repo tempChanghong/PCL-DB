@@ -1,5 +1,6 @@
 Imports System.Windows
 Imports System.Windows.Controls
+Imports System.Windows.Documents
 Imports System.Windows.Input
 Imports System.Windows.Media
 Imports System.Windows.Media.Imaging
@@ -41,6 +42,7 @@ Namespace Controls
         Friend ReadOnly Property UpdatedLabel As TextBlock
         Friend ReadOnly Property SourceLabel As TextBlock
         Friend ReadOnly Property StatisticsGrid As Grid
+        Friend ReadOnly Property SummaryLabel As TextBlock
         Friend ReadOnly Property MotionPolicy As PclControlMotionPolicy
         Friend ReadOnly Property HoverTransition As Animation.ClockGroup
             Get
@@ -66,7 +68,20 @@ Namespace Controls
             For Each rowHeight In {17, 18, 16} : text.RowDefinitions.Add(New RowDefinition With {.Height = New GridLength(rowHeight)}) : Next
             Dim title As New TextBlock With {.Text = project.Name, .FontSize = 14, .TextTrimming = TextTrimming.CharacterEllipsis}
             title.SetResourceReference(TextBlock.ForegroundProperty, "ColorBrush1") : text.Children.Add(title)
-            Dim summary As New TextBlock With {.Text = If(project.Summary, "").Replace(vbCr, "").Replace(vbLf, ""), .FontSize = 12, .TextTrimming = TextTrimming.CharacterEllipsis}
+            Dim summary As New TextBlock With {.Text = If(project.Summary, "").Replace(vbCr, "").Replace(vbLf, ""), .FontSize = 12, .TextTrimming = TextTrimming.CharacterEllipsis, .ClipToBounds = True}
+            SummaryLabel = summary
+            Dim tags = If(project.Tags, New String() {}).Where(Function(value) Not String.IsNullOrWhiteSpace(value)).Distinct(StringComparer.Ordinal).ToArray()
+            If tags.Length > 0 Then
+                Dim description = summary.Text : summary.Text = ""
+                For Each tagText In tags
+                    Dim label As New TextBlock With {.Text = tagText, .FontSize = 11}
+                    label.SetResourceReference(TextBlock.ForegroundProperty, "PclResourceTagInk")
+                    Dim badge As New Border With {.Child = label, .Padding = New Thickness(3, 1, 3, 1), .CornerRadius = New CornerRadius(3), .Margin = New Thickness(0, 0, 3, 0), .SnapsToDevicePixels = True}
+                    badge.SetResourceReference(Border.BackgroundProperty, "PclResourceTagBackground")
+                    summary.Inlines.Add(New InlineUIContainer(badge) With {.BaselineAlignment = BaselineAlignment.TextBottom})
+                Next
+                summary.Inlines.Add(New Run(description))
+            End If
             summary.SetResourceReference(TextBlock.ForegroundProperty, "ColorBrushGray3") : SetRow(summary, 1) : text.Children.Add(summary)
             Dim details As New Grid With {.ClipToBounds = True}
             StatisticsGrid = details
@@ -77,7 +92,8 @@ Namespace Controls
                 details.ColumnDefinitions.Add(New ColumnDefinition With {.Width = columnWidth})
             Next
             Dim now = DateTimeOffset.UtcNow
-            Dim values = {ModpackProjectStatistics.VersionText(project.GameVersions), ModpackProjectStatistics.DownloadText(project.Downloads),
+            Dim loaderText = ModpackProjectMetadata.LoaderText(project.Loaders)
+            Dim values = {If(loaderText = "", "", loaderText & " ") & ModpackProjectStatistics.VersionText(project.GameVersions), ModpackProjectStatistics.DownloadText(project.Downloads),
                 ModpackReleaseStatistics.ShortRelativeTime(project.Updated, now), project.Platform.ToString()}
             Dim heights = {11.0, 10.5, 11.5, 11.5}
             Dim labels As New List(Of TextBlock)
@@ -92,6 +108,8 @@ Namespace Controls
             SetRow(details, 2) : text.Children.Add(details) : SetColumn(text, 2) : body.Children.Add(text) : Children.Add(body)
             ToolTip = project.Name & vbCrLf & project.Summary & vbCrLf &
                 "Minecraft：" & If(project.GameVersions Is Nothing OrElse project.GameVersions.Length = 0, "未知", String.Join("、", project.GameVersions)) & vbCrLf &
+                If(tags.Length = 0, "", "分类：" & String.Join("、", tags) & vbCrLf) &
+                If(loaderText = "", "", "项目加载器标签：" & loaderText & "（各文件的支持情况以版本列表和包内清单为准）" & vbCrLf) &
                 project.Platform.ToString() & " · 下载 " & project.Downloads.ToString("N0", Globalization.CultureInfo.InvariantCulture) & " 次" & vbCrLf &
                 "更新于 " & project.Updated.ToLocalTime().ToString("yyyy/MM/dd HH:mm:ss", Globalization.CultureInfo.InvariantCulture)
             Automation.AutomationProperties.SetName(Me, project.Name & "，" & project.Platform.ToString())

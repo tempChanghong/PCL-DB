@@ -300,6 +300,7 @@ Partial Public Class MainWindow
         check(PackVersionCards.Children.Count = 0 AndAlso Not PackVersionFilterCard.IsVisible AndAlso PackDetailHint.IsVisible AndAlso PackDetailHint.Theme = PclHintTheme.Blue AndAlso PackDetailHint.ToolTip Is Nothing, "an empty usable-file list shows a neutral hint without stale retry details or filters")
         VerifyPackFilterBarUi(directory, host, layout, check)
         VerifyProjectSummaryUi(directory, host, layout, check)
+        VerifyProjectTagsUi(directory, host, layout, check)
         _packReleases = originalReleases : InitializePackVersions()
 
         Dim olderProject As New ModpackProject With {.Platform = ModpackPlatform.Modrinth, .Id = "older", .Name = "older"}

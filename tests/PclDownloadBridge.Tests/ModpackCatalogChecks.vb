@@ -59,6 +59,7 @@ Friend Module ModpackCatalogChecks
         ModpackReleaseStatisticsChecks.VerifyParsing(mr, json, passed)
         ModpackReleaseStatisticsChecks.VerifyFormatting(passed)
         ModpackProjectStatisticsChecks.Verify(passed)
+        Await ModpackProjectMetadataChecks.VerifyAsync(passed)
         Check(release.FileName = "pack.mrpack" AndAlso release.Sha512 IsNot Nothing, "MR chooses the primary installable archive instead of files(0)", passed)
         CompatibilityChecks(release, passed)
         Dim longName = DirectCast(json.DeepClone(), JObject)

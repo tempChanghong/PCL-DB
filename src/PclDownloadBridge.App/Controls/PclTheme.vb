@@ -74,6 +74,9 @@ Namespace Controls
             Next
             If appearance.DarkMode Then Application.Current.Resources("ColorBrush1") = New SolidColorBrush(Color.FromRgb(228, 234, 242))
             Application.Current.Resources("PclIconButtonInk") = New SolidColorBrush(If(appearance.DarkMode, DirectCast(Application.Current.Resources("ColorBrushGray1"), SolidColorBrush).Color, Colors.Black))
+            ' PCL MyResourceItem.Tags: #11000000 plate / #868686 text in light mode.
+            Application.Current.Resources("PclResourceTagBackground") = New SolidColorBrush(If(appearance.DarkMode, Color.FromArgb(24, 255, 255, 255), Color.FromArgb(17, 0, 0, 0)))
+            Application.Current.Resources("PclResourceTagInk") = New SolidColorBrush(If(appearance.DarkMode, Color.FromRgb(178, 190, 205), Color.FromRgb(134, 134, 134)))
             Application.Current.Resources("ColorBrushHalfWhite") = New SolidColorBrush(If(appearance.DarkMode, Color.FromArgb(220, 36, 48, 65), Color.FromArgb(85, 255, 255, 255)))
             Application.Current.Resources("CardSurfaceBrush") = New SolidColorBrush(If(appearance.DarkMode, Color.FromArgb(250, 29, 39, 53), Color.FromArgb(245, 255, 255, 255)))
             Application.Current.Resources("WindowSurfaceBrush") = New SolidColorBrush(If(appearance.DarkMode, Color.FromRgb(19, 27, 38), Colors.White))

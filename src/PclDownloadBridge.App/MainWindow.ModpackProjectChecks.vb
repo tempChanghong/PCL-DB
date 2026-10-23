@@ -1,6 +1,7 @@
 Imports System.IO
 Imports System.Threading
 Imports System.Windows.Controls
+Imports System.Windows.Documents
 Imports Newtonsoft.Json
 Imports Newtonsoft.Json.Linq
 Imports PclDownloadBridge.Controls
@@ -16,6 +17,7 @@ Partial Public Class MainWindow
                                Dim item = PackSearchFixtureHandler.ProjectJson(uri.Segments.Last())
                                item("title") = "已核对的整合包" : item("description") = "详情接口返回的新简介。"
                                item("downloads") = 777888 : item("game_versions") = New JArray("1.20.1", "1.21.1")
+                               item("categories") = New JArray("quests", "magic", "fabric") : item("loaders") = New JArray("fabric")
                                Return item
                            End Function,
             .BeforeSendAsync = Async Function(uri, token)
@@ -39,11 +41,13 @@ Partial Public Class MainWindow
         check(intro.IsHitTestVisible AndAlso Not intro.Focusable, "the static project header retains PCL tooltip hit testing without becoming a keyboard destination")
         File.WriteAllText(Path.Combine(directory, "pack-project-cache-state.json"), JsonConvert.SerializeObject(New With {.SharedRequest = sharedRequest, .ProjectRequests = projectsFetched, .VersionRequests = versionsFetched, .Intro = intro.ToolTip.ToString(), .SearchName = project.Name}, Formatting.Indented))
         Dim labels = intro.Children.OfType(Of Grid)().Single().Children.OfType(Of Grid)().Single().Children.OfType(Of TextBlock)().Select(Function(label) label.Text).ToArray()
-        check(labels.SequenceEqual({"已核对的整合包", "详情接口返回的新简介。"}) AndAlso intro.ToolTip.ToString().Contains("详情接口返回的新简介。"), "accepted project metadata replaces the visible PCL title, description and tooltip instead of only changing hidden labels")
+        check(labels(0) = "已核对的整合包" AndAlso intro.SummaryLabel.Inlines.OfType(Of Run)().Single().Text = "详情接口返回的新简介。" AndAlso intro.ToolTip.ToString().Contains("详情接口返回的新简介。"), "accepted project metadata replaces the visible PCL title, description and tooltip instead of only changing hidden labels")
         check(sharedRequest AndAlso projectsFetched = 1 AndAlso versionsFetched = 1, "returning to the same pending project retains its loading card and accepted request without duplicate metadata or version downloads")
         check(intro.Tag IsNot project AndAlso DirectCast(intro.Tag, ModpackProject).Key = project.Key AndAlso DirectCast(intro.Tag, ModpackProject).Downloads = 777888 AndAlso _packProject Is project AndAlso project.Name = originalName AndAlso project.Summary = originalSummary, "verified detail presentation owns separate metadata without rewriting the cached search snapshot or its request identity")
         Dim detailLabels = intro.Children.OfType(Of Grid)().Single().Children.OfType(Of Grid)().Single().Children.OfType(Of Grid)().Single().Children.OfType(Of TextBlock)().Select(Function(label) label.Text).ToArray()
-        check(detailLabels.Contains("1.21, 1.20") AndAlso detailLabels.Contains("77 万"), "visible project version and download statistics also come from the accepted metadata rather than stale search values")
+        check(detailLabels.Contains("Fabric 1.21, 1.20") AndAlso detailLabels.Contains("77 万"), "visible project version and download statistics also come from the accepted metadata rather than stale search values")
+        check(intro.SummaryLabel.Inlines.OfType(Of InlineUIContainer)().Select(Function(item) DirectCast(DirectCast(item.Child, Border).Child, TextBlock).Text).SequenceEqual({"任务", "魔法"}) AndAlso project.Tags.Length = 0 AndAlso project.Loaders.Length = 0 AndAlso _packReleases.All(Function(item) item.Loaders.SequenceEqual({"forge"})),
+            "accepted detail tags replace only their own header while cached search metadata and exact file loaders remain independent")
         check(_packTargetGame = "1.20.1", "reopening pending details retains the committed Minecraft query despite unsubmitted form edits")
         SaveControlVisual(host, Path.Combine(directory, "pack-project-verified.png"))
         Dim card = DirectCast(PackVersionCards.Children(0), PclCard), body = DirectCast(card.Body, StackPanel)
