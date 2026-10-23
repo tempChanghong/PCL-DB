@@ -21,7 +21,7 @@ Friend NotInheritable Class SupplementalLaunchRecipe
 
     Private Shared Function ForVersion(id As String) As Recipe
         Select Case id
-            Case "c0.0.12a_03"
+            Case "c0.0.12a_03", "1.0.0-rc1", "inf-20100630-1"
                 Return New Recipe With {.Version = "1.6", .Sha1 = "4ea0aca9c022a234ebaf14b51fb119055955fc9d", .Size = 27583, .Tweaker = Alpha}
             Case "2.0_blue", "2.0_red", "2.0_purple", "a1.1.1", "b1.9-pre6", "13w12~"
                 Return New Recipe With {.Version = "1.5", .Sha1 = "5150b9c2951f0fde987ce9c33496e26add1de224", .Size = 27787, .Tweaker = Vanilla}

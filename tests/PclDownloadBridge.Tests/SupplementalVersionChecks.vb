@@ -77,7 +77,7 @@ Friend Module SupplementalVersionChecks
             Dim official As New VersionEntry With {.Id = id.ToUpperInvariant(), .Kind = HistoryKind(id)}
             Check(SupplementalVersions.Merge({official}, entries).Single() Is official, "official historical declaration wins case-insensitive collision: " & id, passed)
         Next
-        Check(SupplementalVersions.Parse(Manifest(EntryJson("13w12-"), EntryJson("b1_9-pre6"), EntryJson("in-20100223"), EntryJson("inf-20100630-1"))).Count = 0, "unverified URL slugs and incomplete history stay outside the allowlist", passed)
+        Check(SupplementalVersions.Parse(Manifest(EntryJson("13w12-"), EntryJson("b1_9-pre6"), EntryJson("in-20100223"), EntryJson("c0.30-1"))).Count = 0, "unverified URL slugs and deferred history stay outside the allowlist", passed)
     End Sub
 
     Private Async Function HistoricalProfilesAsync(passed As List(Of String)) As Task
@@ -440,7 +440,7 @@ Friend Module SupplementalVersionChecks
         IO.Directory.CreateDirectory(directory)
         Dim policy As New SourcePolicy()
         Dim entries = Await SupplementalVersions.LoadAsync(policy, CancellationToken.None)
-        If entries.Count <> 7 Then Throw New InvalidDataException("Live UVMC catalogue changed or is unavailable: " & entries.Count)
+        If entries.Count <> 9 Then Throw New InvalidDataException("Live UVMC catalogue changed or is unavailable: " & entries.Count)
         Dim records As New JArray()
         Dim ordinary = Await New MinecraftInstaller(policy).VersionsAsync(CancellationToken.None)
         Dim rd = ordinary.Single(Function(entry) entry.Id = "rd-132211")

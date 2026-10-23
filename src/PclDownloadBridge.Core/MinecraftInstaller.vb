@@ -71,6 +71,11 @@ Public Class MinecraftInstaller
                     existing = JObject.Parse(reader.ReadToEnd())
                 End Using
                 If entry.IsSupplemental Then SupplementalLaunchRecipe.ValidateExisting(entry.Id, existing)
+                If entry.IsSupplemental AndAlso
+                    (existing.Property("assetIndex") Is Nothing OrElse
+                     TypeOf existing("libraries") Is JArray AndAlso DirectCast(existing("libraries"), JArray).OfType(Of JObject)().Any(Function(library) library.Property("downloads") Is Nothing)) Then
+                    Throw New InvalidDataException("现有历史实例缺少完整的支持库或资源索引声明，请使用新名称安装；不会迁移或改写已有配置。")
+                End If
             End If
             Dim legacySupplementalIndex = entry.IsSupplemental AndAlso PrepareSupplementalAssetIndex(metadata, existing)
             If repairExisting Then

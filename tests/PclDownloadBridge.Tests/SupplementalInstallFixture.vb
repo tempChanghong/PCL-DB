@@ -4,16 +4,20 @@ Imports Newtonsoft.Json.Linq
 
 ' Real Mojang wrapper; client/index bytes remain explicitly synthetic fixtures.
 Friend NotInheritable Class SupplementalInstallFixture
-    Friend Shared ReadOnly Ids As String() = {"2.0_blue", "2.0_red", "2.0_purple", "c0.0.12a_03", "a1.1.1", "b1.9-pre6", "13w12~"}
+    Friend Shared ReadOnly Ids As String() = {"2.0_blue", "2.0_red", "2.0_purple", "c0.0.12a_03", "a1.1.1", "b1.9-pre6", "13w12~", "1.0.0-rc1", "inf-20100630-1"}
+
+    Friend Shared Function UsesAlpha(id As String) As Boolean
+        Return id = "c0.0.12a_03" OrElse id = "1.0.0-rc1" OrElse id = "inf-20100630-1"
+    End Function
 
     Friend Shared Function Kind(id As String) As String
-        If id = "c0.0.12a_03" OrElse id = "a1.1.1" Then Return "old_alpha"
-        Return If(id = "b1.9-pre6", "old_beta", "snapshot")
+        If id = "c0.0.12a_03" OrElse id = "a1.1.1" OrElse id = "inf-20100630-1" Then Return "old_alpha"
+        Return If(id = "b1.9-pre6" OrElse id = "1.0.0-rc1", "old_beta", "snapshot")
     End Function
 
     Friend Shared Function Arguments(id As String) As String
         Return "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets}" &
-            If(id = "c0.0.12a_03", " --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker", "")
+            If(UsesAlpha(id), " --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker", "")
     End Function
 
     Friend Shared Function Entry(id As String) As PclDownloadBridge.Core.VersionEntry
@@ -35,7 +39,7 @@ Friend NotInheritable Class SupplementalInstallFixture
         metadata("id") = id : metadata("type") = Kind(id)
         metadata("mainClass") = "net.minecraft.launchwrapper.Launch"
         metadata("minecraftArguments") = Arguments(id) : metadata.Remove("arguments")
-        Dim version = If(id = "c0.0.12a_03", "1.6", "1.5"), bytes = Resource("LegacyLaunch.launchwrapper-" & version & ".jar")
+        Dim version = If(UsesAlpha(id), "1.6", "1.5"), bytes = Resource("LegacyLaunch.launchwrapper-" & version & ".jar")
         Dim route = "/fixture-wrapper/" & version & ".jar", hash As String
         Using sha = Security.Cryptography.SHA1.Create()
             hash = BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant()

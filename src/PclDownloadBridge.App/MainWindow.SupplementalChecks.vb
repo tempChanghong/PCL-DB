@@ -117,8 +117,8 @@ Partial Public Class MainWindow
             results("officialRdAndFoolsRetained") = BrowserRows("远古版").Single().Tag Is rd AndAlso Not rd.IsSupplemental AndAlso BrowserRows("愚人节版").Single().Tag Is fool AndAlso
                 BrowserRows("特供版本").Count = 2 AndAlso BrowserRows("特供版本").First().Title.Contains("2.0（蓝色版）") AndAlso BrowserRows("战斗测试版").Count = 0 AndAlso BrowserRows("实验快照").Count = 0
             Dim history As New List(Of VersionEntry)
-            For Each id In {"c0.0.12a_03", "a1.1.1", "b1.9-pre6", "13w12~"}
-                history.Add(New VersionEntry With {.Id = id, .SupplementalId = id, .Kind = If(id = "13w12~", "snapshot", If(id = "b1.9-pre6", "old_beta", "old_alpha")), .Released = blue.Released})
+            For Each id In {"c0.0.12a_03", "a1.1.1", "b1.9-pre6", "13w12~", "1.0.0-rc1", "inf-20100630-1"}
+                history.Add(New VersionEntry With {.Id = id, .SupplementalId = id, .Kind = If(id = "13w12~", "snapshot", If(id = "b1.9-pre6" OrElse id = "1.0.0-rc1", "old_beta", "old_alpha")), .Released = blue.Released})
             Next
             pending = ListGate(Of VersionEntry)()
             _supplementalProvider = Function(policy, token) pending.Task
@@ -127,7 +127,7 @@ Partial Public Class MainWindow
             pending.SetResult(history.Concat({blue, red}).ToList()) : Await loading
             results("historyDoesNotReplaceNormalOrLatest") = BrowserRows("正式版").Single() Is originalRow AndAlso BrowserRows("最新版本").Single().Tag Is normal AndAlso BrowserRows("远古版").Single().Tag Is rd
             AddSupplementalVersionCards()
-            results("historyCategoriesAndIcons") = BrowserRows("远古版本补充").Count = 3 AndAlso BrowserRows("历史快照补充").Single().Tag Is history(3) AndAlso
+            results("historyCategoriesAndIcons") = BrowserRows("远古版本补充").Count = 5 AndAlso BrowserRows("历史快照补充").Single().Tag Is history(3) AndAlso
                 BrowserRows("特供版本").Count = 2 AndAlso New VersionPresentation(history(0)).Icon.Contains("CobbleStone") AndAlso New VersionPresentation(history(3)).Icon.Contains("CommandBlock") AndAlso
                 VersionCards.Children.OfType(Of PclCard)().Count() = 7 AndAlso StatusText.Text.Contains("远古版") AndAlso StatusText.Text.Contains("旧快照")
             For Each item In history

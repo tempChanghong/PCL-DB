@@ -10,6 +10,10 @@ Public NotInheritable Class SupplementalVersions
     Public Const ManifestUrl As String = "https://zkitefly.github.io/unlisted-versions-of-minecraft/version_manifest.json"
     Public Const LibraryReferenceUrl As String = "https://piston-meta.mojang.com/v1/packages/3c514114d9c2a3ea78f72c4f9fb4eeb56747135a/1.5.1.json"
     Public Const LibraryReferenceSha1 As String = "3c514114d9c2a3ea78f72c4f9fb4eeb56747135a"
+    Public Const AlphaLibraryReferenceUrl As String = "https://piston-meta.mojang.com/v1/packages/51a5c512af384d3d2a79a3efb93f7d4b9a1c6ec2/inf-20100618.json"
+    Public Const AlphaLibraryReferenceSha1 As String = "51a5c512af384d3d2a79a3efb93f7d4b9a1c6ec2"
+    Public Const LegacyAssetIndexUrl As String = "https://launchermeta.mojang.com/mc-staging/assets/legacy/c0fd82e8ce9fbc93119e40d96d5a4e62cfa3f729/legacy.json"
+    Public Const LegacyAssetIndexSha1 As String = "c0fd82e8ce9fbc93119e40d96d5a4e62cfa3f729"
     Private Const BaseUrl As String = "https://zkitefly.github.io/unlisted-versions-of-minecraft/files/"
     Private Shared ReadOnly Aliases As Dictionary(Of String, String) = CreateAliases()
 
@@ -20,7 +24,7 @@ Public NotInheritable Class SupplementalVersions
             result.Add("2point0_" & color, "2.0_" & color)
             result.Add("2.0_" & color, "2.0_" & color)
         Next
-        For Each id In {"c0.0.12a_03", "a1.1.1", "b1.9-pre6", "13w12~"}
+        For Each id In {"c0.0.12a_03", "a1.1.1", "b1.9-pre6", "13w12~", "1.0.0-rc1", "inf-20100630-1"}
             result.Add(id, id)
         Next
         Return result
@@ -38,8 +42,8 @@ Public NotInheritable Class SupplementalVersions
 
     Private Shared Function ValidKind(id As String, kind As String) As Boolean
         Select Case id
-            Case "c0.0.12a_03", "a1.1.1" : Return kind = "old_alpha"
-            Case "b1.9-pre6" : Return kind = "old_beta"
+            Case "c0.0.12a_03", "a1.1.1", "inf-20100630-1" : Return kind = "old_alpha"
+            Case "b1.9-pre6", "1.0.0-rc1" : Return kind = "old_beta"
             Case "13w12~" : Return kind = "snapshot"
             Case Else : Return kind = "snapshot" OrElse kind = "pending"
         End Select
@@ -131,6 +135,17 @@ Public NotInheritable Class SupplementalVersions
         Return DateTimeOffset.TryParse(StringValue(value), CultureInfo.InvariantCulture, DateTimeStyles.None, released)
     End Function
 
+    Private Shared Function UsesAlphaReference(id As String) As Boolean
+        Return id = "1.0.0-rc1" OrElse id = "inf-20100630-1"
+    End Function
+
+    Private Shared Function CanSupplyLegacyIndex(id As String, metadata As JObject) As Boolean
+        ' Narrower than PCL McAssetsGetIndex(ReturnLegacyOnError): only these
+        ' audited profiles, with BOTH properties absent. Null/malformed/download
+        ' failures must never silently switch the resource tree.
+        Return UsesAlphaReference(id) AndAlso metadata.Property("assetIndex") Is Nothing AndAlso metadata.Property("assets") Is Nothing
+    End Function
+
     Public Shared Sub ValidateMetadata(entry As VersionEntry, metadata As JObject)
         If StringValue(metadata("id")) <> entry.Id OrElse metadata("inheritsFrom") IsNot Nothing Then Throw New InvalidDataException("版本元数据不是所选原版版本。")
         If Not entry.IsSupplemental Then Return
@@ -141,8 +156,10 @@ Public NotInheritable Class SupplementalVersions
         If String.IsNullOrWhiteSpace(StringValue(metadata("mainClass"))) OrElse Not TypeOf metadata("libraries") Is JArray OrElse
             Not ValidKind(canonical, StringValue(metadata("type"))) OrElse metadata("jar") IsNot Nothing Then Throw New InvalidDataException("补充版本元数据结构无效。")
         If DirectCast(metadata("libraries"), JArray).Any(Function(item) Not TypeOf item Is JObject) Then Throw New InvalidDataException("补充版本包含无效的支持库声明。")
+        If DirectCast(metadata("libraries"), JArray).OfType(Of JObject)().Any(Function(library) library.Property("downloads") IsNot Nothing AndAlso Not TypeOf library("downloads") Is JObject) Then Throw New InvalidDataException("补充版本的支持库下载声明损坏，不能按缺失字段补全。")
         Dim index = TryCast(metadata("assetIndex"), JObject)
-        If index Is Nothing OrElse String.IsNullOrWhiteSpace(StringValue(index("id"))) OrElse Not IsSha1(StringValue(index("sha1"))) Then Throw New InvalidDataException("补充版本资源索引缺少有效校验。")
+        If Not CanSupplyLegacyIndex(canonical, metadata) AndAlso
+            (index Is Nothing OrElse String.IsNullOrWhiteSpace(StringValue(index("id"))) OrElse Not IsSha1(StringValue(index("sha1")))) Then Throw New InvalidDataException("补充版本资源索引缺少有效校验。")
         SupplementalLaunchRecipe.ValidateSource(canonical, metadata)
     End Sub
 
@@ -151,20 +168,29 @@ Public NotInheritable Class SupplementalVersions
         Dim result = DirectCast(metadata.DeepClone(), JObject)
         If Not entry.IsSupplemental Then Return result
         ValidateMetadata(entry, result)
+        If CanSupplyLegacyIndex(entry.Id, result) Then
+            ' PCL 5ef81e4 McAssetsGetIndex's fixed legacy declaration. Keep
+            ' virtual assets in assets/virtual/legacy even with a private index ID.
+            result("assets") = "legacy"
+            result("assetIndex") = New JObject From {{"id", "legacy"}, {"sha1", LegacyAssetIndexSha1}, {"size", 134284}, {"totalSize", 111220701}, {"url", LegacyAssetIndexUrl}}
+        End If
         Dim libraries = DirectCast(result("libraries"), JArray).OfType(Of JObject)().ToList()
-        If Not libraries.Any(Function(library) library("downloads") Is Nothing OrElse library("downloads").Type = JTokenType.Null) Then
+        If Not libraries.Any(Function(library) library.Property("downloads") Is Nothing) Then
             SupplementalLaunchRecipe.ValidateLibraries(entry.Id, result)
             Return result
         End If
-        If Not entry.Id.StartsWith("2.0_", StringComparison.Ordinal) Then Throw New InvalidDataException("该历史版本的支持库下载信息不完整，不能使用 2.0 的参考清单补全。")
+        Dim alpha = UsesAlphaReference(entry.Id)
+        If Not alpha AndAlso Not entry.Id.StartsWith("2.0_", StringComparison.Ordinal) Then Throw New InvalidDataException("该历史版本的支持库下载信息不完整，没有对应的已校验参考清单。")
         ' UVMC 2.0 profiles retain the original Maven/rules/native declarations,
         ' without download records. Match them to the SHA-1 verified Mojang 1.5.1
         ' profile, preserving this version's client, arguments and asset index.
-        Dim reference = Await policy.GetJsonAsync(LibraryReferenceUrl, token, LibraryReferenceSha1).ConfigureAwait(False)
-        If StringValue(reference("id")) <> "1.5.1" OrElse Not TypeOf reference("libraries") Is JArray Then Throw New InvalidDataException("旧版支持库参考清单无效。")
+        ' RC1/Infdev explicitly use the 1.6 Alpha family. Never guess a reference
+        ' from the version's age or use the 2.0/1.5 wrapper for them.
+        Dim reference = Await policy.GetJsonAsync(If(alpha, AlphaLibraryReferenceUrl, LibraryReferenceUrl), token, If(alpha, AlphaLibraryReferenceSha1, LibraryReferenceSha1)).ConfigureAwait(False)
+        If StringValue(reference("id")) <> If(alpha, "inf-20100618", "1.5.1") OrElse Not TypeOf reference("libraries") Is JArray Then Throw New InvalidDataException("旧版支持库参考清单无效。")
         For Each library In libraries
             token.ThrowIfCancellationRequested()
-            If library("downloads") IsNot Nothing AndAlso library("downloads").Type <> JTokenType.Null Then Continue For
+            If library.Property("downloads") IsNot Nothing Then Continue For
             Dim declaration = DirectCast(library.DeepClone(), JObject) : declaration.Remove("downloads")
             Dim matches As New List(Of JToken)
             For Each candidate In DirectCast(reference("libraries"), JArray).OfType(Of JObject)()

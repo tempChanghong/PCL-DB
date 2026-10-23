@@ -64,6 +64,8 @@ Module Program
                     run = SupplementalVersionChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "supplemental-recipes" Then
                     run = SupplementalLaunchRecipeChecks.RunAsync(TestRoot)
+                ElseIf args(1) = "supplemental-early" Then
+                    run = EarlySupplementalChecks.RunAsync(TestRoot)
                 ElseIf args(1).StartsWith("processor-streams-", StringComparison.Ordinal) Then
                     run = ProcessorStreamChecks.RunAsync(TestRoot, args(1))
                 ElseIf args(1).StartsWith("component-catalogue-", StringComparison.Ordinal) Then
@@ -149,6 +151,9 @@ Module Program
                 Check(True, label)
             Next
             For Each label In SupplementalLaunchRecipeChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
+                Check(True, label)
+            Next
+            For Each label In EarlySupplementalChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
                 Check(True, label)
             Next
             For Each label In JavaProbeChecks.RunAsync(TestRoot).GetAwaiter().GetResult()

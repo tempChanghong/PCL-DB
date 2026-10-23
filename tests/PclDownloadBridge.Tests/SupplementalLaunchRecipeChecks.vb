@@ -29,7 +29,7 @@ Friend Module SupplementalLaunchRecipeChecks
             _url = url : AllowLoopback = True
         End Sub
         Public Overrides Function Candidates(url As String, category As String) As List(Of String)
-            Return New List(Of String) From {_url & "/reference"}
+            Return New List(Of String) From {_url & If(url = SupplementalVersions.AlphaLibraryReferenceUrl, "/alpha-reference", "/reference")}
         End Function
     End Class
 
@@ -37,6 +37,7 @@ Friend Module SupplementalLaunchRecipeChecks
         Dim passed As New List(Of String)
         Using server As New TestServer()
             server.Files("/reference") = SupplementalInstallFixture.Resource("SupplementalLibraryReference.json")
+            server.Files("/alpha-reference") = SupplementalInstallFixture.Resource("Historical.AlphaLibraryReference.json")
             For Each id In SupplementalInstallFixture.Ids
                 Dim metadata = JObject.Parse(Encoding.UTF8.GetString(SupplementalInstallFixture.Resource("Historical." & id & ".json")))
                 Dim entry = SupplementalInstallFixture.Entry(id), original = metadata.ToString()
@@ -52,7 +53,7 @@ Friend Module SupplementalLaunchRecipeChecks
                         Case "session-alias" : text = text.Replace("${auth_session}", "${auth_access_token}")
                         Case "newline" : text = text.Replace(" --assetsDir", vbCrLf & " --assetsDir")
                         Case "explicit-tweaker"
-                            If id <> "c0.0.12a_03" Then text &= " --tweakClass net.minecraft.launchwrapper.VanillaTweaker"
+                            If Not SupplementalInstallFixture.UsesAlpha(id) Then text &= " --tweakClass net.minecraft.launchwrapper.VanillaTweaker"
                     End Select
                     changedProfile("minecraftArguments") = text
                     SupplementalVersions.ValidateMetadata(entry, changedProfile)
