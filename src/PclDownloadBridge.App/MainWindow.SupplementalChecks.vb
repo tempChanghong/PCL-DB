@@ -12,6 +12,7 @@ Partial Public Class MainWindow
         Dim normal = BrowserEntry("1.21.1", "release", "2024-08-08T12:00:00Z")
         Dim blue As New VersionEntry With {.Id = "2.0_blue", .SupplementalId = "2point0_blue", .Kind = "snapshot", .Released = DateTimeOffset.Parse("2035-04-01T12:00:00Z")}
         Dim red As New VersionEntry With {.Id = "2.0_red", .SupplementalId = "2point0_red", .Kind = "snapshot", .Released = blue.Released}
+        Dim purple As New VersionEntry With {.Id = "2.0_purple", .SupplementalId = "2point0_purple", .Kind = "snapshot", .Released = blue.Released}
         Try
             _versionProvider = Function(policy, token) Task.FromResult(New List(Of VersionEntry) From {normal})
             Dim pending = ListGate(Of VersionEntry)()
@@ -19,11 +20,12 @@ Partial Public Class MainWindow
             Dim loading = LoadVersionsAsync(True)
             Dim originalRow = BrowserRows("正式版").Single()
             results("normalReadyBeforeSupplement") = Not _loading AndAlso Not loading.IsCompleted AndAlso BrowserRows("最新版本").Single().Tag Is normal
-            pending.SetResult(New List(Of VersionEntry) From {blue, red})
+            pending.SetResult(New List(Of VersionEntry) From {blue, red, purple})
             Await loading
             results("normalRowRetained") = BrowserRows("正式版").Single() Is originalRow
             Dim blueRow = BrowserRows("特供版本").First()
             results("categoriesAndLatest") = blueRow.Tag Is blue AndAlso blueRow.Info.Contains("UVMC") AndAlso BrowserRows("特供版本").Any(Function(row) row.Tag Is red) AndAlso
+                BrowserRows("特供版本").Any(Function(row) row.Tag Is purple) AndAlso BrowserRows("特供版本").Select(Function(row) row.Info).Distinct().Count() = 3 AndAlso
                 BrowserRows("愚人节版").Count = 0 AndAlso BrowserRows("远古版").Count = 0 AndAlso BrowserRows("预览版").Count = 0 AndAlso BrowserRows("最新版本").Single().Tag Is normal
             AddSupplementalVersionCards()
             results("appendIdempotent") = VersionCards.Children.OfType(Of PclCard)().Count() = 3
@@ -35,6 +37,18 @@ Partial Public Class MainWindow
             blueRow.Activate()
             SelectComponent(New ComponentEntry With {.Kind = ComponentKind.Fabric, .Minecraft = blue.Id, .Version = "fixture"})
             Await RefreshComponentListsAsync()
+            For Each entry In {red, purple, blue}
+                SetDownloadView(DownloadView.Versions)
+                Dim snapshot = entry.Copy(), row = BrowserRows("特供版本").Single(Function(item) item.Tag Is entry)
+                row.Activate() : Await RefreshComponentListsAsync()
+                Dim detail = SupplementalVersions.VariantDescription(entry)
+                If _selectedEntry IsNot entry OrElse InstanceName.Text <> SupplementalVersions.DisplayName(entry) OrElse SelectedVersionText.Text <> SupplementalVersions.DisplayName(entry) OrElse
+                    String.IsNullOrEmpty(detail) OrElse Not row.Info.Contains(detail) OrElse Not ComponentHint.Text.Contains(detail) OrElse
+                    entry.Id <> snapshot.Id OrElse entry.SupplementalId <> snapshot.SupplementalId OrElse entry.Url <> snapshot.Url OrElse entry.Sha1 <> snapshot.Sha1 OrElse entry.Kind <> snapshot.Kind OrElse entry.Released <> snapshot.Released OrElse
+                    _componentRequests.Count <> 0 OrElse _componentSelection.Entries.Count <> 0 Then Throw New InvalidOperationException("Colour variant selection changed identity or retained another variant's explanation.")
+            Next
+            Dim ordinary = BrowserEntry("2.0", "snapshot", "2013-04-01T12:00:00Z")
+            If SupplementalVersions.VariantDescription(ordinary) IsNot Nothing OrElse New VersionPresentation(ordinary).Description(False).Contains("超级敌对") Then Throw New InvalidOperationException("An ordinary 2.0 entry cannot establish its colour variant.")
             results("canonicalVanillaSelection") = _selectedEntry Is blue AndAlso InstanceName.Text = SupplementalVersions.DisplayName(blue) AndAlso SelectedVersionText.Text = SupplementalVersions.DisplayName(blue) AndAlso ComponentHint.Text.Contains("UVMC") AndAlso
                 componentCalls = 0 AndAlso _componentRequests.Count = 0 AndAlso _componentSelection.Entries.Count = 0 AndAlso _componentViews.Values.All(Function(view) view.Card.Visibility = Windows.Visibility.Collapsed)
             SetDownloadView(DownloadView.Versions)

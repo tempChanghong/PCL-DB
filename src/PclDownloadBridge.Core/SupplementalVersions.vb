@@ -101,6 +101,18 @@ Public NotInheritable Class SupplementalVersions
         End Select
     End Function
 
+    ' Descriptions apply only to the three explicit UVMC identities; an ordinary
+    ' entry named 2.0 does not establish which client variant it contains.
+    Public Shared Function VariantDescription(entry As VersionEntry) As String
+        If Not entry.IsSupplemental Then Return Nothing
+        Select Case entry.Id
+            Case "2.0_blue" : Return "新增彩蛋功能，不含超级敌对模式"
+            Case "2.0_red" : Return "新增内容仅含超级敌对模式"
+            Case "2.0_purple" : Return "新增彩蛋功能与超级敌对模式兼有"
+            Case Else : Return Nothing
+        End Select
+    End Function
+
     ' Bounded, optional work. The UI shows the ordinary catalogue before awaiting it.
     ' No persistent cache: a failed refresh cannot resurrect an obsolete declaration.
     Public Shared Async Function LoadAsync(policy As SourcePolicy, token As CancellationToken) As Task(Of List(Of VersionEntry))

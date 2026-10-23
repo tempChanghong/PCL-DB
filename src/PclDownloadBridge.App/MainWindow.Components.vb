@@ -257,7 +257,8 @@ Partial Public Class MainWindow
         If installProblem IsNot Nothing AndAlso InstanceName.ValidationMessage.Length = 0 Then
             ComponentHint.Text = installProblem
         ElseIf _selectedEntry.IsSupplemental Then
-            ComponentHint.Text = "补充来源 UVMC · " & SupplementalVersions.Label(_selectedEntry) & "。目前仅支持原版安装；客户端、支持库与资源仍会校验。"
+            Dim detail = SupplementalVersions.VariantDescription(_selectedEntry)
+            ComponentHint.Text = "补充来源 UVMC · " & SupplementalVersions.Label(_selectedEntry) & If(detail Is Nothing, "。", " · " & detail & "。") & "目前仅支持原版安装；客户端、支持库与资源仍会校验。"
         ElseIf _componentSelection.Has(ComponentKind.Fabric) AndAlso Not _componentSelection.Has(ComponentKind.FabricApi) Then
             ComponentHint.Text = "大多数 Fabric 模组需要 Fabric API，建议一并安装。"
         ElseIf _componentSelection.Has(ComponentKind.OptiFine) AndAlso _componentSelection.Entries.Count > 1 Then

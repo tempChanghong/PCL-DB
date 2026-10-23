@@ -25,7 +25,8 @@ Friend NotInheritable Class VersionPresentation
         If value.IsSupplemental Then
             If SupplementalVersions.Label(value) = "愚人节版" Then Kind = "special"
             DisplayId = SupplementalVersions.DisplayName(value)
-            Lore = "[补充版本 · UVMC] " & If(Kind = "special", AprilFoolsLore(value.Id), value.Released.ToString("yyyy/MM/dd HH:mm"))
+            Dim detail = SupplementalVersions.VariantDescription(value)
+            Lore = "[补充版本 · UVMC] " & If(detail IsNot Nothing, "2013 | " & detail, If(Kind = "special", AprilFoolsLore(value.Id), value.Released.ToString("yyyy/MM/dd HH:mm")))
             Return
         End If
         If Kind <> "snapshot" Then Return

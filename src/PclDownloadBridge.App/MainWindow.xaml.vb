@@ -159,6 +159,14 @@ Partial Public Class MainWindow
                 RestoreAppearance(New JObject From {{"theme", "colorful"}})
             Case "versions-special", "version-infinite"
                 PreviewSpecialVersions(page = "version-infinite")
+            Case "versions-colours", "versions-colours-dark", "version-colour-red"
+                If page = "versions-colours-dark" Then RestoreAppearance(New JObject From {{"theme", "blue"}, {"darkMode", True}})
+                _versions = New List(Of VersionEntry)
+                For Each colour In {"blue", "red", "purple"}
+                    _versions.Add(New VersionEntry With {.Id = "2.0_" & colour, .SupplementalId = "2point0_" & colour, .Kind = "snapshot", .Released = DateTimeOffset.Parse("2013-04-01T12:00:00Z")})
+                Next
+                UpdateVersions() : BrowserRows("特供版本")
+                If page = "version-colour-red" Then SelectVersion(_versions.Single(Function(entry) entry.Id = "2.0_red"))
             Case "name-invalid"
                 SelectVersion(_versions(0))
                 InstanceName.Text = "bad/name"
