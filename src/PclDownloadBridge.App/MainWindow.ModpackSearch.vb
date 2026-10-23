@@ -53,6 +53,8 @@ Partial Public Class MainWindow
         _packDetailMotion = New PclSurfaceMotion(PackDetailResultsHost, PackDetailGhost,
             Function() CanAnimatePackContent(PackBrowserMode.Detail),
             Function(surface) PclSurfaceMotion.Units(surface))
+        _packSearchLoading = New PclLoadingPresentation(PackSearchResultsHost, AddressOf CanTimePackLoading, Function() PackEntryMotion(PackBrowserMode.Search))
+        _packDetailLoading = New PclLoadingPresentation(PackDetailResultsHost, AddressOf CanTimePackLoading, Function() PackEntryMotion(PackBrowserMode.Detail))
         AddHandler _categoryMotion.Settled, Sub() EnsurePackSearch()
         AddHandler _surfaceMotion.Settled, Sub() EnsurePackSearch()
         For Each game In {"全部 (也可自行输入)", "1.21.1", "1.20.1", "1.19.2", "1.18.2", "1.16.5", "1.12.2", "1.7.10"}
@@ -176,12 +178,13 @@ Partial Public Class MainWindow
         Dim artworkToken = _packArtworkRequest.Token
         Dim request As New CancellationTokenSource : _packSearchRequest = request
         PackFirstPage.IsEnabled = False : PackPreviousPage.IsEnabled = False : PackNextPage.IsEnabled = False
-        ChangePackResults(Sub()
+        _packSearchLoading.Start(request, request.Token, AddressOf PreparePackSearchLoading, Sub() ChangePackResults(Sub()
                               PackSearchHint.Visibility = Visibility.Collapsed : PackPagingCard.Visibility = Visibility.Collapsed
+                              PackResultsCard.Visibility = Visibility.Visible
                               PackProjectRows.Children.Clear() : PackResultsCard.Title = "正在获取整合包列表…"
                               PackResultsCard.HorizontalAlignment = HorizontalAlignment.Center
                               PackProjectRows.Children.Add(New PclLoadingView("正在获取整合包列表"))
-                          End Sub)
+                          End Sub))
         Try
             Dim items As List(Of ModpackProject)
             Dim retainedPage = False
@@ -196,11 +199,13 @@ Partial Public Class MainWindow
                 End If
             End Using
             If Not CurrentPackSearch(session, request) Then Return
+            Await _packSearchLoading.CompleteAsync(request)
+            If Not CurrentPackSearch(session, request) Then Return
             _packSearchPage = page
             Dim limitReached = page = ModpackSearchSession.MaxPage AndAlso session.Count >= (page + 1) * ModpackCatalogClient.PageSize AndAlso
                 (session.HasMore OrElse session.Count > (page + 1) * ModpackCatalogClient.PageSize)
             ChangePackResults(Sub()
-                                  PackProjectRows.Children.Clear() : PackResultsCard.Title = "整合包"
+                                  PackProjectRows.Children.Clear() : PackResultsCard.Title = "整合包" : PackResultsCard.Visibility = Visibility.Visible
                                   PackResultsCard.HorizontalAlignment = HorizontalAlignment.Stretch
                                   For Each project In items
                                       Dim row As New PclResourceItem(project) With {.Tag = project}
@@ -233,7 +238,9 @@ Partial Public Class MainWindow
             ' Intentional cancellation has already revoked ownership. An unexpected
             ' cancellation of the current request must still leave a terminal view.
             If CurrentPackSearch(session, request) Then
+                _packSearchLoading.Cancel(request)
                 ChangePackResults(Sub()
+                                      PackResultsCard.Visibility = Visibility.Visible
                                       PackResultsCard.Title = "获取失败" : PackResultsCard.HorizontalAlignment = HorizontalAlignment.Stretch
                                       PackProjectRows.Children.Clear()
                                       PackProjectRows.Children.Add(New TextBlock With {.Text = "未能取得结果，请重试或选择其他来源。", .Margin = New Thickness(10), .TextWrapping = TextWrapping.Wrap})
@@ -243,6 +250,7 @@ Partial Public Class MainWindow
                                   End Sub)
             End If
         Finally
+            _packSearchLoading.Cancel(request)
             If _packSearchRequest Is request Then _packSearchRequest = Nothing
             request.Dispose()
         End Try
@@ -309,17 +317,19 @@ Partial Public Class MainWindow
         _packDetailRequest?.Cancel()
         _packDetailCompletedProject = Nothing
         Dim request As New CancellationTokenSource : _packDetailRequest = request
-        ChangePackContent(PackBrowserMode.Detail, Sub()
+        _packDetailLoading.Start(request, request.Token, AddressOf PreparePackDetailLoading, Sub() ChangePackContent(PackBrowserMode.Detail, Sub()
                                                      PackVersionCards.Children.Clear() : PackVersionFilters.Children.Clear()
                                                      PackVersionFilterCard.Visibility = Visibility.Collapsed
                                                      PackDetailHint.Visibility = Visibility.Collapsed : PackDetailRetry.Visibility = Visibility.Collapsed
                                                      Dim loading As New PclCard With {.ShowHeader = False, .HorizontalAlignment = HorizontalAlignment.Center, .BodyMargin = New Thickness(0), .Body = New PclLoadingView("正在获取版本列表")}
                                                      PackVersionCards.Children.Add(loading)
-                                                 End Sub)
+                                                 End Sub))
         Try
             Using client = _packCatalogFactory()
                 Dim verified = Await client.GetProjectAsync(project.Platform, project.Id, request.Token)
                 Dim releases = Await client.GetVersionsAsync(verified, request.Token)
+                If _closing OrElse request.IsCancellationRequested OrElse _packDetailRequest IsNot request OrElse _packProject IsNot project Then Return
+                Await _packDetailLoading.CompleteAsync(request)
                 If _closing OrElse request.IsCancellationRequested OrElse _packDetailRequest IsNot request OrElse _packProject IsNot project Then Return
                 ChangePackContent(PackBrowserMode.Detail, Sub()
                                                              _packVerifiedProject = verified : _packReleases = releases
@@ -332,6 +342,7 @@ Partial Public Class MainWindow
             End Using
         Catch ex As Exception
             If Not _closing AndAlso Not request.IsCancellationRequested AndAlso _packDetailRequest Is request AndAlso _packProject Is project Then
+                _packDetailLoading.Cancel(request)
                 _packDetailCompletedProject = Nothing
                 ChangePackContent(PackBrowserMode.Detail, Sub()
                                                              PackVersionCards.Children.Clear()
@@ -339,6 +350,7 @@ Partial Public Class MainWindow
                                                          End Sub)
             End If
         Finally
+            _packDetailLoading.Cancel(request)
             If _packDetailRequest Is request Then _packDetailRequest = Nothing
             request.Dispose()
         End Try

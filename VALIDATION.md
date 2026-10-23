@@ -1480,3 +1480,9 @@
 - CF 服务端、外来和不可用文件不参与客户端项目标签；MR 兼容 categories 和 loaders 两种声明位置。不由项目标签替代具体文件兼容关系，不新增组件安装能力，不推断完整游戏版本范围。
 - 新增 Core 89 项、搜索 UI 20 项；当前策略 `PCL-DB-checks/2026-10-23.13` 的主套件预期 6007 / 799 / 637 / 269，共 7712 项。最终结果以 `artifacts/project-tags-alignment/validation.json` 与 Commit 绑定为准，详情见 `docs/reviews/project-tags-alignment-2026-10-23.md`。
 - 明暗主题、多分类单行省略、64 DIP 行高、旧手势、静态头部、详情/搜索快照与文件身份独立均有隐藏呈现源检查。未联网查询或安装真实整合包，不把离屏截图当作真人桌面/帧率证据；未推送、打包、发版。
+## 整合包 LoaderWait 与最小停留（2026-10-23，尚未发行）
+
+- 基线 `4ad8dee`；固定 PCL `5ef81e4` 的 MyPageRight / ModLoader / PageDownloadCompDetail。搜索及版本详情先等待 400 ms；实际加载入场结束后至少停留 400 ms，快速请求直接进入结果，错误保留即时重试提示。
+- 展示绑定请求所有者并在发布前复查，跟随实际主页面/分类/结果动画；页面隐藏立即释放已就绪数据，未完成请求返回时只恢复展示等待。关闭、卸载、取消、替换和动画关闭均清理等待，不延迟或替换安装任务的取消源。
+- 新增搜索 UI 51 项；策略 `PCL-DB-checks/2026-10-23.14` 预期 Core 6007 / UI 799 / motion 637 / pack-search 320，共 7763 项。专项既验证可推进单调时钟边界，也验证真实 DispatcherTimer 和真实窗口关闭。最终状态以 `artifacts/loading-presentation/validation.json` 与提交绑定为准，见 `docs/reviews/loading-presentation-2026-10-23.md`。
+- 原版/组件列表尚未接入，不改下载/安装内核、共享文件、隔离设置或原子发布；未联网查询和实际安装，不声称真人桌面/DPI/帧率已验收；未推送、打包、发版。

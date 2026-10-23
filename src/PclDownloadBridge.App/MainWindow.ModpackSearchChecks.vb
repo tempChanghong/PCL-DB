@@ -330,6 +330,9 @@ Partial Public Class MainWindow
         Await VerifyPackDetailCompletionAsync(directory, host, layout, check)
         Await VerifyPackCompatibilityUiAsync(directory, host, layout, check)
         Await VerifyPackReleaseLabelsAsync(directory, host, layout, check)
+        VerifyLoadingPresentation(directory, check)
+        Await VerifyPackLoadingAsync(directory, host, layout, check)
+        Await VerifyLoadingCloseAsync(check)
 
         ChangePackMode(PackBrowserMode.Search) : layout() : _motionPreview = True : _categoryMotion.PauseForChecks = True
         ChangePackMode(PackBrowserMode.Detail) : layout()

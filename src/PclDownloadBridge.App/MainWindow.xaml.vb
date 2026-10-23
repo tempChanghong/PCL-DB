@@ -963,6 +963,7 @@ Partial Public Class MainWindow
             End If
         End If
         _closing = True
+        _packSearchLoading?.Reset() : _packDetailLoading?.Reset()
         CompleteOnlinePrompt(Nothing)
         _packSearchRequest?.Cancel()
         _packDetailRequest?.Cancel()
