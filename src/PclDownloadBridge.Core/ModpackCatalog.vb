@@ -48,6 +48,9 @@ Public NotInheritable Class ModpackRelease
     Public Property Name As String
     Public Property Version As String
     Public Property Published As DateTimeOffset
+    ' Advisory platform statistics; absent or malformed counters cannot invalidate
+    ' an otherwise verified archive. A known zero remains distinct from unknown.
+    Public Property Downloads As Long?
     Public Property ReleaseType As String
     Public Property GameVersions As String() = {}
     ' Missing compatibility metadata may defer to the archive, but an explicitly
@@ -210,6 +213,7 @@ Public NotInheritable Class ModpackCatalogClient
                 End If
             Next
         End If
+        result.Downloads = ReadDownloadCount(data(If(project.Platform = ModpackPlatform.Modrinth, "downloads", "downloadCount")))
         ' The archive is stored under a fixed cache name, not the remote filename.
         ' Keep ordinary long archive names while rejecting path-bearing metadata.
         If result.FileName.Length > 255 OrElse result.FileName <> result.FileName.Trim() OrElse result.FileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 Then Throw New InvalidDataException("整合包归档文件名无效。")
@@ -222,6 +226,14 @@ Public NotInheritable Class ModpackCatalogClient
             If Uri.UnescapeDataString(address.AbsolutePath) <> expected Then Throw New InvalidDataException("CurseForge 下载地址与指定文件不匹配。")
         End If
         Return result
+    End Function
+
+    Private Shared Function ReadDownloadCount(value As JToken) As Long?
+        If value Is Nothing OrElse (value.Type <> JTokenType.Integer AndAlso value.Type <> JTokenType.Float) Then Return Nothing
+        Dim number As Decimal
+        If Not Decimal.TryParse(value.ToString(Newtonsoft.Json.Formatting.None), Globalization.NumberStyles.Float, Globalization.CultureInfo.InvariantCulture, number) OrElse
+            number < 0 OrElse number > Long.MaxValue OrElse Decimal.Truncate(number) <> number Then Return Nothing
+        Return CLng(number)
     End Function
 
     Private Shared Function ReadCurseForgeTags(declaration As JToken, release As ModpackRelease) As String()

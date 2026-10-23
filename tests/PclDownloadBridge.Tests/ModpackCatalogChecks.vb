@@ -56,6 +56,8 @@ Friend Module ModpackCatalogChecks
         Next
         Dim mr As New ModpackProject With {.Platform = ModpackPlatform.Modrinth, .Id = "pack1"}
         Dim json = MrRelease(), release = ModpackCatalogClient.ParseRelease(mr, json)
+        ModpackReleaseStatisticsChecks.VerifyParsing(mr, json, passed)
+        ModpackReleaseStatisticsChecks.VerifyFormatting(passed)
         Check(release.FileName = "pack.mrpack" AndAlso release.Sha512 IsNot Nothing, "MR chooses the primary installable archive instead of files(0)", passed)
         CompatibilityChecks(release, passed)
         Dim longName = DirectCast(json.DeepClone(), JObject)
@@ -84,6 +86,7 @@ Friend Module ModpackCatalogChecks
         Dim cf As New ModpackProject With {.Platform = ModpackPlatform.CurseForge, .Id = "12"}
         Dim cfJson As New JObject From {{"id", 1234567}, {"modId", 12}, {"displayName", "Client pack"}, {"fileName", "client.zip"}, {"downloadUrl", "https://edge.forgecdn.net/files/1234/567/client.zip"}, {"fileLength", 100}, {"isServerPack", False}, {"isAvailable", True}, {"releaseType", 1}, {"fileDate", "2026-10-01T00:00:00Z"}, {"gameVersions", New JArray("1.20.1", "Forge")}, {"hashes", New JArray(New JObject From {{"algo", 1}, {"value", New String("a"c, 40)}})}}
         Check(ModpackCatalogClient.ParseRelease(cf, cfJson).GameVersions.SequenceEqual({"1.20.1"}), "CF client archive binds IDs, CDN path, checksum and exact game versions", passed)
+        ModpackReleaseStatisticsChecks.VerifyParsing(cf, cfJson, passed)
         CurseForgeFlagChecks(cf, cfJson, passed)
         Await CurseForgeSourceChecksAsync(cfJson, passed)
         Await CurseForgeGameVersionChecksAsync(root, cf, cfJson, passed)

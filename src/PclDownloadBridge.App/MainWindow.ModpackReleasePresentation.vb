@@ -37,13 +37,15 @@ Partial Public Class MainWindow
         Return "整合包"
     End Function
 
-    Private Shared Function PackReleaseInfo(release As ModpackRelease, title As String) As String
+    Private Shared Function PackReleaseInfo(release As ModpackRelease, title As String, Optional now As DateTimeOffset? = Nothing) As String
         Dim parts As New List(Of String)
         If release.Loaders.Length > 0 Then parts.Add(String.Join("、", release.Loaders.Select(AddressOf PackLoaderLabel)))
         Dim fileTitle = PackReleaseTitle(release.FileName)
         If fileTitle <> "" AndAlso Not String.Equals(title, fileTitle, StringComparison.OrdinalIgnoreCase) Then parts.Add(fileTitle)
         If release.GameVersions.Length > 0 AndAlso release.GameVersions.All(Function(game) Not game.Contains(".") OrElse {"w", "snapshot", "rc", "pre", "experimental", "-"}.Any(Function(marker) game.IndexOf(marker, StringComparison.OrdinalIgnoreCase) >= 0)) Then parts.Add("游戏版本 " & String.Join("、", release.GameVersions))
-        parts.Add("更新于 " & release.Published.ToLocalTime().ToString("yyyy/MM/dd"))
+        Dim downloads = ModpackReleaseStatistics.DownloadText(release.Downloads)
+        If downloads <> "" Then parts.Add(downloads)
+        parts.Add("更新于 " & ModpackReleaseStatistics.RelativeTime(release.Published, now.GetValueOrDefault(DateTimeOffset.UtcNow)))
         If release.ReleaseType = "beta" Then parts.Add("测试版")
         If release.ReleaseType = "alpha" Then parts.Add("早期测试版")
         Return String.Join("，", parts)
@@ -55,6 +57,7 @@ Partial Public Class MainWindow
         If release.GameVersions.Length > 0 Then parts.Add("Minecraft：" & String.Join("、", release.GameVersions))
         If release.Loaders.Length > 0 Then parts.Add("加载器：" & String.Join("、", release.Loaders.Select(AddressOf PackLoaderLabel)))
         parts.Add("更新时间：" & release.Published.ToLocalTime().ToString("yyyy/MM/dd HH:mm:ss"))
+        If release.Downloads.GetValueOrDefault() > 0 Then parts.Add("平台下载次数：" & release.Downloads.Value.ToString("N0", Globalization.CultureInfo.InvariantCulture) & " 次")
         If release.Size > 0 Then parts.Add("归档大小：" & FormatBytes(release.Size))
         parts.Add(release.Platform.ToString() & " · " & release.Id)
         Return String.Join(vbCrLf, parts.Where(Function(part) Not String.IsNullOrWhiteSpace(part)))

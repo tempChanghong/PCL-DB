@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 整合包发布版本的下载量与相对更新时间
+
+- 重读固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `Modules/Resource/ResourceVersion.vb`：分别读取 CurseForge downloadCount／Modrinth downloads；ToListItem 仅显示大于零的计数，超过 100000 时用 Math.Round(count / 10000) 显示“万次”，并调用 StringUtils.FormatTimeSpan(ReleaseDate - Date.Now, False)。保持 42 DIP 行、标题消歧、文件名及加载器说明、发布类型和原平台 ID。
+- 上述 StringUtils 位于该 PCL 提交的 MeloongCore 子模块，Git 对象实际固定为 `c774ae4c85fd94e0eaa171db21e78a65870df19b`。读取此提交的 `Shared/Utils/StringUtils.cs` 和 Apache-2.0 许可；仅把详细时间分支适配为显式 DateTimeOffset 参数的 VB.NET 纯格式化器，没有引入运行时程序集。许可和修改说明已加入 THIRD_PARTY_NOTICES.md；固定函数的 1120 组边界／随机对照另有回执。
+- 本工具适配：计数使用可空 64 位整数，缺失或异常辅助统计降级为未知，不影响文件身份、大小和摘要的严格校验；零计数与未知仍在模型中区分，界面均省略。完整数字和绝对本地时间保留在提示中，单张卡片以同一个时间点生成文字；不增加后台计时器或每帧布局。源码及 Git blob／SHA-256 记录位于忽略目录 `artifacts/release-metadata/source/`，详见 `docs/reviews/release-metadata-2026-10-23.md`。
+
 ## 搜索项目行的输入归属与独立背景动画
 
 - 重读固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MyResourceItem.xaml(.vb)`：Button_MouseLeave 在移出和松开时清除 IsMouseDown；RectBack 是 3 DIP 圆角、0.8 初始缩放的独立背景。RefreshColor 进入／按下使用 120ms 颜色和透明度、144ms 背景缩放，悬停 ColorBrushBg1、按下 ColorBrush6；离开 180ms 淡出并接近 0.996，之后 1ms 回到 0.8。重读 ModAnimation 的默认 Fluent 三次方曲线和 After 分组规则，本工具资源行不再共用 MyListItem 的整行 0.98 缩放及 541ms 离开尾段。

@@ -90,9 +90,10 @@ Partial Public Class MainWindow
     Private Function BuildPackVersionRows(releases As List(Of ModpackRelease)) As UIElement
         Dim rows As New StackPanel
         Dim titles = PackReleaseTitles(releases)
+        Dim now = DateTimeOffset.UtcNow
         For index = 0 To releases.Count - 1
             Dim selected = releases(index), title = titles(index)
-            Dim row As New PclListItem With {.Height = 42, .Title = title, .Info = PackReleaseInfo(selected, title), .ToolTip = PackReleaseToolTip(selected), .Tag = selected,
+            Dim row As New PclListItem With {.Height = 42, .Title = title, .Info = PackReleaseInfo(selected, title, now), .ToolTip = PackReleaseToolTip(selected), .Tag = selected,
                 .Logo = "pack://application:,,,/Images/Blocks/" & If(selected.ReleaseType = "release", "Release", If(selected.ReleaseType = "beta", "Beta", "Alpha")) & ".png"}
             Dim blocked = ModpackCompatibility.GetInstallBlockReason(selected)
             If blocked IsNot Nothing Then
