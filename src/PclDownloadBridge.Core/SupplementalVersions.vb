@@ -8,22 +8,18 @@ Imports Newtonsoft.Json.Linq
 ' installation pipeline. UVMC is a separate public catalogue, not PCL's private list.
 Public NotInheritable Class SupplementalVersions
     Public Const ManifestUrl As String = "https://zkitefly.github.io/unlisted-versions-of-minecraft/version_manifest.json"
+    Public Const LibraryReferenceUrl As String = "https://piston-meta.mojang.com/v1/packages/3c514114d9c2a3ea78f72c4f9fb4eeb56747135a/1.5.1.json"
+    Public Const LibraryReferenceSha1 As String = "3c514114d9c2a3ea78f72c4f9fb4eeb56747135a"
     Private Const BaseUrl As String = "https://zkitefly.github.io/unlisted-versions-of-minecraft/files/"
     Private Shared ReadOnly Aliases As Dictionary(Of String, String) = CreateAliases()
 
     Private Shared Function CreateAliases() As Dictionary(Of String, String)
         Dim result As New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)
         ' These catalogue -> metadata identities have been checked individually.
-        For Each suffix In {"16_combat-0", "16_combat-1", "16_combat-2", "16_combat-3", "16_combat-4", "16_combat-5", "16_combat-6",
-                            "15_combat-1", "15_combat-6", "14_combat-0", "14_combat-3", "14_combat-212796"}
-            result.Add("1_" & suffix, "1." & suffix)
-            result.Add("1." & suffix, "1." & suffix)
+        For Each color In {"blue", "red", "purple"}
+            result.Add("2point0_" & color, "2.0_" & color)
+            result.Add("2.0_" & color, "2.0_" & color)
         Next
-        For number = 1 To 7
-            Dim id = "1.18_experimental-snapshot-" & number.ToString(CultureInfo.InvariantCulture)
-            result.Add(id, id)
-        Next
-        result.Add("1.19_deep_dark_experimental_snapshot-1", "1.19_deep_dark_experimental_snapshot-1")
         Return result
     End Function
 
@@ -33,7 +29,16 @@ Public NotInheritable Class SupplementalVersions
     End Function
 
     Public Shared Function Label(entry As VersionEntry) As String
-        Return If(entry.Id.Contains("_combat-"), "战斗测试版", "实验快照")
+        Return "愚人节版"
+    End Function
+
+    Public Shared Function DisplayName(entry As VersionEntry) As String
+        Select Case entry.Id
+            Case "2.0_blue" : Return "2.0（蓝色版）"
+            Case "2.0_red" : Return "2.0（红色版）"
+            Case "2.0_purple" : Return "2.0（紫色版）"
+            Case Else : Return entry.Id
+        End Select
     End Function
 
     ' Bounded, optional work. The UI shows the ordinary catalogue before awaiting it.
@@ -91,7 +96,7 @@ Public NotInheritable Class SupplementalVersions
     End Function
 
     Private Shared Function MetadataUrl(id As String) As String
-        Dim slug = id.Replace("."c, "_"c)
+        Dim slug = id.Replace("2.0_", "2point0_")
         Return BaseUrl & slug & "/" & slug & ".json"
     End Function
 
@@ -122,6 +127,32 @@ Public NotInheritable Class SupplementalVersions
         Dim index = TryCast(metadata("assetIndex"), JObject)
         If index Is Nothing OrElse String.IsNullOrWhiteSpace(StringValue(index("id"))) OrElse Not IsSha1(StringValue(index("sha1"))) Then Throw New InvalidDataException("补充版本资源索引缺少有效校验。")
     End Sub
+
+    Public Shared Async Function PrepareLibrariesAsync(entry As VersionEntry, metadata As JObject, policy As SourcePolicy, token As CancellationToken) As Task(Of JObject)
+        Dim result = DirectCast(metadata.DeepClone(), JObject)
+        If Not entry.IsSupplemental Then Return result
+        ValidateMetadata(entry, result)
+        Dim libraries = DirectCast(result("libraries"), JArray).OfType(Of JObject)().ToList()
+        If Not libraries.Any(Function(library) library("downloads") Is Nothing OrElse library("downloads").Type = JTokenType.Null) Then Return result
+        ' UVMC 2.0 profiles retain the original Maven/rules/native declarations,
+        ' without download records. Match them to the SHA-1 verified Mojang 1.5.1
+        ' profile, preserving this version's client, arguments and asset index.
+        Dim reference = Await policy.GetJsonAsync(LibraryReferenceUrl, token, LibraryReferenceSha1).ConfigureAwait(False)
+        If StringValue(reference("id")) <> "1.5.1" OrElse Not TypeOf reference("libraries") Is JArray Then Throw New InvalidDataException("旧版支持库参考清单无效。")
+        For Each library In libraries
+            token.ThrowIfCancellationRequested()
+            If library("downloads") IsNot Nothing AndAlso library("downloads").Type <> JTokenType.Null Then Continue For
+            Dim declaration = DirectCast(library.DeepClone(), JObject) : declaration.Remove("downloads")
+            Dim matches As New List(Of JToken)
+            For Each candidate In DirectCast(reference("libraries"), JArray).OfType(Of JObject)()
+                Dim shape = DirectCast(candidate.DeepClone(), JObject) : shape.Remove("downloads")
+                If JToken.DeepEquals(shape, declaration) AndAlso TypeOf candidate("downloads") Is JObject Then matches.Add(candidate("downloads"))
+            Next
+            If matches.Count = 0 OrElse Not matches.All(Function(item) JToken.DeepEquals(item, matches(0))) Then Throw New InvalidDataException("补充版本的支持库声明与已校验参考不一致：" & StringValue(library("name")))
+            library("downloads") = matches(0).DeepClone()
+        Next
+        Return result
+    End Function
 
     Public Shared Sub ValidatePlan(files As IEnumerable(Of DownloadFile))
         For Each file In files

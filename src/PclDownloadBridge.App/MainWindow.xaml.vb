@@ -460,7 +460,7 @@ Partial Public Class MainWindow
         If Not available Then Return status & "（补充清单暂不可用，可刷新重试）。"
         Dim added = _versions.Where(Function(entry) entry.IsSupplemental).ToList()
         If added.Count = 0 Then Return status & "（无新增补充版本）。"
-        Dim categories = {"战斗测试版", "实验快照"}.Where(Function(category) added.Any(Function(entry) SupplementalVersions.Label(entry) = category))
+        Dim categories = added.Select(Function(entry) SupplementalVersions.Label(entry)).Distinct().ToList()
         Return status & "，含 " & added.Count & " 个补充版本：" & String.Join("、", categories) & "。"
     End Function
 
@@ -535,7 +535,7 @@ Partial Public Class MainWindow
     End Sub
 
     Private Sub AddSupplementalVersionCards()
-        For Each category In {"战斗测试版", "实验快照"}
+        For Each category In {"特供版本"}
             If VersionCards.Children.OfType(Of PclCard)().Any(Function(card) card.Title.StartsWith(category & " (", StringComparison.Ordinal)) Then Continue For
             Dim entries = _versions.Where(Function(entry) entry.IsSupplemental).Select(Function(entry) New VersionPresentation(entry)).
                 Where(Function(entry) entry.Category = category).OrderByDescending(Function(entry) entry.Entry.Released).ToList()

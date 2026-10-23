@@ -18,8 +18,9 @@ Friend Module SupplementalAssetIndexChecks
     End Class
 
     Private Function Entry(suffix As String) As VersionEntry
-        Dim raw = "1_16_combat-" & suffix
-        Return New VersionEntry With {.Id = "1.16_combat-" & suffix, .SupplementalId = raw, .Kind = "pending",
+        Dim color = If(suffix = "6", "blue", "red")
+        Dim raw = "2point0_" & color
+        Return New VersionEntry With {.Id = "2.0_" & color, .SupplementalId = raw, .Kind = "snapshot",
             .Url = "https://zkitefly.github.io/unlisted-versions-of-minecraft/files/" & raw & "/" & raw & ".json"}
     End Function
 
@@ -31,7 +32,7 @@ Friend Module SupplementalAssetIndexChecks
 
     Private Function Serve(fixture As InstallationChecks.InstallFixture, selected As VersionEntry, bytes As Byte()) As JObject
         Dim meta = JObject.Parse(Encoding.UTF8.GetString(fixture.Server.Files("/version")))
-        meta("id") = selected.Id : meta("type") = "pending"
+        meta("id") = selected.Id : meta("type") = "snapshot"
         meta("assetIndex")("sha1") = Hash(bytes) : meta("assetIndex")("size") = bytes.Length
         fixture.Server.Files("/index") = bytes
         fixture.Server.Files("/version") = Encoding.UTF8.GetBytes(meta.ToString())
@@ -63,10 +64,10 @@ Friend Module SupplementalAssetIndexChecks
             Dim normalJson = Path.Combine(normal.InstancePath, "normal.json"), normalBytes = File.ReadAllBytes(normalJson)
             Dim originalIndex = Path.Combine(fixture.Root, "assets", "indexes", "fixture.json")
             Dim originalBytes = File.ReadAllBytes(originalIndex), originalTime = File.GetLastWriteTimeUtc(originalIndex)
-            Dim first = Entry("6"), bytes6 = Encoding.UTF8.GetBytes("{""objects"":{},""fixture"":""combat-six""}")
+            Dim first = Entry("6"), bytes6 = Encoding.UTF8.GetBytes("{""objects"":{},""fixture"":""april-blue""}")
             Dim source6 = Serve(fixture, first, bytes6), sourceJson = source6.ToString()
-            Dim result6 = Await installer.InstallAsync(first, fixture.Root, "combat-six", {}, Nothing, CancellationToken.None)
-            Dim installed6 = JObject.Parse(File.ReadAllText(Path.Combine(result6.InstancePath, "combat-six.json")))
+            Dim result6 = Await installer.InstallAsync(first, fixture.Root, "april-blue", {}, Nothing, CancellationToken.None)
+            Dim installed6 = JObject.Parse(File.ReadAllText(Path.Combine(result6.InstancePath, "april-blue.json")))
             Dim name6 = CStr(installed6.SelectToken("assetIndex.id")), expected6 = "pcldb-" & Hash(bytes6)
             Console.WriteLine("SUPPLEMENT_INDEX_CONFLICT originalPreserved=" & File.ReadAllBytes(originalIndex).SequenceEqual(originalBytes) & "; installedIndex=" & name6)
             Check(File.ReadAllBytes(originalIndex).SequenceEqual(originalBytes) AndAlso File.GetLastWriteTimeUtc(originalIndex) = originalTime, "supplement conflicting index leaves the ordinary index bytes and timestamp intact", passed)
@@ -76,18 +77,18 @@ Friend Module SupplementalAssetIndexChecks
                 CStr(installed6.SelectToken("assetIndex.url")) = CStr(source6.SelectToken("assetIndex.url")) AndAlso CStr(installed6.SelectToken("assetIndex.sha1")) = Hash(bytes6), "supplement changes only the index name while keeping PCL identity and upstream checksum/source", passed)
             Check(source6.ToString() = sourceJson AndAlso CStr(JObject.Parse(Encoding.UTF8.GetString(fixture.Server.Files("/version"))).SelectToken("assetIndex.id")) = "fixture", "supplement index preparation cannot mutate source metadata", passed)
 
-            Dim second = Entry("0"), bytes0 = Encoding.UTF8.GetBytes("{""objects"":{},""fixture"":""combat-zero""}")
+            Dim second = Entry("0"), bytes0 = Encoding.UTF8.GetBytes("{""objects"":{},""fixture"":""april-red""}")
             Serve(fixture, second, bytes0)
-            Dim result0 = Await installer.InstallAsync(second, fixture.Root, "combat-zero", {}, Nothing, CancellationToken.None)
-            Dim installed0 = JObject.Parse(File.ReadAllText(Path.Combine(result0.InstancePath, "combat-zero.json")))
+            Dim result0 = Await installer.InstallAsync(second, fixture.Root, "april-red", {}, Nothing, CancellationToken.None)
+            Dim installed0 = JObject.Parse(File.ReadAllText(Path.Combine(result0.InstancePath, "april-red.json")))
             Dim name0 = CStr(installed0.SelectToken("assetIndex.id")), index6 = Path.Combine(fixture.Root, "assets", "indexes", name6 & ".json")
             Check(name0 <> name6 AndAlso File.ReadAllBytes(index6).SequenceEqual(bytes6) AndAlso File.ReadAllBytes(originalIndex).SequenceEqual(originalBytes), "supplement versions sharing an upstream index ID retain both different contents", passed)
 
             Serve(fixture, first, bytes6)
-            Dim json6 = Path.Combine(result6.InstancePath, "combat-six.json"), jsonBytes6 = File.ReadAllBytes(json6)
+            Dim json6 = Path.Combine(result6.InstancePath, "april-blue.json"), jsonBytes6 = File.ReadAllBytes(json6)
             Dim corrupt = DirectCast(bytes6.Clone(), Byte()) : corrupt(0) = corrupt(0) Xor CByte(1)
             File.WriteAllBytes(index6, corrupt)
-            Await installer.InstallAsync(first, fixture.Root, "combat-six", {}, Nothing, CancellationToken.None, repairExisting:=True)
+            Await installer.InstallAsync(first, fixture.Root, "april-blue", {}, Nothing, CancellationToken.None, repairExisting:=True)
             Check(File.ReadAllBytes(index6).SequenceEqual(bytes6) AndAlso File.ReadAllBytes(json6).SequenceEqual(jsonBytes6), "supplement repair restores its damaged private index without rewriting metadata", passed)
             Check(File.ReadAllBytes(originalIndex).SequenceEqual(originalBytes), "supplement repair cannot replace the ordinary index", passed)
 
@@ -140,7 +141,7 @@ Friend Module SupplementalAssetIndexChecks
         End Using
         Await LegacyAsync(root, passed)
         For Each badName In {"../index", "CON", New String("x"c, 101)}
-            Using fixture As New InstallationChecks.InstallFixture(root, "supplement-invalid-index-" & passed.Count, "1.16_combat-6")
+            Using fixture As New InstallationChecks.InstallFixture(root, "supplement-invalid-index-" & passed.Count, "2.0_blue")
                 Dim meta = Serve(fixture, Entry("6"), fixture.Server.Files("/index"))
                 meta("assetIndex")("id") = badName
                 fixture.Server.Files("/version") = Encoding.UTF8.GetBytes(meta.ToString())
@@ -157,7 +158,7 @@ Friend Module SupplementalAssetIndexChecks
     End Function
 
     Private Async Function LegacyAsync(root As String, passed As List(Of String)) As Task
-        Using fixture As New InstallationChecks.InstallFixture(root, "supplement-legacy-index", "1.16_combat-6")
+        Using fixture As New InstallationChecks.InstallFixture(root, "supplement-legacy-index", "2.0_blue")
             Dim original = fixture.Server.Files("/index")
             Serve(fixture, Entry("6"), original)
             fixture.Entry.Sha1 = Hash(fixture.Server.Files("/version"))

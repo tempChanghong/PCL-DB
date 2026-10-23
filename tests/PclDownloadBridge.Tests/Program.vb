@@ -493,11 +493,12 @@ Module Program
     End Function
 
     Private Async Function LiveAsync(args As String()) As Task
-        If args.Length < 3 Then Throw New ArgumentException("--live version absolute-output-root [--repair]")
+        If args.Length < 3 Then Throw New ArgumentException("--live version absolute-output-root [--repair] [--supplemental]")
         Dim policy As New SourcePolicy With {.Preference = If(args.Contains("--official"), SourcePreference.OfficialFirst, SourcePreference.Automatic)}
         Dim installer As New MinecraftInstaller(policy)
         Using timeout As New CancellationTokenSource(TimeSpan.FromMinutes(15))
             Dim versions = Await installer.VersionsAsync(timeout.Token)
+            If args.Contains("--supplemental") Then versions = SupplementalVersions.Merge(versions, Await SupplementalVersions.LoadAsync(policy, timeout.Token))
             Dim entry = versions.Single(Function(v) v.Id = args(1))
             Dim components As New ComponentSelection
             Dim catalog As New ComponentCatalog(policy)

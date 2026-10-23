@@ -5,13 +5,13 @@ Imports Newtonsoft.Json.Linq
 Imports PclDownloadBridge.Core
 
 Friend Module SupplementalVersionChecks
-    Private Const CombatId As String = "1_16_combat-6"
-    Private Const ExperimentId As String = "1.18_experimental-snapshot-7"
+    Private Const BlueId As String = "2point0_blue"
+    Private Const RedId As String = "2point0_red"
 
-    Private Function EntryJson(Optional id As String = CombatId) As JObject
-        Dim canonical = If(id.StartsWith("1_", StringComparison.Ordinal), "1." & id.Substring(2), id)
-        Dim slug = canonical.Replace("."c, "_"c)
-        Return New JObject From {{"id", id}, {"type", "pending"}, {"url", "https://zkitefly.github.io/unlisted-versions-of-minecraft/files/" & slug & "/" & slug & ".json"}, {"releaseTime", "2021-04-01T12:00:00Z"}}
+    Private Function EntryJson(Optional id As String = BlueId) As JObject
+        Dim canonical = id.Replace("2point0_", "2.0_")
+        Dim slug = canonical.Replace("2.0_", "2point0_")
+        Return New JObject From {{"id", id}, {"type", "snapshot"}, {"url", "https://zkitefly.github.io/unlisted-versions-of-minecraft/files/" & slug & "/" & slug & ".json"}, {"releaseTime", "2021-04-01T12:00:00Z"}}
     End Function
 
     Private Function Manifest(ParamArray entries As JObject()) As JObject
@@ -30,12 +30,14 @@ Friend Module SupplementalVersionChecks
             _server = server : AllowLoopback = True
         End Sub
         Protected Overrides Function MetadataUrl(source As String) As String
+            If source = SupplementalVersions.LibraryReferenceUrl Then Return _server & "/legacy-reference"
             If source = SupplementalVersions.ManifestUrl Then Return _server & "/supplement"
             If source.Contains("/mc/game/version_manifest_v2.json") Then Return _server & "/normal"
             If source.Contains("/unlisted-versions-of-minecraft/files/") Then Return _server & "/version"
             Return source
         End Function
         Public Overrides Function Candidates(url As String, category As String) As List(Of String)
+            If url = SupplementalVersions.LibraryReferenceUrl Then Return New List(Of String) From {_server & "/legacy-reference"}
             Return MyBase.Candidates(url, category).Select(Function(source) MetadataUrl(source)).Distinct().ToList()
         End Function
     End Class
@@ -46,25 +48,30 @@ Friend Module SupplementalVersionChecks
         Await ResponseRecoveryAsync(passed)
         Await OptionalSourceAsync(passed)
         Await InstallationAsync(root, passed)
+        Await LibraryCompletionAsync(root, passed)
         passed.AddRange(Await SupplementalAssetIndexChecks.RunAsync(root))
         Return passed
     End Function
 
     Private Sub ParseChecks(passed As List(Of String))
-        Dim source = Manifest(EntryJson(), EntryJson(ExperimentId), EntryJson("1.19_deep_dark_experimental_snapshot-1"))
+        Dim source = Manifest(EntryJson(), EntryJson(RedId), EntryJson("2point0_purple"))
         Dim before = source.ToString()
         Dim parsed = SupplementalVersions.Parse(source)
-        Check(parsed.Count = 3 AndAlso parsed(0).Id = "1.16_combat-6" AndAlso parsed(0).SupplementalId = CombatId, "supplement aliases retain the catalogue identity and use the verified metadata ID", passed)
+        Check(parsed.Count = 3 AndAlso parsed(0).Id = "2.0_blue" AndAlso parsed(0).SupplementalId = BlueId, "supplement aliases retain the catalogue identity and use the verified metadata ID", passed)
         Check(parsed.All(Function(entry) entry.IsSupplemental AndAlso entry.Sha1 Is Nothing), "supplement metadata without a published digest does not invent a SHA-1", passed)
-        Check(parsed(0).Subtitle.Contains("战斗测试版") AndAlso parsed(1).Subtitle.Contains("实验快照") AndAlso parsed.All(Function(entry) entry.Subtitle.Contains("UVMC")), "supplement summaries describe category and public provenance", passed)
+        Check(parsed.All(Function(entry) entry.Subtitle.Contains("愚人节版") AndAlso entry.Subtitle.Contains("UVMC")), "supplement summaries describe category and public provenance", passed)
         Check(source.ToString() = before, "supplement parsing leaves upstream JSON unchanged", passed)
+        For Each color In {"blue", "red", "purple"}
+            Dim entries = SupplementalVersions.Parse(Manifest(EntryJson("2point0_" & color), EntryJson("2.0_" & color)))
+            Check(entries.Count = 1 AndAlso entries(0).Id = "2.0_" & color, "supplement explicit 2.0 color alias " & color, passed)
+        Next
         For Each suffix In {"16_combat-0", "16_combat-1", "16_combat-2", "16_combat-3", "16_combat-4", "16_combat-5", "16_combat-6", "15_combat-1", "15_combat-6", "14_combat-0", "14_combat-3", "14_combat-212796"}
-            Dim entries = SupplementalVersions.Parse(Manifest(EntryJson("1_" & suffix), EntryJson("1." & suffix)))
-            Check(entries.Count = 1 AndAlso entries(0).Id = "1." & suffix, "supplement explicit combat alias " & suffix, passed)
+            Check(SupplementalVersions.Parse(Manifest(EntryJson("1_" & suffix), EntryJson("1." & suffix))).Count = 0, "removed combat versions stay outside the supplemental catalogue: " & suffix, passed)
         Next
         For number = 1 To 7
-            Check(SupplementalVersions.Parse(Manifest(EntryJson("1.18_experimental-snapshot-" & number))).Count = 1, "supplement experimental snapshot " & number, passed)
+            Check(SupplementalVersions.Parse(Manifest(EntryJson("1.18_experimental-snapshot-" & number))).Count = 0, "removed experimental snapshot " & number, passed)
         Next
+        Check(SupplementalVersions.Parse(Manifest(EntryJson("1.19_deep_dark_experimental_snapshot-1"), EntryJson("rd-132211"))).Count = 0, "removed deep dark snapshot and official rd version are not synthesized as supplemental entries", passed)
         Dim mutations As New Dictionary(Of String, Action(Of JObject)) From {
             {"unknown alias", Sub(item) item("id") = "1_99_combat-6"},
             {"history out of scope", Sub(item) item("id") = "c0.0.12a_03"},
@@ -72,7 +79,7 @@ Friend Module SupplementalVersionChecks
             {"official release type", Sub(item) item("type") = "release"},
             {"insecure metadata URL", Sub(item) item("url") = CStr(item("url")).Replace("https:", "http:")},
             {"foreign metadata host", Sub(item) item("url") = "https://example.org/version.json"},
-            {"cross-version metadata URL", Sub(item) item("url") = EntryJson(ExperimentId)("url")},
+            {"cross-version metadata URL", Sub(item) item("url") = EntryJson(RedId)("url")},
             {"malformed metadata digest", Sub(item) item("sha1") = "incorrect"},
             {"explicit null digest", Sub(item) item("sha1") = JValue.CreateNull()},
             {"numeric metadata digest", Sub(item) item("sha1") = 123},
@@ -80,18 +87,18 @@ Friend Module SupplementalVersionChecks
             {"object release date", Sub(item) item("releaseTime") = New JObject()}}
         For Each mutation In mutations
             Dim bad = EntryJson() : mutation.Value.Invoke(bad)
-            Dim entries = SupplementalVersions.Parse(Manifest(bad, EntryJson(ExperimentId)))
-            Check(entries.Count = 1 AndAlso entries(0).Id = ExperimentId, "supplement rejects " & mutation.Key & " without discarding a valid neighbor", passed)
+            Dim entries = SupplementalVersions.Parse(Manifest(bad, EntryJson(RedId)))
+            Check(entries.Count = 1 AndAlso entries(0).Id = "2.0_red", "supplement rejects " & mutation.Key & " without discarding a valid neighbor", passed)
         Next
         Dim withHash = EntryJson() : withHash("sha1") = New String("A"c, 40)
         Check(SupplementalVersions.Parse(Manifest(withHash)).Single().Sha1 = New String("A"c, 40), "supplement preserves an upstream metadata checksum when supplied", passed)
-        Dim conflict = EntryJson("1.16_combat-6") : conflict("sha1") = New String("b"c, 40)
-        Check(SupplementalVersions.Parse(Manifest(EntryJson(), conflict, EntryJson(ExperimentId))).Single().Id = ExperimentId, "supplement conflicting aliases cannot pick a checksum by list order", passed)
+        Dim conflict = EntryJson("2.0_blue") : conflict("sha1") = New String("b"c, 40)
+        Check(SupplementalVersions.Parse(Manifest(EntryJson(), conflict, EntryJson(RedId))).Single().Id = "2.0_red", "supplement conflicting aliases cannot pick a checksum by list order", passed)
         Check(SupplementalVersions.Parse(Manifest(conflict, EntryJson())).Count = 0, "supplement conflict rejection is order independent", passed)
-        For Each officialId In {"1.16_combat-6", CombatId, "1.16_COMBAT-6", "1_16_COMBAT-6"}
+        For Each officialId In {"2.0_blue", BlueId, "2.0_BLUE", "2point0_BLUE"}
             Dim official As New VersionEntry With {.Id = officialId, .Sha1 = New String("c"c, 40), .Kind = "snapshot"}
             Dim merged = SupplementalVersions.Merge({official}, parsed)
-            Check(merged.Count = 3 AndAlso merged(0) Is official AndAlso merged.Where(Function(entry) entry.Id.IndexOf("combat", StringComparison.OrdinalIgnoreCase) >= 0).Count() = 1, "official declaration wins supplemental alias collision " & officialId, passed)
+            Check(merged.Count = 3 AndAlso merged(0) Is official AndAlso merged.Where(Function(entry) entry.Id.EndsWith("_blue", StringComparison.OrdinalIgnoreCase)).Count() = 1, "official declaration wins supplemental alias collision " & officialId, passed)
         Next
         Check(SupplementalVersions.Merge(parsed, parsed).Count = parsed.Count, "supplement repeated merge is idempotent", passed)
     End Sub
@@ -107,7 +114,7 @@ Friend Module SupplementalVersionChecks
                 Check(failed.Count = 0, "supplement unsupported response charset is isolated " & preference.ToString(), passed)
                 server.ContentTypes("/supplement") = "application/json; charset=utf-8"
                 Dim recovered = Await SupplementalVersions.LoadAsync(policy, CancellationToken.None)
-                Check(recovered.Count = 1 AndAlso recovered(0).Id = "1.16_combat-6", "supplement a valid refresh recovers after a response decoding failure " & preference.ToString(), passed)
+                Check(recovered.Count = 1 AndAlso recovered(0).Id = "2.0_blue", "supplement a valid refresh recovers after a response decoding failure " & preference.ToString(), passed)
             Next
             server.Files("/supplement") = Encoding.Unicode.GetBytes(body)
             server.ContentTypes("/supplement") = "application/json; charset=utf-16"
@@ -185,11 +192,11 @@ Friend Module SupplementalVersionChecks
             Dim result = Await New MinecraftInstaller(policy).InstallAsync(fixture.Entry, fixture.Root, "normal", {}, Nothing, CancellationToken.None)
             Check(extra.Count = 0 AndAlso File.Exists(Path.Combine(result.InstancePath, "normal.jar")), "normal install succeeds after a supplemental HTTP failure", passed)
         End Using
-        For Each rawId In {CombatId, ExperimentId}
+        For Each rawId In {BlueId, RedId}
             Dim entry = SupplementalVersions.Parse(Manifest(EntryJson(rawId))).Single()
             Using fixture As New InstallationChecks.InstallFixture(root, "supplement-" & rawId, entry.Id)
                 Dim metadata = JObject.Parse(Encoding.UTF8.GetString(fixture.Server.Files("/version")))
-                metadata("type") = "pending"
+                metadata("type") = "snapshot"
                 fixture.Server.Files("/version") = Encoding.UTF8.GetBytes(metadata.ToString())
                 Dim installer As New MinecraftInstaller(New FixturePolicy(fixture.Server.Url))
                 Dim result = Await installer.InstallAsync(entry, fixture.Root, "alias-install", {}, Nothing, CancellationToken.None)
@@ -209,8 +216,8 @@ Friend Module SupplementalVersionChecks
             End Using
         Next
         Dim mutations As New Dictionary(Of String, Action(Of JObject)) From {
-            {"unrelated metadata ID", Sub(meta) meta("id") = "1.16_combat-5"},
-            {"unmapped underscore metadata ID", Sub(meta) meta("id") = CombatId},
+            {"unrelated metadata ID", Sub(meta) meta("id") = "2.0_red"},
+            {"unmapped underscore metadata ID", Sub(meta) meta("id") = BlueId},
             {"inherited metadata", Sub(meta) meta("inheritsFrom") = "1.16"},
             {"missing main class", Sub(meta) meta.Remove("mainClass")},
             {"wrong libraries shape", Sub(meta) meta("libraries") = New JObject()},
@@ -220,9 +227,9 @@ Friend Module SupplementalVersionChecks
             {"release masquerade", Sub(meta) meta("type") = "release"},
             {"redirected client jar", Sub(meta) meta("jar") = "other"}}
         For Each mutation In mutations
-            Using fixture As New InstallationChecks.InstallFixture(root, "supplement-reject-" & passed.Count, "1.16_combat-6")
+            Using fixture As New InstallationChecks.InstallFixture(root, "supplement-reject-" & passed.Count, "2.0_blue")
                 Dim meta = JObject.Parse(Encoding.UTF8.GetString(fixture.Server.Files("/version")))
-                meta("type") = "pending" : mutation.Value.Invoke(meta)
+                meta("type") = "snapshot" : mutation.Value.Invoke(meta)
                 fixture.Server.Files("/version") = Encoding.UTF8.GetBytes(meta.ToString())
                 Dim rejected = False
                 Try
@@ -233,8 +240,8 @@ Friend Module SupplementalVersionChecks
                 Check(rejected AndAlso fixture.NonVersionRequests() = 0 AndAlso Not Directory.Exists(Path.Combine(fixture.Root, "versions", "invalid")), "supplement rejects " & mutation.Key & " before content downloads", passed)
             End Using
         Next
-        Using fixture As New InstallationChecks.InstallFixture(root, "supplement-digests", "1.16_combat-6")
-            Dim meta = JObject.Parse(Encoding.UTF8.GetString(fixture.Server.Files("/version"))) : meta("type") = "pending"
+        Using fixture As New InstallationChecks.InstallFixture(root, "supplement-digests", "2.0_blue")
+            Dim meta = JObject.Parse(Encoding.UTF8.GetString(fixture.Server.Files("/version"))) : meta("type") = "snapshot"
             fixture.Server.Files("/version") = Encoding.UTF8.GetBytes(meta.ToString())
             Dim entry = SupplementalVersions.Parse(Manifest(EntryJson())).Single()
             Dim installer As New MinecraftInstaller(New FixturePolicy(fixture.Server.Url))
@@ -260,15 +267,78 @@ Friend Module SupplementalVersionChecks
         End Using
     End Function
 
+    Private Async Function LibraryCompletionAsync(root As String, passed As List(Of String)) As Task
+        Dim bytes As Byte()
+        Using input = Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("SupplementalLibraryReference.json"), output As New MemoryStream()
+            input.CopyTo(output) : bytes = output.ToArray()
+        End Using
+        Dim reference = JObject.Parse(Encoding.UTF8.GetString(bytes))
+        Using fixture As New InstallationChecks.InstallFixture(root, "supplement-legacy-library-reference", "2.0_blue")
+            fixture.Server.Files("/legacy-reference") = bytes
+            Dim metadata = JObject.Parse(Encoding.UTF8.GetString(fixture.Server.Files("/version")))
+            metadata("type") = "snapshot" : metadata("libraries") = reference("libraries").DeepClone()
+            For Each library In DirectCast(metadata("libraries"), JArray).OfType(Of JObject)()
+                library.Remove("downloads")
+            Next
+            Dim original = metadata.ToString(), entry = SupplementalVersions.Parse(Manifest(EntryJson())).Single()
+            Dim policy As New FixturePolicy(fixture.Server.Url)
+            Dim completed = Await SupplementalVersions.PrepareLibrariesAsync(entry, metadata, policy, CancellationToken.None)
+            Check(metadata.ToString() = original AndAlso JToken.DeepEquals(completed("downloads"), metadata("downloads")) AndAlso JToken.DeepEquals(completed("assetIndex"), metadata("assetIndex")), "2.0 library enrichment preserves source JSON client and asset index", passed)
+            Check(DirectCast(completed("libraries"), JArray).All(Function(library) library("downloads") IsNot Nothing), "2.0 legacy Maven rules and natives receive official reference download declarations", passed)
+            SupplementalVersions.ValidatePlan(MinecraftInstaller.BuildBasePlan(completed, "legacy"))
+            Check(True, "2.0 completed Windows library plan retains mandatory SHA-1 and sizes", passed)
+            For Each mutation In New Action(Of JObject)() {
+                Sub(meta) meta("libraries")(0)("name") = "net.minecraft:launchwrapper:999",
+                Sub(meta) meta("libraries")(0)("url") = "https://example.org/",
+                Sub(meta) meta("libraries")(0)("rules") = New JArray(),
+                Sub(meta) meta("libraries")(7)("natives")("windows") = "unexpected"}
+                Dim bad = DirectCast(metadata.DeepClone(), JObject), rejected = False
+                mutation(bad)
+                Try
+                    Await SupplementalVersions.PrepareLibrariesAsync(entry, bad, policy, CancellationToken.None)
+                Catch ex As InvalidDataException
+                    rejected = True
+                End Try
+                Check(rejected, "2.0 library reference cannot overwrite a changed Maven repository rule or native declaration: " & passed.Count, passed)
+            Next
+            Dim corrupt = DirectCast(bytes.Clone(), Byte()) : corrupt(corrupt.Length - 1) = corrupt(corrupt.Length - 1) Xor CByte(1)
+            fixture.Server.Files("/legacy-reference") = corrupt
+            Dim failed = False
+            Try
+                Await SupplementalVersions.PrepareLibrariesAsync(entry, metadata, policy, CancellationToken.None)
+            Catch ex As AggregateException
+                failed = True
+            End Try
+            Check(failed, "2.0 rejects a changed official library reference through its pinned SHA-1", passed)
+            fixture.Server.Files("/legacy-reference") = bytes
+            Dim recovered = Await SupplementalVersions.PrepareLibrariesAsync(entry, metadata, policy, CancellationToken.None)
+            Check(JToken.DeepEquals(completed, recovered), "2.0 library reference can retry after checksum failure", passed)
+            Using cancel As New CancellationTokenSource()
+                cancel.Cancel() : failed = False
+                Try
+                    Await SupplementalVersions.PrepareLibrariesAsync(entry, metadata, policy, cancel.Token)
+                Catch ex As OperationCanceledException
+                    failed = True
+                End Try
+                Check(failed, "2.0 library reference respects installer cancellation", passed)
+            End Using
+        End Using
+    End Function
+
     Friend Async Function LiveAsync(directory As String) As Task
         IO.Directory.CreateDirectory(directory)
         Dim policy As New SourcePolicy()
         Dim entries = Await SupplementalVersions.LoadAsync(policy, CancellationToken.None)
-        If entries.Count <> 20 Then Throw New InvalidDataException("Live UVMC catalogue changed or is unavailable: " & entries.Count)
+        If entries.Count <> 3 Then Throw New InvalidDataException("Live UVMC catalogue changed or is unavailable: " & entries.Count)
         Dim records As New JArray()
+        Dim ordinary = Await New MinecraftInstaller(policy).VersionsAsync(CancellationToken.None)
+        Dim rd = ordinary.Single(Function(entry) entry.Id = "rd-132211")
+        If rd.IsSupplemental OrElse rd.Kind <> "old_alpha" Then Throw New InvalidDataException("Official rd-132211 identity changed.")
+        records.Add(New JObject From {{"id", rd.Id}, {"source", "official"}, {"type", rd.Kind}})
         For Each entry In entries
             Dim meta = Await policy.GetJsonAsync(entry.Url, CancellationToken.None, entry.Sha1)
             SupplementalVersions.ValidateMetadata(entry, meta)
+            meta = Await SupplementalVersions.PrepareLibrariesAsync(entry, meta, policy, CancellationToken.None)
             Dim plan = MinecraftInstaller.BuildBasePlan(meta, "smoke")
             SupplementalVersions.ValidatePlan(plan)
             Dim index = DirectCast(meta("assetIndex"), JObject)

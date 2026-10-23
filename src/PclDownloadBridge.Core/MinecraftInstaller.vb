@@ -58,6 +58,7 @@ Public Class MinecraftInstaller
             Report(progress, "准备安装", "读取并校验版本元数据")
             Dim metadata = Await _policy.GetJsonAsync(entry.Url, token, entry.Sha1).ConfigureAwait(False)
             SupplementalVersions.ValidateMetadata(entry, metadata)
+            If entry.IsSupplemental Then metadata = Await SupplementalVersions.PrepareLibrariesAsync(entry, metadata, _policy, token).ConfigureAwait(False)
             metadata = PreparePclLibraryPaths(metadata)
             Report(progress, "准备安装", "检查组件安装所需的 Java 环境")
             InstallPreflight.VerifyJava(components, metadata)

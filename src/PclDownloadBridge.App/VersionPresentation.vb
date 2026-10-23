@@ -23,16 +23,25 @@ Friend NotInheritable Class VersionPresentation
         Kind = value.Kind
         DisplayId = value.Id
         If value.IsSupplemental Then
-            Kind = "snapshot"
-            Lore = "[补充版本 · UVMC] " & SupplementalVersions.Label(value) & " · " & value.Released.ToString("yyyy/MM/dd HH:mm")
+            Kind = "special"
+            DisplayId = SupplementalVersions.DisplayName(value)
+            Lore = "[补充版本 · UVMC] " & AprilFoolsLore(value.Id)
             Return
         End If
         If Kind <> "snapshot" Then Return
         Dim id = value.Id.ToLowerInvariant()
         If id.StartsWith("1.", StringComparison.Ordinal) AndAlso Not {"combat", "rc", "experimental", "pre"}.Any(Function(marker) id.Contains(marker)) Then Kind = "release"
+        If id = "20w14infinite" OrElse id = "20w14∞" Then DisplayId = "20w14∞"
+        Lore = AprilFoolsLore(id)
+        Dim releaseDate = value.Released.ToOffset(TimeSpan.FromHours(2))
+        If Lore IsNot Nothing OrElse (releaseDate.Month = 4 AndAlso releaseDate.Day = 1) Then Kind = "special"
+    End Sub
+
+    Private Shared Function AprilFoolsLore(id As String) As String
+        Dim Lore As String = Nothing
+        If id.StartsWith("2.0", StringComparison.Ordinal) Then id = "2.0"
         Select Case id
             Case "20w14infinite", "20w14∞"
-                DisplayId = "20w14∞"
                 Lore = "2020 | 我们加入了 20 亿个新的维度，让无限的想象变成了现实！"
             Case "3d shareware v1.34"
                 Lore = "2019 | 我们从地下室的废墟里找到了这个开发于 1994 年的杰作！"
@@ -53,13 +62,12 @@ Friend NotInheritable Class VersionPresentation
             Case "26w14a"
                 Lore = "2026 | 为什么需要物品栏？让方块们跟着你走吧！"
         End Select
-        Dim releaseDate = value.Released.ToOffset(TimeSpan.FromHours(2))
-        If Lore IsNot Nothing OrElse (releaseDate.Month = 4 AndAlso releaseDate.Day = 1) Then Kind = "special"
-    End Sub
+        Return Lore
+    End Function
 
     Public ReadOnly Property Category As String
         Get
-            If Entry.IsSupplemental Then Return SupplementalVersions.Label(Entry)
+            If Entry.IsSupplemental Then Return "特供版本"
             Select Case Kind
                 Case "release" : Return "正式版"
                 Case "snapshot" : Return "预览版"

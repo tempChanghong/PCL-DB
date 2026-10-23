@@ -1,5 +1,12 @@
 # PCL2 代码依据
 
+## 特供版本范围调整：2.0 与官方 rd 版本
+
+- 再读固定 PCL `5ef81e4` 的 `ModDownload.DlClientListBmclapiMain`：上游合并 `Cache/download.json`；本机该缓存当前为空数组。`ModDownloadLib.McDownloadListItem` 根据来源地址添加特供提示；`ModMinecraft.GetMcFoolName` 使用 `2.0` 前缀识别 2013 愚人节描述。当前卡片延用 PCL 折叠、按需创建行及普通列表先显示的机制，来源明确标记 UVMC，未伪造 PCL 的私有缓存内容。
+- 2026-10-23 实读 Mojang `version_manifest_v2.json`，`rd-132211` 已有官方 `old_alpha` 条目及版本 JSON 摘要；它保留在远古版，不合成重复补充条目。UVMC 的 `2point0_blue/red/purple` 对应实际元数据 `2.0_blue/red/purple`。当前补充允许表仅保留这三个显式映射；下方 20 个战斗/实验条目的记录为先前阶段，现已替换。
+- 三个 2.0 JSON 的旧 Maven 声明均缺少下载记录。逐项对照 [Mojang 1.5.1 元数据](https://piston-meta.mojang.com/v1/packages/3c514114d9c2a3ea78f72c4f9fb4eeb56747135a/1.5.1.json)，以 URL 中对应的 `3c514114d9c2a3ea78f72c4f9fb4eeb56747135a` 校验原始字节，再按去除 downloads 后的完整库声明匹配，补齐官方 artifact/classifiers 信息。它是本项目为保持文件校验而做的适配，未复制其他版本的客户端或启动参数，匹配不到或存在矛盾时停止。
+- 测试资源 `Resources/SupplementalLibraryReference.json` 保留上述官方 JSON 原始字节；仅嵌入测试程序集，生产按选源策略请求该固定地址并验证 SHA-1。控制测试覆盖坐标、仓库、平台规则、本机库声明的变更、参考清单损坏及取消重试。
+
 ## Beta 2.0 后续：CurseForge 目录接口与空值
 
 - 再读固定 `Meloong-Git/PCL@5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `Modules/Minecraft/ModDownload.vb`：`DlModRequest` 通过 `DlSourceModGet` 在 Core API 与 MCIM 之间选源，`Resource/ResourceVersion.vb` 的 `FromProjectId` 消费该格式并检查列表完整性。PCL-DB 保留现有分页、取消和身份校验，移除目录请求中错误混入的网页 API 通道。

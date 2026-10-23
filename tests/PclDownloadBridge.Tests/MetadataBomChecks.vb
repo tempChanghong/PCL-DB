@@ -100,14 +100,14 @@ Friend Module MetadataBomChecks
     End Function
 
     Private Async Function InstallAsync(root As String, supplemental As Boolean, passed As List(Of String)) As Task
-        Using fixture As New InstallationChecks.InstallFixture(root, "metadata-bom-" & supplemental.ToString(), If(supplemental, "1.16_combat-6", "1.20.1"))
+        Using fixture As New InstallationChecks.InstallFixture(root, "metadata-bom-" & supplemental.ToString(), If(supplemental, "2.0_blue", "1.20.1"))
             Dim index = Encoding.UTF8.GetPreamble().Concat(fixture.Server.Files("/index")).ToArray()
             Dim meta = JObject.Parse(Encoding.UTF8.GetString(fixture.Server.Files("/version")))
             meta("assetIndex")("sha1") = Hash(index) : meta("assetIndex")("size") = index.Length
             If supplemental Then
-                meta("type") = "pending"
-                fixture.Entry.SupplementalId = "1_16_combat-6"
-                fixture.Entry.Url = "https://zkitefly.github.io/unlisted-versions-of-minecraft/files/1_16_combat-6/1_16_combat-6.json"
+                meta("type") = "snapshot"
+                fixture.Entry.SupplementalId = "2point0_blue"
+                fixture.Entry.Url = "https://zkitefly.github.io/unlisted-versions-of-minecraft/files/2point0_blue/2point0_blue.json"
             End If
             fixture.Server.Files(New Uri(fixture.Entry.Url).AbsolutePath) = Bom(meta.ToString())
             fixture.Entry.Sha1 = Hash(Bom(meta.ToString()))

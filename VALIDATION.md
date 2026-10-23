@@ -2,6 +2,13 @@
 
 日期：2026-10-23（北京时间）。当前发行版本为 PCL-DB Beta 2.0（`2.0.0-beta.1`）；下方保留各开发阶段的验证记录，其中的“未打包/未发布”描述对应当时的检查范围。
 
+## Beta 2.0 后续：替换特供版本范围（尚未发行）
+
+- 基线 `11e25f4f98f4139168cc7b0f35fa44c0781b7798`。对照固定 PCL 的 `DlClientListBmclapiMain`、`McDownloadListItem` 与 `GetMcFoolName`，移除原补充清单的 12 个战斗版及 8 个实验快照，改为 UVMC 的 2.0 蓝、红、紫三色版。显式映射 `2point0_{color}` → `2.0_{color}`，界面使用中文颜色、金块图标及 PCL 的 2013 愚人节描述，保持原始版本身份用于安装。`rd-132211` 已在真实官方清单中，仍归远古版；普通愚人节版本和已安装目录保留。
+- 三色元数据缺少旧支持库的 downloads。用固定 SHA-1 `3c514114d9c2a3ea78f72c4f9fb4eeb56747135a` 核验 Mojang 1.5.1 原始 JSON，仅对完整库声明匹配的条目填入下载信息；客户端、参数和资源索引不替换。覆盖别名冲突、旧范围排除、参考库坐标/规则/仓库/本机库冲突、坏摘要、取消重试、独立资源索引和补全。补充版本套件 **125 项**通过。
+- Release 零警告/零错误；全量核心 **2235 项**、界面 **762 项**、动画 **538 项**、搜索 **171 项**通过，统一验收契约 **95 项**及验证进程 **19 项**通过，固定 PCL 源码/资源核对通过。先前 BOM 样本的战斗版 ID 和界面样本的原始 ID 文案断言已同步到新范围；实际身份仍核对 canonical ID，界面核对显示名称。最终证据为 `artifacts/special-versions-replacement/` 中的 `full-core.stdout.log`、`all.json`、`motion.json`、`pack-search.json` 与 `supplemental-workflow.json`。
+- 联机元数据：三个 2.0 变体均完成原始 ID、完整 Windows 支持库计划及有摘要的资源索引检查，各有 1211 个资源计划条目。实际隔离安装目录为 `artifacts/special-versions-replacement/live-install/.minecraft`；2.0 蓝/红/紫各安装成功（1224 个文件），官方 `rd-132211` 安装成功（1230 个文件），随后蓝色版补全成功且网络字节为 0。客户端 SHA-1 均与原声明一致，三色版使用 `pcldb-4759bad2824e419da9db32861fcdc3a274336532` 索引，官方 rd 保留 `pre-1.6`，可在同一测试根目录共存。未执行实际游戏启动，未打包或更新 GitHub 发行附件。
+
 ## Beta 2.0 后续：CurseForge 版本列表修复（尚未发行）
 
 - 基线 `1aa10d622485e97bd78cacfda6835c3dd0782cde`。用同一 net48 Core 实际复现 ATM10 / Prominence II 打开版本列表失败：网站 `/api/v1/mods/{id}/files` 虽返回 HTTP 200，但使用 `projectId/dateCreated/status` 且缺少 Core API 的 `modId/fileDate/downloadUrl/hashes`；先前请求层提前接受该响应，解析异常后未进入 MCIM。仅修正通道后，又复现 MCIM 的 `isEarlyAccessContent:null` 被直接转为布尔值而失败。

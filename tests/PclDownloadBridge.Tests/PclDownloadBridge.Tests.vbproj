@@ -2,5 +2,6 @@
   <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net48</TargetFramework><RootNamespace>PclDownloadBridge.Tests</RootNamespace><OptionStrict>On</OptionStrict><ApplicationManifest>../../src/PclDownloadBridge.App/app.manifest</ApplicationManifest></PropertyGroup>
   <ItemGroup><ProjectReference Include="../../src/PclDownloadBridge.Core/PclDownloadBridge.Core.vbproj" /></ItemGroup>
   <ItemGroup><Reference Include="System.Net.Http" /></ItemGroup>
+  <ItemGroup><EmbeddedResource Include="Resources/SupplementalLibraryReference.json" LogicalName="SupplementalLibraryReference.json" /></ItemGroup>
   <ItemGroup><Reference Include="System.IO.Compression"/><Reference Include="System.IO.Compression.FileSystem"/><EmbeddedResource Include="Resources/FixtureProcessor.class" LogicalName="FixtureProcessor.class"/></ItemGroup>
 </Project>
