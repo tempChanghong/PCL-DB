@@ -19,6 +19,7 @@ Friend Module SupplementalVersionChecks
         Dim slug = canonical.Replace("2.0_", "2point0_")
         If id = "b1.9-pre6" Then slug = "b1_9-pre6"
         If id = "13w12~" Then slug = "13w12-"
+        If id = "1.2" Then slug = "1_2"
         Return New JObject From {{"id", id}, {"type", HistoryKind(id)}, {"url", "https://zkitefly.github.io/unlisted-versions-of-minecraft/files/" & slug & "/" & slug & ".json"}, {"releaseTime", "2021-04-01T12:00:00Z"}}
     End Function
 
@@ -70,8 +71,8 @@ Friend Module SupplementalVersionChecks
             Dim profile = JObject.Parse(Encoding.UTF8.GetString(SupplementalInstallFixture.Resource(name)))
             If CStr(profile("type")) = "snapshot" AndAlso Not CStr(profile("id")).StartsWith("2.0_", StringComparison.Ordinal) Then archivedSnapshots.Add(CStr(profile("id")))
         Next
-        Check(New HashSet(Of String)(archivedSnapshots, StringComparer.Ordinal).SetEquals(SupplementalVersions.HistoricalSnapshotIds) AndAlso archivedSnapshots.Count = 47,
-            "all forty-seven archived snapshot identities match the single production registry", passed)
+        Check(New HashSet(Of String)(archivedSnapshots, StringComparer.Ordinal).SetEquals(SupplementalVersions.HistoricalSnapshotIds) AndAlso archivedSnapshots.Count = 58,
+            "all fifty-eight archived snapshot identities match the single production registry", passed)
         Dim immutable = False, firstSnapshot = SupplementalVersions.HistoricalSnapshotIds(0)
         Try
             DirectCast(SupplementalVersions.HistoricalSnapshotIds, IList(Of String))(0) = "unregistered"
@@ -99,7 +100,7 @@ Friend Module SupplementalVersionChecks
             Dim official As New VersionEntry With {.Id = id.ToUpperInvariant(), .Kind = HistoryKind(id)}
             Check(SupplementalVersions.Merge({official}, entries).Single() Is official, "official historical declaration wins case-insensitive collision: " & id, passed)
         Next
-        Check(SupplementalVersions.Parse(Manifest(EntryJson("13w12-"), EntryJson("b1_9-pre6"), EntryJson("in-20100223"), EntryJson("c0.30-1"))).Count = 0, "unverified URL slugs and deferred history stay outside the allowlist", passed)
+        Check(SupplementalVersions.Parse(Manifest(EntryJson("13w12-"), EntryJson("b1_9-pre6"), EntryJson("1_2"), EntryJson("in-20100223"), EntryJson("c0.30-1"))).Count = 0, "URL slugs are not version aliases and deferred history stays outside the allowlist", passed)
     End Sub
 
     Private Async Function HistoricalProfilesAsync(passed As List(Of String)) As Task

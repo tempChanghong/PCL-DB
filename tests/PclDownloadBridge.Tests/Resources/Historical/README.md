@@ -1,9 +1,10 @@
 # Historical metadata fixtures
 
 These are original archived UVMC profiles, including the three 2.0 colours and
-fifty-two historical profiles. They are metadata only; client JARs are not embedded.
+sixty-three historical profiles. They are metadata only; client JARs are not embedded.
 Canonical IDs use UVMC's separately mapped URL slugs for `b1.9-pre6`, `13w12~`
-and 2.0. Installation fixtures use synthetic client/index bytes and real small
+and 2.0; `1.2` uses the separately verified `1_2` URL slug. Installation fixtures
+use synthetic client/index bytes and real small
 Mojang wrapper files; they do not prove that a game starts.
 
 New raw profiles:
@@ -56,6 +57,17 @@ New raw profiles:
 - https://zkitefly.github.io/unlisted-versions-of-minecraft/files/12w24a/12w24a.json
 - https://zkitefly.github.io/unlisted-versions-of-minecraft/files/12w23a/12w23a.json
 - https://zkitefly.github.io/unlisted-versions-of-minecraft/files/12w23b/12w23b.json
+- https://zkitefly.github.io/unlisted-versions-of-minecraft/files/12w22a/12w22a.json
+- https://zkitefly.github.io/unlisted-versions-of-minecraft/files/12w21a/12w21a.json
+- https://zkitefly.github.io/unlisted-versions-of-minecraft/files/12w21b/12w21b.json
+- https://zkitefly.github.io/unlisted-versions-of-minecraft/files/12w19a/12w19a.json
+- https://zkitefly.github.io/unlisted-versions-of-minecraft/files/12w18a/12w18a.json
+- https://zkitefly.github.io/unlisted-versions-of-minecraft/files/12w17a/12w17a.json
+- https://zkitefly.github.io/unlisted-versions-of-minecraft/files/12w16a/12w16a.json
+- https://zkitefly.github.io/unlisted-versions-of-minecraft/files/1_2/1_2.json
+- https://zkitefly.github.io/unlisted-versions-of-minecraft/files/12w08a/12w08a.json
+- https://zkitefly.github.io/unlisted-versions-of-minecraft/files/12w07a/12w07a.json
+- https://zkitefly.github.io/unlisted-versions-of-minecraft/files/12w07b/12w07b.json
 
 `AlphaLibraryReference.json` preserves the original Mojang `inf-20100618`
 metadata bytes, SHA-1 `51a5c512af384d3d2a79a3efb93f7d4b9a1c6ec2`:

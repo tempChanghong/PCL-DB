@@ -26,6 +26,7 @@ Friend NotInheritable Class SupplementalInstallFixture
         Dim slug = id.Replace("2.0_", "2point0_")
         If id = "b1.9-pre6" Then slug = "b1_9-pre6"
         If id = "13w12~" Then slug = "13w12-"
+        If id = "1.2" Then slug = "1_2"
         Return New PclDownloadBridge.Core.VersionEntry With {.Id = id, .SupplementalId = If(id.StartsWith("2.0_", StringComparison.Ordinal), slug, id), .Kind = Kind(id),
             .Url = "https://zkitefly.github.io/unlisted-versions-of-minecraft/files/" & slug & "/" & slug & ".json"}
     End Function

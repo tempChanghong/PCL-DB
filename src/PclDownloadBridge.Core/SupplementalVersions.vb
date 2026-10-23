@@ -21,7 +21,8 @@ Public NotInheritable Class SupplementalVersions
         "13w09a", "13w07a", "13w11a", "13w06a", "13w05b", "13w05a", "13w04a", "13w03a", "13w02b", "13w02a",
         "13w01b", "13w01a", "12w50b", "12w50a", "12w49a", "12w42b", "12w42a", "12w41b", "12w41a", "12w40b",
         "12w40a", "12w39b", "12w39a", "12w38b", "12w38a", "12w37a", "12w36a", "12w34b", "12w34a", "12w32a",
-        "12w30a", "12w30b", "12w30c", "12w30d", "12w30e", "12w27a", "12w26a", "12w25a", "12w24a", "12w23a", "12w23b"})
+        "12w30a", "12w30b", "12w30c", "12w30d", "12w30e", "12w27a", "12w26a", "12w25a", "12w24a", "12w23a", "12w23b",
+        "12w22a", "12w21a", "12w21b", "12w19a", "12w18a", "12w17a", "12w16a", "1.2", "12w08a", "12w07a", "12w07b"})
     Private Shared ReadOnly Aliases As Dictionary(Of String, String) = CreateAliases()
 
     Public Shared ReadOnly Property HistoricalSnapshotIds As IReadOnlyList(Of String)
@@ -133,6 +134,7 @@ Public NotInheritable Class SupplementalVersions
         Dim slug = id.Replace("2.0_", "2point0_")
         If id = "b1.9-pre6" Then slug = "b1_9-pre6"
         If id = "13w12~" Then slug = "13w12-"
+        If id = "1.2" Then slug = "1_2"
         Return BaseUrl & slug & "/" & slug & ".json"
     End Function
 
