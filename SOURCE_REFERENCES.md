@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 搜索项目行的输入归属与独立背景动画
+
+- 重读固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MyResourceItem.xaml(.vb)`：Button_MouseLeave 在移出和松开时清除 IsMouseDown；RectBack 是 3 DIP 圆角、0.8 初始缩放的独立背景。RefreshColor 进入／按下使用 120ms 颜色和透明度、144ms 背景缩放，悬停 ColorBrushBg1、按下 ColorBrush6；离开 180ms 淡出并接近 0.996，之后 1ms 回到 0.8。重读 ModAnimation 的默认 Fluent 三次方曲线和 After 分组规则，本工具资源行不再共用 MyListItem 的整行 0.98 缩放及 541ms 离开尾段。
+- 新 `PclResourceHoverMotion` 保留当前合成起点、固定画刷、同状态去重和旧时钟所有权；沿用已有 ARGB 颜色适配器。鼠标移出取消按下；键盘记录精确 Space／Enter，不能由另一按键或鼠标松开完成。键盘焦点高亮、系统动画偏好、门控／隐藏／卸载／主题清理和关闭动画时的即时反馈是本工具的 WPF 适配，不声称上游已有同一键盘与策略实现。
+- 三份源码与摘要保存于忽略目录 `artifacts/resource-row-motion/source/`。已有 44 份固定快照不改；详见 `docs/reviews/resource-row-motion-2026-10-23.md`。
+
 ## 整合包版本筛选胶囊与颜色动画
 
 - 再次读取固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadCompDetail.xaml(.vb)` 和 `MyRadioButton.xaml(.vb)`：详情筛选使用 Highlight 单选按钮、27 DIP 高度、13.5 DIP 圆角、按钮边距 `2,0,2,0`、文字边距 `-2,0,10,0` 和筛选容器边距 `10,10,0,10`。选中为 ColorBrush3 背景／白字 120ms，按下 ColorBrush6 90ms，悬停 ColorBrush7／主题文字 90ms，离开半透明背景／主题文字 150ms；按下分支只改变背景，不重启文字过渡。

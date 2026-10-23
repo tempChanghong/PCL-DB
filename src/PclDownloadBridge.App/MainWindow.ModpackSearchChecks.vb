@@ -76,6 +76,25 @@ Partial Public Class MainWindow
         check(first.Height = 64 AndAlso first.Icon.Width = 50 AndAlso first.Icon.Height = 50, "project rows use PCL's 64px layout and 50px artwork")
         check(PackNextPage.IsEnabled AndAlso Not PackPreviousPage.IsEnabled, "paging enables only available directions")
         SaveControlVisual(host, Path.Combine(directory, "pack-search-results.png"))
+        FinishPackContentMotion()
+        Dim generationBeforeRow = _taskGeneration
+        ControlPointer(first, True) : PointerEvent(first, Mouse.MouseDownEvent) : ControlPointer(first, False) : ControlPointer(first, True) : PointerEvent(first, Mouse.MouseUpEvent)
+        check(_packMode = PackBrowserMode.Search AndAlso _packProject Is Nothing AndAlso _packDetailRequest Is Nothing AndAlso _taskGeneration = generationBeforeRow,
+            "canceling a real search-row pointer gesture cannot open details or change install ownership")
+        ControlKey(first, Key.Space, True) : PackSearchResultsHost.IsHitTestVisible = False
+        PackSearchResultsHost.IsHitTestVisible = True : ControlKey(first, Key.Space, False)
+        check(_packMode = PackBrowserMode.Search AndAlso _packProject Is Nothing AndAlso _packDetailRequest Is Nothing,
+            "restoring search-result input cannot activate a keyboard gesture canceled by the page gate")
+        first.MotionPolicy.EnabledForChecks = False : ControlPointer(first, True) : layout()
+        SaveControlVisual(host, Path.Combine(directory, "pack-search-resource-hover.png"))
+        Dim rowAppearance = _appearance.ToJson()
+        Try
+            RestoreAppearance(New JObject From {{"theme", "blue"}, {"darkMode", True}}) : layout()
+            SaveControlVisual(host, Path.Combine(directory, "pack-search-resource-hover-dark.png"))
+        Finally
+            RestoreAppearance(rowAppearance)
+        End Try
+        ControlPointer(first, False) : first.MotionPolicy.EnabledForChecks = Nothing
         Dim firstIdentity = project.Key
         Await LoadPackSearchPageAsync(1) : layout()
         check(PackPageLabel.Text = "2" AndAlso PackPreviousPage.IsEnabled AndAlso Not PackNextPage.IsEnabled, "next page uses independent source pagination and ends correctly")
@@ -240,7 +259,7 @@ Partial Public Class MainWindow
         PackDetailResultsHost.IsHitTestVisible = True : layout()
         SelectPackVersionFilter(DirectCast(PackVersionFilters.Children(0), PclRadioButton)) : layout()
         check(PackVersionCards.Children.Count = 11 AndAlso PackVersionCards.Children(0) Is targetCard, "the all filter restores every exact version while preserving the selected-version card")
-        Await Task.Delay(220) : layout() ' Capture the settled filter colors, not their 200ms transition.
+        Await Task.Delay(220) : layout() ' Capture settled colors after the 120/150ms capsule transitions.
         SaveControlVisual(host, Path.Combine(directory, "pack-search-version-families.png"))
         Dim filterAppearance = _appearance.ToJson()
         Try

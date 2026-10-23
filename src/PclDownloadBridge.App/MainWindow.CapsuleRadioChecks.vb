@@ -28,10 +28,9 @@ Partial Public Class MainWindow
                               End Sub
         Using source = PreviewSurface.Attach(host, 300, 90)
             layout() : SetSelectionHover(tab, True)
-            Dim timer = System.Diagnostics.Stopwatch.StartNew()
-            If Not PumpMotionUntil(Function() timer.ElapsedMilliseconds >= 210) Then Throw New InvalidOperationException("Capsule color did not settle.")
-            check(Not DirectCast(tab.Background, SolidColorBrush).HasAnimatedProperties AndAlso
-                Not DirectCast(tab.ShapeLogo.Fill, SolidColorBrush).HasAnimatedProperties AndAlso Not DirectCast(tab.LabText.Foreground, SolidColorBrush).HasAnimatedProperties,
+            ' Wait for actual WPF completion, not a wall-clock delay whose first
+            ' animation tick can arrive late after earlier paused-clock fixtures.
+            check(PumpMotionUntil(stable, timeoutMilliseconds:=1000),
                 "a settled capsule radio releases its color clocks instead of retaining HoldEnd animations")
             Dim blend As New PclRadioColorAnimation(Color.FromArgb(10, 20, 40, 250), Color.FromArgb(210, 220, 140, 50), 120)
             Dim clone = DirectCast(blend.Clone(), PclRadioColorAnimation) : clone.Freeze()

@@ -7,20 +7,28 @@ Imports PclDownloadBridge.Core
 
 Namespace Controls
     ' PCL MyResourceItem.xaml at 5ef81e4: 64px row, 50px icon, 14/12px text.
-    ' Use the same owned hover/press clocks as MyListItem's PCL port.
+    ' The resource row has its own backing-plate animation and gesture ownership.
     Public NotInheritable Class PclResourceItem
         Inherits Grid
         Public Event Click As RoutedEventHandler
         Private ReadOnly _back As Border
-        Private ReadOnly _motion As PclListHoverMotion
-        Private _pressed As Boolean
+        Private ReadOnly _motion As PclResourceHoverMotion
+        Private _mouseDown As Boolean
+        Private _keyDown As Key = Key.None
+        Friend ReadOnly Property MotionPolicy As PclControlMotionPolicy
+        Friend ReadOnly Property HoverTransition As Animation.ClockGroup
+            Get
+                Return _motion.Transition
+            End Get
+        End Property
         Public ReadOnly Property Icon As Image
         Public Sub New(project As ModpackProject)
             Height = 64 : Background = Brushes.Transparent : Cursor = Cursors.Hand : Focusable = True
             RenderTransformOrigin = New Point(0.5, 0.5) : RenderTransform = New ScaleTransform(1, 1)
-            _back = New Border With {.CornerRadius = New CornerRadius(6), .BorderThickness = New Thickness(1), .Background = PclAnimation.Brush("ColorBrush7"), .BorderBrush = PclAnimation.Brush("ColorBrush6"), .Opacity = 0, .RenderTransform = New ScaleTransform(0.75, 0.75), .RenderTransformOrigin = New Point(0.5, 0.5), .IsHitTestVisible = False}
+            _back = New Border With {.CornerRadius = New CornerRadius(3), .BorderThickness = New Thickness(1), .SnapsToDevicePixels = True, .Background = PclAnimation.Brush("ColorBrush7"), .BorderBrush = PclAnimation.Brush("ColorBrush6"), .Opacity = 0, .RenderTransform = New ScaleTransform(0.8, 0.8), .RenderTransformOrigin = New Point(0.5, 0.5), .IsHitTestVisible = False}
             Children.Add(_back)
-            _motion = New PclListHoverMotion(_back, DirectCast(RenderTransform, ScaleTransform))
+            _motion = New PclResourceHoverMotion(_back)
+            MotionPolicy = New PclControlMotionPolicy(Me, Sub() ResetPressed(False))
             Dim body As New Grid With {.Margin = New Thickness(7, 0, 7, 0), .IsHitTestVisible = False}
             body.ColumnDefinitions.Add(New ColumnDefinition With {.Width = New GridLength(50)})
             body.ColumnDefinitions.Add(New ColumnDefinition With {.Width = New GridLength(8)})
@@ -46,45 +54,58 @@ Namespace Controls
             ToolTip = project.Name & vbCrLf & project.Summary & vbCrLf & project.Platform.ToString() & " · 更新于 " & project.Updated.ToLocalTime().ToString("yyyy/MM/dd")
             Automation.AutomationProperties.SetName(Me, project.Name & "，" & project.Platform.ToString())
             AddHandler MouseEnter, Sub() Refresh()
-            AddHandler MouseLeave, Sub() Refresh()
+            AddHandler MouseLeave, Sub()
+                                       _mouseDown = False : ReleaseOwnCapture() : Refresh()
+                                   End Sub
             AddHandler GotKeyboardFocus, Sub() Refresh()
             AddHandler LostKeyboardFocus, Sub() ResetPressed()
-            AddHandler LostMouseCapture, Sub() ResetPressed()
-            AddHandler IsHitTestVisibleChanged, Sub() ResetPressed(False)
-            AddHandler IsEnabledChanged, Sub() ResetPressed(False)
-            AddHandler Unloaded, Sub() ResetPressed(False)
+            AddHandler LostMouseCapture, Sub()
+                                            _mouseDown = False : Refresh()
+                                        End Sub
             PclTheme.Watch(Me, Sub()
-                                   _back.BorderBrush = PclAnimation.Brush("ColorBrush6") : Refresh(False)
+                                   _back.BorderBrush = PclAnimation.Brush("ColorBrush6") : ResetPressed(False)
                                End Sub)
             Refresh(False)
         End Sub
         Private Sub ResetPressed(Optional animate As Boolean = True)
-            _pressed = False : Refresh(animate)
+            _mouseDown = False : _keyDown = Key.None : ReleaseOwnCapture() : Refresh(animate)
+        End Sub
+        Private Sub ReleaseOwnCapture()
+            If IsMouseCaptured Then ReleaseMouseCapture()
         End Sub
         Private Sub Refresh(Optional animate As Boolean = True)
-            _motion.Update(IsEnabled AndAlso IsHitTestVisible AndAlso (IsMouseOver OrElse IsKeyboardFocusWithin), _pressed, False, PclAnimation.Brush("ColorBrush7").Color, animate AndAlso IsLoaded AndAlso IsVisible AndAlso SystemParameters.ClientAreaAnimation)
+            Dim active = MotionPolicy.Interactive AndAlso (IsMouseOver OrElse IsKeyboardFocusWithin)
+            Dim pressed = active AndAlso (_mouseDown OrElse _keyDown <> Key.None)
+            Dim color = PclAnimation.Brush(If(active, If(pressed, "ColorBrush6", "ColorBrushBg1"), "ColorBrush7")).Color
+            _motion.Update(active, pressed, color, animate AndAlso MotionPolicy.CanAnimate AndAlso Not PclTheme.Changing, MotionPolicy.PauseForChecks)
         End Sub
         Protected Overrides Sub OnMouseLeftButtonDown(e As MouseButtonEventArgs)
             MyBase.OnMouseLeftButtonDown(e)
-            If Not IsEnabled OrElse Not IsHitTestVisible Then Return
-            Focus() : _pressed = True : CaptureMouse() : Refresh() : e.Handled = True
+            If Not MotionPolicy.Interactive Then Return
+            e.Handled = True
+            If _keyDown <> Key.None Then Return
+            Focus() : _mouseDown = True : CaptureMouse() : Refresh()
         End Sub
         Protected Overrides Sub OnMouseLeftButtonUp(e As MouseButtonEventArgs)
             MyBase.OnMouseLeftButtonUp(e)
-            Dim activate = _pressed AndAlso IsMouseOver AndAlso IsEnabled AndAlso IsHitTestVisible
-            _pressed = False : ReleaseMouseCapture() : Refresh() : e.Handled = True
+            Dim activate = _mouseDown AndAlso IsMouseOver AndAlso MotionPolicy.Interactive
+            _mouseDown = False : ReleaseOwnCapture() : Refresh() : e.Handled = True
             If activate Then RaiseEvent Click(Me, New RoutedEventArgs())
         End Sub
         Protected Overrides Sub OnKeyDown(e As KeyEventArgs)
             MyBase.OnKeyDown(e)
-            If Not IsEnabled OrElse Not IsHitTestVisible OrElse e.IsRepeat OrElse (e.Key <> Key.Enter AndAlso e.Key <> Key.Space) Then Return
-            _pressed = True : Refresh() : e.Handled = True
+            If Not MotionPolicy.Interactive OrElse (e.Key <> Key.Enter AndAlso e.Key <> Key.Space) Then Return
+            e.Handled = True
+            If e.IsRepeat OrElse _mouseDown OrElse _keyDown <> Key.None Then Return
+            _keyDown = e.Key : Refresh()
         End Sub
         Protected Overrides Sub OnKeyUp(e As KeyEventArgs)
             MyBase.OnKeyUp(e)
             If e.Key <> Key.Enter AndAlso e.Key <> Key.Space Then Return
-            Dim activate = _pressed AndAlso IsEnabled AndAlso IsHitTestVisible
-            _pressed = False : Refresh() : e.Handled = True
+            e.Handled = True
+            If _keyDown <> e.Key Then Return
+            Dim activate = MotionPolicy.Interactive
+            _keyDown = Key.None : Refresh()
             If activate Then RaiseEvent Click(Me, New RoutedEventArgs())
         End Sub
     End Class
