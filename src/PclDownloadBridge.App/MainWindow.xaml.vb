@@ -59,11 +59,7 @@ Partial Public Class MainWindow
         InitializeComponent()
         _pageSwitch = New PclPageSwitch(DownloadViewHost, VersionPage, InstallPage,
             Function() Not _closing AndAlso (preview OrElse SystemParameters.ClientAreaAnimation))
-        AddHandler _pageSwitch.Settled, Sub()
-                                           If Not _focusAfterPageSwitch Then Return
-                                           _focusAfterPageSwitch = False
-                                           If DownloadPage.IsVisible AndAlso Not _closing Then FocusDownloadPage()
-                                       End Sub
+        AddHandler _pageSwitch.Settled, AddressOf RestoreDownloadFocus
         PclTheme.Apply(TitleBar, Shell)
         AddHandler Shell.SizeChanged, Sub() Shell.Clip = New RectangleGeometry(New Rect(0, 0, Shell.ActualWidth, Shell.ActualHeight), 6, 6)
         DownloadTab.Checked = True
@@ -74,11 +70,7 @@ Partial Public Class MainWindow
         _categoryMotion = New PclSurfaceMotion(DownloadViewHost, DownloadGhost,
             Function() AllowPageMotion() AndAlso DownloadPage.IsVisible,
             Function(surface) PclSurfaceMotion.Units(surface))
-        AddHandler _categoryMotion.Settled, Sub()
-                                              If Not _focusAfterPageSwitch Then Return
-                                              _focusAfterPageSwitch = False
-                                              If DownloadPage.IsVisible AndAlso Not _closing Then FocusDownloadPage()
-                                          End Sub
+        AddHandler _categoryMotion.Settled, AddressOf RestoreDownloadFocus
         AddHandler PackInstanceName.TextChanged, Sub() RefreshPackAvailability()
         AddHandler PackInstanceName.KeyDown, AddressOf PackNameKeyDown
         AddHandler ModrinthInstanceName.TextChanged, Sub() RefreshModrinthAvailability()
@@ -504,8 +496,8 @@ Partial Public Class MainWindow
 
     Private Sub UpdateVersions()
         If DownloadPage.IsVisible AndAlso _downloadView = DownloadView.Versions Then
-            Dim refocus = _focusAfterPageSwitch
-            _focusAfterPageSwitch = False
+            Dim refocus = If(_focusAfterPageSwitch, If(_pendingDownloadFocus, CreateDownloadFocusRequest()), Nothing)
+            ClearDownloadFocus()
             ' A completed catalogue replaces its own entry group, as PCL's loader
             ' completion enters fresh content. Hidden catalogues do not touch it.
             Dim replace As Action = Sub()
@@ -519,7 +511,7 @@ Partial Public Class MainWindow
             Else
                 _surfaceMotion.Change(DownloadPage, DownloadPage, replace, contentRefresh:=True)
             End If
-            If refocus Then FocusDownloadPage()
+            If refocus IsNot Nothing Then QueueDownloadFocus(refocus)
             If _surfaceMotion.Transition Is Nothing Then RestoreSurfaceFocus()
         Else
             RenderVersionCatalogue()
@@ -656,7 +648,7 @@ Partial Public Class MainWindow
 
     Private Sub SwitchMainPage(settings As Boolean, Optional prepare As Action = Nothing)
         If settings Then
-            _focusAfterPageSwitch = False
+            ClearDownloadFocus()
         End If
         SelectSurface(If(settings, DirectCast(SettingsPage, FrameworkElement), DownloadPage),
             Sub()
@@ -673,6 +665,7 @@ Partial Public Class MainWindow
         End If
         If view <> _downloadView Then
             _pendingSurfaceFocus = Nothing
+            ClearDownloadFocus()
             _surfaceMotion.Finish()
         End If
         Dim previous = _downloadView
@@ -700,7 +693,7 @@ Partial Public Class MainWindow
         If view = DownloadView.Versions OrElse view = DownloadView.Install Then _vanillaView = view
         _downloadView = view
         If view = DownloadView.Progress OrElse view = DownloadView.Modpacks Then
-            _focusAfterPageSwitch = False
+            ClearDownloadFocus()
             _pageSwitch.Finish()
             VersionPage.Visibility = Visibility.Collapsed
             InstallPage.Visibility = Visibility.Collapsed
@@ -708,8 +701,8 @@ Partial Public Class MainWindow
             _pageSwitch.SelectInstall(view = DownloadView.Install, previous <> DownloadView.Progress AndAlso previous <> DownloadView.Modpacks)
             If previous = DownloadView.Progress OrElse previous = DownloadView.Modpacks Then _pageSwitch.Finish()
             If _pageSwitch.Transition IsNot Nothing AndAlso DownloadViewHost.IsKeyboardFocusWithin Then
-                _focusAfterPageSwitch = True
                 DownloadTab.Focus()
+                FocusDownloadPage()
             End If
         End If
         DownloadProgress.Visibility = If(view = DownloadView.Progress, Visibility.Visible, Visibility.Collapsed)
@@ -979,7 +972,7 @@ Partial Public Class MainWindow
         FinishPackContentMotion()
         _packReadCancellation?.Cancel()
         _pendingSurfaceFocus = Nothing
-        _focusAfterPageSwitch = False
+        ClearDownloadFocus()
         _pageSwitch.Finish()
         _categoryMotion.Finish()
         _surfaceMotion.Finish()

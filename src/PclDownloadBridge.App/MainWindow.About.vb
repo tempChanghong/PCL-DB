@@ -20,7 +20,7 @@ Partial Public Class MainWindow
     Private Sub ShowAbout(sender As Object, e As RoutedEventArgs)
         If AboutPage.Visibility = Visibility.Visible Then Return
         _settingsOffsetBeforeAbout = SettingsPage.VerticalOffset
-        _focusAfterPageSwitch = False
+        ClearDownloadFocus()
         SelectSurface(AboutPage, Sub()
                                      If _pageSwitch.Transition IsNot Nothing Then _pageSwitch.Finish()
                                      AboutPage.ScrollToTop()

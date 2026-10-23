@@ -17,6 +17,7 @@ Partial Public Class MainWindow
         Dim fixture As New MainWindow(True)
         fixture.VerifyPageNavigation(check, artifactDirectory)
         VerifyTitleNavigation(check, artifactDirectory, False)
+        VerifyDownloadFocusOwnership(check)
         Return checks
     End Function
 

@@ -45,7 +45,9 @@ Partial Public Class MainWindow
         If e IsNot Nothing AndAlso e.RoutedEvent IsNot Nothing Then e.Handled = handled
     End Sub
     Private Sub ShellBackMouseDown(sender As Object, e As MouseButtonEventArgs)
-        If e.Handled OrElse (e.ChangedButton <> MouseButton.XButton1 AndAlso e.ChangedButton <> MouseButton.XButton2) Then Return
+        If e.Handled Then Return
+        If Not GatedKeyboardSource(e.OriginalSource) Then _downloadFocusInputVersion += 1
+        If e.ChangedButton <> MouseButton.XButton1 AndAlso e.ChangedButton <> MouseButton.XButton2 Then Return
         e.Handled = NavigateTitleBack()
     End Sub
 End Class

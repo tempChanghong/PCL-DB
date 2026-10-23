@@ -4,6 +4,8 @@ Imports PclDownloadBridge.Controls
 
 Partial Public Class MainWindow
     Private _keyboardVersionReturn As WeakReference(Of PclListItem)
+    Private _pendingDownloadFocus As Action
+    Private _downloadFocusInputVersion As Long
 
     Private Shared Function GatedKeyboardSource(source As Object) As Boolean
         Dim target = TryCast(source, DependencyObject)
@@ -15,7 +17,11 @@ Partial Public Class MainWindow
         Return False
     End Function
     Private Sub ShellPreviewKeyDown(sender As Object, e As KeyEventArgs)
-        If e.Handled OrElse Not GatedKeyboardSource(e.OriginalSource) Then Return
+        If e.Handled Then Return
+        If Not GatedKeyboardSource(e.OriginalSource) Then
+            _downloadFocusInputVersion += 1
+            Return
+        End If
         ' PCL gates exiting content by hit testing. WPF text editors and selectors
         ' can still receive keyboard input; navigation remains owned by the shell.
         If e.Key = Key.Escape Then ShellKeyDown(sender, e)
@@ -55,14 +61,56 @@ Partial Public Class MainWindow
     End Sub
 
     Private Sub FocusDownloadPage()
+        QueueDownloadFocus(CreateDownloadFocusRequest())
+    End Sub
+
+    Private Function CreateDownloadFocusRequest() As Action
+        Dim scope = FocusManager.GetFocusScope(DownloadPage)
+        Dim previous = FocusManager.GetFocusedElement(scope)
+        Dim view = _downloadView, mode = _packMode
+        Dim inputVersion = _downloadFocusInputVersion
+        Return Sub()
+                   If _closing OrElse Not DownloadPage.IsVisible OrElse Not DownloadPage.IsEnabled OrElse _onlinePrompt IsNot Nothing OrElse
+                       _downloadView <> view OrElse (view = DownloadView.Modpacks AndAlso _packMode <> mode) Then Return
+                   Dim current = TryCast(FocusManager.GetFocusedElement(scope), UIElement)
+                   ' PCL allows interaction while cards are entering. An automatic
+                   ' completion must not replace a newer pointer or Tab choice.
+                   If (current IsNot previous OrElse inputVersion <> _downloadFocusInputVersion) AndAlso current IsNot Nothing AndAlso
+                       current.IsVisible AndAlso current.IsEnabled AndAlso current.IsHitTestVisible Then
+                       If view = DownloadView.Modpacks Then _restorePackViewportFocus = False
+                       Return
+                   End If
+                   ApplyDownloadFocus()
+               End Sub
+    End Function
+
+    Private Sub QueueDownloadFocus(focus As Action)
+        If _closing OrElse Not DownloadPage.IsVisible Then Return
         If _surfaceMotion.Transition IsNot Nothing Then
-            _pendingSurfaceFocus = AddressOf FocusDownloadPage
+            _pendingSurfaceFocus = Sub() QueueDownloadFocus(focus)
             Return
         End If
         If _pageSwitch.Transition IsNot Nothing OrElse _categoryMotion.Transition IsNot Nothing Then
+            _pendingDownloadFocus = focus
             _focusAfterPageSwitch = True
             Return
         End If
+        focus()
+    End Sub
+
+    Private Sub ClearDownloadFocus()
+        _focusAfterPageSwitch = False
+        _pendingDownloadFocus = Nothing
+    End Sub
+
+    Private Sub RestoreDownloadFocus(sender As Object, e As EventArgs)
+        If Not _focusAfterPageSwitch Then Return
+        Dim focus = If(_pendingDownloadFocus, CreateDownloadFocusRequest())
+        ClearDownloadFocus()
+        QueueDownloadFocus(focus)
+    End Sub
+
+    Private Sub ApplyDownloadFocus()
         DownloadPage.UpdateLayout()
         If _downloadView = DownloadView.Modpacks Then
             If _restorePackViewportFocus Then

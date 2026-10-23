@@ -45,7 +45,7 @@ Partial Public Class MainWindow
         Dim previous = ActiveSurface()
         If previous IsNot target Then
             _pendingSurfaceFocus = Nothing
-            _focusAfterPageSwitch = False
+            ClearDownloadFocus()
             For Each viewer In MotionViewers()
                 viewer.StopScrolling()
             Next
