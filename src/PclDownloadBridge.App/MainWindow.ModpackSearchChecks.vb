@@ -25,8 +25,9 @@ Partial Public Class MainWindow
             Using surface = PreviewSurface.Attach(host, 850, 600)
                 SynchronizationContext.SetSynchronizationContext(New DispatcherSynchronizationContext(owner.Dispatcher))
                 Dim work = owner.VerifyPackSearchAsync(directory, host, check)
-                ' This pumps the entire search/install suite, not a single animation.
-                If Not work.IsCompleted AndAlso Not PumpMotionUntil(Function() work.IsCompleted, timeoutMilliseconds:=15000) Then Throw New TimeoutException("Pack search UI exceeded its deadline.")
+                ' The growing suite includes offline installation, screenshots and
+                ' real dispatcher timers. Individual UI waits remain bounded at 5s.
+                If Not work.IsCompleted AndAlso Not PumpMotionUntil(Function() work.IsCompleted, timeoutMilliseconds:=60000) Then Throw New TimeoutException("Pack search UI exceeded its deadline.")
                 work.GetAwaiter().GetResult()
             End Using
         Finally
@@ -361,10 +362,14 @@ Partial Public Class MainWindow
         enteringPrompt.Controller.SeekAlignedToLastTick(TimeSpan.FromMilliseconds(90), System.Windows.Media.Animation.TimeSeekOrigin.BeginTime) : layout()
         CompleteOnlinePrompt(Nothing)
         Dim exitingPrompt = _onlinePromptMotion
+        ' This assertion tests clock ownership, not wall-clock speed. Keep the
+        ' replacement alive while layout pumps unrelated rendering work.
+        exitingPrompt.Controller.Pause()
         enteringPrompt.Controller.SkipToFill() : layout()
         check(_onlinePromptMotion Is exitingPrompt AndAlso PackNameOverlay.IsVisible AndAlso animatedPrompt.IsCompleted, "obsolete input entrance cannot hide or detach its newer closing animation")
         Dim replacementPrompt = PromptOnlinePackAsync("输入版本名称", "新动画", _selectedFolder.Location, "Replacement-Prompt", False, CancellationToken.None)
         Dim replacementMotion = _onlinePromptMotion
+        replacementMotion.Controller.Pause()
         exitingPrompt.Controller.SkipToFill() : layout()
         check(_onlinePromptMotion Is replacementMotion AndAlso PackNameOverlay.IsVisible AndAlso Not PageSurface.IsEnabled AndAlso Not replacementPrompt.IsCompleted, "obsolete dialog exit cannot close a replacement prompt or enable its background")
         CompleteOnlinePrompt(Nothing) : _onlinePromptMotion.Controller.SkipToFill() : layout()

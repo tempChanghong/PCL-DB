@@ -76,6 +76,7 @@ Partial Public Class MainWindow
         AddHandler ModrinthInstanceName.TextChanged, Sub() RefreshModrinthAvailability()
         AddHandler ModrinthInstanceName.KeyDown, AddressOf ModrinthNameKeyDown
         InitializeMotion()
+        InitializeVersionLoading()
         InitializePackSearch()
         InitializeAppearance()
         InitializeDeveloperSettings()
@@ -316,6 +317,7 @@ Partial Public Class MainWindow
         VerifyIsolationOptions(check)
         VerifyRefreshRebinding(check)
         VerifyRefreshWorkflow(check, artifactDirectory)
+        VerifyVersionLoading(check, artifactDirectory)
         VerifyCompatibilityWorkflow(check)
         VerifyTaskLifecycle(check, artifactDirectory)
         VerifyPointerAlignment(check)
@@ -397,6 +399,10 @@ Partial Public Class MainWindow
         _versionCancellation = request
         _loading = True
         StatusText.Text = "正在读取 Minecraft 版本列表…"
+        _versionLoading.Reset()
+        ' Refreshes keep the usable catalogue, its rows and scroll position.
+        ' PCL's page loader is needed only before the first accepted catalogue.
+        If _versions.Count = 0 Then _versionLoading.Start(request, request.Token, AddressOf PrepareVersionLoading, AddressOf ShowVersionLoading)
         Try
             Dim versions As List(Of VersionEntry)
             If _versionProvider IsNot Nothing Then
@@ -406,7 +412,15 @@ Partial Public Class MainWindow
             Else
                 versions = Await New MinecraftInstaller(Policy()).VersionsAsync(request.Token)
             End If
-            If _closing OrElse generation <> _versionGeneration Then Return
+            If Not CurrentVersionRequest(generation, request) Then Return
+            request.Token.ThrowIfCancellationRequested()
+            If _busy Then
+                _versionsDirty = True
+                Return
+            End If
+            Await _versionLoading.CompleteAsync(request)
+            ' Presentation waits do not own network or installation state.
+            If Not CurrentVersionRequest(generation, request) Then Return
             request.Token.ThrowIfCancellationRequested()
             If _busy Then
                 _versionsDirty = True
@@ -441,17 +455,26 @@ Partial Public Class MainWindow
                 End Try
             End If
         Catch ex As Exception
-            If _closing OrElse generation <> _versionGeneration Then Return
+            If Not CurrentVersionRequest(generation, request) Then Return
             _versionsDirty = True
             If _busy Then Return
-            EmptyVersions.Visibility = If(_versions.Count = 0 AndAlso _downloadView = DownloadView.Versions, Visibility.Visible, Visibility.Collapsed)
-            EmptyVersions.Text = "版本列表读取失败，请刷新或切换下载来源。"
+            _versionLoading.Cancel(request)
+            If _versions.Count = 0 Then
+                ChangeVersionContent(Sub()
+                                         ClearVersionLoadingVisual()
+                                         EmptyVersions.Visibility = If(_downloadView = DownloadView.Versions, Visibility.Visible, Visibility.Collapsed)
+                                         EmptyVersions.Text = "版本列表读取失败，请刷新或切换下载来源。"
+                                     End Sub)
+            End If
             StatusText.Text = "刷新失败：" & ex.GetBaseException().Message & If(_versions.Count > 0, "；仍显示上次的版本列表。", "")
             If Not _preview Then Log(ex)
         Finally
+            _versionLoading.Cancel(request)
             If _versionCancellation Is request Then
                 _versionCancellation = Nothing
                 _loading = False
+                ClearVersionLoadingVisual()
+                RefreshDownloadChrome()
             End If
             request.Dispose()
         End Try
@@ -480,6 +503,10 @@ Partial Public Class MainWindow
         _versionsDirty = True
         _versionGeneration += 1
         _versionCancellation?.Cancel()
+        _versionLoading.Reset()
+        ClearVersionLoadingVisual()
+        If _versions.Count = 0 Then EmptyVersions.Text = "点击刷新读取版本列表"
+        RefreshDownloadChrome()
         CancelComponentRequests()
         _componentsDirty = _selectedEntry IsNot Nothing
         If _selectedEntry IsNot Nothing Then RefreshComponents()
@@ -495,6 +522,10 @@ Partial Public Class MainWindow
     End Function
 
     Private Sub UpdateVersions()
+        ChangeVersionContent(AddressOf RenderVersionCatalogue)
+    End Sub
+
+    Private Sub ChangeVersionContent(update As Action)
         If DownloadPage.IsVisible AndAlso _downloadView = DownloadView.Versions Then
             Dim refocus = If(_focusAfterPageSwitch, If(_pendingDownloadFocus, CreateDownloadFocusRequest()), Nothing)
             ClearDownloadFocus()
@@ -502,7 +533,7 @@ Partial Public Class MainWindow
             ' completion enters fresh content. Hidden catalogues do not touch it.
             Dim replace As Action = Sub()
                                         If _pageSwitch.Transition IsNot Nothing Then _pageSwitch.Finish()
-                                        RenderVersionCatalogue()
+                                        update()
                                     End Sub
             If _categoryMotion.Transition IsNot Nothing Then
                 ' Retarget the controller already owning this viewport. Starting
@@ -514,11 +545,12 @@ Partial Public Class MainWindow
             If refocus IsNot Nothing Then QueueDownloadFocus(refocus)
             If _surfaceMotion.Transition Is Nothing Then RestoreSurfaceFocus()
         Else
-            RenderVersionCatalogue()
+            update()
         End If
     End Sub
 
     Private Sub RenderVersionCatalogue()
+        ClearVersionLoadingVisual()
         VersionCards.Children.Clear()
         SetDownloadView(_downloadView)
         EmptyVersions.Text = If(_versions.Count = 0, "点击刷新读取版本列表", "没有匹配的版本")
@@ -713,7 +745,9 @@ Partial Public Class MainWindow
         Dim view = _downloadView
         Dim packCategory = view = DownloadView.Modpacks OrElse (view = DownloadView.Progress AndAlso _progressReturnView = DownloadView.Modpacks)
         VanillaNav.Selected = Not packCategory : ModpackNav.Selected = packCategory
-        EmptyVersions.Visibility = If(view = DownloadView.Versions AndAlso _versions.Count = 0, Visibility.Visible, Visibility.Collapsed)
+        EmptyVersions.Visibility = If(view = DownloadView.Versions AndAlso _versions.Count = 0 AndAlso
+            (_versionLoading Is Nothing OrElse _versionLoading.Phase = PclLoadingPresentation.Phases.Idle) AndAlso VersionLoadingCard.Visibility <> Visibility.Visible,
+            Visibility.Visible, Visibility.Collapsed)
         RefreshButton.Visibility = If(view = DownloadView.Versions OrElse view = DownloadView.Install, Visibility.Visible, Visibility.Collapsed)
         RefreshButton.ToolTip = If(view = DownloadView.Install, "重新获取组件列表，保留已选版本与名称", "重新获取 Minecraft 版本列表")
         ProgressShortcut.Visibility = If(_hasTask AndAlso view <> DownloadView.Progress, Visibility.Visible, Visibility.Collapsed)
@@ -963,6 +997,8 @@ Partial Public Class MainWindow
             End If
         End If
         _closing = True
+        _versionLoading.Reset()
+        ClearVersionLoadingVisual()
         _packSearchLoading?.Reset() : _packDetailLoading?.Reset()
         CompleteOnlinePrompt(Nothing)
         _packSearchRequest?.Cancel()
