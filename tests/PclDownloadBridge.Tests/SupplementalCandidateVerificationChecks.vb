@@ -76,25 +76,25 @@ Friend Module SupplementalCandidateVerificationChecks
             Check(failed AndAlso Not CBool(failure("succeeded")) AndAlso Not CBool(failure("records")(0)("succeeded")) AndAlso failure("failure") IsNot Nothing AndAlso
                 Not Directory.Exists(Path.Combine(failedOutput, "game")), "candidate tool persists an explicit failure and does not install invalid metadata", passed)
         End Using
-        For Each id In SupplementalVersions.HistoricalSnapshotIds
-            Using fixture As New InstallationChecks.InstallFixture(root, "snapshot-map-" & id)
+        For Each id In SupplementalVersions.HistoricalSnapshotIds.Concat(SupplementalVersions.HistoricalBetaIds)
+            Using fixture As New InstallationChecks.InstallFixture(root, "historical-map-" & id)
                 ApplyMappedProfile(fixture, id)
                 Dim installer As New MinecraftInstaller(New Policy(fixture.Server.Url)), entry = SupplementalInstallFixture.Entry(id)
                 Dim sharedResource = Path.Combine(fixture.Root, "resources/sound/check.ogg"), userBytes = Encoding.UTF8.GetBytes("existing user resource")
                 Directory.CreateDirectory(Path.GetDirectoryName(sharedResource)) : File.WriteAllBytes(sharedResource, userBytes)
                 Dim isolated = Await installer.InstallAsync(entry, fixture.Root, "isolated", {}, Nothing, CancellationToken.None, isolationMode:=InstanceIsolationMode.Enabled)
-                Check(File.Exists(Path.Combine(isolated.InstancePath, "resources/sound/check.ogg")) AndAlso File.ReadAllBytes(sharedResource).SequenceEqual(userBytes), "snapshot isolation preserves differing shared resources: " & id, passed)
+                Check(File.Exists(Path.Combine(isolated.InstancePath, "resources/sound/check.ogg")) AndAlso File.ReadAllBytes(sharedResource).SequenceEqual(userBytes), "historical isolation preserves differing shared resources: " & id, passed)
                 Dim refused = False
                 Try
                     Await installer.InstallAsync(entry, fixture.Root, "shared", {}, Nothing, CancellationToken.None, isolationMode:=InstanceIsolationMode.Disabled)
                 Catch ex As IOException
                     refused = True
                 End Try
-                Check(refused AndAlso Not Directory.Exists(Path.Combine(fixture.Root, "versions/shared")) AndAlso File.ReadAllBytes(sharedResource).SequenceEqual(userBytes), "snapshot shared-resource conflict refuses publication without overwriting user bytes: " & id, passed)
+                Check(refused AndAlso Not Directory.Exists(Path.Combine(fixture.Root, "versions/shared")) AndAlso File.ReadAllBytes(sharedResource).SequenceEqual(userBytes), "historical shared-resource conflict refuses publication without overwriting user bytes: " & id, passed)
                 ' Explicit test correction, never an automatic installer migration.
                 File.WriteAllBytes(sharedResource, File.ReadAllBytes(Path.Combine(isolated.InstancePath, "resources/sound/check.ogg")))
                 Dim accepted = Await installer.InstallAsync(entry, fixture.Root, "shared", {}, Nothing, CancellationToken.None, isolationMode:=InstanceIsolationMode.Disabled)
-                Check(File.Exists(Path.Combine(accepted.InstancePath, "shared.json")) AndAlso PclFolders.ReadIniValue(Path.Combine(accepted.InstancePath, "PCL/Setup.ini"), "VersionArgumentIndieV2") = "False", "snapshot shared install retries after explicit conflict correction: " & id, passed)
+                Check(File.Exists(Path.Combine(accepted.InstancePath, "shared.json")) AndAlso PclFolders.ReadIniValue(Path.Combine(accepted.InstancePath, "PCL/Setup.ini"), "VersionArgumentIndieV2") = "False", "historical shared install retries after explicit conflict correction: " & id, passed)
             End Using
         Next
         Return passed

@@ -5,8 +5,8 @@ Imports PclDownloadBridge.Core
 
 ' Real Mojang wrapper; client/index bytes remain explicitly synthetic fixtures.
 Friend NotInheritable Class SupplementalInstallFixture
-    Friend Shared ReadOnly Ids As String() = {"2.0_blue", "2.0_red", "2.0_purple", "c0.0.12a_03", "a1.1.1", "b1.9-pre6", "1.0.0-rc1", "inf-20100630-1"}.
-        Concat(SupplementalVersions.HistoricalSnapshotIds).ToArray()
+    Friend Shared ReadOnly Ids As String() = {"2.0_blue", "2.0_red", "2.0_purple", "c0.0.12a_03", "a1.1.1", "inf-20100630-1"}.
+        Concat(SupplementalVersions.HistoricalBetaIds).Concat(SupplementalVersions.HistoricalSnapshotIds).ToArray()
 
     Friend Shared Function UsesAlpha(id As String) As Boolean
         Return id = "c0.0.12a_03" OrElse id = "1.0.0-rc1" OrElse id = "inf-20100630-1"
@@ -14,7 +14,7 @@ Friend NotInheritable Class SupplementalInstallFixture
 
     Friend Shared Function Kind(id As String) As String
         If id = "c0.0.12a_03" OrElse id = "a1.1.1" OrElse id = "inf-20100630-1" Then Return "old_alpha"
-        Return If(id = "b1.9-pre6" OrElse id = "1.0.0-rc1", "old_beta", "snapshot")
+        Return If(SupplementalVersions.HistoricalBetaIds.Contains(id), "old_beta", "snapshot")
     End Function
 
     Friend Shared Function Arguments(id As String) As String
@@ -24,7 +24,7 @@ Friend NotInheritable Class SupplementalInstallFixture
 
     Friend Shared Function Entry(id As String) As PclDownloadBridge.Core.VersionEntry
         Dim slug = id.Replace("2.0_", "2point0_")
-        If id = "b1.9-pre6" Then slug = "b1_9-pre6"
+        If SupplementalVersions.HistoricalBetaIds.Contains(id) AndAlso id.StartsWith("b1.9-pre", StringComparison.Ordinal) Then slug = id.Replace("b1.9-", "b1_9-")
         If id = "13w12~" Then slug = "13w12-"
         If id = "1.2" Then slug = "1_2"
         Return New PclDownloadBridge.Core.VersionEntry With {.Id = id, .SupplementalId = If(id.StartsWith("2.0_", StringComparison.Ordinal), slug, id), .Kind = Kind(id),

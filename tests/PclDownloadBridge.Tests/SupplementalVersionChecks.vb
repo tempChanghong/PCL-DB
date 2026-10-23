@@ -7,17 +7,18 @@ Imports PclDownloadBridge.Core
 Friend Module SupplementalVersionChecks
     Private Const BlueId As String = "2point0_blue"
     Private Const RedId As String = "2point0_red"
-    Private ReadOnly HistoricalIds As String() = {"c0.0.12a_03", "a1.1.1", "b1.9-pre6"}.Concat(SupplementalVersions.HistoricalSnapshotIds).ToArray()
+    Private ReadOnly HistoricalIds As String() = {"c0.0.12a_03", "a1.1.1"}.
+        Concat(SupplementalVersions.HistoricalBetaIds.Where(Function(id) id <> "1.0.0-rc1")).Concat(SupplementalVersions.HistoricalSnapshotIds).ToArray()
 
     Private Function HistoryKind(id As String) As String
         If id = "c0.0.12a_03" OrElse id = "a1.1.1" Then Return "old_alpha"
-        Return If(id = "b1.9-pre6", "old_beta", "snapshot")
+        Return If(SupplementalVersions.HistoricalBetaIds.Contains(id), "old_beta", "snapshot")
     End Function
 
     Private Function EntryJson(Optional id As String = BlueId) As JObject
         Dim canonical = id.Replace("2point0_", "2.0_")
         Dim slug = canonical.Replace("2.0_", "2point0_")
-        If id = "b1.9-pre6" Then slug = "b1_9-pre6"
+        If SupplementalVersions.HistoricalBetaIds.Contains(id) AndAlso id.StartsWith("b1.9-pre", StringComparison.Ordinal) Then slug = id.Replace("b1.9-", "b1_9-")
         If id = "13w12~" Then slug = "13w12-"
         If id = "1.2" Then slug = "1_2"
         Return New JObject From {{"id", id}, {"type", HistoryKind(id)}, {"url", "https://zkitefly.github.io/unlisted-versions-of-minecraft/files/" & slug & "/" & slug & ".json"}, {"releaseTime", "2021-04-01T12:00:00Z"}}
@@ -66,10 +67,11 @@ Friend Module SupplementalVersionChecks
     End Function
 
     Private Sub HistoricalParseChecks(passed As List(Of String))
-        Dim archivedSnapshots As New List(Of String)
+        Dim archivedSnapshots As New List(Of String), archivedBetas As New List(Of String)
         For Each name In Reflection.Assembly.GetExecutingAssembly().GetManifestResourceNames().Where(Function(value) value.StartsWith("Historical.", StringComparison.Ordinal) AndAlso value.EndsWith(".json", StringComparison.Ordinal))
             Dim profile = JObject.Parse(Encoding.UTF8.GetString(SupplementalInstallFixture.Resource(name)))
             If CStr(profile("type")) = "snapshot" AndAlso Not CStr(profile("id")).StartsWith("2.0_", StringComparison.Ordinal) Then archivedSnapshots.Add(CStr(profile("id")))
+            If CStr(profile("type")) = "old_beta" Then archivedBetas.Add(CStr(profile("id")))
         Next
         Check(New HashSet(Of String)(archivedSnapshots, StringComparer.Ordinal).SetEquals(SupplementalVersions.HistoricalSnapshotIds) AndAlso archivedSnapshots.Count = 67,
             "all sixty-seven archived snapshot identities match the single production registry", passed)
@@ -80,6 +82,21 @@ Friend Module SupplementalVersionChecks
             immutable = True
         End Try
         Check(immutable AndAlso SupplementalVersions.HistoricalSnapshotIds(0) = firstSnapshot, "callers cannot mutate the historical snapshot registry", passed)
+        Check(New HashSet(Of String)(archivedBetas, StringComparer.Ordinal).SetEquals(SupplementalVersions.HistoricalBetaIds) AndAlso archivedBetas.Count = 7,
+            "all seven archived Beta identities match the independent classification registry", passed)
+        immutable = False
+        Dim firstBeta = SupplementalVersions.HistoricalBetaIds(0)
+        Try
+            DirectCast(SupplementalVersions.HistoricalBetaIds, IList(Of String))(0) = "unregistered"
+        Catch ex As NotSupportedException
+            immutable = True
+        End Try
+        Check(immutable AndAlso SupplementalVersions.HistoricalBetaIds(0) = firstBeta, "callers cannot mutate the historical Beta registry", passed)
+        Check(SupplementalVersions.Parse(Manifest(EntryJson("b1.9-pre7"))).Count = 0, "Beta prefixes do not register unverified candidates", passed)
+        For Each id In SupplementalVersions.HistoricalBetaIds.Where(Function(value) value.StartsWith("b1.9-pre", StringComparison.Ordinal))
+            Dim slug = id.Replace("b1.9-", "b1_9-")
+            Check(SupplementalVersions.Parse(Manifest(EntryJson(slug), EntryJson(id))).Single().Id = id, "Beta path slug is not an alias and cannot hide its valid neighbor: " & id, passed)
+        Next
         Dim sameDate = SupplementalVersions.Parse(Manifest(EntryJson("13w07a"), EntryJson("13w11a")))
         Check(sameDate.Count = 2 AndAlso sameDate(0).Released = sameDate(1).Released AndAlso sameDate(0).Id <> sameDate(1).Id,
             "same-date archived snapshots retain separate canonical identities", passed)
@@ -91,10 +108,8 @@ Friend Module SupplementalVersionChecks
             Check(entry.Subtitle.Contains(If(entry.Kind = "snapshot", "旧快照", "远古版")) AndAlso Not entry.Subtitle.Contains("愚人节"), "historical supplement is not mislabeled as April Fools: " & id, passed)
             Dim wrong = EntryJson(id) : wrong("type") = If(entry.Kind = "snapshot", "old_alpha", "snapshot")
             Check(SupplementalVersions.Parse(Manifest(wrong)).Count = 0, "historical supplement rejects wrong declared classification: " & id, passed)
-            If entry.Kind = "snapshot" Then
-                wrong = EntryJson(id) : wrong("type") = "pending"
-                Check(SupplementalVersions.Parse(Manifest(wrong)).Count = 0, "historical snapshot cannot inherit the 2.0 pending category: " & id, passed)
-            End If
+            wrong = EntryJson(id) : wrong("type") = "pending"
+            Check(SupplementalVersions.Parse(Manifest(wrong)).Count = 0, "historical supplement cannot inherit the 2.0 pending category: " & id, passed)
             wrong = EntryJson(id) : wrong("url") = CStr(wrong("url")).Replace("/files/", "/files/../files/")
             Check(SupplementalVersions.Parse(Manifest(wrong)).Count = 0, "historical supplement requires its exact mapped URL: " & id, passed)
             Dim official As New VersionEntry With {.Id = id.ToUpperInvariant(), .Kind = HistoryKind(id)}

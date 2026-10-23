@@ -1,8 +1,8 @@
 # Historical metadata fixtures
 
 These are original archived UVMC profiles, including the three 2.0 colours and
-seventy-two historical profiles. They are metadata only; client JARs are not embedded.
-Canonical IDs use UVMC's separately mapped URL slugs for `b1.9-pre6`, `13w12~`
+seventy-seven historical profiles. They are metadata only; client JARs are not embedded.
+Canonical IDs use UVMC's separately mapped URL slugs for `b1.9-pre1` through `b1.9-pre6`, `13w12~`
 and 2.0; `1.2` uses the separately verified `1_2` URL slug. Installation fixtures
 use synthetic client/index bytes and real small
 Mojang wrapper files; they do not prove that a game starts.
@@ -77,6 +77,11 @@ New raw profiles:
 - https://zkitefly.github.io/unlisted-versions-of-minecraft/files/11w50a/11w50a.json
 - https://zkitefly.github.io/unlisted-versions-of-minecraft/files/11w49a/11w49a.json
 - https://zkitefly.github.io/unlisted-versions-of-minecraft/files/11w48a/11w48a.json
+- https://zkitefly.github.io/unlisted-versions-of-minecraft/files/b1_9-pre1/b1_9-pre1.json
+- https://zkitefly.github.io/unlisted-versions-of-minecraft/files/b1_9-pre2/b1_9-pre2.json
+- https://zkitefly.github.io/unlisted-versions-of-minecraft/files/b1_9-pre3/b1_9-pre3.json
+- https://zkitefly.github.io/unlisted-versions-of-minecraft/files/b1_9-pre4/b1_9-pre4.json
+- https://zkitefly.github.io/unlisted-versions-of-minecraft/files/b1_9-pre5/b1_9-pre5.json
 
 `AlphaLibraryReference.json` preserves the original Mojang `inf-20100618`
 metadata bytes, SHA-1 `51a5c512af384d3d2a79a3efb93f7d4b9a1c6ec2`:

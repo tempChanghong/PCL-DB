@@ -24,6 +24,9 @@ Public NotInheritable Class SupplementalVersions
         "12w30a", "12w30b", "12w30c", "12w30d", "12w30e", "12w27a", "12w26a", "12w25a", "12w24a", "12w23a", "12w23b",
         "12w22a", "12w21a", "12w21b", "12w19a", "12w18a", "12w17a", "12w16a", "1.2", "12w08a", "12w07a", "12w07b",
         "12w06a", "12w05a", "12w05b", "12w04a", "12w03a", "12w01a", "11w50a", "11w49a", "11w48a"})
+    ' Beta classification is independent from its launch recipe (RC1 uses 1.6/Alpha).
+    Private Shared ReadOnly BetaIds As IReadOnlyList(Of String) = Array.AsReadOnly(New String() {
+        "b1.9-pre6", "1.0.0-rc1", "b1.9-pre1", "b1.9-pre2", "b1.9-pre3", "b1.9-pre4", "b1.9-pre5"})
     Private Shared ReadOnly Aliases As Dictionary(Of String, String) = CreateAliases()
 
     Public Shared ReadOnly Property HistoricalSnapshotIds As IReadOnlyList(Of String)
@@ -36,6 +39,16 @@ Public NotInheritable Class SupplementalVersions
         Return SnapshotIds.Contains(id, StringComparer.Ordinal)
     End Function
 
+    Public Shared ReadOnly Property HistoricalBetaIds As IReadOnlyList(Of String)
+        Get
+            Return BetaIds
+        End Get
+    End Property
+
+    Friend Shared Function IsHistoricalBeta(id As String) As Boolean
+        Return BetaIds.Contains(id, StringComparer.Ordinal)
+    End Function
+
     Private Shared Function CreateAliases() As Dictionary(Of String, String)
         Dim result As New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)
         ' These catalogue -> metadata identities have been checked individually.
@@ -43,7 +56,7 @@ Public NotInheritable Class SupplementalVersions
             result.Add("2point0_" & color, "2.0_" & color)
             result.Add("2.0_" & color, "2.0_" & color)
         Next
-        For Each id In {"c0.0.12a_03", "a1.1.1", "b1.9-pre6", "1.0.0-rc1", "inf-20100630-1"}.Concat(SnapshotIds)
+        For Each id In {"c0.0.12a_03", "a1.1.1", "inf-20100630-1"}.Concat(BetaIds).Concat(SnapshotIds)
             result.Add(id, id)
         Next
         Return result
@@ -61,9 +74,9 @@ Public NotInheritable Class SupplementalVersions
 
     Private Shared Function ValidKind(id As String, kind As String) As Boolean
         If IsHistoricalSnapshot(id) Then Return kind = "snapshot"
+        If IsHistoricalBeta(id) Then Return kind = "old_beta"
         Select Case id
             Case "c0.0.12a_03", "a1.1.1", "inf-20100630-1" : Return kind = "old_alpha"
-            Case "b1.9-pre6", "1.0.0-rc1" : Return kind = "old_beta"
             Case Else : Return kind = "snapshot" OrElse kind = "pending"
         End Select
     End Function
@@ -133,7 +146,7 @@ Public NotInheritable Class SupplementalVersions
 
     Private Shared Function MetadataUrl(id As String) As String
         Dim slug = id.Replace("2.0_", "2point0_")
-        If id = "b1.9-pre6" Then slug = "b1_9-pre6"
+        If IsHistoricalBeta(id) AndAlso id.StartsWith("b1.9-pre", StringComparison.Ordinal) Then slug = id.Replace("b1.9-", "b1_9-")
         If id = "13w12~" Then slug = "13w12-"
         If id = "1.2" Then slug = "1_2"
         Return BaseUrl & slug & "/" & slug & ".json"
