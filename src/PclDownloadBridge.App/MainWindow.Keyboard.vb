@@ -90,7 +90,7 @@ Partial Public Class MainWindow
             _pendingSurfaceFocus = Sub() QueueDownloadFocus(focus)
             Return
         End If
-        If _pageSwitch.Transition IsNot Nothing OrElse _categoryMotion.Transition IsNot Nothing Then
+        If _pageSwitch.HasMotion OrElse _categoryMotion.Transition IsNot Nothing Then
             _pendingDownloadFocus = focus
             _focusAfterPageSwitch = True
             Return

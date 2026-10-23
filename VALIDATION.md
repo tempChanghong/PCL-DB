@@ -1519,4 +1519,10 @@
 - 基线 `12741bf`；核对用户两段录像及固定 PCL `5ef81e4` 的原版安装、资源详情与 MyExtraTextButton。保留已对齐的 260 ms 横移，将按钮移到滚动内容同级，补齐 50 ms 延迟、淡入、并行 Back/Fluent 回弹及 100 ms 收起。
 - 反转采样当前值，内外变换分离；显示门控仍继承页面，退出旧 Click 不启动安装。同目标刷新不中断尾段，设置、整合包、任务、关闭、隐藏及卸载清理旧时钟；保留名称、组件、活动请求和已有任务。
 - 新增 79 项（曲线 37、生命周期 23、主窗 19）；策略 `PCL-DB-checks/2026-10-23.19` 预期 UI 876 / motion 716 / pack-search 320，共 1912 项。固定源码/资源、验证契约、进程工具另查；四张明暗与退出采样图、日志、源码和 Commit 绑定见 `artifacts/version-entry-motion/`，详情见 `docs/reviews/version-entry-action-motion-2026-10-23.md`。
+
+## 原版安装页卡片入场与返回
+
+- 基线 `0f08e3d9d2e30f87a9cd695c03a817226855804d`；核对固定 PCL 的 `PageDownloadInstall`、`MyPageRight` 和 `ModAnimation`，保留 260 ms 横移，组合可见卡片的 25 ms 入场错峰与 15 ms 返回错峰。卡片 Y/透明度独立持有，折叠、摘要、按钮及请求不改归属。
+- 快速反向采样当前画面，过期回调不能清理新时钟；横移后尾段、局部门控恢复、焦点、设置/整合包合成交接、新版本替换及隐藏/卸载/缩放均检查。分离初始偏移与延迟通知，返回后的安装页继续保持 50 DIP。
+- 新增 53 项，策略 `PCL-DB-checks/2026-10-23.20`；UI 876 / motion 769 / pack-search 320 共 1965 项。固定源码/资源、验证契约及进程工具另查；六张采样图、日志及源码/Commit 绑定见 `artifacts/vanilla-card-motion/`，详情见 `docs/reviews/vanilla-card-transition.md`。离屏采样不作为桌面帧率或人工验收；本轮不打包、推送或发版。
 - 本轮 Core 未变，旧 Core 结果不计入新运行数量；使用隐藏 WPF 呈现源和受控响应，不视为真人桌面或帧率验收。暂不打包、推送或发版。

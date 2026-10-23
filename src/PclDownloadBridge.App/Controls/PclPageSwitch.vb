@@ -14,21 +14,44 @@ Namespace Controls
         Private _installSelected As Boolean
         Private _transition As ClockGroup
         Private ReadOnly _enabled As Func(Of Boolean)
+        Private ReadOnly _cardsEnabled As Func(Of Boolean)
+        Private ReadOnly _cards As PclPageCardMotion
+        Private _finishing As Boolean
 
         Friend Event Settled As EventHandler
 
-        Friend Sub New(host As FrameworkElement, versions As FrameworkElement, install As FrameworkElement, Optional enabled As Func(Of Boolean) = Nothing)
+        Friend Sub New(host As FrameworkElement, versions As FrameworkElement, install As FrameworkElement, Optional enabled As Func(Of Boolean) = Nothing,
+                       Optional cardUnits As Func(Of FrameworkElement, IEnumerable(Of FrameworkElement)) = Nothing,
+                       Optional cardsEnabled As Func(Of Boolean) = Nothing)
             _host = host : _versions = versions : _install = install
             _enabled = If(enabled, Function() SystemParameters.ClientAreaAnimation)
+            _cardsEnabled = If(cardsEnabled, _enabled)
+            If cardUnits IsNot Nothing Then
+                _cards = New PclPageCardMotion(host, cardUnits)
+                AddHandler _cards.Settled, Sub()
+                                              If _transition Is Nothing AndAlso Not _finishing Then RaiseEvent Settled(Me, EventArgs.Empty)
+                                          End Sub
+            End If
             versions.RenderTransform = _versionOffset
             install.RenderTransform = _installOffset
-            Settle(False)
+            Settle(False, initial:=True)
             AddHandler host.Unloaded, Sub()
-                                          If _transition IsNot Nothing Then Finish()
+                                          If HasMotion Then Finish()
                                       End Sub
-            AddHandler host.IsVisibleChanged, Sub() If Not host.IsVisible AndAlso _transition IsNot Nothing Then Finish()
-            AddHandler host.SizeChanged, Sub() If _transition IsNot Nothing Then Finish()
+            AddHandler host.IsVisibleChanged, Sub() If Not host.IsVisible AndAlso HasMotion Then Finish()
+            AddHandler host.SizeChanged, Sub() If HasMotion Then Finish()
         End Sub
+
+        Friend ReadOnly Property CardMotion As PclPageCardMotion
+            Get
+                Return _cards
+            End Get
+        End Property
+        Friend ReadOnly Property HasMotion As Boolean
+            Get
+                Return _transition IsNot Nothing OrElse (_cards IsNot Nothing AndAlso _cards.HasMotion)
+            End Get
+        End Property
 
         Friend ReadOnly Property Transition As ClockGroup
             Get
@@ -53,7 +76,7 @@ Namespace Controls
             _installSelected = value
             StopTransition()
             If Not animate OrElse Not _enabled() OrElse Not _host.IsVisible OrElse Not _host.IsLoaded Then
-                Settle(True)
+                Finish()
                 Return
             End If
             _versions.Opacity = versionOpacity : _versionOffset.X = versionX
@@ -63,6 +86,21 @@ Namespace Controls
             _host.IsHitTestVisible = False
             Dim outgoing = If(value, _versions, _install), incoming = If(value, _install, _versions)
             Dim outOffset = If(value, _versionOffset, _installOffset), inOffset = If(value, _installOffset, _versionOffset)
+            _finishing = True
+            Try
+                If _cards IsNot Nothing Then
+                    If _cardsEnabled() Then
+                        _cards.Change(outgoing, incoming)
+                    Else
+                        _cards.Finish()
+                    End If
+                End If
+            Catch
+                Finish()
+                Throw
+            Finally
+                _finishing = False
+            End Try
             Dim clock = DirectCast(TransitionPlan(outgoing.Opacity, outOffset.X, incoming.Opacity, inOffset.X, value).CreateClock(True), ClockGroup)
             _transition = clock
             AddHandler clock.CurrentTimeInvalidated, Sub()
@@ -71,7 +109,12 @@ Namespace Controls
                                                         End If
                                                     End Sub
             AddHandler clock.Completed, Sub()
-                                            If _transition Is clock Then Finish()
+                                            If _transition IsNot clock Then Return
+                                            StopTransition()
+                                            ' The page becomes interactive at its original 260 ms.
+                                            ' Local card gates protect the staggered fade, and its
+                                            ' remaining rebound owns no root-page or scroll state.
+                                            Settle(_cards Is Nothing OrElse Not _cards.HasMotion)
                                         End Sub
             outgoing.ApplyAnimationClock(UIElement.OpacityProperty, DirectCast(clock.Children(0), AnimationClock))
             outOffset.ApplyAnimationClock(TranslateTransform.XProperty, DirectCast(clock.Children(1), AnimationClock))
@@ -80,7 +123,13 @@ Namespace Controls
         End Sub
 
         Friend Sub Finish()
-            StopTransition()
+            _finishing = True
+            Try
+                StopTransition()
+                _cards?.Finish()
+            Finally
+                _finishing = False
+            End Try
             Settle(True)
         End Sub
 
@@ -94,14 +143,14 @@ Namespace Controls
             _installOffset.BeginAnimation(TranslateTransform.XProperty, Nothing)
         End Sub
 
-        Private Sub Settle(notify As Boolean)
+        Private Sub Settle(notify As Boolean, Optional initial As Boolean = False)
             _versions.Visibility = If(_installSelected, Visibility.Collapsed, Visibility.Visible)
             _install.Visibility = If(_installSelected, Visibility.Visible, Visibility.Collapsed)
             _versions.Opacity = If(_installSelected, 0, 1)
             _install.Opacity = If(_installSelected, 1, 0)
             _versionOffset.X = If(_installSelected, -50, 0)
             ' PCL initially starts at 40 DIP; returning from the install page leaves it at 50 DIP.
-            _installOffset.X = If(_installSelected, 0, If(notify, 50, 40))
+            _installOffset.X = If(_installSelected, 0, If(initial, 40, 50))
             _versions.IsHitTestVisible = Not _installSelected
             _install.IsHitTestVisible = _installSelected
             _host.IsHitTestVisible = True

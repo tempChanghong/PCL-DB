@@ -22,7 +22,7 @@ Partial Public Class MainWindow
         _settingsOffsetBeforeAbout = SettingsPage.VerticalOffset
         ClearDownloadFocus()
         SelectSurface(AboutPage, Sub()
-                                     If _pageSwitch.Transition IsNot Nothing Then _pageSwitch.Finish()
+                                     If _pageSwitch.HasMotion Then _pageSwitch.Finish()
                                      AboutPage.ScrollToTop()
                                      AboutPage.UpdateLayout()
                                  End Sub)

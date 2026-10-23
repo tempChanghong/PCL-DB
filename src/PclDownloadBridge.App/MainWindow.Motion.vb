@@ -65,6 +65,6 @@ Partial Public Class MainWindow
                 SettingsTab.Checked = target IsNot DownloadPage
                 prepare?.Invoke()
                 RefreshTitleNavigation()
-            End Sub, compositeExit:=previous IsNot target AndAlso (_pageSwitch.Transition IsNot Nothing OrElse _categoryMotion.Transition IsNot Nothing OrElse HasPackContentMotion()))
+            End Sub, compositeExit:=previous IsNot target AndAlso (_pageSwitch.HasMotion OrElse _categoryMotion.Transition IsNot Nothing OrElse HasPackContentMotion()))
     End Sub
 End Class

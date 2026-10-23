@@ -43,6 +43,7 @@ Partial Public Class MainWindow
         Dim downloads As New MainWindow(True)
         downloads.VerifyDownloadCategoryMotion(directory, check)
         VerifyInstallActionMotion(directory, check)
+        VerifyVanillaCardMotion(directory, check)
         VerifyControlMotionUi(directory, passed)
         VerifyTitleNavigation(check, directory, True)
         Return passed

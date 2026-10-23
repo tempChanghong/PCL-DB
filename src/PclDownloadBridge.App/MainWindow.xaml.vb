@@ -58,7 +58,8 @@ Partial Public Class MainWindow
     Public Sub New(Optional preview As Boolean = False)
         InitializeComponent()
         _pageSwitch = New PclPageSwitch(DownloadViewHost, VersionPage, InstallPage,
-            Function() Not _closing AndAlso (preview OrElse SystemParameters.ClientAreaAnimation))
+            Function() Not _closing AndAlso (preview OrElse SystemParameters.ClientAreaAnimation),
+            Function(surface) PclSurfaceMotion.Units(surface), AddressOf AllowPageMotion)
         AddHandler _pageSwitch.Settled, AddressOf RestoreDownloadFocus
         PclTheme.Apply(TitleBar, Shell)
         AddHandler Shell.SizeChanged, Sub() Shell.Clip = New RectangleGeometry(New Rect(0, 0, Shell.ActualWidth, Shell.ActualHeight), 6, 6)
@@ -533,7 +534,7 @@ Partial Public Class MainWindow
             ' A completed catalogue replaces its own entry group, as PCL's loader
             ' completion enters fresh content. Hidden catalogues do not touch it.
             Dim replace As Action = Sub()
-                                        If _pageSwitch.Transition IsNot Nothing Then _pageSwitch.Finish()
+                                        If _pageSwitch.HasMotion Then _pageSwitch.Finish()
                                         update()
                                     End Sub
             If _categoryMotion.Transition IsNot Nothing Then
@@ -574,6 +575,9 @@ Partial Public Class MainWindow
 
     Private Sub SelectVersion(entry As VersionEntry)
         If _busy Then Return
+        ' Component cards are about to be replaced. Release only the old local
+        ' decorations; horizontal reversal still samples its current page frame.
+        _pageSwitch.CardMotion.Finish()
         _selectedEntry = entry
         _nameEdited = False
         Dim displayId = New VersionPresentation(entry).DisplayId
@@ -582,8 +586,8 @@ Partial Public Class MainWindow
         SelectedVersionIcon.Source = New Imaging.BitmapImage(New Uri(IconFor(entry)))
         VanillaVersionIcon.Source = SelectedVersionIcon.Source
         InitializeComponents()
-        SetDownloadView(DownloadView.Install)
         InstallScroll.ScrollToHome()
+        SetDownloadView(DownloadView.Install)
         SwitchMainPage(False)
     End Sub
 
@@ -652,7 +656,7 @@ Partial Public Class MainWindow
         End If
         SelectSurface(If(settings, DirectCast(SettingsPage, FrameworkElement), DownloadPage),
             Sub()
-                If settings AndAlso _pageSwitch.Transition IsNot Nothing Then _pageSwitch.Finish()
+                If settings AndAlso _pageSwitch.HasMotion Then _pageSwitch.Finish()
                 If settings Then _categoryMotion.Finish()
                 prepare?.Invoke()
             End Sub)
@@ -670,9 +674,9 @@ Partial Public Class MainWindow
         End If
         Dim previous = _downloadView
         If (previous = DownloadView.Modpacks) Xor (view = DownloadView.Modpacks) Then
-            If _pageSwitch.Transition IsNot Nothing Then _pageSwitch.Finish()
             Dim outgoing = DownloadContent(previous), incoming = DownloadContent(view)
-            _categoryMotion.Change(outgoing, incoming, Sub() ApplyDownloadView(view, previous), compositeExit:=HasPackContentMotion())
+            _categoryMotion.Change(outgoing, incoming, Sub() ApplyDownloadView(view, previous),
+                compositeExit:=HasPackContentMotion() OrElse _pageSwitch.HasMotion)
         Else
             _categoryMotion.Finish()
             ApplyDownloadView(view, previous)
