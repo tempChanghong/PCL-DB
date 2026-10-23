@@ -19,7 +19,7 @@ Partial Public Class MainWindow
         PackProjectTitle.Text = project.Name : PackProjectDescription.Text = project.Summary
         If PackProjectIdentity.Children.Count = 0 OrElse DirectCast(PackProjectIdentity.Children(0), PclResourceItem).Tag IsNot project Then
             PackProjectIdentity.Children.Clear()
-            Dim intro As New PclResourceItem(project) With {.Tag = project, .IsHitTestVisible = False, .Focusable = False}
+            Dim intro As New PclResourceItem(project) With {.Tag = project, .CanInteract = False}
             PackProjectIdentity.Children.Add(intro)
             LoadPackIconAsync(intro, project, If(_packArtworkRequest Is Nothing, CancellationToken.None, _packArtworkRequest.Token))
         End If

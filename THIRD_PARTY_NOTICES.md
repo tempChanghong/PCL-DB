@@ -10,7 +10,7 @@ Plain Craft Launcher - Download Bridge（简称 PCL-DB）是第三方独立下�
 - 本项目大量参照 PCL 的下载功能、控件及素材，保留上游许可与指南，首位提供原作者署名和赞助入口。默认提供蓝色系及深色模式，额外主题位于需要验证的开发者选项中；该入口不代表取得上游对额外配色的授权。
 - 本仓库不将 PCL 源码、字体、图片或其他第三方内容重新许可为 MIT、Apache 或 GPL；各自原有权利与要求继续适用。原始资源的固定提交及 SHA-256 见 `reference/pcl-assets.json`，源码快照见 `reference/PCL/manifest.json`。
 - Newtonsoft.Json 13.0.3：MIT License，Copyright (c) 2007 James Newton-King。
-- MeloongCore（Meloong-Git/MeloongCore，固定提交 `c774ae4c85fd94e0eaa171db21e78a65870df19b`）：仅将 `Shared/Utils/StringUtils.cs` 的 `FormatTimeSpan` 详细时间分支适配为 VB.NET，增加明确的时间参数和不依赖区域设置的数字格式；没有引入新的运行时程序集。原代码按 Apache License 2.0 提供，完整许可附后。该提交由本项目参考的固定 PCL 提交引用，相关作者与贡献者保留权利。
+- MeloongCore（Meloong-Git/MeloongCore，固定提交 `c774ae4c85fd94e0eaa171db21e78a65870df19b`）：将 `Shared/Utils/StringUtils.cs` 的 `FormatTimeSpan` 简短与详细时间分支适配为 VB.NET，增加明确的时间参数和不依赖区域设置的数字格式，并修正简短分支 24–47 小时的小时数回绕；没有引入新的运行时程序集。原代码按 Apache License 2.0 提供，完整许可附后。该提交由本项目参考的固定 PCL 提交引用，相关作者与贡献者保留权利。
 - UVMC（unlisted-versions-of-minecraft）：战斗测试版与实验快照的公开元数据来源，项目为 https://zkitefly.github.io/unlisted-versions-of-minecraft/ 。仅在运行时读取其公开清单和版本 JSON，没有打包该项目的清单、游戏文件或源代码；界面单独标明 UVMC 来源，不表示该项目或 PCL 上游认可本工具。
 
 ## Newtonsoft.Json MIT License

@@ -1467,3 +1467,10 @@
 ## 原仓库保护
 
 交付前检查 PCL、PCL-CE、HMCL、PrismLauncher、PCL2- 五个仓库，均仍为原 HEAD，工作区无修改。
+
+## 项目摘要与静态头部提示（2026-10-23，尚未发行）
+
+- 基线 `d9892da`；固定 PCL `5ef81e4` 的 ResourceProject / MyResourceItem 和其固定 MeloongCore 简短时间分支。搜索行、详情摘要增加四组统计图标、紧凑项目次数和简短日期；版本摘要数字排序、系列去重，完整原始声明保留在提示内，不推断连续支持范围。
+- 修复详情头部关闭命中检测导致提示不可达；新增 CanInteract 分离静态展示与输入，撤销旧手势，保留已有行动画和输入门控。简短时间修正 24–47 小时回绕，详细时间签名及行为不变；图标几何冻结并复用，颜色跟随深色模式。
+- 新增 Core 72 项、搜索 UI 17 项断言；当前主套件预期 Core 5918 / UI 799 / motion 637 / pack-search 249，合计 7603 项。最终状态以本轮 `artifacts/project-summary-alignment/validation.json` 及提交绑定为准。详见 `docs/reviews/project-summary-alignment-2026-10-23.md`。
+- 只修改项目展示与纯格式化；平台身份、文件校验、安装和隔离等语义保持原状。隐藏呈现源检查不代替真人桌面、DPI、帧率、联网查询或真实游戏安装。未推送、打包、发版。
