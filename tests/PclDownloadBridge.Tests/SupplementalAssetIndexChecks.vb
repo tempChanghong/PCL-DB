@@ -31,7 +31,7 @@ Friend Module SupplementalAssetIndexChecks
     End Function
 
     Private Function Serve(fixture As InstallationChecks.InstallFixture, selected As VersionEntry, bytes As Byte()) As JObject
-        Dim meta = JObject.Parse(Encoding.UTF8.GetString(fixture.Server.Files("/version")))
+        Dim meta = SupplementalInstallFixture.Profile(fixture, selected.Id)
         meta("id") = selected.Id : meta("type") = "snapshot"
         meta("assetIndex")("sha1") = Hash(bytes) : meta("assetIndex")("size") = bytes.Length
         fixture.Server.Files("/index") = bytes

@@ -1,0 +1,2802 @@
+{
+  "PclCommit": "5ef81e490ae46b1100d61e33d0183094c7a80ca8",
+  "LaunchWrapperVersions": [
+    "1.5",
+    "1.6"
+  ],
+  "Parser": "jopt-simple 4.5",
+  "ParserSHA1": "6065cc95c661255349c1d0756657be17c29a4fd3",
+  "Note": "Finite argument corpus verified with PCL split/dedup including appended height/width and real parser; no game execution",
+  "Cases": [
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --width 1280 --height 720",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --server localhost --port 25565",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --fullscreen",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag retained",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -50",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag=-gameDir=literal",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -assetsDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -assetsDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -a=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -a=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -tweakClass=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -tweakClass=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -t=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -t=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag --gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag --gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag --g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag --assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag --tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag --version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --GameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag --GameDir=D:\\Wrong",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value -gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag=value -gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value -gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag=value -gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value -g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag=value -g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value -assetsDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag=value -assetsDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value -assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag=value -assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value -a=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag=value -a=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value -tweakClass=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag=value -tweakClass=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value -tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag=value -tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value -t=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag=value -t=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value --gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag=value --gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value --gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag=value --gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value --g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag=value --g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value --assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag=value --assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value --tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag=value --tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value --version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag=value --version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value -version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag=value -version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value --GameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag=value --GameDir=D:\\Wrong",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 -gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --height 720 -gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 -gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --height 720 -gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 -g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --height 720 -g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 -assetsDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --height 720 -assetsDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 -assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --height 720 -assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 -a=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --height 720 -a=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 -tweakClass=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --height 720 -tweakClass=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 -tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --height 720 -tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 -t=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --height 720 -t=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 --gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --height 720 --gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 --gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --height 720 --gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 --g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --height 720 --g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 --assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --height 720 --assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 --tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --height 720 --tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 --version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --height 720 --version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 -version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --height 720 -version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 --GameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --height 720 --GameDir=D:\\Wrong",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen -gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --fullscreen -gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen -gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --fullscreen -gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen -g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --fullscreen -g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen -assetsDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --fullscreen -assetsDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen -assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --fullscreen -assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen -a=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --fullscreen -a=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen -tweakClass=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --fullscreen -tweakClass=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen -tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --fullscreen -tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen -t=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --fullscreen -t=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen --gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --fullscreen --gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen --gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --fullscreen --gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen --g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --fullscreen --g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen --assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --fullscreen --assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen --tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --fullscreen --tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen --version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --fullscreen --version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen -version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --fullscreen -version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen --GameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --fullscreen --GameDir=D:\\Wrong",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost -gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --server localhost -gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost -gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --server localhost -gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost -g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --server localhost -g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost -assetsDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --server localhost -assetsDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost -assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --server localhost -assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost -a=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --server localhost -a=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost -tweakClass=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --server localhost -tweakClass=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost -tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --server localhost -tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost -t=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --server localhost -t=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost --gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --server localhost --gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost --gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --server localhost --gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost --g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --server localhost --g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost --assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --server localhost --assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost --tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --server localhost --tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost --version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --server localhost --version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost -version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --server localhost -version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost --GameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --server localhost --GameDir=D:\\Wrong",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 -gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --port 25565 -gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 -gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --port 25565 -gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 -g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --port 25565 -g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 -assetsDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --port 25565 -assetsDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 -assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --port 25565 -assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 -a=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --port 25565 -a=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 -tweakClass=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --port 25565 -tweakClass=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 -tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --port 25565 -tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 -t=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --port 25565 -t=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 --gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --port 25565 --gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 --gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --port 25565 --gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 --g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --port 25565 --g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 --assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --port 25565 --assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 --tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --port 25565 --tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 --version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --port 25565 --version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 -version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --port 25565 -version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 --GameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --port 25565 --GameDir=D:\\Wrong",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag -gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag --anotherTag -gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag -gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag --anotherTag -gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag -g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag --anotherTag -g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag -assetsDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag --anotherTag -assetsDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag -assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag --anotherTag -assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag -a=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag --anotherTag -a=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag -tweakClass=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag --anotherTag -tweakClass=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag -tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag --anotherTag -tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag -t=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag --anotherTag -t=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag --gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag --anotherTag --gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag --gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag --anotherTag --gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag --g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag --anotherTag --g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag --assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag --anotherTag --assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag --tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag --anotherTag --tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag --version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag --anotherTag --version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag -version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag --anotherTag -version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag --GameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag --anotherTag --GameDir=D:\\Wrong",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 -gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -50 -gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 -gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -50 -gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 -g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -50 -g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 -assetsDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -50 -assetsDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 -assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -50 -assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 -a=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -50 -a=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 -tweakClass=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -50 -tweakClass=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 -tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -50 -tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 -t=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -50 -t=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 --gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -50 --gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 --gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -50 --gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 --g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -50 --g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 --assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -50 --assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 --tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -50 --tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": false
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 --version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -50 --version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 -version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -50 -version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 --GameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "c0.0.12a_03",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker --researchTag -50 --GameDir=D:\\Wrong",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --width 1280 --height 720",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --server localhost --port 25565",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --fullscreen",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag retained",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -50",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag=-gameDir=literal",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -assetsDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -assetsDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -a=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -a=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -tweakClass=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -tweakClass=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -t=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -t=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag --gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag --gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag --g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag --assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag --tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag --version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --GameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag --GameDir=D:\\Wrong",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value -gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag=value -gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value -gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag=value -gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value -g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag=value -g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value -assetsDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag=value -assetsDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value -assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag=value -assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value -a=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag=value -a=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value -tweakClass=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag=value -tweakClass=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value -tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag=value -tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value -t=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag=value -t=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value --gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag=value --gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value --gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag=value --gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value --g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag=value --g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value --assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag=value --assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value --tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag=value --tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value --version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag=value --version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value -version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag=value -version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag=value --GameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag=value --GameDir=D:\\Wrong",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 -gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --height 720 -gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 -gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --height 720 -gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 -g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --height 720 -g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 -assetsDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --height 720 -assetsDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 -assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --height 720 -assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 -a=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --height 720 -a=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 -tweakClass=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --height 720 -tweakClass=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 -tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --height 720 -tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 -t=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --height 720 -t=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 --gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --height 720 --gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 --gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --height 720 --gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 --g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --height 720 --g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 --assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --height 720 --assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 --tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --height 720 --tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 --version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --height 720 --version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 -version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --height 720 -version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --height 720 --GameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --height 720 --GameDir=D:\\Wrong",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen -gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --fullscreen -gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen -gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --fullscreen -gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen -g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --fullscreen -g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen -assetsDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --fullscreen -assetsDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen -assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --fullscreen -assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen -a=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --fullscreen -a=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen -tweakClass=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --fullscreen -tweakClass=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen -tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --fullscreen -tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen -t=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --fullscreen -t=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen --gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --fullscreen --gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen --gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --fullscreen --gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen --g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --fullscreen --g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen --assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --fullscreen --assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen --tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --fullscreen --tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen --version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --fullscreen --version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen -version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --fullscreen -version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --fullscreen --GameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --fullscreen --GameDir=D:\\Wrong",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost -gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --server localhost -gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost -gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --server localhost -gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost -g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --server localhost -g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost -assetsDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --server localhost -assetsDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost -assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --server localhost -assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost -a=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --server localhost -a=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost -tweakClass=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --server localhost -tweakClass=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost -tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --server localhost -tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost -t=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --server localhost -t=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost --gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --server localhost --gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost --gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --server localhost --gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost --g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --server localhost --g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost --assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --server localhost --assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost --tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --server localhost --tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost --version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --server localhost --version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost -version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --server localhost -version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --server localhost --GameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --server localhost --GameDir=D:\\Wrong",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 -gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --port 25565 -gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 -gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --port 25565 -gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 -g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --port 25565 -g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 -assetsDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --port 25565 -assetsDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 -assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --port 25565 -assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 -a=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --port 25565 -a=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 -tweakClass=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --port 25565 -tweakClass=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 -tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --port 25565 -tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 -t=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --port 25565 -t=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 --gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --port 25565 --gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 --gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --port 25565 --gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 --g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --port 25565 --g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 --assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --port 25565 --assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 --tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --port 25565 --tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 --version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --port 25565 --version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 -version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --port 25565 -version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --port 25565 --GameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --port 25565 --GameDir=D:\\Wrong",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag -gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag --anotherTag -gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag -gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag --anotherTag -gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag -g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag --anotherTag -g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag -assetsDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag --anotherTag -assetsDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag -assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag --anotherTag -assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag -a=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag --anotherTag -a=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag -tweakClass=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag --anotherTag -tweakClass=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag -tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag --anotherTag -tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag -t=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag --anotherTag -t=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag --gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag --anotherTag --gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag --gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag --anotherTag --gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag --g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag --anotherTag --g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag --assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag --anotherTag --assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag --tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag --anotherTag --tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag --version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag --anotherTag --version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag -version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag --anotherTag -version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag --anotherTag --GameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag --anotherTag --GameDir=D:\\Wrong",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 -gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -50 -gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 -gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -50 -gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 -g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -50 -g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 -assetsDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -50 -assetsDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 -assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -50 -assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 -a=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -50 -a=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 -tweakClass=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -50 -tweakClass=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 -tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -50 -tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 -t=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -50 -t=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 --gameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -50 --gameDir=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 --gameD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -50 --gameD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 --g=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -50 --g=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 --assetsD=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -50 --assetsD=D:\\Wrong",
+      "accepted": false
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 --tweakC=net.minecraft.launchwrapper.VanillaTweaker --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -50 --tweakC=net.minecraft.launchwrapper.VanillaTweaker",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 --version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -50 --version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 -version=research-profile --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -50 -version=research-profile",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --researchTag -50 --GameDir=D:\\Wrong --gameDir ${game_directory} --assetsDir ${game_assets}",
+      "accepted": true
+    },
+    {
+      "id": "2.0_blue",
+      "arguments": "${auth_player_name} ${auth_session} --gameDir ${game_directory} --assetsDir ${game_assets} --researchTag -50 --GameDir=D:\\Wrong",
+      "accepted": true
+    }
+  ]
+}

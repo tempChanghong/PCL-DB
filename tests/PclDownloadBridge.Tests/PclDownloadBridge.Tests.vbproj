@@ -4,5 +4,7 @@
   <ItemGroup><Reference Include="System.Net.Http" /></ItemGroup>
   <ItemGroup><EmbeddedResource Include="Resources/SupplementalLibraryReference.json" LogicalName="SupplementalLibraryReference.json" /></ItemGroup>
   <ItemGroup><EmbeddedResource Include="Resources/Historical/*.json" LogicalName="Historical.%(Filename)%(Extension)" /></ItemGroup>
+  <ItemGroup><EmbeddedResource Include="Resources/LegacyLaunch/*.jar" LogicalName="LegacyLaunch.%(Filename)%(Extension)" /></ItemGroup>
+  <ItemGroup><EmbeddedResource Include="Resources/LegacyLaunch/ArgumentOracle.json" LogicalName="LegacyLaunch.ArgumentOracle.json" /></ItemGroup>
   <ItemGroup><Reference Include="System.IO.Compression"/><Reference Include="System.IO.Compression.FileSystem"/><EmbeddedResource Include="Resources/FixtureProcessor.class" LogicalName="FixtureProcessor.class"/></ItemGroup>
 </Project>

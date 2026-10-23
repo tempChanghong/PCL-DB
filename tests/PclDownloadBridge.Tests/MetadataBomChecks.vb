@@ -102,7 +102,7 @@ Friend Module MetadataBomChecks
     Private Async Function InstallAsync(root As String, supplemental As Boolean, passed As List(Of String)) As Task
         Using fixture As New InstallationChecks.InstallFixture(root, "metadata-bom-" & supplemental.ToString(), If(supplemental, "2.0_blue", "1.20.1"))
             Dim index = Encoding.UTF8.GetPreamble().Concat(fixture.Server.Files("/index")).ToArray()
-            Dim meta = JObject.Parse(Encoding.UTF8.GetString(fixture.Server.Files("/version")))
+            Dim meta = If(supplemental, SupplementalInstallFixture.Profile(fixture, "2.0_blue"), JObject.Parse(Encoding.UTF8.GetString(fixture.Server.Files("/version"))))
             meta("assetIndex")("sha1") = Hash(index) : meta("assetIndex")("size") = index.Length
             If supplemental Then
                 meta("type") = "snapshot"

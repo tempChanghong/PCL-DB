@@ -143,6 +143,7 @@ Public NotInheritable Class SupplementalVersions
         If DirectCast(metadata("libraries"), JArray).Any(Function(item) Not TypeOf item Is JObject) Then Throw New InvalidDataException("补充版本包含无效的支持库声明。")
         Dim index = TryCast(metadata("assetIndex"), JObject)
         If index Is Nothing OrElse String.IsNullOrWhiteSpace(StringValue(index("id"))) OrElse Not IsSha1(StringValue(index("sha1"))) Then Throw New InvalidDataException("补充版本资源索引缺少有效校验。")
+        SupplementalLaunchRecipe.ValidateSource(canonical, metadata)
     End Sub
 
     Public Shared Async Function PrepareLibrariesAsync(entry As VersionEntry, metadata As JObject, policy As SourcePolicy, token As CancellationToken) As Task(Of JObject)
@@ -151,7 +152,10 @@ Public NotInheritable Class SupplementalVersions
         If Not entry.IsSupplemental Then Return result
         ValidateMetadata(entry, result)
         Dim libraries = DirectCast(result("libraries"), JArray).OfType(Of JObject)().ToList()
-        If Not libraries.Any(Function(library) library("downloads") Is Nothing OrElse library("downloads").Type = JTokenType.Null) Then Return result
+        If Not libraries.Any(Function(library) library("downloads") Is Nothing OrElse library("downloads").Type = JTokenType.Null) Then
+            SupplementalLaunchRecipe.ValidateLibraries(entry.Id, result)
+            Return result
+        End If
         If Not entry.Id.StartsWith("2.0_", StringComparison.Ordinal) Then Throw New InvalidDataException("该历史版本的支持库下载信息不完整，不能使用 2.0 的参考清单补全。")
         ' UVMC 2.0 profiles retain the original Maven/rules/native declarations,
         ' without download records. Match them to the SHA-1 verified Mojang 1.5.1
@@ -170,6 +174,8 @@ Public NotInheritable Class SupplementalVersions
             If matches.Count = 0 OrElse Not matches.All(Function(item) JToken.DeepEquals(item, matches(0))) Then Throw New InvalidDataException("补充版本的支持库声明与已校验参考不一致：" & StringValue(library("name")))
             library("downloads") = matches(0).DeepClone()
         Next
+        token.ThrowIfCancellationRequested()
+        SupplementalLaunchRecipe.ValidateLibraries(entry.Id, result)
         Return result
     End Function
 

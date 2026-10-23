@@ -126,7 +126,7 @@ Friend Module SupplementalVersionChecks
             Dim installer As New MinecraftInstaller(New FixturePolicy(fixture.Server.Url))
             For Each id In HistoricalIds
                 Dim entry = SupplementalVersions.Parse(Manifest(EntryJson(id))).Single()
-                Dim metadata = DirectCast(source.DeepClone(), JObject)
+                Dim metadata = SupplementalInstallFixture.Profile(fixture, id, source)
                 metadata("id") = id : metadata("type") = entry.Kind
                 fixture.Server.Files("/version") = Encoding.UTF8.GetBytes(metadata.ToString())
                 Using cancel As New CancellationTokenSource()
@@ -306,7 +306,7 @@ Friend Module SupplementalVersionChecks
         For Each rawId In {BlueId, RedId}.Concat(HistoricalIds)
             Dim entry = SupplementalVersions.Parse(Manifest(EntryJson(rawId))).Single()
             Using fixture As New InstallationChecks.InstallFixture(root, "supplement-" & rawId, entry.Id)
-                Dim metadata = JObject.Parse(Encoding.UTF8.GetString(fixture.Server.Files("/version")))
+                Dim metadata = SupplementalInstallFixture.Apply(fixture, entry.Id)
                 metadata("type") = HistoryKind(rawId)
                 fixture.Server.Files("/version") = Encoding.UTF8.GetBytes(metadata.ToString())
                 Dim installer As New MinecraftInstaller(New FixturePolicy(fixture.Server.Url))
@@ -339,7 +339,7 @@ Friend Module SupplementalVersionChecks
             {"redirected client jar", Sub(meta) meta("jar") = "other"}}
         For Each mutation In mutations
             Using fixture As New InstallationChecks.InstallFixture(root, "supplement-reject-" & passed.Count, "2.0_blue")
-                Dim meta = JObject.Parse(Encoding.UTF8.GetString(fixture.Server.Files("/version")))
+                Dim meta = SupplementalInstallFixture.Profile(fixture, "2.0_blue")
                 meta("type") = "snapshot" : mutation.Value.Invoke(meta)
                 fixture.Server.Files("/version") = Encoding.UTF8.GetBytes(meta.ToString())
                 Dim rejected = False
@@ -352,7 +352,7 @@ Friend Module SupplementalVersionChecks
             End Using
         Next
         Using fixture As New InstallationChecks.InstallFixture(root, "supplement-digests", "2.0_blue")
-            Dim meta = JObject.Parse(Encoding.UTF8.GetString(fixture.Server.Files("/version"))) : meta("type") = "snapshot"
+            Dim meta = SupplementalInstallFixture.Profile(fixture, "2.0_blue")
             fixture.Server.Files("/version") = Encoding.UTF8.GetBytes(meta.ToString())
             Dim entry = SupplementalVersions.Parse(Manifest(EntryJson())).Single()
             Dim installer As New MinecraftInstaller(New FixturePolicy(fixture.Server.Url))
@@ -386,7 +386,7 @@ Friend Module SupplementalVersionChecks
         Dim reference = JObject.Parse(Encoding.UTF8.GetString(bytes))
         Using fixture As New InstallationChecks.InstallFixture(root, "supplement-legacy-library-reference", "2.0_blue")
             fixture.Server.Files("/legacy-reference") = bytes
-            Dim metadata = JObject.Parse(Encoding.UTF8.GetString(fixture.Server.Files("/version")))
+            Dim metadata = SupplementalInstallFixture.Profile(fixture, "2.0_blue")
             metadata("type") = "snapshot" : metadata("libraries") = reference("libraries").DeepClone()
             For Each library In DirectCast(metadata("libraries"), JArray).OfType(Of JObject)()
                 library.Remove("downloads")

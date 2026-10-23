@@ -62,6 +62,7 @@ Public Class MinecraftInstaller
             metadata = PreparePclLibraryPaths(metadata)
             Report(progress, "准备安装", "检查组件安装所需的 Java 环境")
             InstallPreflight.VerifyJava(components, metadata)
+            token.ThrowIfCancellationRequested()
             Dim existing As JObject = Nothing
             Dim existingBytes As Byte() = Nothing
             If repairExisting Then
@@ -69,6 +70,7 @@ Public Class MinecraftInstaller
                 Using reader As New StreamReader(New MemoryStream(existingBytes), Encoding.UTF8, True)
                     existing = JObject.Parse(reader.ReadToEnd())
                 End Using
+                If entry.IsSupplemental Then SupplementalLaunchRecipe.ValidateExisting(entry.Id, existing)
             End If
             Dim legacySupplementalIndex = entry.IsSupplemental AndAlso PrepareSupplementalAssetIndex(metadata, existing)
             If repairExisting Then
