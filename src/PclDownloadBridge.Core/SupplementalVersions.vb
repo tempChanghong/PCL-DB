@@ -29,7 +29,8 @@ Public NotInheritable Class SupplementalVersions
         "b1.9-pre6", "1.0.0-rc1", "b1.9-pre1", "b1.9-pre2", "b1.9-pre3", "b1.9-pre4", "b1.9-pre5",
         "b1.8-pre2", "b1.8-pre1-2", "b1.8-pre1-1", "b1.1-1", "b1.1-2"})
     Private Shared ReadOnly AlphaIds As IReadOnlyList(Of String) = Array.AsReadOnly(New String() {
-        "c0.0.12a_03", "a1.1.1", "inf-20100630-1", "a1.1.0-2", "a1.1.0-1", "a1.0.17_03", "a1.0.16_02"})
+        "c0.0.12a_03", "a1.1.1", "inf-20100630-1", "a1.1.0-2", "a1.1.0-1", "a1.0.17_03", "a1.0.16_02",
+        "a1.0.14-1", "a1.0.14-2", "a1.0.13_01-1", "a1.0.13_01-2"})
     Private Shared ReadOnly Aliases As Dictionary(Of String, String) = CreateAliases()
 
     Public Shared ReadOnly Property HistoricalSnapshotIds As IReadOnlyList(Of String)

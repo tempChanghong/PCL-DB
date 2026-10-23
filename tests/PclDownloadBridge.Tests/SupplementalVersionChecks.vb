@@ -89,8 +89,8 @@ Friend Module SupplementalVersionChecks
         Check(immutable AndAlso SupplementalVersions.HistoricalSnapshotIds(0) = firstSnapshot, "callers cannot mutate the historical snapshot registry", passed)
         Check(New HashSet(Of String)(archivedBetas, StringComparer.Ordinal).SetEquals(SupplementalVersions.HistoricalBetaIds) AndAlso archivedBetas.Count = 12,
             "all twelve archived Beta identities match the independent classification registry", passed)
-        Check(New HashSet(Of String)(archivedAlphas, StringComparer.Ordinal).SetEquals(SupplementalVersions.HistoricalAlphaIds) AndAlso archivedAlphas.Count = 7,
-            "all seven archived Alpha identities match the independent classification registry", passed)
+        Check(New HashSet(Of String)(archivedAlphas, StringComparer.Ordinal).SetEquals(SupplementalVersions.HistoricalAlphaIds) AndAlso archivedAlphas.Count = 11,
+            "all eleven archived Alpha identities match the independent classification registry", passed)
         immutable = False
         Dim firstAlpha = SupplementalVersions.HistoricalAlphaIds(0)
         Try
@@ -137,9 +137,10 @@ Friend Module SupplementalVersionChecks
     End Sub
 
     Private Sub Alpha15Checks(passed As List(Of String))
-        Dim ids = {"a1.1.0-1", "a1.0.17_03", "a1.0.16_02"}
-        Dim hashes = {"ea8db151ce4d1b2d4c60beb6ebc0abb65e8d7444", "d0bfecc9966d6106b304dd219cf73f5e6670203b", "b45ada7f4f421298be217e805d2ccd41e3421c6a"}
-        Dim sizes = {872811L, 867329L, 860260L}
+        Dim ids = SupplementalInstallFixture.Alpha15Ids.ToArray()
+        Dim hashes = {"ea8db151ce4d1b2d4c60beb6ebc0abb65e8d7444", "d0bfecc9966d6106b304dd219cf73f5e6670203b", "b45ada7f4f421298be217e805d2ccd41e3421c6a",
+            "439be76e595fa0850636bd2a2ba991b30c651c7f", "5f2965a915fa9f040e6f908cf64e1ee5ba1db44e", "bb680bcaa6334c73d10bba7c7a29b4c112d4cdce", "7d6efcd302b730c834a9d8040584bf71a7f97d02"}
+        Dim sizes = {872811L, 867329L, 860260L, 852817L, 852834L, 843401L, 843414L}
         For i = 0 To ids.Length - 1
             Dim id = ids(i), profile = JObject.Parse(Encoding.UTF8.GetString(SupplementalInstallFixture.Resource("Historical." & id & ".json")))
             Dim entry = SupplementalVersions.Parse(Manifest(EntryJson(id))).Single()
@@ -152,9 +153,32 @@ Friend Module SupplementalVersionChecks
                 Check(SupplementalVersions.Parse(Manifest(wrong, EntryJson(other))).Single().Id = other, "Alpha 1.5 cross-version URL cannot shadow its valid neighbor: " & id & " <- " & other, passed)
             Next
         Next
-        For Each unknown In {"a1.1.0", "a1.1.0-3", "a1.0.17", "a1.0.16", "a1.0.14-1", "a1_1_0-1", "a1_0_17_03", "a1_0_16_02"}
+        For Each unknown In {"a1.1.0", "a1.1.0-3", "a1.0.17", "a1.0.16", "a1.0.13", "a1.0.14", "a1.0.13_01", "a1.0.14-3", "a1.0.13_01-3",
+            "a1_1_0-1", "a1_0_17_03", "a1_0_16_02", "a1_0_14-1", "a1_0_13_01-2"}
             Dim wrong = EntryJson(ids(0)) : wrong("id") = unknown
             Check(SupplementalVersions.Parse(Manifest(wrong, EntryJson(ids(0)))).Single().Id = ids(0), "Alpha 1.5 does not register guessed aliases or unverified siblings: " & unknown, passed)
+        Next
+        For Each pair In New String()() {New String() {"a1.0.14-1", "a1.0.14-2"}, New String() {"a1.0.13_01-1", "a1.0.13_01-2"}}
+            Dim profiles = pair.Select(Function(id) JObject.Parse(Encoding.UTF8.GetString(SupplementalInstallFixture.Resource("Historical." & id & ".json")))).ToArray()
+            Dim entries = pair.Select(Function(id) EntryJson(id)).ToArray()
+            For i = 0 To pair.Length - 1
+                entries(i)("releaseTime") = profiles(i)("releaseTime").DeepClone()
+            Next
+            For Each reversed In {False, True}
+                Dim ordered = If(reversed, entries.Reverse().ToArray(), entries)
+                Dim parsed = SupplementalVersions.Parse(Manifest(ordered)), merged = SupplementalVersions.Merge({}, parsed)
+                Check(merged.Count = 2 AndAlso merged(0).Released = merged(1).Released AndAlso merged.Select(Function(item) item.Id).SequenceEqual(ordered.Select(Function(item) CStr(item("id")))) AndAlso
+                    CStr(profiles(0).SelectToken("downloads.client.sha1")) <> CStr(profiles(1).SelectToken("downloads.client.sha1")), "same-date Alpha revisions keep distinct clients and stable input order: " & pair(0) & " " & reversed, passed)
+            Next
+            For i = 0 To pair.Length - 1
+                Dim rejected = False
+                Try
+                    SupplementalVersions.ValidateMetadata(SupplementalVersions.Parse(Manifest(entries(i))).Single(), profiles(1 - i))
+                Catch ex As InvalidDataException
+                    rejected = True
+                End Try
+                Check(rejected, "same-date Alpha revision refuses its sibling's metadata: " & pair(i), passed)
+            Next
         Next
     End Sub
 

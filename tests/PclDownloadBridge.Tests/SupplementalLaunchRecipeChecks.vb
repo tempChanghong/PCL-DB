@@ -151,7 +151,7 @@ Friend Module SupplementalLaunchRecipeChecks
     End Function
 
     Private Async Function Alpha15Async(root As String, passed As List(Of String)) As Task
-        For Each id In {"a1.1.0-1", "a1.0.17_03", "a1.0.16_02"}
+        For Each id In SupplementalInstallFixture.Alpha15Ids
             Using fixture As New InstallationChecks.InstallFixture(root, "alpha15-recipe-" & id)
                 Dim source = SupplementalInstallFixture.Profile(fixture, id), entry = SupplementalInstallFixture.Entry(id)
                 Dim vanillaArguments = SupplementalInstallFixture.Arguments("a1.1.0-2")
