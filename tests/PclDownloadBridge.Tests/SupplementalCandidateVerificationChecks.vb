@@ -76,7 +76,7 @@ Friend Module SupplementalCandidateVerificationChecks
             Check(failed AndAlso Not CBool(failure("succeeded")) AndAlso Not CBool(failure("records")(0)("succeeded")) AndAlso failure("failure") IsNot Nothing AndAlso
                 Not Directory.Exists(Path.Combine(failedOutput, "game")), "candidate tool persists an explicit failure and does not install invalid metadata", passed)
         End Using
-        For Each id In {"13w10b", "13w10a", "13w09c", "13w09b", "11w47a"}
+        For Each id In SupplementalVersions.HistoricalSnapshotIds
             Using fixture As New InstallationChecks.InstallFixture(root, "snapshot-map-" & id)
                 ApplyMappedProfile(fixture, id)
                 Dim installer As New MinecraftInstaller(New Policy(fixture.Server.Url)), entry = SupplementalInstallFixture.Entry(id)

@@ -7,7 +7,7 @@ Imports PclDownloadBridge.Core
 Friend Module SupplementalVersionChecks
     Private Const BlueId As String = "2point0_blue"
     Private Const RedId As String = "2point0_red"
-    Private ReadOnly HistoricalIds As String() = {"c0.0.12a_03", "a1.1.1", "b1.9-pre6", "13w12~", "13w10b", "13w10a", "13w09c", "13w09b", "11w47a"}
+    Private ReadOnly HistoricalIds As String() = {"c0.0.12a_03", "a1.1.1", "b1.9-pre6"}.Concat(SupplementalVersions.HistoricalSnapshotIds).ToArray()
 
     Private Function HistoryKind(id As String) As String
         If id = "c0.0.12a_03" OrElse id = "a1.1.1" Then Return "old_alpha"
@@ -65,6 +65,24 @@ Friend Module SupplementalVersionChecks
     End Function
 
     Private Sub HistoricalParseChecks(passed As List(Of String))
+        Dim archivedSnapshots As New List(Of String)
+        For Each name In Reflection.Assembly.GetExecutingAssembly().GetManifestResourceNames().Where(Function(value) value.StartsWith("Historical.", StringComparison.Ordinal) AndAlso value.EndsWith(".json", StringComparison.Ordinal))
+            Dim profile = JObject.Parse(Encoding.UTF8.GetString(SupplementalInstallFixture.Resource(name)))
+            If CStr(profile("type")) = "snapshot" AndAlso Not CStr(profile("id")).StartsWith("2.0_", StringComparison.Ordinal) Then archivedSnapshots.Add(CStr(profile("id")))
+        Next
+        Check(New HashSet(Of String)(archivedSnapshots, StringComparer.Ordinal).SetEquals(SupplementalVersions.HistoricalSnapshotIds) AndAlso archivedSnapshots.Count = 16,
+            "all sixteen archived snapshot identities match the single production registry", passed)
+        Dim immutable = False, firstSnapshot = SupplementalVersions.HistoricalSnapshotIds(0)
+        Try
+            DirectCast(SupplementalVersions.HistoricalSnapshotIds, IList(Of String))(0) = "unregistered"
+        Catch ex As NotSupportedException
+            immutable = True
+        End Try
+        Check(immutable AndAlso SupplementalVersions.HistoricalSnapshotIds(0) = firstSnapshot, "callers cannot mutate the historical snapshot registry", passed)
+        Dim sameDate = SupplementalVersions.Parse(Manifest(EntryJson("13w07a"), EntryJson("13w11a")))
+        Check(sameDate.Count = 2 AndAlso sameDate(0).Released = sameDate(1).Released AndAlso sameDate(0).Id <> sameDate(1).Id,
+            "same-date archived snapshots retain separate canonical identities", passed)
+        Check(SupplementalVersions.Parse(Manifest(EntryJson("13w99a"))).Count = 0, "snapshot prefixes do not register unknown candidates", passed)
         For Each id In HistoricalIds
             Dim entries = SupplementalVersions.Parse(Manifest(EntryJson(id)))
             Check(entries.Count = 1 AndAlso entries(0).Id = id AndAlso entries(0).Kind = HistoryKind(id), "historical supplement keeps verified identity and classification: " & id, passed)
@@ -72,6 +90,10 @@ Friend Module SupplementalVersionChecks
             Check(entry.Subtitle.Contains(If(entry.Kind = "snapshot", "旧快照", "远古版")) AndAlso Not entry.Subtitle.Contains("愚人节"), "historical supplement is not mislabeled as April Fools: " & id, passed)
             Dim wrong = EntryJson(id) : wrong("type") = If(entry.Kind = "snapshot", "old_alpha", "snapshot")
             Check(SupplementalVersions.Parse(Manifest(wrong)).Count = 0, "historical supplement rejects wrong declared classification: " & id, passed)
+            If entry.Kind = "snapshot" Then
+                wrong = EntryJson(id) : wrong("type") = "pending"
+                Check(SupplementalVersions.Parse(Manifest(wrong)).Count = 0, "historical snapshot cannot inherit the 2.0 pending category: " & id, passed)
+            End If
             wrong = EntryJson(id) : wrong("url") = CStr(wrong("url")).Replace("/files/", "/files/../files/")
             Check(SupplementalVersions.Parse(Manifest(wrong)).Count = 0, "historical supplement requires its exact mapped URL: " & id, passed)
             Dim official As New VersionEntry With {.Id = id.ToUpperInvariant(), .Kind = HistoryKind(id)}

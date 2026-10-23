@@ -15,7 +15,21 @@ Public NotInheritable Class SupplementalVersions
     Public Const LegacyAssetIndexUrl As String = "https://launchermeta.mojang.com/mc-staging/assets/legacy/c0fd82e8ce9fbc93119e40d96d5a4e62cfa3f729/legacy.json"
     Public Const LegacyAssetIndexSha1 As String = "c0fd82e8ce9fbc93119e40d96d5a4e62cfa3f729"
     Private Const BaseUrl As String = "https://zkitefly.github.io/unlisted-versions-of-minecraft/files/"
+    ' Initialize before Aliases, which consumes this same read-only registry.
+    Private Shared ReadOnly SnapshotIds As IReadOnlyList(Of String) = Array.AsReadOnly(New String() {
+        "13w12~", "13w10b", "13w10a", "13w09c", "13w09b", "11w47a",
+        "13w09a", "13w07a", "13w11a", "13w06a", "13w05b", "13w05a", "13w04a", "13w03a", "13w02b", "13w02a"})
     Private Shared ReadOnly Aliases As Dictionary(Of String, String) = CreateAliases()
+
+    Public Shared ReadOnly Property HistoricalSnapshotIds As IReadOnlyList(Of String)
+        Get
+            Return SnapshotIds
+        End Get
+    End Property
+
+    Friend Shared Function IsHistoricalSnapshot(id As String) As Boolean
+        Return SnapshotIds.Contains(id, StringComparer.Ordinal)
+    End Function
 
     Private Shared Function CreateAliases() As Dictionary(Of String, String)
         Dim result As New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)
@@ -24,7 +38,7 @@ Public NotInheritable Class SupplementalVersions
             result.Add("2point0_" & color, "2.0_" & color)
             result.Add("2.0_" & color, "2.0_" & color)
         Next
-        For Each id In {"c0.0.12a_03", "a1.1.1", "b1.9-pre6", "13w12~", "1.0.0-rc1", "inf-20100630-1", "13w10b", "13w10a", "13w09c", "13w09b", "11w47a"}
+        For Each id In {"c0.0.12a_03", "a1.1.1", "b1.9-pre6", "1.0.0-rc1", "inf-20100630-1"}.Concat(SnapshotIds)
             result.Add(id, id)
         Next
         Return result
@@ -41,10 +55,10 @@ Public NotInheritable Class SupplementalVersions
     End Function
 
     Private Shared Function ValidKind(id As String, kind As String) As Boolean
+        If IsHistoricalSnapshot(id) Then Return kind = "snapshot"
         Select Case id
             Case "c0.0.12a_03", "a1.1.1", "inf-20100630-1" : Return kind = "old_alpha"
             Case "b1.9-pre6", "1.0.0-rc1" : Return kind = "old_beta"
-            Case "13w12~", "13w10b", "13w10a", "13w09c", "13w09b", "11w47a" : Return kind = "snapshot"
             Case Else : Return kind = "snapshot" OrElse kind = "pending"
         End Select
     End Function
