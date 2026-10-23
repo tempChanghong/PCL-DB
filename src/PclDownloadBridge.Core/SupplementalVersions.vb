@@ -18,7 +18,8 @@ Public NotInheritable Class SupplementalVersions
     ' Initialize before Aliases, which consumes this same read-only registry.
     Private Shared ReadOnly SnapshotIds As IReadOnlyList(Of String) = Array.AsReadOnly(New String() {
         "13w12~", "13w10b", "13w10a", "13w09c", "13w09b", "11w47a",
-        "13w09a", "13w07a", "13w11a", "13w06a", "13w05b", "13w05a", "13w04a", "13w03a", "13w02b", "13w02a"})
+        "13w09a", "13w07a", "13w11a", "13w06a", "13w05b", "13w05a", "13w04a", "13w03a", "13w02b", "13w02a",
+        "13w01b", "13w01a", "12w50b", "12w50a", "12w49a", "12w42b", "12w42a", "12w41b", "12w41a", "12w40b"})
     Private Shared ReadOnly Aliases As Dictionary(Of String, String) = CreateAliases()
 
     Public Shared ReadOnly Property HistoricalSnapshotIds As IReadOnlyList(Of String)
