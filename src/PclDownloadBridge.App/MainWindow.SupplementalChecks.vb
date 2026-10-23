@@ -23,10 +23,10 @@ Partial Public Class MainWindow
             pending.SetResult(New List(Of VersionEntry) From {blue, red, purple})
             Await loading
             results("normalRowRetained") = BrowserRows("正式版").Single() Is originalRow
-            Dim blueRow = BrowserRows("特供版本").First()
-            results("categoriesAndLatest") = blueRow.Tag Is blue AndAlso blueRow.Info.Contains("UVMC") AndAlso BrowserRows("特供版本").Any(Function(row) row.Tag Is red) AndAlso
-                BrowserRows("特供版本").Any(Function(row) row.Tag Is purple) AndAlso BrowserRows("特供版本").Select(Function(row) row.Info).Distinct().Count() = 3 AndAlso
-                BrowserRows("愚人节版").Count = 0 AndAlso BrowserRows("远古版").Count = 0 AndAlso BrowserRows("预览版").Count = 0 AndAlso BrowserRows("最新版本").Single().Tag Is normal
+            Dim blueRow = BrowserRows("愚人节版").First()
+            results("categoriesAndLatest") = blueRow.Tag Is blue AndAlso blueRow.Info.StartsWith("[PCL-DB特供] ", StringComparison.Ordinal) AndAlso BrowserRows("愚人节版").Any(Function(row) row.Tag Is red) AndAlso
+                BrowserRows("愚人节版").Any(Function(row) row.Tag Is purple) AndAlso BrowserRows("愚人节版").Select(Function(row) row.Info).Distinct().Count() = 3 AndAlso
+                BrowserRows("特供版本").Count = 0 AndAlso BrowserRows("远古版").Count = 0 AndAlso BrowserRows("预览版").Count = 0 AndAlso BrowserRows("最新版本").Single().Tag Is normal
             AddSupplementalVersionCards()
             results("appendIdempotent") = VersionCards.Children.OfType(Of PclCard)().Count() = 3
             Dim componentCalls = 0
@@ -39,7 +39,7 @@ Partial Public Class MainWindow
             Await RefreshComponentListsAsync()
             For Each entry In {red, purple, blue}
                 SetDownloadView(DownloadView.Versions)
-                Dim snapshot = entry.Copy(), row = BrowserRows("特供版本").Single(Function(item) item.Tag Is entry)
+                Dim snapshot = entry.Copy(), row = BrowserRows("愚人节版").Single(Function(item) item.Tag Is entry)
                 row.Activate() : Await RefreshComponentListsAsync()
                 Dim detail = SupplementalVersions.VariantDescription(entry)
                 If _selectedEntry IsNot entry OrElse InstanceName.Text <> SupplementalVersions.DisplayName(entry) OrElse SelectedVersionText.Text <> SupplementalVersions.DisplayName(entry) OrElse
@@ -61,7 +61,7 @@ Partial Public Class MainWindow
             Dim oldWork = LoadVersionsAsync(True), newWork = LoadVersionsAsync(True)
             current.SetResult(New List(Of VersionEntry) From {red}) : Await newWork
             older.SetResult(New List(Of VersionEntry) From {blue}) : Await oldWork
-            results("staleSupplementIgnored") = _versions.Count = 2 AndAlso _versions.Contains(red) AndAlso Not _versions.Contains(blue) AndAlso BrowserRows("特供版本").All(Function(row) row.Tag IsNot blue)
+            results("staleSupplementIgnored") = _versions.Count = 2 AndAlso _versions.Contains(red) AndAlso Not _versions.Contains(blue) AndAlso BrowserRows("愚人节版").All(Function(row) row.Tag IsNot blue)
 
             pending = ListGate(Of VersionEntry)()
             _supplementalProvider = Function(policy, token) pending.Task
@@ -90,14 +90,14 @@ Partial Public Class MainWindow
             results("optionalExceptionKeepsNormal") = _versions.Count = 1 AndAlso _versions(0) Is normal AndAlso Not _versionsDirty AndAlso Not _loading AndAlso Not StatusText.Text.Contains("刷新失败") AndAlso BrowserRows("正式版").Single().Tag Is normal
             _supplementalProvider = Function(policy, token) Task.FromResult(New List(Of VersionEntry) From {red})
             Await LoadVersionsAsync(True)
-            results("optionalExceptionThenRetry") = Not _versionsDirty AndAlso _versions.Count = 2 AndAlso _versions.Contains(red) AndAlso BrowserRows("特供版本").First().Tag Is red
+            results("optionalExceptionThenRetry") = Not _versionsDirty AndAlso _versions.Count = 2 AndAlso _versions.Contains(red) AndAlso BrowserRows("愚人节版").First().Tag Is red
             results("statusReportsActualCategory") = StatusText.Text.Contains("含 1 个补充版本：愚人节版") AndAlso Not StatusText.Text.Contains("战斗测试版")
             Dim officialBlue = BrowserEntry(blue.Id, "snapshot", "2020-08-26T12:00:00Z")
             _versionProvider = Function(policy, token) Task.FromResult(New List(Of VersionEntry) From {normal, officialBlue})
             _supplementalProvider = Function(policy, token) Task.FromResult(New List(Of VersionEntry) From {blue})
             Await LoadVersionsAsync(True)
             results("statusReportsCollisionWithoutAddition") = _versions.Count = 2 AndAlso _versions.Contains(officialBlue) AndAlso Not _versions.Contains(blue) AndAlso
-                BrowserRows("特供版本").All(Function(row) row.Tag IsNot blue) AndAlso StatusText.Text.Contains("无新增补充版本")
+                BrowserRows("愚人节版").All(Function(row) row.Tag IsNot blue) AndAlso StatusText.Text.Contains("无新增补充版本")
             _versionProvider = Function(policy, token) Task.FromResult(New List(Of VersionEntry) From {normal})
             pending = ListGate(Of VersionEntry)()
             _supplementalProvider = Function(policy, token) pending.Task
@@ -128,8 +128,8 @@ Partial Public Class MainWindow
             _versionProvider = Function(policy, token) Task.FromResult(New List(Of VersionEntry) From {normal, rd, fool})
             _supplementalProvider = Function(policy, token) Task.FromResult(New List(Of VersionEntry) From {blue, red})
             Await LoadVersionsAsync(True)
-            results("officialRdAndFoolsRetained") = BrowserRows("远古版").Single().Tag Is rd AndAlso Not rd.IsSupplemental AndAlso BrowserRows("愚人节版").Single().Tag Is fool AndAlso
-                BrowserRows("特供版本").Count = 2 AndAlso BrowserRows("特供版本").First().Title.Contains("2.0（蓝色版）") AndAlso BrowserRows("战斗测试版").Count = 0 AndAlso BrowserRows("实验快照").Count = 0
+            results("officialRdAndFoolsRetained") = BrowserRows("远古版").Single().Tag Is rd AndAlso Not rd.IsSupplemental AndAlso BrowserRows("愚人节版").Any(Function(row) row.Tag Is fool) AndAlso
+                BrowserRows("愚人节版").Count = 3 AndAlso BrowserRows("愚人节版").First().Title.Contains("2.0（蓝色版）") AndAlso BrowserRows("特供版本").Count = 0 AndAlso BrowserRows("战斗测试版").Count = 0 AndAlso BrowserRows("实验快照").Count = 0
             Dim history As New List(Of VersionEntry)
             For Each id In SupplementalVersions.HistoricalAlphaIds.Concat(SupplementalVersions.HistoricalBetaIds).Concat(SupplementalVersions.HistoricalSnapshotIds)
                 history.Add(New VersionEntry With {.Id = id, .SupplementalId = id, .Kind = If(SupplementalVersions.HistoricalSnapshotIds.Contains(id), "snapshot", If(SupplementalVersions.HistoricalBetaIds.Contains(id), "old_beta", "old_alpha")), .Released = blue.Released})
@@ -141,12 +141,12 @@ Partial Public Class MainWindow
             loading = LoadVersionsAsync(True)
             originalRow = BrowserRows("正式版").Single()
             pending.SetResult(history.Concat({blue, red}).ToList()) : Await loading
-            results("historyDoesNotReplaceNormalOrLatest") = BrowserRows("正式版").Single() Is originalRow AndAlso BrowserRows("最新版本").Single().Tag Is normal AndAlso BrowserRows("远古版").Single().Tag Is rd
+            results("historyDoesNotReplaceNormalOrLatest") = BrowserRows("正式版").Single() Is originalRow AndAlso BrowserRows("最新版本").Single().Tag Is normal AndAlso BrowserRows("远古版").Any(Function(row) row.Tag Is rd)
             AddSupplementalVersionCards()
-            results("historyCategoriesAndIcons") = BrowserRows("远古版本补充").Count = 23 AndAlso BrowserRows("历史快照补充").Count = 67 AndAlso BrowserRows("历史快照补充").Any(Function(row) row.Tag Is oldSnapshot) AndAlso
-                BrowserRows("特供版本").Count = 2 AndAlso New VersionPresentation(history(0)).Icon.Contains("CobbleStone") AndAlso New VersionPresentation(oldSnapshot).Icon.Contains("CommandBlock") AndAlso
+            results("historyCategoriesAndIcons") = BrowserRows("远古版").Count = 24 AndAlso BrowserRows("预览版").Count = 67 AndAlso BrowserRows("预览版").Any(Function(row) row.Tag Is oldSnapshot) AndAlso
+                BrowserRows("愚人节版").Count = 3 AndAlso New VersionPresentation(history(0)).Icon.Contains("CobbleStone") AndAlso New VersionPresentation(oldSnapshot).Icon.Contains("CommandBlock") AndAlso
                 historyViews.All(Function(view) view.Kind = view.Entry.Kind AndAlso view.DisplayId = view.Entry.Id AndAlso view.Icon.Contains(If(view.Kind = "snapshot", "CommandBlock", "CobbleStone"))) AndAlso
-                VersionCards.Children.OfType(Of PclCard)().Count() = 7 AndAlso StatusText.Text.Contains("远古版") AndAlso StatusText.Text.Contains("旧快照")
+                VersionCards.Children.OfType(Of PclCard)().Count() = 5 AndAlso StatusText.Text.Contains("远古版") AndAlso StatusText.Text.Contains("旧快照")
             For Each item In history
                 Dim row = BrowserRows(New VersionPresentation(item).Category).Single(Function(value) value.Tag Is item)
                 row.Activate() : Await RefreshComponentListsAsync()
@@ -154,6 +154,9 @@ Partial Public Class MainWindow
                 SetDownloadView(DownloadView.Versions)
             Next
             results("historyVanillaSelection") = componentCalls = 0
+            For Each item In VerifySupplementalGrouping(directory).Properties()
+                results(item.Name) = item.Value.DeepClone()
+            Next
             If directory IsNot Nothing Then IO.File.WriteAllText(IO.Path.Combine(directory, "supplemental-workflow.json"), results.ToString())
             Return results.Properties().All(Function(item) CBool(item.Value))
         Finally

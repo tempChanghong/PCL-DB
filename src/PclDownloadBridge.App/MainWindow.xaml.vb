@@ -158,7 +158,7 @@ Partial Public Class MainWindow
                 For Each colour In {"blue", "red", "purple"}
                     _versions.Add(New VersionEntry With {.Id = "2.0_" & colour, .SupplementalId = "2point0_" & colour, .Kind = "snapshot", .Released = DateTimeOffset.Parse("2013-04-01T12:00:00Z")})
                 Next
-                UpdateVersions() : BrowserRows("特供版本")
+                UpdateVersions() : BrowserRows("愚人节版")
                 If page = "version-colour-red" Then SelectVersion(_versions.Single(Function(entry) entry.Id = "2.0_red"))
             Case "name-invalid"
                 SelectVersion(_versions(0))
@@ -438,8 +438,8 @@ Partial Public Class MainWindow
                     Dim extra = Await If(_supplementalProvider Is Nothing, SupplementalVersions.LoadAsync(Policy(), request.Token), _supplementalProvider(Policy(), request.Token))
                     If _closing OrElse generation <> _versionGeneration OrElse _busy Then Return
                     _versions = SupplementalVersions.Merge(_versions, extra)
-                    ' Append separate PCL-style folded groups without rebuilding rows the
-                    ' user has already opened, focused or scrolled through.
+                    ' Insert optional entries into PCL's ordinary categories without
+                    ' rebuilding rows the user has already opened or focused.
                     AddSupplementalVersionCards()
                     If _downloadView = DownloadView.Versions AndAlso StatusText.Text = status Then StatusText.Text = SupplementalCatalogueStatus(extra.Count > 0)
                 Catch ex As OperationCanceledException
@@ -562,42 +562,9 @@ Partial Public Class MainWindow
         If releases.Count > 0 Then latest.Add(releases(0))
         If snapshots.Count > 0 AndAlso (releases.Count = 0 OrElse snapshots(0).Entry.Released > releases(0).Entry.Released) Then latest.Add(snapshots(0))
         AddVersionCard("最新版本", latest, False, True)
-        For Each category In {"正式版", "预览版", "远古版", "愚人节版"}
+        For Each category In VersionCategories
             AddVersionCard(category, versions.Where(Function(v) v.Category = category).ToList(), True, False)
         Next
-        AddSupplementalVersionCards()
-    End Sub
-
-    Private Sub AddSupplementalVersionCards()
-        For Each category In {"特供版本", "远古版本补充", "历史快照补充"}
-            If VersionCards.Children.OfType(Of PclCard)().Any(Function(card) card.Title.StartsWith(category & " (", StringComparison.Ordinal)) Then Continue For
-            Dim entries = _versions.Where(Function(entry) entry.IsSupplemental).Select(Function(entry) New VersionPresentation(entry)).
-                Where(Function(entry) entry.Category = category).OrderByDescending(Function(entry) entry.Entry.Released).ToList()
-            AddVersionCard(category, entries, True, False)
-        Next
-    End Sub
-
-    Private Sub AddVersionCard(title As String, entries As List(Of VersionPresentation), collapsed As Boolean, latest As Boolean)
-        If entries.Count = 0 Then Return
-        Dim card As New PclCard With {.Title = title & If(latest, "", " (" & entries.Count & ")"), .Collapsible = Not latest}
-        card.Builder = Function()
-                           Dim stack As New StackPanel()
-                           For Each entry In entries
-                               stack.Children.Add(New PclLazyRow(Function()
-                                                                    Dim row As New PclListItem With {.Title = entry.DisplayId, .Height = 42, .Info = entry.Description(latest), .Logo = entry.Icon, .Tag = entry.Entry}
-                                                                    AddHandler row.Click, Sub(sender, args)
-                                                                                              Dim keyboard = TypeOf args Is Input.KeyEventArgs
-                                                                                              _keyboardVersionReturn = If(keyboard, New WeakReference(Of PclListItem)(row), Nothing)
-                                                                                              SelectVersion(entry.Entry)
-                                                                                              If keyboard Then FocusDownloadPage()
-                                                                                          End Sub
-                                                                    Return row
-                                                                End Function))
-                           Next
-                           Return stack
-                       End Function
-        card.Collapsed = collapsed
-        VersionCards.Children.Add(card)
     End Sub
 
     Private Shared Function IconFor(entry As VersionEntry) As String
