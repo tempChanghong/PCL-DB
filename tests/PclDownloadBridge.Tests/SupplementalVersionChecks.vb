@@ -19,6 +19,10 @@ Friend Module SupplementalVersionChecks
         Dim canonical = id.Replace("2point0_", "2.0_")
         Dim slug = canonical.Replace("2.0_", "2point0_")
         If SupplementalVersions.HistoricalBetaIds.Contains(id) AndAlso id.StartsWith("b1.9-pre", StringComparison.Ordinal) Then slug = id.Replace("b1.9-", "b1_9-")
+        Select Case id
+            Case "b1.8-pre2" : slug = "b1_8-pre2"
+            Case "b1.8-pre1-2" : slug = "b1_8-pre1"
+        End Select
         If id = "13w12~" Then slug = "13w12-"
         If id = "1.2" Then slug = "1_2"
         Return New JObject From {{"id", id}, {"type", HistoryKind(id)}, {"url", "https://zkitefly.github.io/unlisted-versions-of-minecraft/files/" & slug & "/" & slug & ".json"}, {"releaseTime", "2021-04-01T12:00:00Z"}}
@@ -82,8 +86,8 @@ Friend Module SupplementalVersionChecks
             immutable = True
         End Try
         Check(immutable AndAlso SupplementalVersions.HistoricalSnapshotIds(0) = firstSnapshot, "callers cannot mutate the historical snapshot registry", passed)
-        Check(New HashSet(Of String)(archivedBetas, StringComparer.Ordinal).SetEquals(SupplementalVersions.HistoricalBetaIds) AndAlso archivedBetas.Count = 7,
-            "all seven archived Beta identities match the independent classification registry", passed)
+        Check(New HashSet(Of String)(archivedBetas, StringComparer.Ordinal).SetEquals(SupplementalVersions.HistoricalBetaIds) AndAlso archivedBetas.Count = 10,
+            "all ten archived Beta identities match the independent classification registry", passed)
         immutable = False
         Dim firstBeta = SupplementalVersions.HistoricalBetaIds(0)
         Try
@@ -97,6 +101,7 @@ Friend Module SupplementalVersionChecks
             Dim slug = id.Replace("b1.9-", "b1_9-")
             Check(SupplementalVersions.Parse(Manifest(EntryJson(slug), EntryJson(id))).Single().Id = id, "Beta path slug is not an alias and cannot hide its valid neighbor: " & id, passed)
         Next
+        Beta18Checks(passed)
         Dim sameDate = SupplementalVersions.Parse(Manifest(EntryJson("13w07a"), EntryJson("13w11a")))
         Check(sameDate.Count = 2 AndAlso sameDate(0).Released = sameDate(1).Released AndAlso sameDate(0).Id <> sameDate(1).Id,
             "same-date archived snapshots retain separate canonical identities", passed)
@@ -116,6 +121,56 @@ Friend Module SupplementalVersionChecks
             Check(SupplementalVersions.Merge({official}, entries).Single() Is official, "official historical declaration wins case-insensitive collision: " & id, passed)
         Next
         Check(SupplementalVersions.Parse(Manifest(EntryJson("13w12-"), EntryJson("b1_9-pre6"), EntryJson("1_2"), EntryJson("in-20100223"), EntryJson("c0.30-1"))).Count = 0, "URL slugs are not version aliases and deferred history stays outside the allowlist", passed)
+    End Sub
+
+    Private Sub Beta18Checks(passed As List(Of String))
+        Const prefix As String = "https://zkitefly.github.io/unlisted-versions-of-minecraft/files/"
+        Dim expected As New Dictionary(Of String, String)(StringComparer.Ordinal) From {
+            {"b1.8-pre2", "b1_8-pre2"}, {"b1.8-pre1-2", "b1_8-pre1"}, {"b1.8-pre1-1", "b1.8-pre1-1"}}
+        For Each pair In expected
+            Dim id = pair.Key, slug = pair.Value, entry = EntryJson(id)
+            entry("url") = prefix & slug & "/" & slug & ".json"
+            Check(SupplementalVersions.Parse(Manifest(entry)).Single().Id = id, "Beta 1.8 uses its individually archived URL: " & id, passed)
+            Dim wrongSlugs = expected.Values.Concat({id.Replace("b1.8-", "b1_8-"), "b1.8-pre1", "b1_8-pre1-2", id}).Distinct(StringComparer.Ordinal).Where(Function(value) value <> slug)
+            For Each wrongSlug In wrongSlugs
+                Dim wrong = DirectCast(entry.DeepClone(), JObject)
+                wrong("url") = prefix & wrongSlug & "/" & wrongSlug & ".json"
+                Dim parsed = SupplementalVersions.Parse(Manifest(wrong, EntryJson("b1.9-pre6")))
+                Check(parsed.Count = 1 AndAlso parsed(0).Id = "b1.9-pre6", "Beta 1.8 rejects guessed or cross-version path without hiding a neighbor: " & id & " -> " & wrongSlug, passed)
+            Next
+            If id <> slug Then
+                Dim wrong = DirectCast(entry.DeepClone(), JObject) : wrong("id") = slug
+                Check(SupplementalVersions.Parse(Manifest(wrong, entry)).Single().Id = id, "Beta 1.8 URL slug cannot alias or shadow the actual identity: " & id, passed)
+            End If
+            For Each other In expected.Keys.Where(Function(value) value <> id)
+                Dim profile = JObject.Parse(Encoding.UTF8.GetString(SupplementalInstallFixture.Resource("Historical." & other & ".json"))), rejected = False
+                Try
+                    SupplementalVersions.ValidateMetadata(SupplementalVersions.Parse(Manifest(entry)).Single(), profile)
+                Catch ex As InvalidDataException
+                    rejected = True
+                End Try
+                Check(rejected, "Beta 1.8 refuses another revision's metadata: " & id & " <- " & other, passed)
+            Next
+        Next
+        For Each unknown In {"b1.8-pre1", "b1.8-pre3", "b1_8-pre1", "b1_8-pre2", "b1_8-pre1-1", "b1_8-pre1-2"}
+            Dim wrong = EntryJson("b1.8-pre1-2") : wrong("id") = unknown
+            Check(SupplementalVersions.Parse(Manifest(wrong, EntryJson("b1.8-pre1-2"))).Single().Id = "b1.8-pre1-2", "Beta 1.8 rejects ambiguous or unregistered identity beside a valid revision: " & unknown, passed)
+        Next
+        Dim revisions As New List(Of VersionEntry), hashes As New HashSet(Of String)(StringComparer.Ordinal)
+        For Each id In {"b1.8-pre1-1", "b1.8-pre1-2"}
+            Dim profile = JObject.Parse(Encoding.UTF8.GetString(SupplementalInstallFixture.Resource("Historical." & id & ".json")))
+            Dim entry = EntryJson(id) : entry("releaseTime") = profile("releaseTime").DeepClone()
+            revisions.Add(SupplementalVersions.Parse(Manifest(entry)).Single())
+            hashes.Add(CStr(profile("downloads")("client")("sha1")))
+            Dim plan = MinecraftInstaller.BuildBasePlan(profile, id)
+            SupplementalVersions.ValidatePlan(plan)
+            Dim client = plan.Single(Function(file) file.RelativePath = "versions/" & id & "/" & id & ".jar")
+            Check(client.Sha1 = CStr(profile("downloads")("client")("sha1")) AndAlso client.Size = If(id = "b1.8-pre1-1", 1890166L, 1893151L), "Beta 1.8 pre1 retains its own client hash and parsed size: " & id, passed)
+            If id = "b1.8-pre1-1" Then Check(profile("downloads")("client")("size").Type = JTokenType.String, "Beta 1.8 pre1-1 retains original string size in its archived metadata", passed)
+        Next
+        Dim merged = SupplementalVersions.Merge({}, revisions)
+        Check(merged.Count = 2 AndAlso merged(0).Released = merged(1).Released AndAlso hashes.Count = 2 AndAlso merged.Select(Function(entry) entry.Id).Distinct().Count() = 2,
+            "same-date Beta 1.8 pre1 revisions keep distinct identities and clients", passed)
     End Sub
 
     Private Async Function HistoricalProfilesAsync(passed As List(Of String)) As Task

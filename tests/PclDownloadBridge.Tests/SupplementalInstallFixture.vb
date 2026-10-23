@@ -25,6 +25,10 @@ Friend NotInheritable Class SupplementalInstallFixture
     Friend Shared Function Entry(id As String) As PclDownloadBridge.Core.VersionEntry
         Dim slug = id.Replace("2.0_", "2point0_")
         If SupplementalVersions.HistoricalBetaIds.Contains(id) AndAlso id.StartsWith("b1.9-pre", StringComparison.Ordinal) Then slug = id.Replace("b1.9-", "b1_9-")
+        Select Case id
+            Case "b1.8-pre2" : slug = "b1_8-pre2"
+            Case "b1.8-pre1-2" : slug = "b1_8-pre1"
+        End Select
         If id = "13w12~" Then slug = "13w12-"
         If id = "1.2" Then slug = "1_2"
         Return New PclDownloadBridge.Core.VersionEntry With {.Id = id, .SupplementalId = If(id.StartsWith("2.0_", StringComparison.Ordinal), slug, id), .Kind = Kind(id),

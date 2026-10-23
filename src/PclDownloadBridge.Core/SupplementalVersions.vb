@@ -26,7 +26,8 @@ Public NotInheritable Class SupplementalVersions
         "12w06a", "12w05a", "12w05b", "12w04a", "12w03a", "12w01a", "11w50a", "11w49a", "11w48a"})
     ' Beta classification is independent from its launch recipe (RC1 uses 1.6/Alpha).
     Private Shared ReadOnly BetaIds As IReadOnlyList(Of String) = Array.AsReadOnly(New String() {
-        "b1.9-pre6", "1.0.0-rc1", "b1.9-pre1", "b1.9-pre2", "b1.9-pre3", "b1.9-pre4", "b1.9-pre5"})
+        "b1.9-pre6", "1.0.0-rc1", "b1.9-pre1", "b1.9-pre2", "b1.9-pre3", "b1.9-pre4", "b1.9-pre5",
+        "b1.8-pre2", "b1.8-pre1-2", "b1.8-pre1-1"})
     Private Shared ReadOnly Aliases As Dictionary(Of String, String) = CreateAliases()
 
     Public Shared ReadOnly Property HistoricalSnapshotIds As IReadOnlyList(Of String)
@@ -147,6 +148,11 @@ Public NotInheritable Class SupplementalVersions
     Private Shared Function MetadataUrl(id As String) As String
         Dim slug = id.Replace("2.0_", "2point0_")
         If IsHistoricalBeta(id) AndAlso id.StartsWith("b1.9-pre", StringComparison.Ordinal) Then slug = id.Replace("b1.9-", "b1_9-")
+        ' b1.8-pre1-2 drops its final revision in the URL; pre1-1 keeps its dots.
+        Select Case id
+            Case "b1.8-pre2" : slug = "b1_8-pre2"
+            Case "b1.8-pre1-2" : slug = "b1_8-pre1"
+        End Select
         If id = "13w12~" Then slug = "13w12-"
         If id = "1.2" Then slug = "1_2"
         Return BaseUrl & slug & "/" & slug & ".json"
