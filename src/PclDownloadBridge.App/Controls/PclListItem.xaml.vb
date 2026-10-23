@@ -10,7 +10,7 @@ Namespace Controls
         Public Event Click As RoutedEventHandler
         Public Shared ReadOnly TitleProperty As DependencyProperty = DependencyProperty.Register("Title", GetType(String), GetType(PclListItem), New PropertyMetadata(""))
         Public Shared ReadOnly ForegroundProperty As DependencyProperty = DependencyProperty.Register("Foreground", GetType(Brush), GetType(PclListItem), New PropertyMetadata(Brushes.Black))
-        Public Shared ReadOnly FontSizeProperty As DependencyProperty = DependencyProperty.Register("FontSize", GetType(Double), GetType(PclListItem), New PropertyMetadata(13.0))
+        Public Shared ReadOnly FontSizeProperty As DependencyProperty = DependencyProperty.Register("FontSize", GetType(Double), GetType(PclListItem), New PropertyMetadata(14.0))
         Public Property Title As String
             Get
                 Return CStr(GetValue(TitleProperty))
@@ -60,7 +60,7 @@ Namespace Controls
             End Get
             Set(value As Boolean)
                 _outlineLogo = value
-                RefreshLogoStyle()
+                RefreshMetrics()
             End Set
         End Property
         Private _isSidebar As Boolean
@@ -71,6 +71,7 @@ Namespace Controls
             Set(value As Boolean)
                 If _isSidebar = value Then Return
                 _isSidebar = value
+                RefreshMetrics()
                 RefreshHover(True)
             End Set
         End Property
@@ -92,7 +93,7 @@ Namespace Controls
             Set(value As String)
                 _info.Text = value
                 _info.Visibility = If(String.IsNullOrEmpty(value), Visibility.Collapsed, Visibility.Visible)
-                LabTitle.Margin = New Thickness(4, 0, 0, If(String.IsNullOrEmpty(value), 0, 2))
+                RefreshMetrics()
             End Set
         End Property
         Public Property Logo As String
@@ -101,6 +102,12 @@ Namespace Controls
             End Get
             Set(value As String)
                 If _logo IsNot Nothing Then Children.Remove(_logo)
+                _logo = Nothing
+                value = If(value, "")
+                If value.Length = 0 Then
+                    RefreshMetrics()
+                    Return
+                End If
                 If value.EndsWith(".png", StringComparison.OrdinalIgnoreCase) Then
                     _logo = New Image With {.Source = New BitmapImage(New Uri(value, UriKind.RelativeOrAbsolute)), .Margin = New Thickness(4, 5, 3, 5), .Stretch = Stretch.Fill}
                     RenderOptions.SetBitmapScalingMode(_logo, BitmapScalingMode.Linear)
@@ -110,16 +117,35 @@ Namespace Controls
                 End If
                 _logo.Tag = value
                 _logo.IsHitTestVisible = False
-                ColumnLogo.Width = New GridLength(If(Height < 40, 34, 38))
                 SetColumn(_logo, 2)
                 SetRowSpan(_logo, 4)
                 Children.Add(_logo)
-                RefreshLogoStyle()
+                RefreshMetrics()
             End Set
         End Property
+        Private Sub RefreshMetrics()
+            ' PCL MyListItem.OnSizeChanged uses declared Height, including Auto:
+            ' NaN < 40 is false, so Auto keeps the full-height row's metrics.
+            Dim compact = Height < 40
+            ColumnCheck.Width = New GridLength(If(IsSidebar, 6, If(compact, 4, 2)))
+            ColumnLogo.Width = New GridLength(If(_logo Is Nothing, 0, 34) + If(compact, 0, 4))
+            LabTitle.Margin = New Thickness(4, 0, 0, If(compact, 0, 2))
+            If _logo Is Nothing Then Return
+            _logo.Margin = If(TypeOf _logo Is Image, New Thickness(4, 5, 3, 5),
+                New Thickness(If(compact, 6, 8), 8, If(compact, 4, 6), 8))
+            RefreshLogoStyle()
+        End Sub
         Private Sub RefreshLogoStyle()
             Dim path = TryCast(_logo, Shapes.Path)
-            If path Is Nothing OrElse Not _outlineLogo Then Return
+            If path Is Nothing Then Return
+            If Not _outlineLogo Then
+                If path.Stroke IsNot Nothing Then
+                    path.ClearValue(Shapes.Path.StrokeProperty)
+                    path.SetBinding(Shapes.Path.FillProperty, New System.Windows.Data.Binding("Foreground") With {.Source = Me})
+                End If
+                path.Width = Double.NaN : path.Height = Double.NaN
+                Return
+            End If
             path.ClearValue(Shapes.Path.FillProperty)
             path.Fill = Nothing
             path.SetBinding(Shapes.Path.StrokeProperty, New System.Windows.Data.Binding("Foreground") With {.Source = Me})
@@ -163,7 +189,7 @@ Namespace Controls
                                   _selectionMotion.Update(_selected, False)
                               End Sub)
             AddHandler SizeChanged, Sub(sender, args)
-                                        ColumnCheck.Width = New GridLength(If(IsSidebar, 6, If(Height < 40, 4, 2)))
+                                        RefreshMetrics()
                                         If args.HeightChanged Then _selectionMotion.Update(_selected, AllowSelectionMotion())
                                     End Sub
             AddHandler MouseEnter, Sub() RefreshHover()
@@ -181,6 +207,7 @@ Namespace Controls
                                              RefreshHover(True)
                                              _selectionMotion?.Update(_selected, False)
                                          End Sub
+            RefreshMetrics()
         End Sub
         Private Function AllowSelectionMotion() As Boolean
             Return IsLoaded AndAlso IsVisible AndAlso IsEnabled AndAlso IsHitTestVisible AndAlso ActualHeight > 0 AndAlso Not PclTheme.Changing

@@ -344,6 +344,8 @@ Partial Public Class MainWindow
         VerifyCompatibilityUi(artifactDirectory, checks)
         VerifyCurseForge(check, artifactDirectory)
         VerifyModrinth(check, artifactDirectory)
+        VerifyRowLayout(artifactDirectory, check)
+        VerifySummaryLayout(artifactDirectory, check)
         Return checks
     End Function
 

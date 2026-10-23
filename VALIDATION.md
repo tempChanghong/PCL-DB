@@ -1526,3 +1526,9 @@
 - 快速反向采样当前画面，过期回调不能清理新时钟；横移后尾段、局部门控恢复、焦点、设置/整合包合成交接、新版本替换及隐藏/卸载/缩放均检查。分离初始偏移与延迟通知，返回后的安装页继续保持 50 DIP。
 - 新增 53 项，策略 `PCL-DB-checks/2026-10-23.20`；UI 876 / motion 769 / pack-search 320 共 1965 项。固定源码/资源、验证契约及进程工具另查；六张采样图、日志及源码/Commit 绑定见 `artifacts/vanilla-card-motion/`，详情见 `docs/reviews/vanilla-card-transition.md`。离屏采样不作为桌面帧率或人工验收；本轮不打包、推送或发版。
 - 本轮 Core 未变，旧 Core 结果不计入新运行数量；使用隐藏 WPF 呈现源和受控响应，不视为真人桌面或帧率验收。暂不打包、推送或发版。
+
+## 列表与下载摘要布局对齐
+
+- 基线 `eeda6358280a748d4d936f7cfda5abdbb1496550`；读取固定 PCL `5ef81e4` 的 MyListItem、PageDownloadInstall 和 FormMain Git 对象，统一列表默认 14 DIP 与行高度量，约束 Minecraft 长版本文本，添加不占布局/不收输入的侧栏细渐变。
+- 新增 35 项（行度量 15、摘要/侧栏/联动 20）；检查最小窗口、长文本、明暗、逻辑缩放、动态图标、快速返回、旧时钟、组件与名称保留，以及详情/任务页隐藏侧栏和返回。原有动画、搜索及安装逻辑继续回归。
+- 策略 `PCL-DB-checks/2026-10-23.21`；UI 911 / motion 769 / pack-search 320 共 2000 项，另检查固定源码/资源、验证契约和进程工具。日志、前后画面及源码/Commit 绑定见 `artifacts/ui-layout-alignment/`，详情见 `docs/reviews/ui-layout-alignment.md`。本轮 Core 未变，不打包、推送或发版；隐藏 WPF 与模拟布局缩放不代表人工桌面/DPI/帧率验收。

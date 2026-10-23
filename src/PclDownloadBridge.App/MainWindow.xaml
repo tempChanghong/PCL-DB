@@ -94,10 +94,11 @@
                     <p:PclHint x:Name="NameHint" Visibility="Collapsed" Margin="0,0,0,12" />
                     <p:PclCard x:Name="VanillaCard" Title="Minecraft" Height="40" Margin="0,0,0,12">
                       <p:PclCard.HeaderContent>
-                        <StackPanel Orientation="Horizontal" Height="18" VerticalAlignment="Center">
+                        <Grid x:Name="VanillaVersionSummary" Height="18" VerticalAlignment="Center">
+                          <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                           <Image x:Name="VanillaVersionIcon" Source="Images/Blocks/Grass.png" Width="18" Height="18" Margin="0,0,7,0" RenderOptions.BitmapScalingMode="Linear" />
-                          <TextBlock x:Name="SelectedVersionText" Text="原版游戏" VerticalAlignment="Center" />
-                        </StackPanel>
+                          <TextBlock x:Name="SelectedVersionText" Grid.Column="1" Text="原版游戏" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" />
+                        </Grid>
                       </p:PclCard.HeaderContent>
                     </p:PclCard>
                     <StackPanel x:Name="ComponentCards" />
@@ -293,6 +294,9 @@
             <Canvas x:Name="DownloadGhost" IsHitTestVisible="False" ClipToBounds="True"/>
             </Grid>
             </Grid>
+            <Rectangle x:Name="DownloadSidebarShadow" Grid.Column="1" Width="4" HorizontalAlignment="Left" IsHitTestVisible="False" Visibility="{Binding Visibility, ElementName=DownloadSidebar}">
+              <Rectangle.Fill><LinearGradientBrush StartPoint="0,0" EndPoint="1,0" Opacity="0.04"><GradientStop Color="#000000" Offset="0"/><GradientStop Color="#00000000" Offset="1"/></LinearGradientBrush></Rectangle.Fill>
+            </Rectangle>
             </Grid>
             <p:PclScrollViewer x:Name="SettingsPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
               <StackPanel x:Name="SettingsContent" Margin="25" Grid.IsSharedSizeScope="True">

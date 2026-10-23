@@ -64,7 +64,7 @@ Partial Public Class MainWindow
             UpdateInstanceName()
             check(InstanceName.Text = "20w14∞", "automatic component-name refresh cannot revert the infinity display alias to its wire identifier")
             check(DirectCast(SelectedVersionIcon.Source, System.Windows.Media.Imaging.BitmapImage).UriSource.OriginalString.EndsWith("/GoldBlock.png", StringComparison.Ordinal), "the selected April Fools version keeps its gold icon")
-            check(DirectCast(VanillaCard.HeaderContent, StackPanel).Children.OfType(Of Image)().Single().Source.ToString().EndsWith("/GoldBlock.png", StringComparison.Ordinal), "the Minecraft summary uses the selected base version icon instead of a fixed grass block")
+            check(DirectCast(VanillaCard.HeaderContent, Grid).Children.OfType(Of Image)().Single().Source.ToString().EndsWith("/GoldBlock.png", StringComparison.Ordinal), "the Minecraft summary uses the selected base version icon instead of a fixed grass block")
             SelectComponent(_componentEntries(ComponentKind.Fabric)(0))
             check(_componentSelection.Has(ComponentKind.Fabric) AndAlso SelectedVersionIcon.Source.ToString().EndsWith("/Fabric.png", StringComparison.Ordinal) AndAlso VanillaVersionIcon.Source.ToString().EndsWith("/GoldBlock.png", StringComparison.Ordinal), "adding Fabric changes the instance icon while preserving the selected base game's gold summary icon")
             UpdateVersions()
