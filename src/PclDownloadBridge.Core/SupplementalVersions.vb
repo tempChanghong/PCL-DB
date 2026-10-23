@@ -24,7 +24,7 @@ Public NotInheritable Class SupplementalVersions
             result.Add("2point0_" & color, "2.0_" & color)
             result.Add("2.0_" & color, "2.0_" & color)
         Next
-        For Each id In {"c0.0.12a_03", "a1.1.1", "b1.9-pre6", "13w12~", "1.0.0-rc1", "inf-20100630-1"}
+        For Each id In {"c0.0.12a_03", "a1.1.1", "b1.9-pre6", "13w12~", "1.0.0-rc1", "inf-20100630-1", "13w10b", "13w10a", "13w09c", "13w09b", "11w47a"}
             result.Add(id, id)
         Next
         Return result
@@ -37,14 +37,14 @@ Public NotInheritable Class SupplementalVersions
 
     Public Shared Function Label(entry As VersionEntry) As String
         If entry.Id.StartsWith("2.0_", StringComparison.Ordinal) Then Return "愚人节版"
-        Return If(entry.Id = "13w12~", "旧快照", "远古版")
+        Return If(entry.Kind = "snapshot", "旧快照", "远古版")
     End Function
 
     Private Shared Function ValidKind(id As String, kind As String) As Boolean
         Select Case id
             Case "c0.0.12a_03", "a1.1.1", "inf-20100630-1" : Return kind = "old_alpha"
             Case "b1.9-pre6", "1.0.0-rc1" : Return kind = "old_beta"
-            Case "13w12~" : Return kind = "snapshot"
+            Case "13w12~", "13w10b", "13w10a", "13w09c", "13w09b", "11w47a" : Return kind = "snapshot"
             Case Else : Return kind = "snapshot" OrElse kind = "pending"
         End Select
     End Function

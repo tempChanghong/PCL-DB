@@ -12,6 +12,12 @@ Module Program
         Net.ServicePointManager.SecurityProtocol = Net.SecurityProtocolType.Tls12
         Try
             If ProcessorStreamChecks.TryRunFixture(args) Then Return
+            If args.Length > 0 AndAlso args(0) = "--verify-supplemental" Then
+                If args.Length < 3 OrElse args.Length > 4 Then Throw New ArgumentException("Supplemental verification expects an output directory, canonical IDs and optional --install.")
+                If args.Length = 4 AndAlso args(3) <> "--install" Then Throw New ArgumentException("Unknown supplemental verification option.")
+                SupplementalCandidateVerification.LiveAsync(args(1), args(2).Split(","c), args.Length = 4).GetAwaiter().GetResult()
+                Return
+            End If
             If args.Length = 2 AndAlso args(0) = "--live-curseforge-catalogue" Then
                 CurseForgeCatalogLiveChecks.RunAsync(args(1)).GetAwaiter().GetResult()
                 Return
@@ -66,6 +72,8 @@ Module Program
                     run = SupplementalLaunchRecipeChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "supplemental-early" Then
                     run = EarlySupplementalChecks.RunAsync(TestRoot)
+                ElseIf args(1) = "supplemental-candidates" Then
+                    run = SupplementalCandidateVerificationChecks.RunAsync(TestRoot)
                 ElseIf args(1).StartsWith("processor-streams-", StringComparison.Ordinal) Then
                     run = ProcessorStreamChecks.RunAsync(TestRoot, args(1))
                 ElseIf args(1).StartsWith("component-catalogue-", StringComparison.Ordinal) Then
@@ -154,6 +162,9 @@ Module Program
                 Check(True, label)
             Next
             For Each label In EarlySupplementalChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
+                Check(True, label)
+            Next
+            For Each label In SupplementalCandidateVerificationChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
                 Check(True, label)
             Next
             For Each label In JavaProbeChecks.RunAsync(TestRoot).GetAwaiter().GetResult()

@@ -7,7 +7,7 @@ Imports PclDownloadBridge.Core
 Friend Module SupplementalVersionChecks
     Private Const BlueId As String = "2point0_blue"
     Private Const RedId As String = "2point0_red"
-    Private ReadOnly HistoricalIds As String() = {"c0.0.12a_03", "a1.1.1", "b1.9-pre6", "13w12~"}
+    Private ReadOnly HistoricalIds As String() = {"c0.0.12a_03", "a1.1.1", "b1.9-pre6", "13w12~", "13w10b", "13w10a", "13w09c", "13w09b", "11w47a"}
 
     Private Function HistoryKind(id As String) As String
         If id = "c0.0.12a_03" OrElse id = "a1.1.1" Then Return "old_alpha"
@@ -69,7 +69,7 @@ Friend Module SupplementalVersionChecks
             Dim entries = SupplementalVersions.Parse(Manifest(EntryJson(id)))
             Check(entries.Count = 1 AndAlso entries(0).Id = id AndAlso entries(0).Kind = HistoryKind(id), "historical supplement keeps verified identity and classification: " & id, passed)
             Dim entry = entries.Single()
-            Check(entry.Subtitle.Contains(If(id = "13w12~", "旧快照", "远古版")) AndAlso Not entry.Subtitle.Contains("愚人节"), "historical supplement is not mislabeled as April Fools: " & id, passed)
+            Check(entry.Subtitle.Contains(If(entry.Kind = "snapshot", "旧快照", "远古版")) AndAlso Not entry.Subtitle.Contains("愚人节"), "historical supplement is not mislabeled as April Fools: " & id, passed)
             Dim wrong = EntryJson(id) : wrong("type") = If(entry.Kind = "snapshot", "old_alpha", "snapshot")
             Check(SupplementalVersions.Parse(Manifest(wrong)).Count = 0, "historical supplement rejects wrong declared classification: " & id, passed)
             wrong = EntryJson(id) : wrong("url") = CStr(wrong("url")).Replace("/files/", "/files/../files/")
@@ -440,7 +440,7 @@ Friend Module SupplementalVersionChecks
         IO.Directory.CreateDirectory(directory)
         Dim policy As New SourcePolicy()
         Dim entries = Await SupplementalVersions.LoadAsync(policy, CancellationToken.None)
-        If entries.Count <> 9 Then Throw New InvalidDataException("Live UVMC catalogue changed or is unavailable: " & entries.Count)
+        If entries.Count <> SupplementalInstallFixture.Ids.Length Then Throw New InvalidDataException("Live UVMC catalogue changed or is unavailable: " & entries.Count)
         Dim records As New JArray()
         Dim ordinary = Await New MinecraftInstaller(policy).VersionsAsync(CancellationToken.None)
         Dim rd = ordinary.Single(Function(entry) entry.Id = "rd-132211")
