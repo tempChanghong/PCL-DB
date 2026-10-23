@@ -38,13 +38,15 @@ Partial Public Class MainWindow
             ShowDownload(Me, e)
             FocusDownloadPage()
         ElseIf _downloadView = DownloadView.Progress Then
-            e.Handled = True
-            ResumeInstallation(Me, e)
-            FocusDownloadPage()
+            e.Handled = NavigateTitleBack()
         ElseIf _downloadView = DownloadView.Modpacks AndAlso _packMode <> PackBrowserMode.Search Then
-            e.Handled = True
-            BackToPackSearch(Me, e)
-            FocusDownloadPage()
+            If _packMode = PackBrowserMode.Detail Then
+                e.Handled = NavigateTitleBack()
+            Else
+                e.Handled = True
+                BackToPackSearch(Me, e)
+                FocusDownloadPage()
+            End If
         ElseIf _downloadView = DownloadView.Install Then
             e.Handled = True
             BackToVersions(Me, e)
@@ -63,6 +65,14 @@ Partial Public Class MainWindow
         End If
         DownloadPage.UpdateLayout()
         If _downloadView = DownloadView.Modpacks Then
+            If _restorePackViewportFocus Then
+                _restorePackViewportFocus = False
+                ' Returning must not focus the offscreen search/name field and
+                ' let WPF BringIntoView discard the restored viewport.
+                FocusManager.SetFocusedElement(FocusManager.GetFocusScope(ModpackPage), ModpackPage)
+                ModpackPage.Focus()
+                Return
+            End If
             If _packMode = PackBrowserMode.Search Then
                 PackSearchText.Focus()
             ElseIf _packMode = PackBrowserMode.Detail Then

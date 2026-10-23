@@ -67,10 +67,12 @@ Namespace Controls
                     If(segmented, VisibleBar(outgoing), Nothing))
             End If
             StopOwnedMotion()
+            Dim previousOrigin = If(snapshot Is Nothing, New Point(), _host.TranslatePoint(New Point(), Nothing))
             changePage()
             If Not animate Then Return
             Try
                 incoming.UpdateLayout()
+                Dim currentOrigin = If(snapshot Is Nothing, previousOrigin, _host.TranslatePoint(New Point(), Nothing))
                 Dim visible = _units(incoming).Where(Function(unit) Not PclExitSnapshot.VisibleBounds(unit, _host).IsEmpty).Take(16).ToList()
                 Dim bar = VisibleBar(incoming)
                 If snapshot Is Nothing AndAlso visible.Count = 0 AndAlso bar Is Nothing Then Return
@@ -89,6 +91,9 @@ Namespace Controls
                         ' the fixed toolbar when its exit translation is applied.
                         Dim layer As New Canvas With {.Width = snapshot.Width, .Height = snapshot.Height,
                             .Clip = New RectangleGeometry(piece.Viewport), .IsHitTestVisible = False}
+                        ' A child page can remove the sidebar/toolbar. Keep the frozen
+                        ' exit at its original root position while the incoming layout expands.
+                        layer.RenderTransform = New TranslateTransform(previousOrigin.X - currentOrigin.X, previousOrigin.Y - currentOrigin.Y)
                         layer.Children.Add(image)
                         _overlay.Children.Add(layer)
                         If piece.ScrollBar Then

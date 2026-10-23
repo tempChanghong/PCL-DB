@@ -21,5 +21,6 @@ Partial Public Class MainWindow
             LoadPackIconAsync(intro, project, If(_packArtworkRequest Is Nothing, CancellationToken.None, _packArtworkRequest.Token))
         End If
         PackProjectWebsite.Text = "转到 " & project.Platform.ToString()
+        RefreshTitleNavigation()
     End Sub
 End Class

@@ -68,6 +68,7 @@ Partial Public Class MainWindow
         AddHandler Shell.SizeChanged, Sub() Shell.Clip = New RectangleGeometry(New Rect(0, 0, Shell.ActualWidth, Shell.ActualHeight), 6, 6)
         DownloadTab.Checked = True
         _preview = preview
+        _titleNavigation = New PclTitleNavigation(TitleBar, TitleMain, TitleInner, InnerTitle, AddressOf AllowPageMotion)
         _surfaceMotion = New PclSurfaceMotion(PageSurface, PageGhost,
             AddressOf AllowPageMotion, AddressOf SurfaceUnits)
         _categoryMotion = New PclSurfaceMotion(DownloadViewHost, DownloadGhost,
@@ -89,6 +90,7 @@ Partial Public Class MainWindow
         InitializeAbout()
         InitializeSettingsFeedback()
         AddHandler Shell.KeyDown, AddressOf ShellKeyDown
+        AddHandler Shell.PreviewMouseDown, AddressOf ShellBackMouseDown
         AddHandler Shell.PreviewKeyDown, AddressOf ShellPreviewKeyDown
         AddHandler Shell.PreviewTextInput, Sub(sender, args)
                                              If GatedKeyboardSource(args.OriginalSource) Then args.Handled = True
@@ -722,6 +724,7 @@ Partial Public Class MainWindow
         RefreshButton.Visibility = If(view = DownloadView.Versions OrElse view = DownloadView.Install, Visibility.Visible, Visibility.Collapsed)
         RefreshButton.ToolTip = If(view = DownloadView.Install, "重新获取组件列表，保留已选版本与名称", "重新获取 Minecraft 版本列表")
         ProgressShortcut.Visibility = If(_hasTask AndAlso view <> DownloadView.Progress, Visibility.Visible, Visibility.Collapsed)
+        RefreshTitleNavigation()
     End Sub
     Private Async Sub ShowVanillaDownloads(sender As Object, e As RoutedEventArgs)
         If _busy Then Return
@@ -752,7 +755,11 @@ Partial Public Class MainWindow
         RefreshTaskResultActions()
     End Sub
     Private Async Sub ResumeInstallation(sender As Object, e As RoutedEventArgs)
-        SetDownloadView(If(_progressReturnView = DownloadView.Modpacks, DownloadView.Modpacks, If(_selectedEntry Is Nothing, DownloadView.Versions, DownloadView.Install)))
+        If _downloadView <> DownloadView.Progress Then Return
+        Dim target = _progressReturnView
+        If target = DownloadView.Progress OrElse (target = DownloadView.Install AndAlso _selectedEntry Is Nothing) Then target = DownloadView.Versions
+        If target = DownloadView.Modpacks Then _restorePackViewportFocus = True
+        SetDownloadView(target)
         Await RefreshCurrentListsIfNeededAsync()
     End Sub
     Private Async Sub BackToVersions(sender As Object, e As RoutedEventArgs)
@@ -973,6 +980,7 @@ Partial Public Class MainWindow
         _pageSwitch.Finish()
         _categoryMotion.Finish()
         _surfaceMotion.Finish()
+        _titleNavigation.Finish()
         For Each viewer In MotionViewers()
             viewer.StopScrolling()
         Next

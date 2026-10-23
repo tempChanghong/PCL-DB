@@ -16,6 +16,7 @@ Partial Public Class MainWindow
                                                  End Sub
         Dim fixture As New MainWindow(True)
         fixture.VerifyPageNavigation(check, artifactDirectory)
+        VerifyTitleNavigation(check, artifactDirectory, False)
         Return checks
     End Function
 
@@ -143,9 +144,10 @@ Partial Public Class MainWindow
             check(VersionPage.Visibility = Visibility.Collapsed AndAlso InstallPage.Visibility = Visibility.Collapsed AndAlso DownloadProgress.Visibility = Visibility.Visible,
                 "a settings round trip from task progress cannot resurrect an installation panel")
             ResumeInstallation(Me, New RoutedEventArgs()) : layout()
-            check(_pageSwitch.Transition Is Nothing AndAlso InstallPage.Visibility = Visibility.Visible AndAlso ProgressShortcut.Visibility = Visibility.Visible AndAlso
+            check(_pageSwitch.Transition Is Nothing AndAlso VersionPage.Visibility = Visibility.Visible AndAlso InstallPage.Visibility = Visibility.Collapsed AndAlso ProgressShortcut.Visibility = Visibility.Visible AndAlso
                 TaskProgress.Value = taskValue AndAlso TaskTitle.Text = taskText AndAlso _componentSelection.Item(ComponentKind.Fabric) Is selection,
-                "returning from task progress restores options immediately and preserves progress source task identity and component choices")
+                "task back restores its actual browser origin even with an older selected version and preserves task and component choices")
+            SetDownloadView(DownloadView.Install) : _pageSwitch.Finish()
             SetDownloadView(DownloadView.Versions)
             returning = _pageSwitch.Transition : returning.Controller.Pause()
             source.RootVisual = Nothing : FlushControlLayout()

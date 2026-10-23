@@ -86,9 +86,11 @@ Partial Public Class MainWindow
         Dim apply As Action = Sub()
                                   FinishPackContentMotion()
                                   _packMode = mode
+                                  If mode <> PackBrowserMode.Search Then _restorePackViewportFocus = False
                                   PackSearchSurface.Visibility = If(mode = PackBrowserMode.Search, Visibility.Visible, Visibility.Collapsed)
                                   PackDetailSurface.Visibility = If(mode = PackBrowserMode.Detail, Visibility.Visible, Visibility.Collapsed)
                                   PackLocalSurface.Visibility = If(mode = PackBrowserMode.Local, Visibility.Visible, Visibility.Collapsed)
+                                  RefreshDownloadChrome()
                                   ModpackPage.UpdateLayout()
                                   ModpackPage.ScrollToVerticalOffset(If(mode = PackBrowserMode.Search, _packSearchScroll, If(mode = PackBrowserMode.Detail, _packDetailScroll, 0)))
                               End Sub
