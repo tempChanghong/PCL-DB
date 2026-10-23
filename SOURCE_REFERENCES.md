@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 版本筛选栏的单行横排与关系验证
+
+- 重读固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadCompDetail.xaml(.vb)`、`MyRadioButton.xaml(.vb)`：PanFilter 为 Horizontal／Left／Top 的 StackPanel，边距 `10,10,0,10`；按钮为 Highlight 单选、边距 `2,0,2,0`、文字边距 `-2,0,10,0`、高度 27 DIP 和圆角 13.5 DIP。当前已有胶囊绘制继续保留，本轮将原 WrapPanel 改为同源的横向 StackPanel；普通筛选卡为 47 DIP 高。
+- 按用户截图的“全部、26.3、26.2、26.1、1.21、1.20、1.19、1.18、1.17、1.16”验证：850／810 DIP 宽度下完整单行显示、无多余水平滚动条。上游的四阶段分组、目标版本选择、仅一组隐藏筛选栏继续保留；筛选／返回全部仍复用本工具已有卡片和行，避免破坏展开状态及安装版本身份。
+- 超宽容错属于本工具适配：横向视口只在溢出时启用已有 8 DIP PCL 样式滚动条，支持原生滚动命令和 BringIntoView；适配行消耗横向滚轮，普通行把滚轮交回外层详情页。页面门控／禁用阻止横向输入，重新初始化版本列表才清零横向位置。固定源码和验证见 `artifacts/filter-bar-alignment/`、`docs/reviews/filter-bar-alignment-2026-10-23.md`；此前“保留 WrapPanel”的阶段记录为历史实现。
+
 ## 整合包发布版本的下载量与相对更新时间
 
 - 重读固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `Modules/Resource/ResourceVersion.vb`：分别读取 CurseForge downloadCount／Modrinth downloads；ToListItem 仅显示大于零的计数，超过 100000 时用 Math.Round(count / 10000) 显示“万次”，并调用 StringUtils.FormatTimeSpan(ReleaseDate - Date.Now, False)。保持 42 DIP 行、标题消歧、文件名及加载器说明、发布类型和原平台 ID。

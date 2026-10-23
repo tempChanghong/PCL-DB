@@ -189,7 +189,11 @@
                     </p:PclCard>
                     <Grid x:Name="PackDetailResultsHost" MinHeight="100">
                       <StackPanel x:Name="PackDetailResultsSurface">
-                        <p:PclCard x:Name="PackVersionFilterCard" ShowHeader="False" BodyMargin="10,10,0,10"><WrapPanel x:Name="PackVersionFilters"/></p:PclCard>
+                        <p:PclCard x:Name="PackVersionFilterCard" ShowHeader="False" BodyMargin="10,10,0,10">
+                          <p:PclFilterScrollViewer x:Name="PackVersionFilterViewport" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" CanContentScroll="False" PanningMode="HorizontalOnly" Focusable="False" BorderThickness="0" Padding="0">
+                            <StackPanel x:Name="PackVersionFilters" Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Left"/>
+                          </p:PclFilterScrollViewer>
+                        </p:PclCard>
                         <p:PclHint x:Name="PackDetailHint" Theme="Blue" Visibility="Collapsed" Margin="0,0,0,15"/>
                         <p:PclButton x:Name="PackDetailRetry" Text="重新获取版本列表" Width="160" Height="32" HorizontalAlignment="Center" Visibility="Collapsed" Margin="0,0,0,15" Click="RetryPackDetails"/>
                         <StackPanel x:Name="PackVersionCards"/>

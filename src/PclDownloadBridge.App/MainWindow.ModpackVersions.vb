@@ -16,6 +16,7 @@ Partial Public Class MainWindow
     Private Sub InitializePackVersions()
         _packVersionCache.Clear() : _packVersionGroups.Clear()
         PackVersionFilters.Children.Clear()
+        PackVersionFilterViewport.ScrollToHorizontalOffset(0)
         Dim games = _packReleases.SelectMany(Function(release) release.GameVersions).Distinct(StringComparer.OrdinalIgnoreCase).ToList()
         Dim filters As New List(Of String)
         For Each mode In {0, 1, 2, 3}

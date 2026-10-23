@@ -227,6 +227,8 @@ Partial Public Class MainWindow
             many.Add(item)
         Next
         _packReleases = many : _packTargetGame = "1.20.4" : InitializePackVersions() : layout()
+        check(TypeOf DirectCast(PackVersionFilters, Object) Is StackPanel,
+            "version filters use PCL's single horizontal stack instead of wrapping command rows")
         check(PackVersionFilters.Children.OfType(Of PclRadioButton)().Count() = PackVersionFilters.Children.Count,
             "version filters use PCL capsule radios instead of rectangular command buttons")
         check(PackVersionFilterCard.BodyMargin = New Thickness(10, 10, 0, 10) AndAlso PackVersionFilters.Children.OfType(Of PclRadioButton)().All(Function(button)
@@ -296,6 +298,7 @@ Partial Public Class MainWindow
         PackDetailHint.Theme = PclHintTheme.Red : PackDetailHint.ToolTip = "obsolete retry error"
         _packTargetGame = "" : InitializePackVersions() : layout()
         check(PackVersionCards.Children.Count = 0 AndAlso Not PackVersionFilterCard.IsVisible AndAlso PackDetailHint.IsVisible AndAlso PackDetailHint.Theme = PclHintTheme.Blue AndAlso PackDetailHint.ToolTip Is Nothing, "an empty usable-file list shows a neutral hint without stale retry details or filters")
+        VerifyPackFilterBarUi(directory, host, layout, check)
         _packReleases = originalReleases : InitializePackVersions()
 
         Dim olderProject As New ModpackProject With {.Platform = ModpackPlatform.Modrinth, .Id = "older", .Name = "older"}
