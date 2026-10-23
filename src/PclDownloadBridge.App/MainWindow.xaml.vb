@@ -522,7 +522,7 @@ Partial Public Class MainWindow
         EmptyVersions.Text = If(_versions.Count = 0, "点击刷新读取版本列表", "没有匹配的版本")
         If _versions.Count = 0 Then Return
         Dim versions = _versions.Select(Function(v) New VersionPresentation(v)).OrderByDescending(Function(v) v.Entry.Released).ToList()
-        Dim releases = versions.Where(Function(v) v.Kind = "release").ToList()
+        Dim releases = versions.Where(Function(v) v.Kind = "release" AndAlso Not v.Entry.IsSupplemental).ToList()
         Dim snapshots = versions.Where(Function(v) v.Kind = "snapshot" AndAlso Not v.Entry.IsSupplemental).ToList()
         Dim latest As New List(Of VersionPresentation)
         If releases.Count > 0 Then latest.Add(releases(0))
@@ -535,7 +535,7 @@ Partial Public Class MainWindow
     End Sub
 
     Private Sub AddSupplementalVersionCards()
-        For Each category In {"特供版本"}
+        For Each category In {"特供版本", "远古版本补充", "历史快照补充"}
             If VersionCards.Children.OfType(Of PclCard)().Any(Function(card) card.Title.StartsWith(category & " (", StringComparison.Ordinal)) Then Continue For
             Dim entries = _versions.Where(Function(entry) entry.IsSupplemental).Select(Function(entry) New VersionPresentation(entry)).
                 Where(Function(entry) entry.Category = category).OrderByDescending(Function(entry) entry.Entry.Released).ToList()

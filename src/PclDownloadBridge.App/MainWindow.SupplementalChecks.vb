@@ -116,6 +116,27 @@ Partial Public Class MainWindow
             Await LoadVersionsAsync(True)
             results("officialRdAndFoolsRetained") = BrowserRows("远古版").Single().Tag Is rd AndAlso Not rd.IsSupplemental AndAlso BrowserRows("愚人节版").Single().Tag Is fool AndAlso
                 BrowserRows("特供版本").Count = 2 AndAlso BrowserRows("特供版本").First().Title.Contains("2.0（蓝色版）") AndAlso BrowserRows("战斗测试版").Count = 0 AndAlso BrowserRows("实验快照").Count = 0
+            Dim history As New List(Of VersionEntry)
+            For Each id In {"c0.0.12a_03", "a1.1.1", "b1.9-pre6", "13w12~"}
+                history.Add(New VersionEntry With {.Id = id, .SupplementalId = id, .Kind = If(id = "13w12~", "snapshot", If(id = "b1.9-pre6", "old_beta", "old_alpha")), .Released = blue.Released})
+            Next
+            pending = ListGate(Of VersionEntry)()
+            _supplementalProvider = Function(policy, token) pending.Task
+            loading = LoadVersionsAsync(True)
+            originalRow = BrowserRows("正式版").Single()
+            pending.SetResult(history.Concat({blue, red}).ToList()) : Await loading
+            results("historyDoesNotReplaceNormalOrLatest") = BrowserRows("正式版").Single() Is originalRow AndAlso BrowserRows("最新版本").Single().Tag Is normal AndAlso BrowserRows("远古版").Single().Tag Is rd
+            AddSupplementalVersionCards()
+            results("historyCategoriesAndIcons") = BrowserRows("远古版本补充").Count = 3 AndAlso BrowserRows("历史快照补充").Single().Tag Is history(3) AndAlso
+                BrowserRows("特供版本").Count = 2 AndAlso New VersionPresentation(history(0)).Icon.Contains("CobbleStone") AndAlso New VersionPresentation(history(3)).Icon.Contains("CommandBlock") AndAlso
+                VersionCards.Children.OfType(Of PclCard)().Count() = 7 AndAlso StatusText.Text.Contains("远古版") AndAlso StatusText.Text.Contains("旧快照")
+            For Each item In history
+                Dim row = BrowserRows(New VersionPresentation(item).Category).Single(Function(value) value.Tag Is item)
+                row.Activate() : Await RefreshComponentListsAsync()
+                If _selectedEntry IsNot item OrElse InstanceName.Text <> item.Id OrElse _componentRequests.Count <> 0 OrElse _componentSelection.Entries.Count <> 0 OrElse Not ComponentHint.Text.Contains(SupplementalVersions.Label(item)) Then Throw New InvalidOperationException("Historical vanilla selection lost its identity or requested components.")
+                SetDownloadView(DownloadView.Versions)
+            Next
+            results("historyVanillaSelection") = componentCalls = 0
             If directory IsNot Nothing Then IO.File.WriteAllText(IO.Path.Combine(directory, "supplemental-workflow.json"), results.ToString())
             Return results.Properties().All(Function(item) CBool(item.Value))
         Finally

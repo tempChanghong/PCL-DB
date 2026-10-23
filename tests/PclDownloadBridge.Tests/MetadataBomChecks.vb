@@ -107,6 +107,7 @@ Friend Module MetadataBomChecks
             If supplemental Then
                 meta("type") = "snapshot"
                 fixture.Entry.SupplementalId = "2point0_blue"
+                fixture.Entry.Kind = "snapshot"
                 fixture.Entry.Url = "https://zkitefly.github.io/unlisted-versions-of-minecraft/files/2point0_blue/2point0_blue.json"
             End If
             fixture.Server.Files(New Uri(fixture.Entry.Url).AbsolutePath) = Bom(meta.ToString())

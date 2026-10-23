@@ -23,9 +23,9 @@ Friend NotInheritable Class VersionPresentation
         Kind = value.Kind
         DisplayId = value.Id
         If value.IsSupplemental Then
-            Kind = "special"
+            If SupplementalVersions.Label(value) = "愚人节版" Then Kind = "special"
             DisplayId = SupplementalVersions.DisplayName(value)
-            Lore = "[补充版本 · UVMC] " & AprilFoolsLore(value.Id)
+            Lore = "[补充版本 · UVMC] " & If(Kind = "special", AprilFoolsLore(value.Id), value.Released.ToString("yyyy/MM/dd HH:mm"))
             Return
         End If
         If Kind <> "snapshot" Then Return
@@ -67,7 +67,13 @@ Friend NotInheritable Class VersionPresentation
 
     Public ReadOnly Property Category As String
         Get
-            If Entry.IsSupplemental Then Return "特供版本"
+            If Entry.IsSupplemental Then
+                Select Case SupplementalVersions.Label(Entry)
+                    Case "远古版" : Return "远古版本补充"
+                    Case "旧快照" : Return "历史快照补充"
+                    Case Else : Return "特供版本"
+                End Select
+            End If
             Select Case Kind
                 Case "release" : Return "正式版"
                 Case "snapshot" : Return "预览版"

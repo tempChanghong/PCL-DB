@@ -7,11 +7,19 @@ Imports PclDownloadBridge.Core
 Friend Module SupplementalVersionChecks
     Private Const BlueId As String = "2point0_blue"
     Private Const RedId As String = "2point0_red"
+    Private ReadOnly HistoricalIds As String() = {"c0.0.12a_03", "a1.1.1", "b1.9-pre6", "13w12~"}
+
+    Private Function HistoryKind(id As String) As String
+        If id = "c0.0.12a_03" OrElse id = "a1.1.1" Then Return "old_alpha"
+        Return If(id = "b1.9-pre6", "old_beta", "snapshot")
+    End Function
 
     Private Function EntryJson(Optional id As String = BlueId) As JObject
         Dim canonical = id.Replace("2point0_", "2.0_")
         Dim slug = canonical.Replace("2.0_", "2point0_")
-        Return New JObject From {{"id", id}, {"type", "snapshot"}, {"url", "https://zkitefly.github.io/unlisted-versions-of-minecraft/files/" & slug & "/" & slug & ".json"}, {"releaseTime", "2021-04-01T12:00:00Z"}}
+        If id = "b1.9-pre6" Then slug = "b1_9-pre6"
+        If id = "13w12~" Then slug = "13w12-"
+        Return New JObject From {{"id", id}, {"type", HistoryKind(id)}, {"url", "https://zkitefly.github.io/unlisted-versions-of-minecraft/files/" & slug & "/" & slug & ".json"}, {"releaseTime", "2021-04-01T12:00:00Z"}}
     End Function
 
     Private Function Manifest(ParamArray entries As JObject()) As JObject
@@ -44,13 +52,116 @@ Friend Module SupplementalVersionChecks
 
     Friend Async Function RunAsync(root As String) As Task(Of List(Of String))
         Dim passed As New List(Of String)
+        HistoricalParseChecks(passed)
+        Await HistoricalProfilesAsync(passed)
         ParseChecks(passed)
         Await ResponseRecoveryAsync(passed)
         Await OptionalSourceAsync(passed)
         Await InstallationAsync(root, passed)
+        Await HistoricalInstallationAsync(root, passed)
         Await LibraryCompletionAsync(root, passed)
         passed.AddRange(Await SupplementalAssetIndexChecks.RunAsync(root))
         Return passed
+    End Function
+
+    Private Sub HistoricalParseChecks(passed As List(Of String))
+        For Each id In HistoricalIds
+            Dim entries = SupplementalVersions.Parse(Manifest(EntryJson(id)))
+            Check(entries.Count = 1 AndAlso entries(0).Id = id AndAlso entries(0).Kind = HistoryKind(id), "historical supplement keeps verified identity and classification: " & id, passed)
+            Dim entry = entries.Single()
+            Check(entry.Subtitle.Contains(If(id = "13w12~", "旧快照", "远古版")) AndAlso Not entry.Subtitle.Contains("愚人节"), "historical supplement is not mislabeled as April Fools: " & id, passed)
+            Dim wrong = EntryJson(id) : wrong("type") = If(entry.Kind = "snapshot", "old_alpha", "snapshot")
+            Check(SupplementalVersions.Parse(Manifest(wrong)).Count = 0, "historical supplement rejects wrong declared classification: " & id, passed)
+            wrong = EntryJson(id) : wrong("url") = CStr(wrong("url")).Replace("/files/", "/files/../files/")
+            Check(SupplementalVersions.Parse(Manifest(wrong)).Count = 0, "historical supplement requires its exact mapped URL: " & id, passed)
+            Dim official As New VersionEntry With {.Id = id.ToUpperInvariant(), .Kind = HistoryKind(id)}
+            Check(SupplementalVersions.Merge({official}, entries).Single() Is official, "official historical declaration wins case-insensitive collision: " & id, passed)
+        Next
+        Check(SupplementalVersions.Parse(Manifest(EntryJson("13w12-"), EntryJson("b1_9-pre6"), EntryJson("in-20100223"), EntryJson("inf-20100630-1"))).Count = 0, "unverified URL slugs and incomplete history stay outside the allowlist", passed)
+    End Sub
+
+    Private Async Function HistoricalProfilesAsync(passed As List(Of String)) As Task
+        Using server As New TestServer()
+            For Each id In HistoricalIds
+                Dim metadata As JObject
+                Using input = Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("Historical." & id & ".json"), reader As New StreamReader(input)
+                    metadata = JObject.Parse(reader.ReadToEnd())
+                End Using
+                Dim entry = SupplementalVersions.Parse(Manifest(EntryJson(id))).Single(), original = metadata.ToString()
+                Dim completed = Await SupplementalVersions.PrepareLibrariesAsync(entry, metadata, New FixturePolicy(server.Url), CancellationToken.None)
+                Dim plan = MinecraftInstaller.BuildBasePlan(completed, "history")
+                SupplementalVersions.ValidatePlan(plan)
+                Check(metadata.ToString() = original AndAlso JToken.DeepEquals(completed, metadata) AndAlso plan.Count > 1 AndAlso server.Requests.Count = 0, "archived real historical profile produces a hashed Windows plan without reference fallback: " & id, passed)
+                Using cancel As New CancellationTokenSource()
+                    cancel.Cancel()
+                    Dim cancelled = False
+                    Try
+                        Await SupplementalVersions.PrepareLibrariesAsync(entry, metadata, New FixturePolicy(server.Url), cancel.Token)
+                    Catch ex As OperationCanceledException
+                        cancelled = True
+                    End Try
+                    Check(cancelled, "complete historical profiles respect cancellation before cloning or fallback: " & id, passed)
+                End Using
+            Next
+        End Using
+    End Function
+
+    Private Class CancelAtPublish
+        Implements IProgress(Of TransferProgress)
+        Private ReadOnly _cancel As CancellationTokenSource
+        Friend Sub New(cancel As CancellationTokenSource)
+            _cancel = cancel
+        End Sub
+        Public Sub Report(value As TransferProgress) Implements IProgress(Of TransferProgress).Report
+            If value.Phase = "commit" Then _cancel.Cancel()
+        End Sub
+    End Class
+
+    Private Async Function HistoricalInstallationAsync(root As String, passed As List(Of String)) As Task
+        Using fixture As New InstallationChecks.InstallFixture(root, "history-shared-root")
+            Dim source = JObject.Parse(Encoding.UTF8.GetString(fixture.Server.Files("/version")))
+            Dim normal = Await fixture.InstallAsync("ordinary")
+            Dim ordinaryJson = Path.Combine(normal.InstancePath, "ordinary.json"), normalBytes = File.ReadAllBytes(ordinaryJson)
+            Dim sharedIndex = Path.Combine(fixture.Root, "assets", "indexes", "fixture.json"), indexBytes = File.ReadAllBytes(sharedIndex)
+            Dim installer As New MinecraftInstaller(New FixturePolicy(fixture.Server.Url))
+            For Each id In HistoricalIds
+                Dim entry = SupplementalVersions.Parse(Manifest(EntryJson(id))).Single()
+                Dim metadata = DirectCast(source.DeepClone(), JObject)
+                metadata("id") = id : metadata("type") = entry.Kind
+                fixture.Server.Files("/version") = Encoding.UTF8.GetBytes(metadata.ToString())
+                Using cancel As New CancellationTokenSource()
+                    Dim cancelled = False
+                    Try
+                        Await installer.InstallAsync(entry, fixture.Root, id, {}, New CancelAtPublish(cancel), cancel.Token, isolationMode:=InstanceIsolationMode.Enabled)
+                    Catch ex As OperationCanceledException
+                        cancelled = True
+                    End Try
+                    Check(cancelled AndAlso Not Directory.Exists(Path.Combine(fixture.Root, "versions", id)) AndAlso File.ReadAllBytes(sharedIndex).SequenceEqual(indexBytes), "historical cancellation leaves no instance or shared-index damage: " & id, passed)
+                End Using
+                Dim installed = Await installer.InstallAsync(entry, fixture.Root, id, {}, Nothing, CancellationToken.None, isolationMode:=InstanceIsolationMode.Enabled)
+                Dim jsonPath = Path.Combine(installed.InstancePath, id & ".json"), jsonBytes = File.ReadAllBytes(jsonPath)
+                Dim iniPath = Path.Combine(installed.InstancePath, "PCL", "Setup.ini")
+                Check(File.Exists(iniPath) AndAlso File.ReadAllText(iniPath).Contains("VersionArgumentIndie:1"), "historical retry publishes explicit isolation: " & id, passed)
+                File.AppendAllText(iniPath, Environment.NewLine & "FixtureUserSetting:keep")
+                Dim settingsBytes = File.ReadAllBytes(iniPath)
+                Await installer.InstallAsync(entry, fixture.Root, id, {}, Nothing, CancellationToken.None, repairExisting:=True, isolationMode:=InstanceIsolationMode.Disabled)
+                Check(File.ReadAllBytes(iniPath).SequenceEqual(settingsBytes) AndAlso File.ReadAllBytes(jsonPath).SequenceEqual(jsonBytes), "historical repair preserves existing isolation and JSON bytes: " & id, passed)
+                Check(File.ReadAllBytes(sharedIndex).SequenceEqual(indexBytes) AndAlso File.ReadAllBytes(ordinaryJson).SequenceEqual(normalBytes), "historical shared-root install leaves ordinary index and instance intact: " & id, passed)
+                For Each mutation In New Action(Of JObject)() {
+                    Sub(meta) meta("type") = "release",
+                    Sub(meta) DirectCast(meta("libraries"), JArray).Add(JValue.CreateNull()),
+                    Sub(meta) meta("libraries") = New JArray(New JObject From {{"name", "fixture:missing:1"}})}
+                    Dim bad = DirectCast(metadata.DeepClone(), JObject), rejected = False
+                    mutation(bad)
+                    Try
+                        Await SupplementalVersions.PrepareLibrariesAsync(entry, bad, New FixturePolicy(fixture.Server.Url), CancellationToken.None)
+                    Catch ex As InvalidDataException
+                        rejected = True
+                    End Try
+                    Check(rejected AndAlso Not fixture.Server.Requests.ContainsKey("/legacy-reference"), "historical malformed profile cannot use 2.0 reference fallback: " & id & " #" & passed.Count, passed)
+                Next
+            Next
+        End Using
     End Function
 
     Private Sub ParseChecks(passed As List(Of String))
@@ -74,7 +185,7 @@ Friend Module SupplementalVersionChecks
         Check(SupplementalVersions.Parse(Manifest(EntryJson("1.19_deep_dark_experimental_snapshot-1"), EntryJson("rd-132211"))).Count = 0, "removed deep dark snapshot and official rd version are not synthesized as supplemental entries", passed)
         Dim mutations As New Dictionary(Of String, Action(Of JObject)) From {
             {"unknown alias", Sub(item) item("id") = "1_99_combat-6"},
-            {"history out of scope", Sub(item) item("id") = "c0.0.12a_03"},
+            {"history out of scope", Sub(item) item("id") = "in-20100223"},
             {"numeric identity", Sub(item) item("id") = 123},
             {"official release type", Sub(item) item("type") = "release"},
             {"insecure metadata URL", Sub(item) item("url") = CStr(item("url")).Replace("https:", "http:")},
@@ -192,11 +303,11 @@ Friend Module SupplementalVersionChecks
             Dim result = Await New MinecraftInstaller(policy).InstallAsync(fixture.Entry, fixture.Root, "normal", {}, Nothing, CancellationToken.None)
             Check(extra.Count = 0 AndAlso File.Exists(Path.Combine(result.InstancePath, "normal.jar")), "normal install succeeds after a supplemental HTTP failure", passed)
         End Using
-        For Each rawId In {BlueId, RedId}
+        For Each rawId In {BlueId, RedId}.Concat(HistoricalIds)
             Dim entry = SupplementalVersions.Parse(Manifest(EntryJson(rawId))).Single()
             Using fixture As New InstallationChecks.InstallFixture(root, "supplement-" & rawId, entry.Id)
                 Dim metadata = JObject.Parse(Encoding.UTF8.GetString(fixture.Server.Files("/version")))
-                metadata("type") = "snapshot"
+                metadata("type") = HistoryKind(rawId)
                 fixture.Server.Files("/version") = Encoding.UTF8.GetBytes(metadata.ToString())
                 Dim installer As New MinecraftInstaller(New FixturePolicy(fixture.Server.Url))
                 Dim result = Await installer.InstallAsync(entry, fixture.Root, "alias-install", {}, Nothing, CancellationToken.None)
@@ -329,7 +440,7 @@ Friend Module SupplementalVersionChecks
         IO.Directory.CreateDirectory(directory)
         Dim policy As New SourcePolicy()
         Dim entries = Await SupplementalVersions.LoadAsync(policy, CancellationToken.None)
-        If entries.Count <> 3 Then Throw New InvalidDataException("Live UVMC catalogue changed or is unavailable: " & entries.Count)
+        If entries.Count <> 7 Then Throw New InvalidDataException("Live UVMC catalogue changed or is unavailable: " & entries.Count)
         Dim records As New JArray()
         Dim ordinary = Await New MinecraftInstaller(policy).VersionsAsync(CancellationToken.None)
         Dim rd = ordinary.Single(Function(entry) entry.Id = "rd-132211")

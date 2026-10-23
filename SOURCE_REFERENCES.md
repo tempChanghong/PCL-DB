@@ -1,9 +1,15 @@
 # PCL2 代码依据
 
+## 历史补充版本首批接入
+
+- 继续参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `DlClientListBmclapiMain` 附加清单合并、`ShowMinecraftVersionList` 分类排序、`McDownloadListItem` 的 42 DIP 行、远古圆石／快照命令方块图标及日期。补充卡片仍延迟构造、复用现有进出动画，异步补充不重建普通行，不参与最新推荐。
+- 2026-10-23 从 [UVMC 清单](https://zkitefly.github.io/unlisted-versions-of-minecraft/version_manifest.json) 及对应 `files` 元数据逐项核对 `c0.0.12a_03`、`a1.1.1`、`b1.9-pre6`、`13w12~`。前三者保留 old_alpha/old_beta，后者保留 snapshot；路径分别固定，后两者使用 `b1_9-pre6`、`13w12-`，不根据显示名称推导任意路径。UVMC 是独立公开档案，不代表恢复 PCL 私有特供目录。
+- 四份实际元数据保存于测试专用 `Resources/Historical/`，不编入产品。当前清单没有元数据 SHA-1，按已核对来源／身份／结构读取；客户端、支持库、资源计划仍要求摘要和大小。新增历史条目缺少支持库信息时明确拒绝，不复用 2.0 的参考清单。真实下载后的客户端大小／SHA-1 与来源声明吻合；这不等于 Mojang 签名认证或实际启动验收。
+
 ## 特供版本范围调整：2.0 与官方 rd 版本
 
 - 再读固定 PCL `5ef81e4` 的 `ModDownload.DlClientListBmclapiMain`：上游合并 `Cache/download.json`；本机该缓存当前为空数组。`ModDownloadLib.McDownloadListItem` 根据来源地址添加特供提示；`ModMinecraft.GetMcFoolName` 使用 `2.0` 前缀识别 2013 愚人节描述。当前卡片延用 PCL 折叠、按需创建行及普通列表先显示的机制，来源明确标记 UVMC，未伪造 PCL 的私有缓存内容。
-- 2026-10-23 实读 Mojang `version_manifest_v2.json`，`rd-132211` 已有官方 `old_alpha` 条目及版本 JSON 摘要；它保留在远古版，不合成重复补充条目。UVMC 的 `2point0_blue/red/purple` 对应实际元数据 `2.0_blue/red/purple`。当前补充允许表仅保留这三个显式映射；下方 20 个战斗/实验条目的记录为先前阶段，现已替换。
+- 2026-10-23 实读 Mojang `version_manifest_v2.json`，`rd-132211` 已有官方 `old_alpha` 条目及版本 JSON 摘要；它保留在远古版，不合成重复补充条目。UVMC 的 `2point0_blue/red/purple` 对应实际元数据 `2.0_blue/red/purple`。该阶段补充允许表仅保留这三个显式映射，后续扩展见上节；下方 20 个战斗/实验条目的记录为先前阶段，现已替换。
 - 三个 2.0 JSON 的旧 Maven 声明均缺少下载记录。逐项对照 [Mojang 1.5.1 元数据](https://piston-meta.mojang.com/v1/packages/3c514114d9c2a3ea78f72c4f9fb4eeb56747135a/1.5.1.json)，以 URL 中对应的 `3c514114d9c2a3ea78f72c4f9fb4eeb56747135a` 校验原始字节，再按去除 downloads 后的完整库声明匹配，补齐官方 artifact/classifiers 信息。它是本项目为保持文件校验而做的适配，未复制其他版本的客户端或启动参数，匹配不到或存在矛盾时停止。
 - 测试资源 `Resources/SupplementalLibraryReference.json` 保留上述官方 JSON 原始字节；仅嵌入测试程序集，生产按选源策略请求该固定地址并验证 SHA-1。控制测试覆盖坐标、仓库、平台规则、本机库声明的变更、参考清单损坏及取消重试。
 

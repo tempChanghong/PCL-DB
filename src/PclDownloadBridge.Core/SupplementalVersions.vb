@@ -20,6 +20,9 @@ Public NotInheritable Class SupplementalVersions
             result.Add("2point0_" & color, "2.0_" & color)
             result.Add("2.0_" & color, "2.0_" & color)
         Next
+        For Each id In {"c0.0.12a_03", "a1.1.1", "b1.9-pre6", "13w12~"}
+            result.Add(id, id)
+        Next
         Return result
     End Function
 
@@ -29,7 +32,17 @@ Public NotInheritable Class SupplementalVersions
     End Function
 
     Public Shared Function Label(entry As VersionEntry) As String
-        Return "愚人节版"
+        If entry.Id.StartsWith("2.0_", StringComparison.Ordinal) Then Return "愚人节版"
+        Return If(entry.Id = "13w12~", "旧快照", "远古版")
+    End Function
+
+    Private Shared Function ValidKind(id As String, kind As String) As Boolean
+        Select Case id
+            Case "c0.0.12a_03", "a1.1.1" : Return kind = "old_alpha"
+            Case "b1.9-pre6" : Return kind = "old_beta"
+            Case "13w12~" : Return kind = "snapshot"
+            Case Else : Return kind = "snapshot" OrElse kind = "pending"
+        End Select
     End Function
 
     Public Shared Function DisplayName(entry As VersionEntry) As String
@@ -69,7 +82,7 @@ Public NotInheritable Class SupplementalVersions
             If rawId Is Nothing OrElse Not Aliases.TryGetValue(rawId, canonical) Then Continue For
             Dim kind = StringValue(value("type")), url = StringValue(value("url")), sha1 = StringValue(value("sha1"))
             Dim released As DateTimeOffset
-            If (kind <> "pending" AndAlso kind <> "snapshot") OrElse url <> MetadataUrl(canonical) OrElse
+            If Not ValidKind(canonical, kind) OrElse url <> MetadataUrl(canonical) OrElse
                 (value("sha1") IsNot Nothing AndAlso Not IsSha1(sha1)) OrElse
                 Not TryRelease(value("releaseTime"), released) Then Continue For
             parsed.Add(New VersionEntry With {.Id = canonical, .SupplementalId = rawId, .Kind = kind, .Url = url, .Sha1 = sha1, .Released = released})
@@ -97,6 +110,8 @@ Public NotInheritable Class SupplementalVersions
 
     Private Shared Function MetadataUrl(id As String) As String
         Dim slug = id.Replace("2.0_", "2point0_")
+        If id = "b1.9-pre6" Then slug = "b1_9-pre6"
+        If id = "13w12~" Then slug = "13w12-"
         Return BaseUrl & slug & "/" & slug & ".json"
     End Function
 
@@ -121,19 +136,23 @@ Public NotInheritable Class SupplementalVersions
         If Not entry.IsSupplemental Then Return
         Dim canonical As String = Nothing
         If Not Aliases.TryGetValue(entry.SupplementalId, canonical) OrElse canonical <> entry.Id OrElse entry.Url <> MetadataUrl(canonical) OrElse
+            Not ValidKind(canonical, entry.Kind) OrElse
             (Not String.IsNullOrEmpty(entry.Sha1) AndAlso Not IsSha1(entry.Sha1)) Then Throw New InvalidDataException("补充版本身份无效。")
         If String.IsNullOrWhiteSpace(StringValue(metadata("mainClass"))) OrElse Not TypeOf metadata("libraries") Is JArray OrElse
-            (StringValue(metadata("type")) <> "pending" AndAlso StringValue(metadata("type")) <> "snapshot") OrElse metadata("jar") IsNot Nothing Then Throw New InvalidDataException("补充版本元数据结构无效。")
+            Not ValidKind(canonical, StringValue(metadata("type"))) OrElse metadata("jar") IsNot Nothing Then Throw New InvalidDataException("补充版本元数据结构无效。")
+        If DirectCast(metadata("libraries"), JArray).Any(Function(item) Not TypeOf item Is JObject) Then Throw New InvalidDataException("补充版本包含无效的支持库声明。")
         Dim index = TryCast(metadata("assetIndex"), JObject)
         If index Is Nothing OrElse String.IsNullOrWhiteSpace(StringValue(index("id"))) OrElse Not IsSha1(StringValue(index("sha1"))) Then Throw New InvalidDataException("补充版本资源索引缺少有效校验。")
     End Sub
 
     Public Shared Async Function PrepareLibrariesAsync(entry As VersionEntry, metadata As JObject, policy As SourcePolicy, token As CancellationToken) As Task(Of JObject)
+        token.ThrowIfCancellationRequested()
         Dim result = DirectCast(metadata.DeepClone(), JObject)
         If Not entry.IsSupplemental Then Return result
         ValidateMetadata(entry, result)
         Dim libraries = DirectCast(result("libraries"), JArray).OfType(Of JObject)().ToList()
         If Not libraries.Any(Function(library) library("downloads") Is Nothing OrElse library("downloads").Type = JTokenType.Null) Then Return result
+        If Not entry.Id.StartsWith("2.0_", StringComparison.Ordinal) Then Throw New InvalidDataException("该历史版本的支持库下载信息不完整，不能使用 2.0 的参考清单补全。")
         ' UVMC 2.0 profiles retain the original Maven/rules/native declarations,
         ' without download records. Match them to the SHA-1 verified Mojang 1.5.1
         ' profile, preserving this version's client, arguments and asset index.

@@ -3,5 +3,6 @@
   <ItemGroup><ProjectReference Include="../../src/PclDownloadBridge.Core/PclDownloadBridge.Core.vbproj" /></ItemGroup>
   <ItemGroup><Reference Include="System.Net.Http" /></ItemGroup>
   <ItemGroup><EmbeddedResource Include="Resources/SupplementalLibraryReference.json" LogicalName="SupplementalLibraryReference.json" /></ItemGroup>
+  <ItemGroup><EmbeddedResource Include="Resources/Historical/*.json" LogicalName="Historical.%(Filename)%(Extension)" /></ItemGroup>
   <ItemGroup><Reference Include="System.IO.Compression"/><Reference Include="System.IO.Compression.FileSystem"/><EmbeddedResource Include="Resources/FixtureProcessor.class" LogicalName="FixtureProcessor.class"/></ItemGroup>
 </Project>
