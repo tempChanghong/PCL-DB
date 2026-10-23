@@ -117,7 +117,7 @@ Partial Public Class MainWindow
             results("officialRdAndFoolsRetained") = BrowserRows("远古版").Single().Tag Is rd AndAlso Not rd.IsSupplemental AndAlso BrowserRows("愚人节版").Single().Tag Is fool AndAlso
                 BrowserRows("特供版本").Count = 2 AndAlso BrowserRows("特供版本").First().Title.Contains("2.0（蓝色版）") AndAlso BrowserRows("战斗测试版").Count = 0 AndAlso BrowserRows("实验快照").Count = 0
             Dim history As New List(Of VersionEntry)
-            For Each id In {"c0.0.12a_03", "a1.1.1", "inf-20100630-1"}.Concat(SupplementalVersions.HistoricalBetaIds).Concat(SupplementalVersions.HistoricalSnapshotIds)
+            For Each id In SupplementalVersions.HistoricalAlphaIds.Concat(SupplementalVersions.HistoricalBetaIds).Concat(SupplementalVersions.HistoricalSnapshotIds)
                 history.Add(New VersionEntry With {.Id = id, .SupplementalId = id, .Kind = If(SupplementalVersions.HistoricalSnapshotIds.Contains(id), "snapshot", If(SupplementalVersions.HistoricalBetaIds.Contains(id), "old_beta", "old_alpha")), .Released = blue.Released})
             Next
             Dim oldSnapshot = history.Single(Function(entry) entry.Id = "13w12~")
@@ -129,7 +129,7 @@ Partial Public Class MainWindow
             pending.SetResult(history.Concat({blue, red}).ToList()) : Await loading
             results("historyDoesNotReplaceNormalOrLatest") = BrowserRows("正式版").Single() Is originalRow AndAlso BrowserRows("最新版本").Single().Tag Is normal AndAlso BrowserRows("远古版").Single().Tag Is rd
             AddSupplementalVersionCards()
-            results("historyCategoriesAndIcons") = BrowserRows("远古版本补充").Count = 13 AndAlso BrowserRows("历史快照补充").Count = 67 AndAlso BrowserRows("历史快照补充").Any(Function(row) row.Tag Is oldSnapshot) AndAlso
+            results("historyCategoriesAndIcons") = BrowserRows("远古版本补充").Count = 16 AndAlso BrowserRows("历史快照补充").Count = 67 AndAlso BrowserRows("历史快照补充").Any(Function(row) row.Tag Is oldSnapshot) AndAlso
                 BrowserRows("特供版本").Count = 2 AndAlso New VersionPresentation(history(0)).Icon.Contains("CobbleStone") AndAlso New VersionPresentation(oldSnapshot).Icon.Contains("CommandBlock") AndAlso
                 historyViews.All(Function(view) view.Kind = view.Entry.Kind AndAlso view.DisplayId = view.Entry.Id AndAlso view.Icon.Contains(If(view.Kind = "snapshot", "CommandBlock", "CobbleStone"))) AndAlso
                 VersionCards.Children.OfType(Of PclCard)().Count() = 7 AndAlso StatusText.Text.Contains("远古版") AndAlso StatusText.Text.Contains("旧快照")

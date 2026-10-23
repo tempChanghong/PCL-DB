@@ -7,11 +7,11 @@ Imports PclDownloadBridge.Core
 Friend Module SupplementalVersionChecks
     Private Const BlueId As String = "2point0_blue"
     Private Const RedId As String = "2point0_red"
-    Private ReadOnly HistoricalIds As String() = {"c0.0.12a_03", "a1.1.1"}.
+    Private ReadOnly HistoricalIds As String() = SupplementalVersions.HistoricalAlphaIds.Where(Function(id) id <> "inf-20100630-1").
         Concat(SupplementalVersions.HistoricalBetaIds.Where(Function(id) id <> "1.0.0-rc1")).Concat(SupplementalVersions.HistoricalSnapshotIds).ToArray()
 
     Private Function HistoryKind(id As String) As String
-        If id = "c0.0.12a_03" OrElse id = "a1.1.1" Then Return "old_alpha"
+        If SupplementalVersions.HistoricalAlphaIds.Contains(id) Then Return "old_alpha"
         Return If(SupplementalVersions.HistoricalBetaIds.Contains(id), "old_beta", "snapshot")
     End Function
 
@@ -71,11 +71,12 @@ Friend Module SupplementalVersionChecks
     End Function
 
     Private Sub HistoricalParseChecks(passed As List(Of String))
-        Dim archivedSnapshots As New List(Of String), archivedBetas As New List(Of String)
+        Dim archivedSnapshots As New List(Of String), archivedBetas As New List(Of String), archivedAlphas As New List(Of String)
         For Each name In Reflection.Assembly.GetExecutingAssembly().GetManifestResourceNames().Where(Function(value) value.StartsWith("Historical.", StringComparison.Ordinal) AndAlso value.EndsWith(".json", StringComparison.Ordinal))
             Dim profile = JObject.Parse(Encoding.UTF8.GetString(SupplementalInstallFixture.Resource(name)))
             If CStr(profile("type")) = "snapshot" AndAlso Not CStr(profile("id")).StartsWith("2.0_", StringComparison.Ordinal) Then archivedSnapshots.Add(CStr(profile("id")))
             If CStr(profile("type")) = "old_beta" Then archivedBetas.Add(CStr(profile("id")))
+            If name <> "Historical.AlphaLibraryReference.json" AndAlso CStr(profile("type")) = "old_alpha" Then archivedAlphas.Add(CStr(profile("id")))
         Next
         Check(New HashSet(Of String)(archivedSnapshots, StringComparer.Ordinal).SetEquals(SupplementalVersions.HistoricalSnapshotIds) AndAlso archivedSnapshots.Count = 67,
             "all sixty-seven archived snapshot identities match the single production registry", passed)
@@ -86,8 +87,18 @@ Friend Module SupplementalVersionChecks
             immutable = True
         End Try
         Check(immutable AndAlso SupplementalVersions.HistoricalSnapshotIds(0) = firstSnapshot, "callers cannot mutate the historical snapshot registry", passed)
-        Check(New HashSet(Of String)(archivedBetas, StringComparer.Ordinal).SetEquals(SupplementalVersions.HistoricalBetaIds) AndAlso archivedBetas.Count = 10,
-            "all ten archived Beta identities match the independent classification registry", passed)
+        Check(New HashSet(Of String)(archivedBetas, StringComparer.Ordinal).SetEquals(SupplementalVersions.HistoricalBetaIds) AndAlso archivedBetas.Count = 12,
+            "all twelve archived Beta identities match the independent classification registry", passed)
+        Check(New HashSet(Of String)(archivedAlphas, StringComparer.Ordinal).SetEquals(SupplementalVersions.HistoricalAlphaIds) AndAlso archivedAlphas.Count = 4,
+            "all four archived Alpha identities match the independent classification registry", passed)
+        immutable = False
+        Dim firstAlpha = SupplementalVersions.HistoricalAlphaIds(0)
+        Try
+            DirectCast(SupplementalVersions.HistoricalAlphaIds, IList(Of String))(0) = "unregistered"
+        Catch ex As NotSupportedException
+            immutable = True
+        End Try
+        Check(immutable AndAlso SupplementalVersions.HistoricalAlphaIds(0) = firstAlpha, "callers cannot mutate the historical Alpha registry", passed)
         immutable = False
         Dim firstBeta = SupplementalVersions.HistoricalBetaIds(0)
         Try
@@ -102,6 +113,7 @@ Friend Module SupplementalVersionChecks
             Check(SupplementalVersions.Parse(Manifest(EntryJson(slug), EntryJson(id))).Single().Id = id, "Beta path slug is not an alias and cannot hide its valid neighbor: " & id, passed)
         Next
         Beta18Checks(passed)
+        LegacyVanillaChecks(passed)
         Dim sameDate = SupplementalVersions.Parse(Manifest(EntryJson("13w07a"), EntryJson("13w11a")))
         Check(sameDate.Count = 2 AndAlso sameDate(0).Released = sameDate(1).Released AndAlso sameDate(0).Id <> sameDate(1).Id,
             "same-date archived snapshots retain separate canonical identities", passed)
@@ -121,6 +133,31 @@ Friend Module SupplementalVersionChecks
             Check(SupplementalVersions.Merge({official}, entries).Single() Is official, "official historical declaration wins case-insensitive collision: " & id, passed)
         Next
         Check(SupplementalVersions.Parse(Manifest(EntryJson("13w12-"), EntryJson("b1_9-pre6"), EntryJson("1_2"), EntryJson("in-20100223"), EntryJson("c0.30-1"))).Count = 0, "URL slugs are not version aliases and deferred history stays outside the allowlist", passed)
+    End Sub
+
+    Private Sub LegacyVanillaChecks(passed As List(Of String))
+        Dim ids = {"b1.1-1", "b1.1-2", "a1.1.0-2"}, entries As New List(Of VersionEntry)
+        Dim hashes = {"366af727742cff91e37af5cb3155927dfe44fc66", "e6499cd774ebc3f0b633d6fdd8c5a84149ad0aad", "66e8319d9b34662cdaf985ec3c1e0e926fcad46e"}
+        Dim sizes = {1129358L, 1129359L, 873031L}
+        For i = 0 To ids.Length - 1
+            Dim id = ids(i), profile = JObject.Parse(Encoding.UTF8.GetString(SupplementalInstallFixture.Resource("Historical." & id & ".json")))
+            Dim entry = EntryJson(id) : entry("releaseTime") = profile("releaseTime").DeepClone()
+            entries.Add(SupplementalVersions.Parse(Manifest(entry)).Single())
+            SupplementalVersions.ValidateMetadata(entries.Last(), profile)
+            Dim client = MinecraftInstaller.BuildBasePlan(profile, id).Single(Function(file) file.RelativePath.EndsWith("/" & id & ".jar", StringComparison.Ordinal))
+            Check(CStr(profile("assets")) = "legacy" AndAlso CStr(profile("assetIndex")("sha1")) = SupplementalVersions.LegacyAssetIndexSha1 AndAlso client.Sha1 = hashes(i) AndAlso client.Size = sizes(i),
+                "archived legacy Vanilla profile retains its exact index, client hash and string size: " & id, passed)
+            For Each other In ids.Where(Function(value) value <> id)
+                Dim wrong = EntryJson(id) : wrong("url") = EntryJson(other)("url")
+                Check(SupplementalVersions.Parse(Manifest(wrong, EntryJson(other))).Single().Id = other, "legacy Vanilla rejects cross-version metadata URL beside a valid neighbor: " & id & " <- " & other, passed)
+            Next
+        Next
+        Check(entries(0).Released = entries(1).Released AndAlso SupplementalVersions.Merge({}, entries).Count = 3 AndAlso hashes.Distinct().Count() = 3,
+            "same-date Beta 1.1 revisions retain both identities and different clients", passed)
+        For Each unknown In {"b1.1", "b1.1-3", "a1.1.0", "a1.1.0-1", "b1_1-1", "b1_1-2", "a1_1_0-2"}
+            Dim wrong = EntryJson("a1.1.0-2") : wrong("id") = unknown
+            Check(SupplementalVersions.Parse(Manifest(wrong, EntryJson("a1.1.0-2"))).Single().Id = "a1.1.0-2", "legacy Vanilla does not open unverified sibling or guessed alias: " & unknown, passed)
+        Next
     End Sub
 
     Private Sub Beta18Checks(passed As List(Of String))

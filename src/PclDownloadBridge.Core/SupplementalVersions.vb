@@ -27,7 +27,9 @@ Public NotInheritable Class SupplementalVersions
     ' Beta classification is independent from its launch recipe (RC1 uses 1.6/Alpha).
     Private Shared ReadOnly BetaIds As IReadOnlyList(Of String) = Array.AsReadOnly(New String() {
         "b1.9-pre6", "1.0.0-rc1", "b1.9-pre1", "b1.9-pre2", "b1.9-pre3", "b1.9-pre4", "b1.9-pre5",
-        "b1.8-pre2", "b1.8-pre1-2", "b1.8-pre1-1"})
+        "b1.8-pre2", "b1.8-pre1-2", "b1.8-pre1-1", "b1.1-1", "b1.1-2"})
+    Private Shared ReadOnly AlphaIds As IReadOnlyList(Of String) = Array.AsReadOnly(New String() {
+        "c0.0.12a_03", "a1.1.1", "inf-20100630-1", "a1.1.0-2"})
     Private Shared ReadOnly Aliases As Dictionary(Of String, String) = CreateAliases()
 
     Public Shared ReadOnly Property HistoricalSnapshotIds As IReadOnlyList(Of String)
@@ -50,6 +52,16 @@ Public NotInheritable Class SupplementalVersions
         Return BetaIds.Contains(id, StringComparer.Ordinal)
     End Function
 
+    Public Shared ReadOnly Property HistoricalAlphaIds As IReadOnlyList(Of String)
+        Get
+            Return AlphaIds
+        End Get
+    End Property
+
+    Friend Shared Function IsHistoricalAlpha(id As String) As Boolean
+        Return AlphaIds.Contains(id, StringComparer.Ordinal)
+    End Function
+
     Private Shared Function CreateAliases() As Dictionary(Of String, String)
         Dim result As New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)
         ' These catalogue -> metadata identities have been checked individually.
@@ -57,7 +69,7 @@ Public NotInheritable Class SupplementalVersions
             result.Add("2point0_" & color, "2.0_" & color)
             result.Add("2.0_" & color, "2.0_" & color)
         Next
-        For Each id In {"c0.0.12a_03", "a1.1.1", "inf-20100630-1"}.Concat(BetaIds).Concat(SnapshotIds)
+        For Each id In AlphaIds.Concat(BetaIds).Concat(SnapshotIds)
             result.Add(id, id)
         Next
         Return result
@@ -76,10 +88,8 @@ Public NotInheritable Class SupplementalVersions
     Private Shared Function ValidKind(id As String, kind As String) As Boolean
         If IsHistoricalSnapshot(id) Then Return kind = "snapshot"
         If IsHistoricalBeta(id) Then Return kind = "old_beta"
-        Select Case id
-            Case "c0.0.12a_03", "a1.1.1", "inf-20100630-1" : Return kind = "old_alpha"
-            Case Else : Return kind = "snapshot" OrElse kind = "pending"
-        End Select
+        If IsHistoricalAlpha(id) Then Return kind = "old_alpha"
+        Return kind = "snapshot" OrElse kind = "pending"
     End Function
 
     Public Shared Function DisplayName(entry As VersionEntry) As String

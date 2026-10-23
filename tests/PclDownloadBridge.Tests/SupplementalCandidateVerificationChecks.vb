@@ -76,7 +76,7 @@ Friend Module SupplementalCandidateVerificationChecks
             Check(failed AndAlso Not CBool(failure("succeeded")) AndAlso Not CBool(failure("records")(0)("succeeded")) AndAlso failure("failure") IsNot Nothing AndAlso
                 Not Directory.Exists(Path.Combine(failedOutput, "game")), "candidate tool persists an explicit failure and does not install invalid metadata", passed)
         End Using
-        For Each id In SupplementalVersions.HistoricalSnapshotIds.Concat(SupplementalVersions.HistoricalBetaIds)
+        For Each id In SupplementalVersions.HistoricalSnapshotIds.Concat(SupplementalVersions.HistoricalBetaIds).Concat(SupplementalVersions.HistoricalAlphaIds)
             Using fixture As New InstallationChecks.InstallFixture(root, "historical-map-" & id)
                 ApplyMappedProfile(fixture, id)
                 Dim installer As New MinecraftInstaller(New Policy(fixture.Server.Url)), entry = SupplementalInstallFixture.Entry(id)
@@ -97,6 +97,57 @@ Friend Module SupplementalCandidateVerificationChecks
                 Check(File.Exists(Path.Combine(accepted.InstancePath, "shared.json")) AndAlso PclFolders.ReadIniValue(Path.Combine(accepted.InstancePath, "PCL/Setup.ini"), "VersionArgumentIndieV2") = "False", "historical shared install retries after explicit conflict correction: " & id, passed)
             End Using
         Next
+        Await VirtualResourcesAsync(root, passed)
         Return passed
+    End Function
+
+    Private Async Function VirtualResourcesAsync(root As String, passed As List(Of String)) As Task
+        For Each id In {"b1.1-1", "b1.1-2", "a1.1.0-2"}
+            Using fixture As New InstallationChecks.InstallFixture(root, "legacy-virtual-" & id)
+                Dim source = SupplementalInstallFixture.Profile(fixture, id), bytes = Encoding.UTF8.GetBytes("synthetic legacy virtual resource"), digest = Hash(bytes)
+                fixture.Server.Files("/" & digest.Substring(0, 2) & "/" & digest) = bytes
+                Dim index = Encoding.UTF8.GetBytes(New JObject From {{"virtual", True}, {"objects", New JObject From {{"sound/check.ogg", New JObject From {{"hash", digest}, {"size", bytes.Length}}}}}}.ToString())
+                fixture.Server.Files("/index") = index
+                source("assets") = "legacy" : source("assetIndex")("id") = "legacy"
+                source("assetIndex")("sha1") = Hash(index) : source("assetIndex")("size") = index.Length
+                fixture.Server.Files("/version") = Encoding.UTF8.GetBytes(source.ToString())
+                Dim policy As New Policy(fixture.Server.Url), output = Path.Combine(root, "virtual-tool-" & id)
+                Dim report = Await SupplementalCandidateVerification.VerifyAsync(output, {SupplementalInstallFixture.Entry(id)}, policy, True, CancellationToken.None)
+                Dim gameRoot = Path.Combine(output, "game/.minecraft"), virtualPath = Path.Combine(gameRoot, "assets/virtual/legacy/sound/check.ogg"), row = report("records")(0)
+                Check(CBool(report("succeeded")) AndAlso CInt(row("virtualResources")) = 1 AndAlso CInt(row("mappedResources")) = 0 AndAlso File.ReadAllBytes(virtualPath).SequenceEqual(bytes) AndAlso
+                    Not Directory.Exists(Path.Combine(gameRoot, "versions", id, "assets/virtual")) AndAlso Not Directory.Exists(Path.Combine(gameRoot, "resources")), "legacy virtual resources remain in the root cache through isolated install, cancellation, retry and repair: " & id, passed)
+                Dim userResource = Path.Combine(gameRoot, "resources/user.ogg"), instanceResource = Path.Combine(gameRoot, "versions", id, "resources/user.ogg"), userBytes = Encoding.UTF8.GetBytes("preserve user resource")
+                For Each resourcePath In {userResource, instanceResource}
+                    Directory.CreateDirectory(Path.GetDirectoryName(resourcePath)) : File.WriteAllBytes(resourcePath, userBytes)
+                Next
+                Dim ordinaryIndex = Path.Combine(gameRoot, "assets/indexes/legacy.json"), ordinaryBytes = Encoding.UTF8.GetBytes("unrelated ordinary legacy index")
+                File.WriteAllBytes(ordinaryIndex, ordinaryBytes)
+                Dim installer As New MinecraftInstaller(policy), sharedName = "shared-" & id
+                Dim result = Await installer.InstallAsync(SupplementalInstallFixture.Entry(id), gameRoot, sharedName, {gameRoot}, Nothing, CancellationToken.None, isolationMode:=InstanceIsolationMode.Disabled)
+                Check(File.ReadAllBytes(virtualPath).SequenceEqual(bytes) AndAlso File.ReadAllBytes(userResource).SequenceEqual(userBytes) AndAlso File.ReadAllBytes(instanceResource).SequenceEqual(userBytes) AndAlso
+                    PclFolders.ReadIniValue(Path.Combine(result.InstancePath, "PCL/Setup.ini"), "VersionArgumentIndieV2") = "False", "legacy virtual cache is shared without changing either user's resources directory: " & id, passed)
+                Dim jsonPath = Path.Combine(gameRoot, "versions", id, id & ".json"), iniPath = Path.Combine(gameRoot, "versions", id, "PCL/Setup.ini")
+                Dim installed = JObject.Parse(File.ReadAllText(jsonPath))
+                Check(CStr(installed("assets")) = "legacy" AndAlso CStr(installed("assetIndex")("id")) = "pcldb-" & Hash(index) AndAlso File.ReadAllBytes(ordinaryIndex).SequenceEqual(ordinaryBytes),
+                    "private legacy index naming keeps the virtual directory and ordinary index independent: " & id, passed)
+                Dim json = File.ReadAllBytes(jsonPath), ini = File.ReadAllBytes(iniPath)
+                File.WriteAllText(virtualPath, "damaged virtual cache")
+                Dim repaired = Await installer.InstallAsync(SupplementalInstallFixture.Entry(id), gameRoot, id, {gameRoot}, Nothing, CancellationToken.None, repairExisting:=True, isolationMode:=InstanceIsolationMode.Disabled)
+                Check(repaired.NetworkBytes = 0 AndAlso File.ReadAllBytes(virtualPath).SequenceEqual(bytes) AndAlso File.ReadAllBytes(jsonPath).SequenceEqual(json) AndAlso File.ReadAllBytes(iniPath).SequenceEqual(ini) AndAlso
+                    File.ReadAllBytes(ordinaryIndex).SequenceEqual(ordinaryBytes) AndAlso File.ReadAllBytes(userResource).SequenceEqual(userBytes) AndAlso File.ReadAllBytes(instanceResource).SequenceEqual(userBytes),
+                    "legacy virtual cache repair reuses the checked object and preserves existing isolated settings: " & id, passed)
+                Dim blockedRoot = Path.Combine(root, "virtual-blocked-" & id), target = Path.Combine(blockedRoot, "assets/virtual/legacy/sound/check.ogg"), rejected = False
+                Directory.CreateDirectory(target)
+                Try
+                    Await installer.InstallAsync(SupplementalInstallFixture.Entry(id), blockedRoot, "blocked", {}, Nothing, CancellationToken.None, isolationMode:=InstanceIsolationMode.Enabled)
+                Catch ex As Exception When TypeOf ex Is IOException OrElse TypeOf ex Is InvalidDataException
+                    rejected = True
+                End Try
+                Check(rejected AndAlso Directory.Exists(target) AndAlso Not Directory.Exists(Path.Combine(blockedRoot, "versions/blocked")), "legacy virtual file-directory conflict preserves the occupied path and refuses instance publication: " & id, passed)
+                Directory.Delete(target) ' Explicit correction of the empty fixture directory.
+                Dim retried = Await installer.InstallAsync(SupplementalInstallFixture.Entry(id), blockedRoot, "blocked", {}, Nothing, CancellationToken.None, isolationMode:=InstanceIsolationMode.Enabled)
+                Check(File.ReadAllBytes(target).SequenceEqual(bytes) AndAlso File.Exists(Path.Combine(retried.InstancePath, "blocked.json")), "legacy virtual conflict can retry the same name after explicit fixture correction: " & id, passed)
+            End Using
+        Next
     End Function
 End Module

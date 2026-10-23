@@ -5,15 +5,15 @@ Imports PclDownloadBridge.Core
 
 ' Real Mojang wrapper; client/index bytes remain explicitly synthetic fixtures.
 Friend NotInheritable Class SupplementalInstallFixture
-    Friend Shared ReadOnly Ids As String() = {"2.0_blue", "2.0_red", "2.0_purple", "c0.0.12a_03", "a1.1.1", "inf-20100630-1"}.
-        Concat(SupplementalVersions.HistoricalBetaIds).Concat(SupplementalVersions.HistoricalSnapshotIds).ToArray()
+    Friend Shared ReadOnly Ids As String() = {"2.0_blue", "2.0_red", "2.0_purple"}.
+        Concat(SupplementalVersions.HistoricalAlphaIds).Concat(SupplementalVersions.HistoricalBetaIds).Concat(SupplementalVersions.HistoricalSnapshotIds).ToArray()
 
     Friend Shared Function UsesAlpha(id As String) As Boolean
         Return id = "c0.0.12a_03" OrElse id = "1.0.0-rc1" OrElse id = "inf-20100630-1"
     End Function
 
     Friend Shared Function Kind(id As String) As String
-        If id = "c0.0.12a_03" OrElse id = "a1.1.1" OrElse id = "inf-20100630-1" Then Return "old_alpha"
+        If SupplementalVersions.HistoricalAlphaIds.Contains(id) Then Return "old_alpha"
         Return If(SupplementalVersions.HistoricalBetaIds.Contains(id), "old_beta", "snapshot")
     End Function
 

@@ -26,7 +26,7 @@ Friend NotInheritable Class SupplementalLaunchRecipe
         End Select
         If SupplementalVersions.IsHistoricalSnapshot(id) OrElse SupplementalVersions.IsHistoricalBeta(id) Then Return VanillaRecipe()
         Select Case id
-            Case "2.0_blue", "2.0_red", "2.0_purple", "a1.1.1"
+            Case "2.0_blue", "2.0_red", "2.0_purple", "a1.1.1", "a1.1.0-2"
                 Return VanillaRecipe()
             Case Else
                 Throw New InvalidDataException("该补充版本尚未配置经过验证的启动配方。")

@@ -72,6 +72,7 @@ Friend NotInheritable Class SupplementalCandidateVerification
                 row("clientSha1") = prepared.SelectToken("downloads.client.sha1").DeepClone()
                 row("assetIndexSha1") = index("sha1").DeepClone()
                 row("mappedResources") = assetPlan.Where(Function(file) file.RelativePath.StartsWith("resources/", StringComparison.Ordinal)).Count()
+                row("virtualResources") = assetPlan.Where(Function(file) file.RelativePath.StartsWith("assets/virtual/legacy/", StringComparison.Ordinal)).Count()
                 row("baseFiles") = basePlan.Count : row("assetFiles") = assetPlan.Count
                 row("metadataChecksPassed") = True
                 ' Parsed views are diagnostic artifacts, not the original network bytes
