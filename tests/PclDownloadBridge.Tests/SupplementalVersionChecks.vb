@@ -70,8 +70,8 @@ Friend Module SupplementalVersionChecks
             Dim profile = JObject.Parse(Encoding.UTF8.GetString(SupplementalInstallFixture.Resource(name)))
             If CStr(profile("type")) = "snapshot" AndAlso Not CStr(profile("id")).StartsWith("2.0_", StringComparison.Ordinal) Then archivedSnapshots.Add(CStr(profile("id")))
         Next
-        Check(New HashSet(Of String)(archivedSnapshots, StringComparer.Ordinal).SetEquals(SupplementalVersions.HistoricalSnapshotIds) AndAlso archivedSnapshots.Count = 36,
-            "all thirty-six archived snapshot identities match the single production registry", passed)
+        Check(New HashSet(Of String)(archivedSnapshots, StringComparer.Ordinal).SetEquals(SupplementalVersions.HistoricalSnapshotIds) AndAlso archivedSnapshots.Count = 47,
+            "all forty-seven archived snapshot identities match the single production registry", passed)
         Dim immutable = False, firstSnapshot = SupplementalVersions.HistoricalSnapshotIds(0)
         Try
             DirectCast(SupplementalVersions.HistoricalSnapshotIds, IList(Of String))(0) = "unregistered"
