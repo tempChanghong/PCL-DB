@@ -1,6 +1,6 @@
 # PCL-DB · PCL Download Bridge
 
-VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，简称 PCL-DB。最新发布为 **Beta 2.0**（`2.0.0-beta.1`），当前源码另含尚未发行的 CurseForge 版本列表修复和特供版本调整。[Beta 2.0 发布说明](docs/releases/2.0.0-beta.1.md)。
+VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，简称 PCL-DB。最新发布为 **Beta 3.0**（`3.0.0-beta.1`），包含 CurseForge 版本列表修复、历史特供版本、统一隔离设置及界面动画优化。[Beta 3.0 发布说明](docs/releases/3.0.0-beta.1.md)。
 
 以 PCL2 限制前代码为主要参照，读取 PCL 使用的 `.minecraft`，安装结果使用 PCL 能读取的版本目录格式。原五个启动器仓库不需要修改。
 
@@ -10,9 +10,9 @@ VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，简称
 
 ## 使用
 
-从 [Beta 2.0](https://github.com/tempChanghong/PCL-DB/releases/tag/v2.0.0-beta.1) 下载 `PCL-DB-2.0.0-beta.1.exe` 直接运行，或下载 ZIP 解压后运行其中的 `PCL-DB.exe`。源码构建方法见下文。
+从 [Beta 3.0](https://github.com/tempChanghong/PCL-DB/releases/tag/v3.0.0-beta.1) 下载 `PCL-DB-3.0.0-beta.1.exe` 直接运行，或下载 ZIP 解压后运行其中的 `PCL-DB.exe`。源码构建方法见下文。
 
-Beta 2.0 的两个下载入口使用相同的单 EXE，仍需系统安装 .NET Framework 4.8。ZIP 另外附带许可、使用说明和构建清单。已有多文件预览版运行时仍须保留自己的 DLL 和配置文件。源码默认构建入口为 `src/PclDownloadBridge.App/bin/Release/net48/PclDownloadBridge.exe`，显式打包后的便携目录入口为 `dist/PclDownloadBridge/PCL-DB.exe`。
+Beta 3.0 的两个下载入口使用相同的单 EXE，仍需系统安装 .NET Framework 4.8。ZIP 另外附带许可、使用说明和构建清单。已有多文件预览版运行时仍须保留自己的 DLL 和配置文件。源码默认构建入口为 `src/PclDownloadBridge.App/bin/Release/net48/PclDownloadBridge.exe`，显式打包后的便携目录入口为 `dist/PclDownloadBridge/PCL-DB.exe`。
 
 1. 打开「设置 → 游戏文件夹」，点击「读取 PCL 的目录」选择实际使用的 PCL EXE。读取其旁的游戏目录、`PCL/Setup.ini` 的当前选择，以及 PCL 注册表自定义目录。也可手动选择 `.minecraft`。同页可分别设置「文件下载源」和「版本列表源」：BMCLAPI 优先、自动、官方优先；自动为默认值。切换版本列表源后，返回下载页会按新设置刷新当前列表；安装选项页也可点击「刷新列表」，保留版本、名称与组件选择。
 2. 回到「下载」，顶部显示安装目标；点击版本，填写实例名称。展开卡片选择 Forge、NeoForge、Fabric、Fabric API、OptiFine、OptiFabric 或 LiteLoader，点击「开始下载」。按 PCL 规则显示适用选项及互斥关系，Fabric API 和 OptiFabric 随父组件显示。默认拒绝覆盖同名实例。
@@ -274,7 +274,7 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 结果打印 ZIP、单 EXE、清单及本次 `result.json` 的完整路径，报告记录全部摘要。明确指定候选包可独立检查包内一致性及所有分发资产：
 
 ```powershell
-.\tools\verify-package.ps1 -PackagePath .\dist\PCL-DB-2.0.0-beta.1.zip -DistributionPath .\dist\PclDownloadBridge -StandalonePath .\dist\PCL-DB-2.0.0-beta.1.exe -ManifestPath .\dist\PCL-DB-2.0.0-beta.1.build-manifest.json
+.\tools\verify-package.ps1 -PackagePath .\dist\PCL-DB-3.0.0-beta.1.zip -DistributionPath .\dist\PclDownloadBridge -StandalonePath .\dist\PCL-DB-3.0.0-beta.1.exe -ManifestPath .\dist\PCL-DB-3.0.0-beta.1.build-manifest.json
 ```
 
 上面的命令执行归档完整性检查，返回 `VerificationLevel=ArchiveIntegrity`、`CandidateVerified=false`。Beta 1.0 的 v2 清单保留当时的 25/658/328 记录，仅校验其结构、非零整数计数及实际文件摘要；不套用当前套件数量。Beta 2.0 的 v3 清单还核对四组完整回执及其 EXE 摘要。两种归档检查都不证明源码来源、签名或通过当前验收，v1/未知格式仍拒绝；旧 ZIP 不会被重写。检查旧 Beta 时请同时指定它对应的资产，不要混用当前便携目录。

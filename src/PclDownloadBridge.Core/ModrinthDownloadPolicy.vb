@@ -19,7 +19,7 @@ Friend NotInheritable Class ModrinthDownloadPolicy
     End Sub
     Friend Shared Function CreateClient(allowLoopback As Boolean) As HttpClient
         Dim client As New HttpClient(New RedirectHandler(allowLoopback)) With {.Timeout = Timeout.InfiniteTimeSpan}
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("PclDownloadBridge/2.0.0-beta.1 (local Minecraft installer)")
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("PclDownloadBridge/3.0.0-beta.1 (local Minecraft installer)")
         Return client
     End Function
     Private NotInheritable Class RedirectHandler

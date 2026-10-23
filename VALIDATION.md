@@ -1532,3 +1532,9 @@
 - 基线 `eeda6358280a748d4d936f7cfda5abdbb1496550`；读取固定 PCL `5ef81e4` 的 MyListItem、PageDownloadInstall 和 FormMain Git 对象，统一列表默认 14 DIP 与行高度量，约束 Minecraft 长版本文本，添加不占布局/不收输入的侧栏细渐变。
 - 新增 35 项（行度量 15、摘要/侧栏/联动 20）；检查最小窗口、长文本、明暗、逻辑缩放、动态图标、快速返回、旧时钟、组件与名称保留，以及详情/任务页隐藏侧栏和返回。原有动画、搜索及安装逻辑继续回归。
 - 策略 `PCL-DB-checks/2026-10-23.21`；UI 911 / motion 769 / pack-search 320 共 2000 项，另检查固定源码/资源、验证契约和进程工具。日志、前后画面及源码/Commit 绑定见 `artifacts/ui-layout-alignment/`，详情见 `docs/reviews/ui-layout-alignment.md`。本轮 Core 未变，不打包、推送或发版；隐藏 WPF 与模拟布局缩放不代表人工桌面/DPI/帧率验收。
+
+## Beta 3.0 发布前检查
+
+- 基线 `d04f30a5aaa32504c5b71da99396100021420fad`；独立复核下载/安装/隔离/历史版本、搜索/导入/UI动画及打包流程，未确认新的可复现业务缺陷。统一 App/Core、manifest 与四处 HTTP 请求标识为 Beta 3.0，更新发布及使用文档。
+- 全量 Core 6123 / UI 911 / motion 769 / pack-search 320 重新运行；源码提交后冻结，单 EXE 冷目录验收 25/911/769/320，再对同一个明确候选执行 PowerShell 7/5.1 打包回归、四种分发输出和工件摘要检查。源码或文档改变必须重新建立候选。
+- 发行采用 `v3.0.0-beta.1`，附单 EXE、ZIP、源码归档、构建清单、验证摘要、发布说明与 SHA256SUMS。以最终发行回执和公开重新下载校验为准；证据见 `artifacts/beta-3.0-release/`、`docs/reviews/beta-3-release-review.md` 及 Release 的 verification.json。保留 Beta 1/2，不把自动验收视为所有版本的真实游戏启动或桌面帧率测试。
