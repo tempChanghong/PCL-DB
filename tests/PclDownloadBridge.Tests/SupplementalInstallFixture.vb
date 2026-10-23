@@ -9,7 +9,11 @@ Friend NotInheritable Class SupplementalInstallFixture
         Concat(SupplementalVersions.HistoricalAlphaIds).Concat(SupplementalVersions.HistoricalBetaIds).Concat(SupplementalVersions.HistoricalSnapshotIds).ToArray()
 
     Friend Shared Function UsesAlpha(id As String) As Boolean
-        Return id = "c0.0.12a_03" OrElse id = "1.0.0-rc1" OrElse id = "inf-20100630-1"
+        Return WrapperVersion(id) = "1.6" OrElse id = "a1.1.0-1" OrElse id = "a1.0.17_03" OrElse id = "a1.0.16_02"
+    End Function
+
+    Friend Shared Function WrapperVersion(id As String) As String
+        Return If(id = "c0.0.12a_03" OrElse id = "1.0.0-rc1" OrElse id = "inf-20100630-1", "1.6", "1.5")
     End Function
 
     Friend Shared Function Kind(id As String) As String
@@ -46,7 +50,7 @@ Friend NotInheritable Class SupplementalInstallFixture
         metadata("id") = id : metadata("type") = Kind(id)
         metadata("mainClass") = "net.minecraft.launchwrapper.Launch"
         metadata("minecraftArguments") = Arguments(id) : metadata.Remove("arguments")
-        Dim version = If(UsesAlpha(id), "1.6", "1.5"), bytes = Resource("LegacyLaunch.launchwrapper-" & version & ".jar")
+        Dim version = WrapperVersion(id), bytes = Resource("LegacyLaunch.launchwrapper-" & version & ".jar")
         Dim route = "/fixture-wrapper/" & version & ".jar", hash As String
         Using sha = Security.Cryptography.SHA1.Create()
             hash = BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant()

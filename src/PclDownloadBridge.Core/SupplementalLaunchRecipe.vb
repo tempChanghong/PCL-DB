@@ -23,6 +23,10 @@ Friend NotInheritable Class SupplementalLaunchRecipe
         Select Case id
             Case "c0.0.12a_03", "1.0.0-rc1", "inf-20100630-1"
                 Return New Recipe With {.Version = "1.6", .Sha1 = "4ea0aca9c022a234ebaf14b51fb119055955fc9d", .Size = 27583, .Tweaker = Alpha}
+            ' These archived Alpha profiles use 1.5 with an explicit Alpha tweaker.
+            ' Neither old_alpha classification nor the neighboring revision implies this recipe.
+            Case "a1.1.0-1", "a1.0.17_03", "a1.0.16_02"
+                Return New Recipe With {.Version = "1.5", .Sha1 = "5150b9c2951f0fde987ce9c33496e26add1de224", .Size = 27787, .Tweaker = Alpha}
         End Select
         If SupplementalVersions.IsHistoricalSnapshot(id) OrElse SupplementalVersions.IsHistoricalBeta(id) Then Return VanillaRecipe()
         Select Case id

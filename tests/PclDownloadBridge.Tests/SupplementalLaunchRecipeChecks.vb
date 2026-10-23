@@ -145,7 +145,79 @@ Friend Module SupplementalLaunchRecipeChecks
             SupplementalVersions.ValidateMetadata(New VersionEntry With {.Id = "modern"}, modern)
             Check(True, "ordinary modern metadata stays outside legacy recipe validation", passed)
         End Using
+        Await Alpha15Async(root, passed)
         passed.AddRange(Await SupplementalRecipeInstallationChecks.RunAsync(root))
         Return passed
     End Function
+
+    Private Async Function Alpha15Async(root As String, passed As List(Of String)) As Task
+        For Each id In {"a1.1.0-1", "a1.0.17_03", "a1.0.16_02"}
+            Using fixture As New InstallationChecks.InstallFixture(root, "alpha15-recipe-" & id)
+                Dim source = SupplementalInstallFixture.Profile(fixture, id), entry = SupplementalInstallFixture.Entry(id)
+                Dim vanillaArguments = SupplementalInstallFixture.Arguments("a1.1.0-2")
+                For Each arguments In {vanillaArguments, vanillaArguments & " --tweakClass net.minecraft.launchwrapper.VanillaTweaker",
+                    vanillaArguments & " --tweakClass net.minecraft.launchwrapper.IndevVanillaTweaker",
+                    CStr(source("minecraftArguments")) & " --tweakClass net.minecraft.launchwrapper.AlphaVanillaTweaker"}
+                    Dim bad = DirectCast(source.DeepClone(), JObject), rejected = False
+                    bad("minecraftArguments") = arguments
+                    Try
+                        SupplementalVersions.ValidateMetadata(entry, bad)
+                    Catch ex As InvalidDataException
+                        rejected = True
+                    End Try
+                    Check(rejected AndAlso Not ExistingAccepts(id, bad), "Alpha 1.5 rejects missing, replaced or duplicate tweaker in source and existing profile: " & id & " " & passed.Count, passed)
+                Next
+                Dim otherWrapper = SupplementalInstallFixture.Profile(fixture, "c0.0.12a_03")
+                Dim swapped = DirectCast(source.DeepClone(), JObject), wrapperRejected = False
+                swapped("libraries") = otherWrapper("libraries").DeepClone()
+                Try
+                    Await SupplementalVersions.PrepareLibrariesAsync(entry, swapped, New ReferencePolicy(fixture.Server.Url), CancellationToken.None)
+                Catch ex As InvalidDataException
+                    wrapperRejected = True
+                End Try
+                Check(wrapperRejected AndAlso fixture.Server.Requests.Count = 0, "Alpha 1.5 rejects a correctly hashed 1.6 wrapper before network: " & id, passed)
+                Dim vanilla = SupplementalInstallFixture.Profile(fixture, "a1.1.0-2")
+                vanilla("minecraftArguments") = source("minecraftArguments").DeepClone()
+                Check(Not ExistingAccepts("a1.1.0-2", vanilla), "neighboring Alpha revision retains its default Vanilla recipe: " & id, passed)
+
+                ' A broken existing profile is refused before shared-file repair; the user,
+                ' not the installer, must explicitly correct its incompatible launch settings.
+                SupplementalInstallFixture.Apply(fixture, id)
+                Dim installer As New MinecraftInstaller(New AlphaPolicy(fixture.Server.Url))
+                Await installer.InstallAsync(entry, fixture.Root, "renamed", {}, Nothing, CancellationToken.None, isolationMode:=InstanceIsolationMode.Enabled)
+                Dim instance = Path.Combine(fixture.Root, "versions/renamed"), jsonPath = Path.Combine(instance, "renamed.json")
+                Dim iniPath = Path.Combine(instance, "PCL/Setup.ini"), clientPath = Path.Combine(instance, "renamed.jar")
+                File.AppendAllText(iniPath, "UserSetting:保留" & vbCrLf)
+                Dim ini = File.ReadAllBytes(iniPath), json = JObject.Parse(File.ReadAllText(jsonPath)), corrupt = Encoding.UTF8.GetBytes("corrupt existing client")
+                json("minecraftArguments") = vanillaArguments & " --width 1360 --researchTag retained"
+                Dim original = Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes(json.ToString() & vbCrLf)).ToArray()
+                File.WriteAllBytes(jsonPath, original) : File.WriteAllBytes(clientPath, corrupt)
+                Dim before = fixture.NonVersionRequests(), repairRejected = False
+                Try
+                    Await installer.InstallAsync(entry, fixture.Root, "renamed", {}, Nothing, CancellationToken.None, repairExisting:=True, isolationMode:=InstanceIsolationMode.Disabled)
+                Catch ex As InvalidDataException
+                    repairRejected = True
+                End Try
+                Check(repairRejected AndAlso fixture.NonVersionRequests() = before AndAlso File.ReadAllBytes(clientPath).SequenceEqual(corrupt) AndAlso
+                    File.ReadAllBytes(jsonPath).SequenceEqual(original) AndAlso File.ReadAllBytes(iniPath).SequenceEqual(ini), "Alpha 1.5 refuses incompatible repair without altering existing bytes or downloading shared files: " & id, passed)
+                json("minecraftArguments") = CStr(source("minecraftArguments")) & " --width 1360 --researchTag retained"
+                Dim corrected = Encoding.Unicode.GetPreamble().Concat(Encoding.Unicode.GetBytes(json.ToString() & vbCrLf)).ToArray()
+                File.WriteAllBytes(jsonPath, corrected) ' Explicit correction in this isolated test only.
+                Await installer.InstallAsync(entry, fixture.Root, "renamed", {}, Nothing, CancellationToken.None, repairExisting:=True, isolationMode:=InstanceIsolationMode.Disabled)
+                Check(File.ReadAllBytes(clientPath).SequenceEqual(fixture.Server.Files("/client")) AndAlso File.ReadAllBytes(jsonPath).SequenceEqual(corrected) AndAlso
+                    File.ReadAllBytes(iniPath).SequenceEqual(ini), "Alpha 1.5 corrected same-name repair preserves UTF-16, custom arguments and original isolation: " & id, passed)
+            End Using
+        Next
+    End Function
+
+    Private Class AlphaPolicy
+        Inherits SourcePolicy
+        Private ReadOnly _server As String
+        Friend Sub New(server As String)
+            _server = server : AllowLoopback = True
+        End Sub
+        Public Overrides Function Candidates(url As String, category As String) As List(Of String)
+            Return New List(Of String) From {If(New Uri(url).Host = "zkitefly.github.io", _server & "/version", url)}
+        End Function
+    End Class
 End Module

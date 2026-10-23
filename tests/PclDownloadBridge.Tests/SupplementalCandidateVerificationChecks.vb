@@ -102,7 +102,7 @@ Friend Module SupplementalCandidateVerificationChecks
     End Function
 
     Private Async Function VirtualResourcesAsync(root As String, passed As List(Of String)) As Task
-        For Each id In {"b1.1-1", "b1.1-2", "a1.1.0-2"}
+        For Each id In {"b1.1-1", "b1.1-2", "a1.1.0-2", "a1.1.0-1", "a1.0.17_03", "a1.0.16_02"}
             Using fixture As New InstallationChecks.InstallFixture(root, "legacy-virtual-" & id)
                 Dim source = SupplementalInstallFixture.Profile(fixture, id), bytes = Encoding.UTF8.GetBytes("synthetic legacy virtual resource"), digest = Hash(bytes)
                 fixture.Server.Files("/" & digest.Substring(0, 2) & "/" & digest) = bytes

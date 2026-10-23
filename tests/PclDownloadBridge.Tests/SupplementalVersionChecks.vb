@@ -89,8 +89,8 @@ Friend Module SupplementalVersionChecks
         Check(immutable AndAlso SupplementalVersions.HistoricalSnapshotIds(0) = firstSnapshot, "callers cannot mutate the historical snapshot registry", passed)
         Check(New HashSet(Of String)(archivedBetas, StringComparer.Ordinal).SetEquals(SupplementalVersions.HistoricalBetaIds) AndAlso archivedBetas.Count = 12,
             "all twelve archived Beta identities match the independent classification registry", passed)
-        Check(New HashSet(Of String)(archivedAlphas, StringComparer.Ordinal).SetEquals(SupplementalVersions.HistoricalAlphaIds) AndAlso archivedAlphas.Count = 4,
-            "all four archived Alpha identities match the independent classification registry", passed)
+        Check(New HashSet(Of String)(archivedAlphas, StringComparer.Ordinal).SetEquals(SupplementalVersions.HistoricalAlphaIds) AndAlso archivedAlphas.Count = 7,
+            "all seven archived Alpha identities match the independent classification registry", passed)
         immutable = False
         Dim firstAlpha = SupplementalVersions.HistoricalAlphaIds(0)
         Try
@@ -114,6 +114,7 @@ Friend Module SupplementalVersionChecks
         Next
         Beta18Checks(passed)
         LegacyVanillaChecks(passed)
+        Alpha15Checks(passed)
         Dim sameDate = SupplementalVersions.Parse(Manifest(EntryJson("13w07a"), EntryJson("13w11a")))
         Check(sameDate.Count = 2 AndAlso sameDate(0).Released = sameDate(1).Released AndAlso sameDate(0).Id <> sameDate(1).Id,
             "same-date archived snapshots retain separate canonical identities", passed)
@@ -135,6 +136,28 @@ Friend Module SupplementalVersionChecks
         Check(SupplementalVersions.Parse(Manifest(EntryJson("13w12-"), EntryJson("b1_9-pre6"), EntryJson("1_2"), EntryJson("in-20100223"), EntryJson("c0.30-1"))).Count = 0, "URL slugs are not version aliases and deferred history stays outside the allowlist", passed)
     End Sub
 
+    Private Sub Alpha15Checks(passed As List(Of String))
+        Dim ids = {"a1.1.0-1", "a1.0.17_03", "a1.0.16_02"}
+        Dim hashes = {"ea8db151ce4d1b2d4c60beb6ebc0abb65e8d7444", "d0bfecc9966d6106b304dd219cf73f5e6670203b", "b45ada7f4f421298be217e805d2ccd41e3421c6a"}
+        Dim sizes = {872811L, 867329L, 860260L}
+        For i = 0 To ids.Length - 1
+            Dim id = ids(i), profile = JObject.Parse(Encoding.UTF8.GetString(SupplementalInstallFixture.Resource("Historical." & id & ".json")))
+            Dim entry = SupplementalVersions.Parse(Manifest(EntryJson(id))).Single()
+            SupplementalVersions.ValidateMetadata(entry, profile)
+            Dim client = MinecraftInstaller.BuildBasePlan(profile, id).Single(Function(file) file.RelativePath.EndsWith("/" & id & ".jar", StringComparison.Ordinal))
+            Check(client.Sha1 = hashes(i) AndAlso client.Size = sizes(i) AndAlso profile.Property("assets") Is Nothing AndAlso
+                CStr(profile("assetIndex")("sha1")) = SupplementalVersions.LegacyAssetIndexSha1, "archived Alpha 1.5 retains its exact client and complete index without adding a source assets property: " & id, passed)
+            For Each other In ids.Concat({"a1.1.0-2"}).Where(Function(value) value <> id)
+                Dim wrong = EntryJson(id) : wrong("url") = EntryJson(other)("url")
+                Check(SupplementalVersions.Parse(Manifest(wrong, EntryJson(other))).Single().Id = other, "Alpha 1.5 cross-version URL cannot shadow its valid neighbor: " & id & " <- " & other, passed)
+            Next
+        Next
+        For Each unknown In {"a1.1.0", "a1.1.0-3", "a1.0.17", "a1.0.16", "a1.0.14-1", "a1_1_0-1", "a1_0_17_03", "a1_0_16_02"}
+            Dim wrong = EntryJson(ids(0)) : wrong("id") = unknown
+            Check(SupplementalVersions.Parse(Manifest(wrong, EntryJson(ids(0)))).Single().Id = ids(0), "Alpha 1.5 does not register guessed aliases or unverified siblings: " & unknown, passed)
+        Next
+    End Sub
+
     Private Sub LegacyVanillaChecks(passed As List(Of String))
         Dim ids = {"b1.1-1", "b1.1-2", "a1.1.0-2"}, entries As New List(Of VersionEntry)
         Dim hashes = {"366af727742cff91e37af5cb3155927dfe44fc66", "e6499cd774ebc3f0b633d6fdd8c5a84149ad0aad", "66e8319d9b34662cdaf985ec3c1e0e926fcad46e"}
@@ -154,7 +177,7 @@ Friend Module SupplementalVersionChecks
         Next
         Check(entries(0).Released = entries(1).Released AndAlso SupplementalVersions.Merge({}, entries).Count = 3 AndAlso hashes.Distinct().Count() = 3,
             "same-date Beta 1.1 revisions retain both identities and different clients", passed)
-        For Each unknown In {"b1.1", "b1.1-3", "a1.1.0", "a1.1.0-1", "b1_1-1", "b1_1-2", "a1_1_0-2"}
+        For Each unknown In {"b1.1", "b1.1-3", "a1.1.0", "a1.1.0-3", "b1_1-1", "b1_1-2", "a1_1_0-2"}
             Dim wrong = EntryJson("a1.1.0-2") : wrong("id") = unknown
             Check(SupplementalVersions.Parse(Manifest(wrong, EntryJson("a1.1.0-2"))).Single().Id = "a1.1.0-2", "legacy Vanilla does not open unverified sibling or guessed alias: " & unknown, passed)
         Next
