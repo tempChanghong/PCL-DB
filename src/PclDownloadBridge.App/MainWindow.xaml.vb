@@ -760,6 +760,9 @@ Partial Public Class MainWindow
         If target = DownloadView.Progress OrElse (target = DownloadView.Install AndAlso _selectedEntry Is Nothing) Then target = DownloadView.Versions
         If target = DownloadView.Modpacks Then _restorePackViewportFocus = True
         SetDownloadView(target)
+        ' Both the task card and title return must restore focus after page
+        ' motion settles. Do this before a list refresh can yield to navigation.
+        FocusDownloadPage()
         Await RefreshCurrentListsIfNeededAsync()
     End Sub
     Private Async Sub BackToVersions(sender As Object, e As RoutedEventArgs)

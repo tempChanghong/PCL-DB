@@ -256,7 +256,7 @@
             <p:PclScrollViewer x:Name="DownloadProgress" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
               <StackPanel Margin="25,15,25,10">
               <p:PclCard Title="下载任务" VerticalAlignment="Top" BodyMargin="25,40,15,15" HeaderContentMargin="132,0,15,0">
-                <p:PclCard.HeaderContent><p:PclButton Text="返回安装选项" Width="112" Height="27" HorizontalAlignment="Right" Click="ResumeInstallation" /></p:PclCard.HeaderContent>
+                <p:PclCard.HeaderContent><p:PclButton x:Name="TaskReturnButton" Text="返回安装选项" Width="112" Height="27" HorizontalAlignment="Right" Click="ResumeInstallation" /></p:PclCard.HeaderContent>
                 <StackPanel>
                   <TextBlock x:Name="TaskTitle" Text="暂无正在进行的任务" FontWeight="Bold" TextWrapping="Wrap" Margin="0,0,0,14" />
                   <StackPanel x:Name="TaskPanel">

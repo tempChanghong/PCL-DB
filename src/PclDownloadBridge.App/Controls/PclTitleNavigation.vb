@@ -11,6 +11,8 @@ Namespace Controls
         Private ReadOnly _mainX As New TranslateTransform, _innerX As New TranslateTransform
         Private _clock As ClockGroup, _caption As ClockGroup
         Private _title As String
+        ' PCL's initial XAML inset is -16; PageChangeExit leaves it at -18.
+        Private _innerRestOffset As Double = -16
         Private ReadOnly _policy As PclControlMotionPolicy
         Friend Property PauseForChecks As Boolean
         Friend ReadOnly Property Transition As ClockGroup
@@ -42,6 +44,7 @@ Namespace Controls
                 ChangeCaption()
                 Return
             End If
+            If Not isInner Then _innerRestOffset = -18
             Dim mainOpacity = _main.Opacity, innerOpacity = _inner.Opacity, mainOffset = _mainX.X, innerOffset = _innerX.X
             StopClocks()
             If Not _enabled() OrElse Not _host.IsLoaded OrElse Not _host.IsVisible Then
@@ -103,7 +106,7 @@ Namespace Controls
             _inner.Visibility = If(inner, Visibility.Visible, Visibility.Collapsed)
             _main.IsHitTestVisible = Not inner : _inner.IsHitTestVisible = inner
             _main.Opacity = If(inner, 0, 1) : _inner.Opacity = If(inner, 1, 0)
-            _mainX.X = If(inner, 12, 0) : _innerX.X = If(inner, 0, -16)
+            _mainX.X = If(inner, 12, 0) : _innerX.X = If(inner, 0, _innerRestOffset)
             _label.Text = If(_title, "") : _label.Opacity = 1
         End Sub
         Private Sub StopCaption()

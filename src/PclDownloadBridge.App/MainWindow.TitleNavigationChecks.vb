@@ -55,7 +55,29 @@ Partial Public Class MainWindow
                     opening.Controller.SkipToFill() : layout()
                     check(returning IsNot Nothing AndAlso owner._titleNavigation.Transition Is returning AndAlso owner._packMode = PackBrowserMode.Search AndAlso owner.TitleMain.IsHitTestVisible, "obsolete title entry cannot replace a rapid return or its logical input owner")
                     owner._titleNavigation.Finish() : owner._categoryMotion.Finish()
-                    owner.ChangePackMode(PackBrowserMode.Detail) : layout() : owner._titleNavigation.Finish() : owner._categoryMotion.Finish()
+                    check(DirectCast(owner.TitleInner.RenderTransform, TranslateTransform).X = -18, "a completed title return retains PCL's -18 DIP hidden offset instead of its first-entry -16 DIP offset")
+                    owner.ResetTaskView("保持返回位置", True) : owner.SetDownloadView(DownloadView.Progress) : layout()
+                    owner._categoryMotion.Finish() : owner._titleNavigation.Finish() : layout()
+                    Using cancellation As New CancellationTokenSource()
+                        owner._cancellation = cancellation
+                        FocusManager.SetFocusedElement(FocusManager.GetFocusScope(owner.TaskReturnButton), owner.TaskReturnButton)
+                        owner.TaskReturnButton.Focus() : ControlKey(owner.TaskReturnButton, Key.Enter, True) : layout()
+                        check(owner._categoryMotion.Transition IsNot Nothing AndAlso owner._focusAfterPageSwitch AndAlso owner._restorePackViewportFocus,
+                            "task card return queues viewport focus while the outgoing task frame still owns page motion")
+                        owner._categoryMotion.Finish() : layout()
+                        check(Not owner._focusAfterPageSwitch AndAlso Not owner._restorePackViewportFocus AndAlso
+                            FocusManager.GetFocusedElement(FocusManager.GetFocusScope(owner.ModpackPage)) Is owner.ModpackPage AndAlso
+                            Math.Abs(owner.ModpackPage.VerticalOffset - searchOffset) < 1 AndAlso owner._hasTask AndAlso Not cancellation.IsCancellationRequested,
+                            "settling task return releases its focus request without scrolling the restored search or canceling the task")
+                        owner._titleNavigation.Finish()
+                    End Using
+                    owner._cancellation = Nothing
+                    owner.ChangePackMode(PackBrowserMode.Detail) : layout()
+                    Dim reopened = owner._titleNavigation.Transition
+                    reopened.Controller.SeekAlignedToLastTick(TimeSpan.FromMilliseconds(275), TimeSeekOrigin.BeginTime) : layout()
+                    expected = -18 * Math.Pow(1 - 75.0 / 350, 1.5) * Math.Cos(1.5 * Math.PI * 75.0 / 350)
+                    check(Math.Abs(DirectCast(owner.TitleInner.RenderTransform, TranslateTransform).X - expected) < 0.02, "subsequent child entry starts from the retained PCL exit offset and follows the same cosine-back curve")
+                    owner._titleNavigation.Finish() : owner._categoryMotion.Finish()
                     owner._titleNavigation.SelectTitle("新的详情标题")
                     Dim caption = owner._titleNavigation.CaptionTransition
                     caption.Controller.SeekAlignedToLastTick(TimeSpan.FromMilliseconds(140), TimeSeekOrigin.BeginTime) : layout()
@@ -96,6 +118,21 @@ Partial Public Class MainWindow
                     check(owner._downloadView = DownloadView.Modpacks AndAlso owner._packMode = PackBrowserMode.Detail AndAlso owner.InnerTitle.Text = "Fabulously Optimized" AndAlso Not cancellation.IsCancellationRequested AndAlso owner._hasTask, "task back restores the same detail without canceling or replacing its download")
                     owner.BackFromTitle(owner.TitleBack, New RoutedEventArgs()) : layout()
                     check(owner._packMode = PackBrowserMode.Search AndAlso Not cancellation.IsCancellationRequested, "second back returns from detail to the original search without canceling the task")
+                    For Each mode In {PackBrowserMode.Search, PackBrowserMode.Detail, PackBrowserMode.Local}
+                        owner.ChangePackMode(mode) : layout()
+                        owner.ModpackPage.ScrollToVerticalOffset(140) : layout()
+                        Dim offset = owner.ModpackPage.VerticalOffset
+                        owner.SetDownloadView(DownloadView.Progress) : layout()
+                        FocusManager.SetFocusedElement(FocusManager.GetFocusScope(owner.TaskReturnButton), owner.TaskReturnButton)
+                        owner.TaskReturnButton.Focus()
+                        ControlKey(owner.TaskReturnButton, Key.Enter, True) : layout()
+                        check(owner._downloadView = DownloadView.Modpacks AndAlso owner._packMode = mode AndAlso Not owner._restorePackViewportFocus AndAlso
+                            FocusManager.GetFocusedElement(FocusManager.GetFocusScope(owner.ModpackPage)) Is owner.ModpackPage,
+                            "task card return restores visible viewport focus through the button's real Enter handler: " & mode.ToString())
+                        check(Math.Abs(owner.ModpackPage.VerticalOffset - offset) < 1 AndAlso owner.PackProjectRows.Children.Contains(row) AndAlso
+                            owner.PackSearchText.Text = "保留搜索条件" AndAlso owner._hasTask AndAlso owner._cancellation Is cancellation AndAlso Not cancellation.IsCancellationRequested,
+                            "task card return retains pack viewport, accepted search and task ownership: " & mode.ToString())
+                    Next
                 End Using
                 owner._cancellation = Nothing
                 owner.ChangePackMode(PackBrowserMode.Detail) : owner.ShowSettings(Nothing, Nothing) : layout()

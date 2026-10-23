@@ -29,6 +29,7 @@ Partial Public Class MainWindow
         If _closing OrElse _choosingOnline OrElse _onlinePrompt IsNot Nothing OrElse DownloadPage.Visibility <> Visibility.Visible Then Return False
         If _downloadView = DownloadView.Progress Then
             ResumeInstallation(Me, New RoutedEventArgs())
+            Return True
         ElseIf _downloadView = DownloadView.Modpacks AndAlso _packMode = PackBrowserMode.Detail Then
             _restorePackViewportFocus = True
             BackToPackSearch(Me, New RoutedEventArgs())
