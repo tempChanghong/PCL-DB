@@ -318,6 +318,7 @@ Partial Public Class MainWindow
         VerifyRefreshRebinding(check)
         VerifyRefreshWorkflow(check, artifactDirectory)
         VerifyVersionLoading(check, artifactDirectory)
+        VerifyComponentLoading(check, artifactDirectory)
         VerifyCompatibilityWorkflow(check)
         VerifyTaskLifecycle(check, artifactDirectory)
         VerifyPointerAlignment(check)

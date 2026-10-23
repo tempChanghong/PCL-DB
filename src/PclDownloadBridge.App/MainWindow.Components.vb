@@ -42,6 +42,7 @@ Partial Public Class MainWindow
         _componentSelection = New ComponentSelection()
         _componentEntries.Clear() : _componentErrors.Clear() : _componentViews.Clear() : ComponentCards.Children.Clear()
         _autoName = New VersionPresentation(_selectedEntry).DisplayId
+        Dim owner = _selectedEntry
         For Each kind As ComponentKind In [Enum].GetValues(GetType(ComponentKind))
             Dim card As New PclCard With {.Title = ComponentCatalog.Label(kind), .SwapLogoRight = True, .Collapsible = False, .Collapsed = True, .Margin = New Thickness(0, 0, 0, 12), .BodyMargin = New Thickness(20, 40, 18, 15)}
             Dim summaryGrid As New Grid With {.Height = 18, .VerticalAlignment = VerticalAlignment.Center}
@@ -55,6 +56,7 @@ Partial Public Class MainWindow
                 .ToolTip = "取消安装 " & ComponentCatalog.Label(kind), .Visibility = Visibility.Collapsed,
                 .Logo = "F1 M2,0 L0,2 8,10 0,18 2,20 10,12 18,20 20,18 12,10 20,2 18,0 10,8 2,0Z"}
             AddHandler clear.Click, Sub(sender, e)
+                                        If Not CurrentComponentView(kind, owner, card) Then Return
                                         ClearComponent(kind)
                                         e.Handled = True
                                     End Sub
@@ -233,12 +235,15 @@ Partial Public Class MainWindow
             view.Summary.Foreground = PclAnimation.Brush(If(selected Is Nothing, "ColorBrushGray4", "ColorBrushGray1"))
             view.Icon.Visibility = If(selected Is Nothing, Visibility.Collapsed, Visibility.Visible)
             view.Clear.Visibility = view.Icon.Visibility
-            view.Card.Collapsible = restriction Is Nothing AndAlso (available.Count > 0 OrElse errorText IsNot Nothing OrElse _componentPending.Contains(kind))
-            If Not view.Card.Collapsible Then view.Card.Collapsed = True
             Dim pending = _componentPending.Contains(kind)
+            ' PCL ReloadSelected / PreviewSwap keep loading catalogues folded.
+            ' Retry remains an explicit local error-card action after loading ends.
+            view.Card.Collapsible = Not _componentsDirty AndAlso Not pending AndAlso restriction Is Nothing AndAlso (available.Count > 0 OrElse errorText IsNot Nothing)
+            If Not view.Card.Collapsible Then view.Card.Collapsed = True
             If Not view.BodyInitialized OrElse view.BodyPending <> pending OrElse
                 view.BodyError <> errorText OrElse Not view.BodyEntries.SequenceEqual(available) Then
-                view.Card.RefreshBody(Function() BuildComponentBody(kind, available, errorText))
+                Dim owner = _selectedEntry, generation = _componentGeneration
+                view.Card.RefreshBody(Function() BuildComponentBody(kind, available, errorText, owner, generation))
                 view.BodyInitialized = True
                 view.BodyEntries = available : view.BodyError = errorText : view.BodyPending = pending
             End If
@@ -269,16 +274,23 @@ Partial Public Class MainWindow
     End Sub
 
     Private Function BuildComponentBody(kind As ComponentKind, available As List(Of ComponentEntry), errorText As String) As UIElement
+        Return BuildComponentBody(kind, available, errorText, _selectedEntry, _componentGeneration)
+    End Function
+
+    Private Function BuildComponentBody(kind As ComponentKind, available As List(Of ComponentEntry), errorText As String, owner As VersionEntry, generation As Integer) As UIElement
         Dim body As New StackPanel
         If _componentPending.Contains(kind) Then
             body.Children.Add(New TextBlock With {.Text = "正在获取版本列表…", .Opacity = 0.6})
         ElseIf errorText IsNot Nothing Then
             Dim retry As New PclButton With {.Text = "重新获取 " & ComponentCatalog.Label(kind), .Height = 32, .Width = 170, .HorizontalAlignment = HorizontalAlignment.Left}
-            AddHandler retry.Click, Async Sub() Await RefreshComponentListsAsync(kind)
+            AddHandler retry.Click, Async Sub()
+                                        If Not CurrentComponentBody(kind, owner, generation, body) OrElse Not _componentErrors.ContainsKey(kind) Then Return
+                                        Await RefreshComponentListsAsync(kind)
+                                    End Sub
             body.Children.Add(retry)
         Else
             For Each entry In available
-                body.Children.Add(New PclLazyRow(Function() CreateComponentRow(kind, entry)))
+                body.Children.Add(New PclLazyRow(Function() CreateComponentRow(kind, entry, owner, generation, body)))
             Next
         End If
         Return body
@@ -289,9 +301,26 @@ Partial Public Class MainWindow
         view.Info.SetShown(view.Card.Collapsed)
     End Sub
 
-    Private Function CreateComponentRow(kind As ComponentKind, entry As ComponentEntry) As PclListItem
+    Private Function CurrentComponentView(kind As ComponentKind, owner As VersionEntry, card As PclCard) As Boolean
+        Dim view As ComponentView = Nothing
+        Return Not _closing AndAlso Not _busy AndAlso owner IsNot Nothing AndAlso owner Is _selectedEntry AndAlso _downloadView = DownloadView.Install AndAlso
+            DownloadPage.Visibility = Visibility.Visible AndAlso _componentViews.TryGetValue(kind, view) AndAlso view.Card Is card AndAlso card.Visibility = Visibility.Visible
+    End Function
+
+    Private Function CurrentComponentBody(kind As ComponentKind, owner As VersionEntry, generation As Integer, body As StackPanel) As Boolean
+        Dim view As ComponentView = Nothing
+        Return generation = _componentGeneration AndAlso Not _componentsDirty AndAlso Not _componentPending.Contains(kind) AndAlso
+            _componentViews.TryGetValue(kind, view) AndAlso CurrentComponentView(kind, owner, view.Card) AndAlso
+            view.Card.Collapsible AndAlso Not view.Card.Collapsed AndAlso Not view.Card.HasDeferredBodyRefresh AndAlso view.Card.Body Is body
+    End Function
+
+    Private Function CreateComponentRow(kind As ComponentKind, entry As ComponentEntry, owner As VersionEntry, generation As Integer, body As StackPanel) As PclListItem
         Dim row As New PclListItem With {.Title = If(entry.Title, entry.Version), .Info = If(entry.Stable, "稳定版", "测试版") & If(kind = ComponentKind.OptiFine AndAlso entry.RequiredForge IsNot Nothing, "，兼容 Forge " & If(entry.RequiredForge = "", "已支持版本", entry.RequiredForge), ""), .Height = 42, .Logo = "pack://application:,,,/PclDownloadBridge;component/Images/Blocks/" & ComponentCatalog.Icon(kind) & ".png", .Selected = _componentSelection.Item(kind) Is entry, .Tag = entry}
         AddHandler row.Click, Sub(sender, args)
+                                  If Not CurrentComponentBody(kind, owner, generation, body) OrElse _componentErrors.ContainsKey(kind) Then Return
+                                  Dim accepted As List(Of ComponentEntry) = Nothing
+                                  If entry.Kind <> kind OrElse entry.Minecraft <> owner.Id OrElse Not _componentEntries.TryGetValue(kind, accepted) OrElse
+                                      Not accepted.Any(Function(candidate) candidate Is entry) Then Return
                                   SelectComponent(entry)
                                   If TypeOf args Is Input.KeyEventArgs Then _componentViews(kind).Card.FocusHeader()
                               End Sub
