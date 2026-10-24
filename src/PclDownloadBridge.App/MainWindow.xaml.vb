@@ -769,7 +769,7 @@ Partial Public Class MainWindow
         SetDownloadView(target)
         ' Both the task card and title return must restore focus after page
         ' motion settles. Do this before a list refresh can yield to navigation.
-        FocusDownloadPage()
+        FocusDownloadPage(preserveInstallViewport:=target = DownloadView.Install)
         Await RefreshCurrentListsIfNeededAsync()
     End Sub
     Private Async Sub BackToVersions(sender As Object, e As RoutedEventArgs)

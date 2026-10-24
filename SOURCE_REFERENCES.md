@@ -829,6 +829,12 @@ PCL-DB 对 ID 0 使用已有默认蓝色、ID 1–5 使用已有对应近似预�
 
 PCL-DB 已有对应的 `PclSurfaceMotion`、曲线和冻结退出层，本轮仅将原版安装/浏览与任务页的两个遗漏方向接入该所有者，保留水平选择页与按钮动效的独立职责，不新建重复时钟实现。四份固定 Git 对象副本及摘要位于 `artifacts/task-progress-motion/source/`、`source.json`，说明见 `docs/reviews/task-page-motion.md`。
 
+## 任务返回的焦点与视口
+
+固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `Controls/MyScrollViewer.vb` 在 `PreviewGotKeyboardFocus` 中明确记录 #3854：阻止 MySlider 聚焦引发自动滚动。本轮参考这一原则，并核对 `MyPageRight` 的页面交接和 `PageDownloadInstall.EnterSelectPage/ExitSelectPage` 显式滚到顶部的边界：新选版本与恢复已有安装表单需要区分。
+
+PCL-DB 自有的任务返回保留表单流程，改为把“保留安装视口”作为当前待执行焦点请求的闭包参数，在交接结束后聚焦滚动容器；不全局屏蔽 BringIntoView，也不阻止用户主动选择名称框。该适配不是从上游复制的一套任务返回 API。四份规范化 Git 对象及摘要在 `artifacts/task-return-focus/source/`、`source.json`，验证边界见 `docs/reviews/task-return-focus.md`。
+
 ## 0.3 数据接口补充
 
 - [Fabric Meta](https://github.com/FabricMC/fabric-meta/blob/master/README.md)：读取版本专属 loader profile，合并 vanilla 参数并补全支持库。

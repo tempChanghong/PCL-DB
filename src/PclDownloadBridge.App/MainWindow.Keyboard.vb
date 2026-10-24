@@ -60,11 +60,11 @@ Partial Public Class MainWindow
         End If
     End Sub
 
-    Private Sub FocusDownloadPage()
-        QueueDownloadFocus(CreateDownloadFocusRequest())
+    Private Sub FocusDownloadPage(Optional preserveInstallViewport As Boolean = False)
+        QueueDownloadFocus(CreateDownloadFocusRequest(preserveInstallViewport))
     End Sub
 
-    Private Function CreateDownloadFocusRequest() As Action
+    Private Function CreateDownloadFocusRequest(Optional preserveInstallViewport As Boolean = False) As Action
         Dim scope = FocusManager.GetFocusScope(DownloadPage)
         Dim previous = FocusManager.GetFocusedElement(scope)
         Dim view = _downloadView, mode = _packMode
@@ -80,7 +80,15 @@ Partial Public Class MainWindow
                        If view = DownloadView.Modpacks Then _restorePackViewportFocus = False
                        Return
                    End If
-                   ApplyDownloadFocus()
+                   If preserveInstallViewport AndAlso view = DownloadView.Install Then
+                       ' PCL MyScrollViewer #3854 avoids focus-driven scrolling.
+                       ' A task return restores the existing form, so do not
+                       ' bring its possibly offscreen name editor into view.
+                       FocusManager.SetFocusedElement(FocusManager.GetFocusScope(InstallScroll), InstallScroll)
+                       InstallScroll.Focus()
+                   Else
+                       ApplyDownloadFocus()
+                   End If
                End Sub
     End Function
 
