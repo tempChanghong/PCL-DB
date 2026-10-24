@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 分页按钮与缓存页面的输入归属
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 PageResource 分页按钮、ChangePage 与 MyPageRight 入退场命中门控，保留现有分页卡布局、滚动、加载及页面动画。
+- 首页、上一页、下一页共用当前搜索页/输入来源校验，再调用原有分页方法，避免设置或详情页收到缓存按钮的迟到事件后替换后台结果。正常缓存返回、快速返回放行后的翻页和本页继续加载保持。详见 [分页入口验证](docs/reviews/paging-entry.md)；这是本工具缓存页面的补充，不直接移植 PCL 后台线程中的 100 ms 等待。
+
 ## 搜索与重置的界面入口
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 PageResource.StartNewSearch / EnterTrigger / ResetFilter 和 MyPageRight 的入退场命中门控。保留同一搜索流程、回车入口、重置草稿和缓存行为，以及已确认的搜索分层与动画。

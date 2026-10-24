@@ -385,6 +385,7 @@ Partial Public Class MainWindow
         VerifySearchPresentation(directory, host, layout, check)
         Await VerifyPromptFocusAsync(directory, host, layout, check)
         Await VerifySearchEntryOwnershipAsync(directory, layout, check)
+        Await VerifyPagingEntryOwnershipAsync(directory, layout, check)
     End Function
     Private Shared Async Function WaitPackUiAsync(condition As Func(Of Boolean)) As Task
         Dim clock = System.Diagnostics.Stopwatch.StartNew()

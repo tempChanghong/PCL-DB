@@ -172,10 +172,10 @@
                         <p:PclCard x:Name="PackResultsCard" ShowHeader="False" BodyMargin="12"><StackPanel x:Name="PackProjectRows"/></p:PclCard>
                         <p:PclCard x:Name="PackPagingCard" ShowHeader="False" HorizontalAlignment="Center" BodyMargin="10,7,10,7" Visibility="Collapsed">
                           <StackPanel Orientation="Horizontal">
-                            <p:PclButton x:Name="PackFirstPage" Text="首页" Width="60" Height="27" Click="FirstPackPage"/>
-                            <p:PclButton x:Name="PackPreviousPage" Text="上一页" Width="70" Height="27" Margin="6,0" Click="PreviousPackPage"/>
+                            <p:PclButton x:Name="PackFirstPage" Text="首页" Width="60" Height="27" Click="NavigatePackPageFromUi"/>
+                            <p:PclButton x:Name="PackPreviousPage" Text="上一页" Width="70" Height="27" Margin="6,0" Click="NavigatePackPageFromUi"/>
                             <TextBlock x:Name="PackPageLabel" Text="1" FontSize="15" Margin="12,0" VerticalAlignment="Center"/>
-                            <p:PclButton x:Name="PackNextPage" Text="下一页" Width="70" Height="27" Click="NextPackPage"/>
+                            <p:PclButton x:Name="PackNextPage" Text="下一页" Width="70" Height="27" Click="NavigatePackPageFromUi"/>
                           </StackPanel>
                         </p:PclCard>
                       </StackPanel>

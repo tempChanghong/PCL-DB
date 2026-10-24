@@ -54,4 +54,15 @@ Partial Public Class MainWindow
     Private Sub ResetPackSearchFromUi(sender As Object, e As RoutedEventArgs)
         If CanUsePackSearchInput(sender) Then ResetPackSearch(sender, e)
     End Sub
+
+    Private Sub NavigatePackPageFromUi(sender As Object, e As RoutedEventArgs)
+        If Not CanUsePackSearchInput(sender) Then Return
+        If sender Is PackFirstPage Then
+            FirstPackPage(sender, e)
+        ElseIf sender Is PackPreviousPage Then
+            PreviousPackPage(sender, e)
+        ElseIf sender Is PackNextPage Then
+            NextPackPage(sender, e)
+        End If
+    End Sub
 End Class
