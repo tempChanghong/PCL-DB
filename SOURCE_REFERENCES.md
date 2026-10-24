@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 详情操作与模态输入交接
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 PageDownloadCompDetail 复制入口、ModBase.ClipboardSet 和 MyMsgInput：保留四次尝试、200 ms 间隔及现有输入框进退场。项目操作继续异步等待，不阻塞 WPF 线程。
+- 本工具的待重试操作在介绍卡直接或继承失去启用/命中权限时退役，避免弹窗关闭或页面门控恢复后重新改写剪贴板、补发旧反馈。局部版本卡片入场不影响仍可交互的介绍卡。详见 [交接验证](docs/reviews/project-action-handoff.md)；取消语义是本工具异步操作的补充，不宣称原版已提供相同取消接口。
+
 ## 原版版本行与折叠退场
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 MyCard、MyPageRight 与 PageDownloadInstall：原版列表绑定版本 Tag，使用延迟构建和 Lambda 转发点击，退场控件不再接收操作。保留本工具已有的卡片几何、折叠/页面曲线、版本名/数据绑定与键盘返回。

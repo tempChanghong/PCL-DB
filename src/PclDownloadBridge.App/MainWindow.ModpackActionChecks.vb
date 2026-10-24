@@ -28,6 +28,7 @@ Partial Public Class MainWindow
             _packVerifiedProject = New ModpackProject With {.Id = owner.Id, .Platform = owner.Platform, .Name = "已核对的项目名称", .Website = "https://modrinth.com/modpack/verified-project",
                 .Summary = "用于验证项目操作的已接受元数据。", .GameVersions = {"1.20.1"}, .Updated = DateTimeOffset.UtcNow.AddDays(-2)}
             RenderPackProject(ActivePackProject()) : layout()
+            Await VerifyProjectActionHandoffAsync(directory, layout, verify)
             _packProjectActionWait = Function()
                                          waits += 1 : Return Task.CompletedTask
                                      End Function

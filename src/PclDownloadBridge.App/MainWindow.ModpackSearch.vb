@@ -55,6 +55,8 @@ Partial Public Class MainWindow
             Function() CanAnimatePackContent(PackBrowserMode.Detail),
             Function(surface) PclSurfaceMotion.Units(surface))
         AddHandler PackDetailSurface.IsVisibleChanged, Sub() If Not PackDetailSurface.IsVisible Then RetirePackProjectAction()
+        AddHandler PackProjectIntro.IsEnabledChanged, Sub() If Not PackProjectIntro.IsEnabled Then RetirePackProjectAction()
+        AddHandler PackProjectIntro.IsHitTestVisibleChanged, Sub() If Not PackProjectIntro.IsHitTestVisible Then RetirePackProjectAction()
         _packSearchLoading = New PclLoadingPresentation(PackSearchResultsHost, AddressOf CanTimePackLoading, Function() PackEntryMotion(PackBrowserMode.Search))
         _packDetailLoading = New PclLoadingPresentation(PackDetailResultsHost, AddressOf CanTimePackLoading, Function() PackEntryMotion(PackBrowserMode.Detail))
         AddHandler _categoryMotion.Settled, Sub() EnsurePackSearch()
