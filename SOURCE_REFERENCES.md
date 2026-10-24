@@ -853,6 +853,12 @@ PCL-DB 自有的任务返回保留表单流程，改为把“保留安装视口�
 
 仅在来源链中遇到实际横向溢出的 PclFilterScrollViewer 时，外层不在预览阶段提前接管，让子视口的冒泡处理器完成滚动。未溢出时继续使用原有竖向滚动曲线。横向兜底仍属于本程序适配，未声称 PCL 原有 PanFilter 带同样的视口。规范化源码和摘要在 `artifacts/filter-wheel-routing/source/`、`source.json`，详见 `docs/reviews/filter-wheel-routing.md`。
 
+## 整合包详情的复制与网页失败恢复
+
+读取固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `Pages/PageDownload/Resource/PageDownloadCompDetail.xaml(.vb)` 和 `Modules/Base/ModBase.vb`：详情按钮调用 ClipboardSet / OpenWebsite；前者四次重试、间隔 200 ms，后者浏览器失败后复制网址并提供手动访问提示。本程序据此为原直接系统调用增加异步限次重试、结果反馈与失败边界。
+
+项目身份/代次失效、页面门控、卡片内反馈和异步延迟属于本程序适配；既有页面动画和安装任务继续各自管理。规范化 Git 对象与 SHA-256 在 `artifacts/project-action-recovery/source/`、`source.json`；详见 [项目操作验证](docs/reviews/project-action-recovery.md)。
+
 ## 0.3 数据接口补充
 
 - [Fabric Meta](https://github.com/FabricMC/fabric-meta/blob/master/README.md)：读取版本专属 loader profile，合并 vanilla 参数并补全支持库。

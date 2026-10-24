@@ -16,6 +16,7 @@ Partial Public Class MainWindow
     End Function
 
     Private Sub RenderPackProject(project As ModpackProject)
+        RetirePackProjectAction()
         PackProjectTitle.Text = project.Name : PackProjectDescription.Text = project.Summary
         If PackProjectIdentity.Children.Count = 0 OrElse DirectCast(PackProjectIdentity.Children(0), PclResourceItem).Tag IsNot project Then
             PackProjectIdentity.Children.Clear()

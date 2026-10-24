@@ -53,6 +53,7 @@ Partial Public Class MainWindow
         _packDetailMotion = New PclSurfaceMotion(PackDetailResultsHost, PackDetailGhost,
             Function() CanAnimatePackContent(PackBrowserMode.Detail),
             Function(surface) PclSurfaceMotion.Units(surface))
+        AddHandler PackDetailSurface.IsVisibleChanged, Sub() If Not PackDetailSurface.IsVisible Then RetirePackProjectAction()
         _packSearchLoading = New PclLoadingPresentation(PackSearchResultsHost, AddressOf CanTimePackLoading, Function() PackEntryMotion(PackBrowserMode.Search))
         _packDetailLoading = New PclLoadingPresentation(PackDetailResultsHost, AddressOf CanTimePackLoading, Function() PackEntryMotion(PackBrowserMode.Detail))
         AddHandler _categoryMotion.Settled, Sub() EnsurePackSearch()
@@ -366,14 +367,11 @@ Partial Public Class MainWindow
         Next
         Return value
     End Function
-    Private Sub OpenPackProjectWebsite(sender As Object, e As RoutedEventArgs)
-        Dim project = ActivePackProject()
-        If project Is Nothing OrElse _preview Then Return
-        System.Diagnostics.Process.Start(New System.Diagnostics.ProcessStartInfo(project.Website) With {.UseShellExecute = True})
+    Private Async Sub OpenPackProjectWebsite(sender As Object, e As RoutedEventArgs)
+        Await DispatchPackProjectActionAsync("link")
     End Sub
-    Private Sub CopyPackProjectName(sender As Object, e As RoutedEventArgs)
-        Dim project = ActivePackProject()
-        If project IsNot Nothing Then Clipboard.SetText(project.Name)
+    Private Async Sub CopyPackProjectName(sender As Object, e As RoutedEventArgs)
+        Await DispatchPackProjectActionAsync("copy")
     End Sub
 
     Private Async Sub InstallOnlinePack(release As ModpackRelease, Optional displayedTitle As String = Nothing)
