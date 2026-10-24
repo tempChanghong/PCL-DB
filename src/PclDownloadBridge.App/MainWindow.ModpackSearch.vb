@@ -214,14 +214,14 @@ Partial Public Class MainWindow
                                       PackProjectRows.Children.Add(row)
                                       LoadPackIconAsync(row, project, artworkToken)
                                   Next
-                                  If items.Count = 0 Then PackProjectRows.Children.Add(New TextBlock With {.Text = If(session.HasMore, "暂时没有找到可用结果，点击「继续加载」查询后续内容。", If(session.ErrorMessage = "", "没有找到符合条件的整合包。", "未能取得结果，请重试或选择其他来源。")), .Margin = New Thickness(10), .TextWrapping = TextWrapping.Wrap})
+                                  If items.Count = 0 Then PackProjectRows.Children.Add(New TextBlock With {.Text = If(session.HasMore, "暂无结果，可点击「继续加载」。", If(session.ErrorMessage = "", "没有找到符合条件的整合包。", "获取失败，请重试或更换来源。")), .Margin = New Thickness(10), .TextWrapping = TextWrapping.Wrap})
                                   PackSearchHint.Theme = If(items.Count > 0 OrElse session.HasMore, PclHintTheme.Yellow, PclHintTheme.Red)
                                   If items.Count > 0 Then
-                                      PackSearchHint.Text = If(retainedPage, "后续内容未能加载，已保留现有结果。点击搜索可重试。", "部分来源未能完成查询，目前仅显示可用来源的内容。点击搜索可重试。")
+                                      PackSearchHint.Text = If(retainedPage, "加载失败，已保留结果。点击搜索重试。", "部分来源暂不可用，已显示可用结果。点击搜索重试。")
                                   ElseIf session.HasMore Then
-                                      PackSearchHint.Text = "部分来源暂时无法查询，可继续加载其余来源的后续内容。"
+                                      PackSearchHint.Text = "部分来源暂不可用，可继续加载其他来源。"
                                   Else
-                                      PackSearchHint.Text = "无法取得整合包列表，请稍后重试或选择其他来源。"
+                                      PackSearchHint.Text = "获取失败，请重试或更换来源。"
                                   End If
                                   If limitReached Then
                                       PackSearchHint.Theme = PclHintTheme.Yellow
@@ -244,8 +244,8 @@ Partial Public Class MainWindow
                                       PackResultsCard.Visibility = Visibility.Visible
                                       PackResultsCard.Title = "获取失败" : PackResultsCard.HorizontalAlignment = HorizontalAlignment.Stretch
                                       PackProjectRows.Children.Clear()
-                                      PackProjectRows.Children.Add(New TextBlock With {.Text = "未能取得结果，请重试或选择其他来源。", .Margin = New Thickness(10), .TextWrapping = TextWrapping.Wrap})
-                                      PackSearchHint.Theme = PclHintTheme.Red : PackSearchHint.Text = "无法取得整合包列表，请点击搜索重试。"
+                                      PackProjectRows.Children.Add(New TextBlock With {.Text = "获取失败，请重试或更换来源。", .Margin = New Thickness(10), .TextWrapping = TextWrapping.Wrap})
+                                      PackSearchHint.Theme = PclHintTheme.Red : PackSearchHint.Text = "获取失败，请点击搜索重试。"
                                       PackSearchHint.ToolTip = ex.GetBaseException().Message : PackSearchHint.Visibility = Visibility.Visible
                                       PackPagingCard.Visibility = Visibility.Collapsed
                                   End Sub)
@@ -530,7 +530,7 @@ Partial Public Class MainWindow
     End Function
     Private Async Function RunOnlinePackInstallationAsync(release As ModpackRelease, root As String, name As String, limit As Long, Optional displayedTitle As String = Nothing, Optional target As LauncherInstallTarget = Nothing) As Task
         target = If(target, CurrentInstallTarget())
-        If Not SameGameRoot(root, target.Root) Then Throw New InvalidOperationException("安装目录与冻结的启动器目标不一致。")
+        If Not SameGameRoot(root, target.Root) Then Throw New InvalidOperationException("安装目录与当前任务不一致，请重新选择。")
         target.ValidateDestination(root)
         InstallPreflight.ValidateDestination(root, name, False)
         CancelPackRead()
@@ -555,10 +555,10 @@ Partial Public Class MainWindow
                     Function(package, token) Dispatcher.InvokeAsync(Function() ChooseOnlineOptionalAsync(package, token)).Task.Unwrap(), launcherTarget:=target))
             End If
             _taskInstancePath = result.InstancePath : TaskTitle.Text = "安装完成 · " & name
-            StatusText.Text = "完成：" & result.FileCount & " 个文件。回到所选启动器刷新版本列表即可。"
+            StatusText.Text = "完成：" & result.FileCount & " 个文件。请刷新启动器的版本列表。"
             FinishTaskView(True, StatusText.Text)
         Catch ex As OperationCanceledException
-            TaskTitle.Text = "已取消，可重新开始" : StatusText.Text = "已取消。已校验归档与共享文件会在重试时复用。"
+            TaskTitle.Text = "已取消，可重新开始" : StatusText.Text = "已取消，重试时会校验复用已下载文件。"
             FinishTaskView(False, StatusText.Text, cancelled:=True)
         Catch ex As Exception
             TaskTitle.Text = "安装未完成，可重试" : StatusText.Text = ex.GetBaseException().Message

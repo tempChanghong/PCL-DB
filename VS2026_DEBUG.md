@@ -173,4 +173,4 @@ Motion Checks 现含 913 项，其中 263 项覆盖标题栏、滚动条本体�
 
 整合包详情操作另新增 24 项检查，包含在 359 项 Pack Search Checks 内：复制四次限次/异步等待、浏览器失败回退、已接受的名称/网址、输入门控、旧动作失效、真实卡片入场和设置往返。使用系统操作注入，不改动用户剪贴板或打开浏览器。详见 docs/reviews/project-action-recovery.md。
 
-外部启动器 UI 现有 28 项检查，包含在 1012 项完整界面验收内；Core 专用回归使用 `PclDownloadBridge.Tests.exe --regression external-launchers` 与 `--regression native-isolation`，覆盖目录迁移、三种原生配置分支、组件、两种整合包、补全和取消重试。隔离仅在设置页统一选择。详见 docs/reviews/external-launcher-native-isolation.md；所有安装验证均使用独立夹具目录，未启动真实游戏。
+外部启动器 UI 现有 28 项检查，包含在 1014 项完整界面验收内；Core 专用回归使用 `PclDownloadBridge.Tests.exe --regression external-launchers` 与 `--regression native-isolation`，覆盖目录迁移、三种原生配置分支、组件、两种整合包、补全和取消重试。隔离仅在设置页统一选择。详见 docs/reviews/external-launcher-native-isolation.md；所有安装验证均使用独立夹具目录，未启动真实游戏。

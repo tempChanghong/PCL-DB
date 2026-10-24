@@ -861,6 +861,8 @@ PCL-DB 自有的任务返回保留表单流程，改为把“保留安装视口�
 
 ## UVMC 来源标签与 2.0 说明
 
+后续文案收口以固定 PCL `5ef81e4` 的 PageSetupSystem / PageSetupLaunch、PageDownloadInstall、PageOtherAbout 为主要参照，保留必要警告、来源选择和愚人节原文。CE `915ac29` 的中文资源与来源标签作补充参照。详见 [精简范围](docs/reviews/concise-ui-copy.md)，本轮未修改安装或动画实现。
+
 UVMC 来源标签另参见 [版本行对照](docs/reviews/uvmc-source-tags.md)：读取 CE `915ac29` 的 `Controls/MyListItem.xaml.cs`（PanTags / Tags）、`Pages/PageDownload/ModDownloadLib.cs`（来源标签）、`PCL.Core/Minecraft/McVersionClassifier.cs` 及 zh-CN 资源；结合固定 PCL 原版本行与 GetMcFoolName，保留本项目三色显示名和独立版本身份。源码副本与 SHA-256 存于 artifacts/uvmc-source-tag/source.json。
 
 ## 外部启动器目录接入第一批

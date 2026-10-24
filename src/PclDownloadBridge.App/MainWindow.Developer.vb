@@ -36,7 +36,7 @@ Partial Public Class MainWindow
         DeveloperOptions.Visibility = If(_developer.Enabled, Visibility.Visible, Visibility.Collapsed)
         DeveloperUnlockRow.Visibility = If(ExperimentalThemesAvailable, Visibility.Collapsed, Visibility.Visible)
         DeveloperLockButton.Visibility = If(ExperimentalThemesAvailable, Visibility.Visible, Visibility.Collapsed)
-        DeveloperUnlockStatus.Text = If(ExperimentalThemesAvailable, "已解锁，可在个性化中选择其他主题（仅本次会话）。", "尚未解锁")
+        DeveloperUnlockStatus.Text = If(ExperimentalThemesAvailable, "已解锁，仅本次运行有效。", "尚未解锁")
         UpdateDeveloperDiagnostics()
         ApplyAppearance()
     End Sub

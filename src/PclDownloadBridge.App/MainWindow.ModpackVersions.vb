@@ -84,7 +84,7 @@ Partial Public Class MainWindow
             PackVersionCards.Children.Add(card)
         Next
         PackDetailHint.Theme = PclHintTheme.Blue : PackDetailHint.ToolTip = Nothing
-        PackDetailHint.Text = "没有适用于当前筛选条件、且具备下载地址及校验信息的客户端整合包。"
+        PackDetailHint.Text = "没有符合条件的可安装版本。"
         PackDetailHint.Visibility = If(names.Count = 0, Visibility.Visible, Visibility.Collapsed)
     End Sub
 

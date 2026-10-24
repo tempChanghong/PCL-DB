@@ -72,7 +72,7 @@ Partial Public Class MainWindow
             ChangePackMode(PackBrowserMode.Local)
             SetDownloadView(DownloadView.Modpacks) : SwitchMainPage(False)
         End If
-        ModrinthReadStatus.Text = "清单已读取。确认实例名称和可选文件后即可安装。"
+        ModrinthReadStatus.Text = "请确认版本名称和可选文件。"
         If navigate Then ModrinthCard.BringIntoView()
     End Sub
     Private Sub RefreshModrinthSummary()

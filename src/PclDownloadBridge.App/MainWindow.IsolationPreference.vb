@@ -30,13 +30,13 @@ Partial Public Class MainWindow
         IsolationBox.IsEnabled = Not busy
         Dim strategy = SelectedIsolationStrategy(), description As String
         Select Case strategy.GetValueOrDefault(-1)
-            Case 0 : description = "不同版本共用存档、Mods 与资源包，请留意兼容性；同名不同内容的文件不会被覆盖。"
-            Case 1 : description = "隔离可安装 Mod 的版本；其他原版版本共用存档与资源包。"
+            Case 0 : description = "共用存档、Mod 和资源包；同名冲突文件不会被覆盖。"
+            Case 1 : description = "仅隔离可安装 Mod 的版本。"
             Case 2 : description = "隔离快照、预发布版、远古版本与愚人节版本。"
-            Case 3 : description = "隔离可安装 Mod 的版本，以及快照等非正式版。"
-            Case 4 : description = "所有新版本分别使用独立的存档、Mods 与资源包。"
-            Case Else : description = "跟随所选启动器的原生隔离策略；未找到设置时使用该启动器默认值。"
+            Case 3 : description = "隔离可安装 Mod 的版本与非正式版。"
+            Case 4 : description = "每个版本使用独立的存档、Mod 和资源包。"
+            Case Else : description = "使用所选启动器的原生隔离设置。"
         End Select
-        IsolationHint.Text = description & " 仅对之后新建的版本生效；已有实例及校验补全保留原设置，整合包始终使用独立实例。"
+        IsolationHint.Text = description & " 已有实例及校验补全保留原设置；整合包始终隔离。"
     End Sub
 End Class

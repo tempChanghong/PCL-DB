@@ -52,6 +52,23 @@ Partial Public Class MainWindow
                 first.InfoTag = Nothing : first.InfoTag = "UVMC 特供下载" : first.Info = "" : layout()
                 check(first.ColumnDefinitions.Count = 6 AndAlso badge(first).ActualHeight > 0 AndAlso info(first).Visibility = Visibility.Collapsed AndAlso first.InfoTag = "UVMC 特供下载" AndAlso first.Tag Is originalIdentity,
                     "null labels are idempotent and a source label remains visible with an empty info value")
+                samples.Children.Clear()
+                Dim historical As New List(Of PclListItem)
+                For Each entry In New VersionEntry() {
+                    New VersionEntry With {.Id = "c0.0.12a_03", .SupplementalId = "c0.0.12a_03", .Kind = "old_alpha", .Released = DateTimeOffset.Parse("2009-05-17T00:00:00Z")},
+                    New VersionEntry With {.Id = "b1.9-pre6", .SupplementalId = "b1.9-pre6", .Kind = "old_beta", .Released = DateTimeOffset.Parse("2011-11-11T00:00:00Z")},
+                    New VersionEntry With {.Id = "13w12~", .SupplementalId = "13w12~", .Kind = "snapshot", .Released = DateTimeOffset.Parse("2013-03-22T00:00:00Z")}}
+                    Dim row = CreateVersionPlaceholder(New VersionPresentation(entry), False).Materialize()
+                    historical.Add(row) : samples.Children.Add(row)
+                Next
+                Dim official = CreateVersionPlaceholder(New VersionPresentation(BrowserEntry("rd-132211", "old_alpha", "2009-05-13T00:00:00Z")), False).Materialize()
+                For Each dark In {False, True}
+                    RestoreAppearance(New JObject From {{"theme", "blue"}, {"darkMode", dark}}) : layout()
+                    check(historical.All(Function(row) row.InfoTag = "UVMC 特供下载" AndAlso DirectCast(badge(row).Child, TextBlock).Text = "UVMC 特供下载" AndAlso badge(row).ActualWidth > 50 AndAlso
+                        row.Tag IsNot Nothing AndAlso Not row.Info.Contains("PCL-DB") AndAlso Not row.Info.Contains("特供")) AndAlso official.InfoTag = "" AndAlso official.ColumnDefinitions.Count = 5,
+                        "Alpha, Beta and snapshot UVMC entries render the same source badge while official history stays untagged: " & dark)
+                    SaveControlVisual(host, IO.Path.Combine(directory, "uvmc-history-" & If(dark, "dark", "light") & ".png"))
+                Next
             Finally
                 first.Selected = False : SetSelectionHover(first, False)
                 RestoreAppearance(savedAppearance)

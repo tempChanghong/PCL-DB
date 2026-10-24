@@ -93,13 +93,13 @@ Partial Public Class MainWindow
             _supplementalProvider = Function(policy, token) Task.FromResult(New List(Of VersionEntry) From {red})
             Await LoadVersionsAsync(True)
             results("optionalExceptionThenRetry") = Not _versionsDirty AndAlso _versions.Count = 2 AndAlso _versions.Contains(red) AndAlso BrowserRows("愚人节版").First().Tag Is red
-            results("statusReportsActualCategory") = StatusText.Text.Contains("含 1 个补充版本：愚人节版") AndAlso Not StatusText.Text.Contains("战斗测试版")
+            results("statusReportsActualCategory") = StatusText.Text.Contains("UVMC 1 个（愚人节版）") AndAlso Not StatusText.Text.Contains("战斗测试版")
             Dim officialBlue = BrowserEntry(blue.Id, "snapshot", "2020-08-26T12:00:00Z")
             _versionProvider = Function(policy, token) Task.FromResult(New List(Of VersionEntry) From {normal, officialBlue})
             _supplementalProvider = Function(policy, token) Task.FromResult(New List(Of VersionEntry) From {blue})
             Await LoadVersionsAsync(True)
             results("statusReportsCollisionWithoutAddition") = _versions.Count = 2 AndAlso _versions.Contains(officialBlue) AndAlso Not _versions.Contains(blue) AndAlso
-                BrowserRows("愚人节版").All(Function(row) row.Tag IsNot blue) AndAlso StatusText.Text.Contains("无新增补充版本")
+                BrowserRows("愚人节版").All(Function(row) row.Tag IsNot blue) AndAlso StatusText.Text = "已读取 2 个版本。"
             _versionProvider = Function(policy, token) Task.FromResult(New List(Of VersionEntry) From {normal})
             pending = ListGate(Of VersionEntry)()
             _supplementalProvider = Function(policy, token) pending.Task

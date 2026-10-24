@@ -263,13 +263,13 @@ Partial Public Class MainWindow
             ComponentHint.Text = installProblem
         ElseIf _selectedEntry.IsSupplemental Then
             Dim detail = SupplementalVersions.VariantDescription(_selectedEntry)
-            ComponentHint.Text = "补充来源 UVMC · " & SupplementalVersions.Label(_selectedEntry) & If(detail Is Nothing, "。", " · " & detail & "。") & "目前仅支持原版安装；客户端、支持库与资源仍会校验。"
+            ComponentHint.Text = "UVMC 特供下载 · " & SupplementalVersions.Label(_selectedEntry) & "，仅支持原版。" & If(detail Is Nothing, "", " " & detail & "。")
         ElseIf _componentSelection.Has(ComponentKind.Fabric) AndAlso Not _componentSelection.Has(ComponentKind.FabricApi) Then
-            ComponentHint.Text = "大多数 Fabric 模组需要 Fabric API，建议一并安装。"
+            ComponentHint.Text = "建议安装 Fabric API，以支持大多数 Mod。"
         ElseIf _componentSelection.Has(ComponentKind.OptiFine) AndAlso _componentSelection.Entries.Count > 1 Then
-            ComponentHint.Text = "OptiFine 与一部分模组兼容性不佳。组件将安装在独立版本文件夹。"
+            ComponentHint.Text = "OptiFine 与部分 Mod 兼容性不佳，请谨慎安装。"
         Else
-            ComponentHint.Text = If(_componentSelection.Entries.Count = 0, "可直接安装原版，也可以展开上方卡片添加组件。", "已选组件将安装在独立版本文件夹，共享原版支持库与资源。")
+            ComponentHint.Text = If(_componentSelection.Entries.Count = 0, "展开卡片选择组件，或直接安装原版。", "已选组件将与游戏一同安装。")
         End If
     End Sub
 

@@ -56,7 +56,7 @@ Partial Public Class MainWindow
         Try
             If kind = "copy" Then
                 Dim failure = Await CopyPackProjectValueAsync(value, owner, generation)
-                message = If(failure Is Nothing, "已成功复制！", "可能由于剪贴板被其他程序占用，名称复制失败，请稍后重试。")
+                message = If(failure Is Nothing, "已成功复制！", "名称复制失败，请稍后重试。")
                 If failure IsNot Nothing AndAlso Not _preview Then Log(failure)
             Else
                 Dim browserFailure As Exception = Nothing

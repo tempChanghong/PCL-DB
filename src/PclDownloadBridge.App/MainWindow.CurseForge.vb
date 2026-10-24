@@ -87,17 +87,17 @@ Partial Public Class MainWindow
                                         End Function)
             If _closing OrElse request.IsCancellationRequested Then Return
             If _busy Then
-                status.Text = "当前安装已开始，请在任务结束后重新选择整合包。"
+                status.Text = "请在当前任务结束后重新导入。"
                 Return
             End If
             If TypeOf parsed Is ModrinthPackage Then
                 SelectModrinthPackage(DirectCast(parsed, ModrinthPackage), _downloadView = DownloadView.Modpacks AndAlso DownloadPage.Visibility = Visibility.Visible, request)
-                If status IsNot ModrinthReadStatus Then status.Text = "已识别为 Modrinth，清单已显示在对应卡片。"
+                If status IsNot ModrinthReadStatus Then status.Text = "已识别为 Modrinth。"
                 Return
             End If
             Dim package = DirectCast(parsed, CurseForgePackage)
             SelectCurseForgePackage(package, request, _downloadView = DownloadView.Modpacks AndAlso DownloadPage.Visibility = Visibility.Visible)
-            If status IsNot PackReadStatus Then status.Text = "已识别为 CurseForge，清单已显示在对应卡片。"
+            If status IsNot PackReadStatus Then status.Text = "已识别为 CurseForge。"
             _readingPack = False : RefreshPackAvailability()
             If Not _preview Then
                 Using resolver As New CurseForgeFileResolver(Policy())
@@ -183,7 +183,7 @@ Partial Public Class MainWindow
             SwitchMainPage(False)
             If Not sameArchive Then CurseForgeCard.BringIntoView()
         End If
-        PackReadStatus.Text = "清单已读取。开始安装时将重新查询并校验指定文件。"
+        PackReadStatus.Text = "请确认版本名称和可选文件。"
     End Sub
     Private Sub RefreshCurseForgeSummary()
         Dim package = _packSelection

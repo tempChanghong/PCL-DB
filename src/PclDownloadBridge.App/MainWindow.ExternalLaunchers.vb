@@ -72,7 +72,7 @@ Partial Public Class MainWindow
                 .LauncherBindingId = binding?.Id, .LauncherKind = If(binding Is Nothing, Nothing, New ExternalLauncherKind?(binding.Kind)), .LauncherWorkspace = binding?.Workspace,
                 .LauncherConfigPath = binding?.ConfigPath, .LauncherSharedConfigPath = binding?.SharedConfigPath}
         Catch ex As Exception When TypeOf ex Is InvalidDataException OrElse TypeOf ex Is IOException OrElse TypeOf ex Is ArgumentException OrElse TypeOf ex Is NotSupportedException
-            LauncherReadStatus.Text = "已保留无法解析的安装目标，请重新选择游戏目录。"
+            LauncherReadStatus.Text = "无法读取安装目标，请重新选择游戏目录。"
         End Try
     End Sub
 
@@ -108,7 +108,7 @@ Partial Public Class MainWindow
         If binding Is Nothing Then Return
         _launcherReadGeneration += 1
         _launcherState.SelectedRows(binding.Kind) = binding.Id
-        LauncherReadStatus.Text = "已选择 " & binding.DisplayName & "：" & binding.Workspace & "。点击读取目录后，在游戏目录中选择安装目标。"
+        LauncherReadStatus.Text = "已选择 " & binding.DisplayName & "，请点击「读取目录」。"
         PersistSettings()
     End Sub
 
@@ -126,7 +126,7 @@ Partial Public Class MainWindow
         If existing Is Nothing Then _launcherState.Bindings.Add(binding) Else binding = existing
         _launcherState.SelectedRows(binding.Kind) = binding.Id
         _launcherReadGeneration += 1 : RenderLauncherBindings()
-        LauncherReadStatus.Text = "已绑定 " & binding.DisplayName & " 工作目录：" & binding.Workspace & "。点击读取目录。"
+        LauncherReadStatus.Text = "已添加 " & binding.DisplayName & "，请点击「读取目录」。"
         PersistSettings()
     End Sub
 
@@ -169,14 +169,14 @@ Partial Public Class MainWindow
             If result.Succeeded AndAlso result.Folders.Count > 0 Then
                 _launcherFolders(binding.Id) = result.Folders
                 RebuildLauncherFolders(_selectedFolder Is Nothing)
-                LauncherReadStatus.Text = "已读取 " & result.Folders.Count & " 个 " & binding.DisplayName & " 游戏目录；当前安装目标保持所选目录。"
+                LauncherReadStatus.Text = "已读取 " & result.Folders.Count & " 个 " & binding.DisplayName & " 游戏目录。"
             Else
-                LauncherReadStatus.Text = "未能取得可用目录，已保留现有安装目标。"
+                LauncherReadStatus.Text = "未找到游戏目录，保留当前选择。"
             End If
             If result.Warnings.Count > 0 Then LauncherReadStatus.Text &= " " & String.Join("；", result.Warnings)
             PersistSettings()
         Catch ex As Exception
-            If generation = _launcherReadGeneration AndAlso Not _closing Then LauncherReadStatus.Text = "目录读取失败，已保留现有目标：" & ex.Message
+            If generation = _launcherReadGeneration AndAlso Not _closing Then LauncherReadStatus.Text = "目录读取失败：" & ex.Message
         End Try
     End Function
 

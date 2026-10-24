@@ -44,15 +44,14 @@ Partial Public Class MainWindow
         ElseIf _pclThemeSnapshot.Preset Is Nothing Then
             reason = "PCL 当前为「" & _pclThemeSnapshot.Name & "」；暂不支持同步该配色。"
         ElseIf Not AppearancePreferences.PublicThemes.Contains(_pclThemeSnapshot.Preset) AndAlso Not ExperimentalThemesAvailable Then
-            reason = "PCL 当前为「" & _pclThemeSnapshot.Name & "」；对应配色需要解锁本程序的实验性外观。"
+            reason = "「" & _pclThemeSnapshot.Name & "」需先解锁实验性外观。"
         Else
             Dim result = AppearancePreferences.Read(local.ToJson())
             result.Theme = _pclThemeSnapshot.Preset
-            PclThemeStatus.Text = "正在跟随：" & _pclThemeSnapshot.Name & If(_pclThemeSnapshot.IsDefault, "（配置未指定主题，采用 PCL 默认值）", "") &
-                If(_pclThemeSnapshot.ThemeId = 0, "。", "（使用 PCL-DB 对应预设的近似配色）。")
+            PclThemeStatus.Text = "正在跟随：" & _pclThemeSnapshot.Name & If(_pclThemeSnapshot.IsDefault, "（默认）", If(_pclThemeSnapshot.ThemeId = 0, "", "（近似配色）"))
             Return result
         End If
-        PclThemeStatus.Text = reason & " 当前使用 PCL-DB 本机外观。"
+        PclThemeStatus.Text = reason & " 使用本机外观。"
         Return local
     End Function
     Private Shared Function PaletteKey(value As AppearancePreferences) As String

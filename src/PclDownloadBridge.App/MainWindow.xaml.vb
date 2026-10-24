@@ -103,7 +103,7 @@ Partial Public Class MainWindow
         RefreshIsolation(False)
         If preview Then
             SelectedPath.Text = "D:\Games\Minecraft\.minecraft"
-            FolderSummary.Text = "PCL 当前选择 · 6 个已安装实例 · 共享支持库与资源文件"
+            FolderSummary.Text = "PCL 当前选择 · 6 个已安装实例"
             _versions = New List(Of VersionEntry) From {
                 New VersionEntry With {.Id = "1.21.1", .Kind = "release", .Released = New DateTimeOffset(2024, 8, 8, 0, 0, 0, TimeSpan.Zero)},
                 New VersionEntry With {.Id = "1.20.6", .Kind = "release", .Released = New DateTimeOffset(2024, 4, 29, 0, 0, 0, TimeSpan.Zero)},
@@ -488,9 +488,9 @@ Partial Public Class MainWindow
         Dim status = "已读取 " & _versions.Count & " 个版本"
         If Not available Then Return status & "（补充清单暂不可用，可刷新重试）。"
         Dim added = _versions.Where(Function(entry) entry.IsSupplemental).ToList()
-        If added.Count = 0 Then Return status & "（无新增补充版本）。"
+        If added.Count = 0 Then Return status & "。"
         Dim categories = added.Select(Function(entry) SupplementalVersions.Label(entry)).Distinct().ToList()
-        Return status & "，含 " & added.Count & " 个补充版本：" & String.Join("、", categories) & "。"
+        Return status & " · UVMC " & added.Count & " 个（" & String.Join("、", categories) & "）"
     End Function
 
     Private Async Sub RefreshVersions(sender As Object, e As RoutedEventArgs)
@@ -629,7 +629,7 @@ Partial Public Class MainWindow
         End If
         _selectedFolder = folder
         SelectedPath.Text = folder.Location
-        FolderSummary.Text = folder.Origin & " · " & folder.VersionCount & " 个已安装实例 · 共享支持库与资源文件"
+        FolderSummary.Text = folder.Origin & " · " & folder.VersionCount & " 个已安装实例"
         StatusText.Text = "已选择游戏目录：" & folder.Location
         RefreshIsolation(_busy)
         RefreshInstallAvailability()
@@ -865,13 +865,13 @@ Partial Public Class MainWindow
             TaskProgress.Value = 1
             TaskTitle.Text = If(repair, "校验补全完成", "安装完成") & " · " & name
             _taskInstancePath = result.InstancePath
-            StatusText.Text = "完成：" & result.FileCount & " 个文件，复用 " & result.Reused & " 个，传输 " & FormatBytes(result.NetworkBytes) & "。回到所选启动器刷新版本列表即可。"
+            StatusText.Text = "完成：" & result.FileCount & " 个文件，复用 " & result.Reused & " 个，传输 " & FormatBytes(result.NetworkBytes) & "。请刷新启动器的版本列表。"
             FinishTaskView(True, StatusText.Text)
             If Not _preview Then WriteLog(StatusText.Text & Environment.NewLine & result.InstancePath)
             FolderSummary.Text = _selectedFolder.Origin & " · " & _selectedFolder.VersionCount & " 个已安装实例"
         Catch ex As OperationCanceledException
             TaskTitle.Text = "已取消，可重新开始"
-            StatusText.Text = "已取消。已完成的共享文件会保留，后续会校验复用。"
+            StatusText.Text = "已取消，重试时会校验复用已下载文件。"
             FinishTaskView(False, StatusText.Text, cancelled:=True)
         Catch ex As Exception
             If _cancellation.IsCancellationRequested Then
@@ -897,7 +897,7 @@ Partial Public Class MainWindow
     Private Sub SetBusy(value As Boolean)
         If value Then
             _launcherReadGeneration += 1
-            If LauncherReadStatus.Text.StartsWith("正在读取", StringComparison.Ordinal) Then LauncherReadStatus.Text = "当前任务使用已冻结的安装目标，旧目录读取结果将忽略。"
+            If LauncherReadStatus.Text.StartsWith("正在读取", StringComparison.Ordinal) Then LauncherReadStatus.Text = "下载期间无法更改游戏目录。"
         End If
         PackSearchSurface.IsEnabled = Not value
         PackDetailSurface.IsEnabled = Not value
