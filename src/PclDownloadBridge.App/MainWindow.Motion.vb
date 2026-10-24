@@ -51,6 +51,7 @@ Partial Public Class MainWindow
     Private Sub SelectSurface(target As FrameworkElement, Optional prepare As Action = Nothing)
         Dim previous = ActiveSurface()
         If previous IsNot target Then
+            RetirePromptFocus()
             _installActionEntryOwner = If(target Is DownloadPage AndAlso _downloadView = DownloadView.Install, _surfaceMotion, Nothing)
             _pendingSurfaceFocus = Nothing
             ClearDownloadFocus()

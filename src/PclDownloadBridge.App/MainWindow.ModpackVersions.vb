@@ -104,7 +104,7 @@ Partial Public Class MainWindow
                 row.SetResourceReference(PclListItem.ForegroundProperty, "ColorBrushGray4")
             End If
             AddHandler row.Click, Sub()
-                                      If PackVersionCards.Children.OfType(Of PclCard)().Any(Function(card) Not card.Collapsed AndAlso card.Body Is rows) Then InstallOnlinePack(selected, title)
+                                      If PackVersionCards.Children.OfType(Of PclCard)().Any(Function(card) Not card.Collapsed AndAlso card.Body Is rows) Then InstallOnlinePack(selected, title, row)
                                   End Sub
             rows.Children.Add(row)
         Next

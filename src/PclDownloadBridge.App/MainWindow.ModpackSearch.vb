@@ -84,6 +84,7 @@ Partial Public Class MainWindow
     End Sub
     Private Sub ChangePackMode(mode As PackBrowserMode)
         If _packMode = mode Then Return
+        RetirePromptFocus()
         If _packMode = PackBrowserMode.Search Then _packSearchScroll = ModpackPage.VerticalOffset
         If _packMode = PackBrowserMode.Detail Then _packDetailScroll = ModpackPage.VerticalOffset
         ModpackPage.StopScrolling()
@@ -300,6 +301,7 @@ Partial Public Class MainWindow
         If _busy OrElse _choosingOnline OrElse _closing OrElse Not DownloadViewHost.IsHitTestVisible OrElse Not PackSearchResultsHost.IsHitTestVisible Then Return
         Dim changingProject = _packProject Is Nothing OrElse _packProject.Key <> project.Key
         If changingProject Then
+            RetirePromptFocus()
             _packProject = project : _packVerifiedProject = Nothing : _packDetailCompletedProject = Nothing : _packReleases.Clear() : _packDetailScroll = 0
             _packTargetGame = If(_packSearchSession?.Query.Minecraft, "")
             _packVersionCache.Clear()
@@ -375,7 +377,7 @@ Partial Public Class MainWindow
         Await DispatchPackProjectActionAsync("copy")
     End Sub
 
-    Private Async Sub InstallOnlinePack(release As ModpackRelease, Optional displayedTitle As String = Nothing)
+    Private Async Sub InstallOnlinePack(release As ModpackRelease, Optional displayedTitle As String = Nothing, Optional returnTarget As FrameworkElement = Nothing)
         If _busy OrElse _choosingOnline OrElse _readingPack OrElse _closing OrElse _packProject Is Nothing OrElse _packMode <> PackBrowserMode.Detail OrElse _downloadView <> DownloadView.Modpacks OrElse Not DownloadPage.IsVisible OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible OrElse Not PackDetailResultsHost.IsHitTestVisible Then Return
         Dim project = ActivePackProject(), snapshot = release.Copy()
         If snapshot.Platform <> project.Platform OrElse snapshot.ProjectId <> project.Id Then Return
@@ -395,7 +397,7 @@ Partial Public Class MainWindow
         _choosingOnline = True
         Try
             Dim proposed = If(_onlineLastRelease = projectKey & ":" & snapshot.Id, _onlineLastName, SuggestedPackName(projectName))
-            Dim name = Await PromptOnlinePackAsync("输入版本名称", projectName & " · " & PackReleaseConfirmation(snapshot, displayedTitle), root, proposed, False, CancellationToken.None)
+            Dim name = Await PromptOnlinePackAsync("输入版本名称", projectName & " · " & PackReleaseConfirmation(snapshot, displayedTitle), root, proposed, False, CancellationToken.None, returnTarget)
             If String.IsNullOrEmpty(name) OrElse _closing Then Return
             _onlineLastName = name : _onlineLastRelease = projectKey & ":" & snapshot.Id
             Await RunOnlinePackInstallationAsync(snapshot, root, name, CLng(limit * 1024 * 1024), displayedTitle, target)
@@ -413,9 +415,10 @@ Partial Public Class MainWindow
         If result.Length > 65 Then result = result.Substring(0, 65).TrimEnd()
         Return result
     End Function
-    Private Function PromptOnlinePackAsync(title As String, description As String, root As String, proposed As String, optionalFile As Boolean, token As CancellationToken) As Task(Of String)
+    Private Function PromptOnlinePackAsync(title As String, description As String, root As String, proposed As String, optionalFile As Boolean, token As CancellationToken, Optional returnTarget As FrameworkElement = Nothing) As Task(Of String)
         If _onlinePrompt IsNot Nothing Then Throw New InvalidOperationException("已有待确认的整合包操作。")
         token.ThrowIfCancellationRequested()
+        BeginPromptFocus(returnTarget)
         _onlinePrompt = New TaskCompletionSource(Of String)(TaskCreationOptions.RunContinuationsAsynchronously)
         _onlinePromptRoot = root : _onlineOptionalPrompt = optionalFile
         StopOnlinePromptMotion()
@@ -465,11 +468,11 @@ Partial Public Class MainWindow
             AnimateOnlinePrompt(False)
         End If
         prompt?.TrySetResult(value)
-        If prompt IsNot Nothing AndAlso Not _closing Then FocusDownloadPage()
     End Sub
     Private Sub HideOnlinePrompt()
+        Dim restore = _promptFocusReturn : _promptFocusReturn = Nothing
         PackNameOverlay.Visibility = Visibility.Collapsed : PageSurface.IsEnabled = True : TopTabs.IsEnabled = True
-        If Not _closing Then FocusDownloadPage()
+        QueuePromptFocus(restore)
     End Sub
     Private Sub StopOnlinePromptMotion()
         Dim previous = _onlinePromptMotion : _onlinePromptMotion = Nothing

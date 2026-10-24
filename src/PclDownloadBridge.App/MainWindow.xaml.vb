@@ -654,6 +654,7 @@ Partial Public Class MainWindow
             Return
         End If
         If view <> _downloadView Then
+            RetirePromptFocus()
             _pendingSurfaceFocus = Nothing
             ClearDownloadFocus()
             _surfaceMotion.Finish()

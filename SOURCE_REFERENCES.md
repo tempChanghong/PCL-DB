@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 输入弹窗关闭后的焦点与视口
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 MyMsgInput、MyScrollViewer #3854 和 MyPageRight：保留原输入框焦点、弹窗进退场及页面入场机制，沿用避免焦点自动改变滚动位置的处理思路。
+- 为桥接程序的异步弹窗补上调用控件与页面所有权。关闭后恢复仍可用且在视口内的原控件，否则聚焦滚动容器并保持当前位置；导航、新弹窗、新任务和用户后续焦点选择可使旧请求失效。这是本工具的补充实现，不宣称固定 PCL 已提供同样的异步返回 API。详见 [焦点返回验证](docs/reviews/prompt-focus.md)。
+
 ## 滚动输入归属与详情卡片间距
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 MyScrollViewer、MyPageRight、MyMsgInput、ModAnimation 与 PageDownloadCompDetail：保留 300 ms 六次方 Fluent 滚动、卡片入退场和模态交互，详情介绍卡下方间隔恢复为源代码的 25 DIP。

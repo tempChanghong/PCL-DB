@@ -382,6 +382,7 @@ Partial Public Class MainWindow
         check(PackSearchSurface.ActualWidth > 500 AndAlso PackSearchButton.ActualWidth = 60 AndAlso ModpackPage.ScrollableHeight > 0, "layered search cards and paging stay usable at the minimum window size")
         SaveControlVisual(host, Path.Combine(directory, "pack-search-minimum.png"))
         VerifySearchPresentation(directory, host, layout, check)
+        Await VerifyPromptFocusAsync(directory, host, layout, check)
     End Function
     Private Shared Async Function WaitPackUiAsync(condition As Func(Of Boolean)) As Task
         Dim clock = System.Diagnostics.Stopwatch.StartNew()
