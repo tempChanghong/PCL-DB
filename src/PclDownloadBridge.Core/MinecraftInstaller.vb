@@ -10,9 +10,10 @@ Public Class MinecraftInstaller
     Private ReadOnly _policy As SourcePolicy
     Private ReadOnly _pclDirectory As String
     Private ReadOnly _newInstanceIsolationStrategy As Integer?
-    Public Sub New(policy As SourcePolicy, Optional pclDirectory As String = Nothing, Optional newInstanceIsolationStrategy As Integer? = Nothing)
+    Private ReadOnly _directoryOnly As Boolean
+    Public Sub New(policy As SourcePolicy, Optional pclDirectory As String = Nothing, Optional newInstanceIsolationStrategy As Integer? = Nothing, Optional directoryOnly As Boolean = False)
         If newInstanceIsolationStrategy.HasValue AndAlso (newInstanceIsolationStrategy.Value < 0 OrElse newInstanceIsolationStrategy.Value > 4) Then Throw New ArgumentOutOfRangeException(NameOf(newInstanceIsolationStrategy))
-        _policy = policy : _pclDirectory = pclDirectory : _newInstanceIsolationStrategy = newInstanceIsolationStrategy
+        _policy = policy : _pclDirectory = pclDirectory : _newInstanceIsolationStrategy = newInstanceIsolationStrategy : _directoryOnly = directoryOnly
     End Sub
 
     Public Async Function VersionsAsync(token As CancellationToken) As Task(Of List(Of VersionEntry))
@@ -32,6 +33,10 @@ Public Class MinecraftInstaller
         token.ThrowIfCancellationRequested()
         If Not [Enum].IsDefined(GetType(InstanceIsolationMode), isolationMode) Then Throw New ArgumentOutOfRangeException(NameOf(isolationMode))
         If entry Is Nothing Then Throw New ArgumentNullException(NameOf(entry))
+        If _directoryOnly AndAlso (repairExisting OrElse entry.IsSupplemental OrElse pack IsNot Nothing OrElse
+            (components IsNot Nothing AndAlso components.Entries.Count > 0) OrElse isolationMode <> InstanceIsolationMode.FollowPcl OrElse _newInstanceIsolationStrategy.HasValue OrElse _pclDirectory IsNot Nothing) Then
+            Throw New NotSupportedException("外部启动器目录模式仅支持标准原版新安装。")
+        End If
         If reuseRoots Is Nothing Then Throw New ArgumentNullException(NameOf(reuseRoots))
         entry = entry.Copy()
         InstallPreflight.ValidateDestination(root, instanceName, repairExisting)
@@ -104,6 +109,7 @@ Public Class MinecraftInstaller
             plan.Add(New DownloadFile With {.RelativePath = indexRelative, .Url = CStr(index("url")), .Size = If(index("size") Is Nothing, -1, CLng(index("size"))), .Sha1 = CStr(index("sha1"))})
             Dim resourceFiles = BuildAssetsPlan(assets)
             Dim mappedFiles = resourceFiles.Where(Function(item) item.RelativePath.StartsWith("resources/", StringComparison.Ordinal)).ToList()
+            If _directoryOnly AndAlso mappedFiles.Count > 0 Then Throw New NotSupportedException("此原版需要旧资源路径适配，当前外部启动器目录模式暂不支持；请选择 PCL 目录。")
             Dim withComponents = components IsNot Nothing AndAlso components.Entries.Count > 0
             Dim modable = ComponentInstaller.IsModable(components)
             Dim componentMods = ComponentInstaller.ModFiles(components, entry.Id)

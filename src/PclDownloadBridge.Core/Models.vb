@@ -3,10 +3,18 @@ Imports System.Security.Cryptography
 Imports Newtonsoft.Json.Linq
 
 Public Class GameFolder
+    Public Property LauncherBindingId As String
+    Public Property LauncherKind As ExternalLauncherKind?
+    Public Property LauncherWorkspace As String
     Public Property Name As String
     Public Property Location As String
     Public Property Origin As String
     Public Property IsSelected As Boolean
+    Public ReadOnly Property DisplayName As String
+        Get
+            Return If(LauncherKind.HasValue, "[" & If(LauncherKind.Value = ExternalLauncherKind.Pcl, "PCL", If(LauncherKind.Value = ExternalLauncherKind.Hmcl, "HMCL", "PCL-CE")) & "] ", "") & Name & If(String.IsNullOrEmpty(LauncherWorkspace), "", " · " & LauncherWorkspace)
+        End Get
+    End Property
     Public ReadOnly Property VersionCount As Integer
         Get
             Dim versions = Path.Combine(Location, "versions")

@@ -859,6 +859,12 @@ PCL-DB 自有的任务返回保留表单流程，改为把“保留安装视口�
 
 项目身份/代次失效、页面门控、卡片内反馈和异步延迟属于本程序适配；既有页面动画和安装任务继续各自管理。规范化 Git 对象与 SHA-256 在 `artifacts/project-action-recovery/source/`、`source.json`；详见 [项目操作验证](docs/reviews/project-action-recovery.md)。
 
+## 外部启动器目录接入第一批
+
+PCL 继续参考固定 `5ef81e4` 的目录扫描和 Setup.ini 规则。另读取本地 HMCL `0d20910ea302a907d6a01fec9244ab10d2993d5e` 的 SettingsManager、GameDirectoryManager、LegacyConfigMigrator、PortablePath、JsonSchema 与仓库布局；以及 PCL-CE `915ac29795efbdf6373417389e181e1504117048` 的 Paths、States、ConfigService、文件提供方和 ModFolder。原配置只读，解析逻辑采用本程序的有界实现，不调用会迁移/保存的上游配置服务。
+
+多份绑定、旧偏好迁移、按来源保留共享根目录、冻结任务目标及阶段能力拦截属于适配层。源文件摘要、邻接仓库状态和离线回执见 `artifacts/external-launchers/`；范围及第二批隔离工作见 [目录接入报告](docs/reviews/external-launcher-directories.md)。
+
 ## 0.3 数据接口补充
 
 - [Fabric Meta](https://github.com/FabricMC/fabric-meta/blob/master/README.md)：读取版本专属 loader profile，合并 vanilla 参数并补全支持库。

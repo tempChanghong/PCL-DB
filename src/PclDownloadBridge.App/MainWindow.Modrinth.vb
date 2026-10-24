@@ -14,6 +14,8 @@ Partial Public Class MainWindow
     End Sub
     Private Function ModrinthNameProblem() As String
         If _modrinthSelection Is Nothing Then Return Nothing
+        Dim external = ExternalInstallProblem(True)
+        If external IsNot Nothing Then Return external
         Try
             InstallPreflight.ValidateName(ModrinthInstanceName.Text)
             If _selectedFolder IsNot Nothing Then InstallPreflight.ValidateDestination(_selectedFolder.Location, ModrinthInstanceName.Text, False)

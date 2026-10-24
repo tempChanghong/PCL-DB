@@ -6,13 +6,13 @@ Imports Microsoft.Win32
 Public Class PclFolders
     Public ReadOnly Property Warnings As New List(Of String)
 
-    Public Function Discover(pclDirectory As String, Optional readRegistry As Boolean = True) As List(Of GameFolder)
+    Public Function Discover(pclDirectory As String, Optional readRegistry As Boolean = True, Optional configurationFile As String = Nothing) As List(Of GameFolder)
         Warnings.Clear()
         Dim result As New List(Of GameFolder)
         Dim basePath = Path.GetFullPath(pclDirectory)
         Dim selected As String = Nothing
         Try
-            Dim stored = ReadIniValue(Path.Combine(basePath, "PCL", "Setup.ini"), "LaunchFolderSelect")
+            Dim stored = ReadIniValue(If(configurationFile, Path.Combine(basePath, "PCL", "Setup.ini")), "LaunchFolderSelect")
             If Not String.IsNullOrWhiteSpace(stored) Then selected = NormalizeFolderPath(ExpandPath(stored, basePath))
         Catch ex As Exception When TypeOf ex Is ArgumentException OrElse TypeOf ex Is IOException OrElse TypeOf ex Is UnauthorizedAccessException OrElse TypeOf ex Is NotSupportedException
             Warnings.Add("无法读取 PCL 当前目录设置：" & ex.Message)

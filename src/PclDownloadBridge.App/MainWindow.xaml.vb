@@ -84,6 +84,7 @@ Partial Public Class MainWindow
         InitializeDeveloperSettings()
         InitializeAbout()
         InitializeSettingsFeedback()
+        InitializeExternalLaunchers()
         AddHandler Shell.KeyDown, AddressOf ShellKeyDown
         AddHandler Shell.PreviewMouseDown, AddressOf ShellBackMouseDown
         AddHandler Shell.PreviewKeyDown, AddressOf ShellPreviewKeyDown
@@ -201,7 +202,6 @@ Partial Public Class MainWindow
                 RenderTaskProgress(New TransferProgress With {.Phase = "files", .Stage = "下载原版游戏与资源文件", .StageFraction = 0.86, .Total = 3962, .Completed = 3407, .BytesPerSecond = 46.2 * 1024 * 1024, .NetworkBytes = CLng(512.8 * 1024 * 1024), .Reused = 2106, .ActiveConnections = 48, .DynamicSplits = 17, .Retries = 2, .CurrentFile = "assets/objects/2c/2c2b...", .Source = "resources.download.minecraft.net"})
             Case "settings"
                 SelectManualFolder("D:\Games\Minecraft\.minecraft")
-                PclLocation.Text = "PCL 所在位置：D:\Games\Minecraft"
                 SwitchMainPage(True)
             Case "settings-invalid"
                 PreviewPage("settings")
@@ -233,7 +233,6 @@ Partial Public Class MainWindow
                 SelectComponent(_componentEntries(ComponentKind.Fabric)(0))
                 ChooseInstallFolder(Nothing, Nothing)
                 SelectManualFolder("D:\Games\Minecraft\.minecraft")
-                PclLocation.Text = "PCL 所在位置：D:\Games\Minecraft"
         End Select
     End Sub
 
@@ -294,7 +293,7 @@ Partial Public Class MainWindow
         ShowDownload(Nothing, Nothing)
         check(InstallPage.Visibility = Visibility.Visible AndAlso DownloadPage.Visibility = Visibility.Visible AndAlso VersionPage.Visibility = Visibility.Collapsed AndAlso _selectedEntry Is selectedBeforeFolder AndAlso _componentSelection.Has(ComponentKind.Fabric) AndAlso InstanceName.Text = "自定义实例名称", "changing game folder returns to install page with version components and custom name intact")
         FolderList.SelectedItem = Nothing
-        check(_selectedFolder Is Nothing AndAlso SelectedPath.Text = "请选择 PCL 的 .minecraft 文件夹", "clearing folder selection cannot retain a stale install destination")
+        check(_selectedFolder Is Nothing AndAlso SelectedPath.Text = "请选择 .minecraft 游戏目录", "clearing folder selection cannot retain a stale install destination")
         _busy = True
         SetBusy(True)
         ShowSettings(Nothing, Nothing)
@@ -347,6 +346,7 @@ Partial Public Class MainWindow
         VerifyModrinth(check, artifactDirectory)
         VerifyRowLayout(artifactDirectory, check)
         VerifySummaryLayout(artifactDirectory, check)
+        VerifyExternalLauncherUi(artifactDirectory, check)
         Return checks
     End Function
 
@@ -369,11 +369,9 @@ Partial Public Class MainWindow
                 SpeedLimitBox.Text = If(Double.TryParse(storedSpeed, Globalization.NumberStyles.Float, Globalization.CultureInfo.InvariantCulture, restoredSpeed), restoredSpeed.ToString(Globalization.CultureInfo.CurrentCulture), storedSpeed)
                 ReuseBox.IsChecked = CBool(If(settings("reuse"), New JValue(True)))
                 JavaPathBox.Text = If(CStr(settings("java")), "")
-                DiscoverFolders(_pclBase)
-                Dim lastRoot = CStr(settings("gameRoot"))
-                If Not String.IsNullOrWhiteSpace(lastRoot) AndAlso Directory.Exists(lastRoot) Then SelectManualFolder(lastRoot)
+                Await RestoreLauncherBindingsAsync(settings)
             Else
-                DiscoverFolders(_pclBase)
+                Await RestoreLauncherBindingsAsync(Nothing)
             End If
             CapturePreferenceBaseline()
         Catch ex As Exception
@@ -594,29 +592,8 @@ Partial Public Class MainWindow
         SwitchMainPage(False)
     End Sub
 
-    Private Sub DiscoverFolders(basePath As String)
-        Dim discovery As New PclFolders()
-        _folders = discovery.Discover(basePath)
-        FolderList.ItemsSource = _folders
-        PclLocation.Text = "PCL 所在位置：" & basePath
-        If _folders.Count > 0 Then
-            FolderList.SelectedIndex = 0
-        Else
-            StatusText.Text = "未发现游戏目录，请选择 PCL 启动器或直接选择 .minecraft。"
-        End If
-        If discovery.Warnings.Count > 0 Then StatusText.Text = String.Join("；", discovery.Warnings)
-    End Sub
-
-    Private Sub ChoosePcl(sender As Object, e As RoutedEventArgs)
-        Dim dialog As New Microsoft.Win32.OpenFileDialog With {.Title = "选择 PCL 启动器", .Filter = "启动器程序 (*.exe)|*.exe", .CheckFileExists = True}
-        If dialog.ShowDialog(Me) <> True Then Return
-        _pclBase = Path.GetDirectoryName(dialog.FileName)
-        DiscoverFolders(_pclBase)
-        PersistSettings()
-    End Sub
-
     Private Sub ChooseFolder(sender As Object, e As RoutedEventArgs)
-        Using dialog As New System.Windows.Forms.FolderBrowserDialog With {.Description = "选择 PCL 使用的 .minecraft 游戏根目录", .ShowNewFolderButton = True}
+        Using dialog As New System.Windows.Forms.FolderBrowserDialog With {.Description = "选择安装目标的 .minecraft 游戏根目录", .ShowNewFolderButton = True}
             If _selectedFolder IsNot Nothing Then dialog.SelectedPath = _selectedFolder.Location
             If dialog.ShowDialog() <> System.Windows.Forms.DialogResult.OK Then Return
             SelectManualFolder(dialog.SelectedPath)
@@ -637,10 +614,14 @@ Partial Public Class MainWindow
     End Sub
 
     Private Sub FolderSelected(sender As Object, e As SelectionChangedEventArgs)
+        If _restoringLaunchers Then Return
+        If _busy OrElse _choosingOnline Then
+            _restoringLaunchers = True : FolderList.SelectedItem = _selectedFolder : _restoringLaunchers = False : Return
+        End If
         Dim folder = TryCast(FolderList.SelectedItem, GameFolder)
         If folder Is Nothing Then
             _selectedFolder = Nothing
-            SelectedPath.Text = "请选择 PCL 的 .minecraft 文件夹"
+            SelectedPath.Text = "请选择 .minecraft 游戏目录"
             FolderSummary.Text = "安装前请选择游戏文件夹"
             RefreshInstallAvailability()
             Return
@@ -649,6 +630,7 @@ Partial Public Class MainWindow
         SelectedPath.Text = folder.Location
         FolderSummary.Text = folder.Origin & " · " & folder.VersionCount & " 个已安装实例 · 共享支持库与资源文件"
         StatusText.Text = "已选择游戏目录：" & folder.Location
+        RefreshIsolation(_busy)
         RefreshInstallAvailability()
         PersistSettings()
     End Sub
@@ -821,7 +803,7 @@ Partial Public Class MainWindow
             StatusText.Text = "请检查速度上限的输入提示。"
             Return
         End If
-        Dim root = _selectedFolder.Location
+        Dim target = CurrentInstallTarget(), root = target.Root
         Dim name = If(modrinth IsNot Nothing, ModrinthInstanceName.Text, If(pack IsNot Nothing, PackInstanceName.Text, InstanceName.Text))
         Dim repair = RepairBox.IsChecked.GetValueOrDefault()
         Dim optionalFiles = PackOptionalFiles.Children.OfType(Of PclCheckBox)().Where(Function(box) box.IsChecked.GetValueOrDefault()).Select(Function(box) CLng(box.Tag)).ToArray()
@@ -830,6 +812,7 @@ Partial Public Class MainWindow
         Dim selection = If(isPack, New ComponentSelection(), _componentSelection.Copy())
         selection.JavaPath = JavaPathBox.Text.Trim()
         Try
+            target.ValidateFirstBatch(repair, selection.Entries.Count > 0, isPack, entry.IsSupplemental)
             InstallPreflight.ValidateDestination(root, name, repair)
             selection.Validate(entry.Id)
             If repair AndAlso selection.Entries.Count > 0 Then Throw New InvalidOperationException("请为组件安装使用新名称；原版校验仅支持未添加加载器的实例。")
@@ -839,10 +822,12 @@ Partial Public Class MainWindow
         End Try
         Dim connections = ConnectionCount()
         Dim isolation = If(isPack, InstanceIsolationMode.Enabled, InstanceIsolationMode.FollowPcl)
-        Dim defaultIsolation As Integer? = If(isPack OrElse repair, Nothing, SelectedIsolationStrategy())
+        Dim defaultIsolation As Integer? = If(isPack OrElse repair OrElse target.Kind <> ExternalLauncherKind.Pcl, Nothing, SelectedIsolationStrategy())
         Dim reuse = If(ReuseBox.IsChecked = True, _folders.Select(Function(f) f.Location).ToList(), New List(Of String))
-        Dim installer As New MinecraftInstaller(Policy(), _pclBase, newInstanceIsolationStrategy:=defaultIsolation)
-        Dim packInstaller As New CurseForgeInstaller(Policy(), _pclBase)
+        Dim policySnapshot = Policy()
+        Dim installer As New MinecraftInstaller(policySnapshot, target.PclDirectory, newInstanceIsolationStrategy:=defaultIsolation, directoryOnly:=target.Kind <> ExternalLauncherKind.Pcl)
+        Dim packInstaller As New CurseForgeInstaller(policySnapshot, target.PclDirectory)
+        _taskInstallTarget = target
         _cancellation = New CancellationTokenSource()
         _busy = True
         SetBusy(True)
@@ -869,7 +854,7 @@ Partial Public Class MainWindow
             ElseIf _preview Then
                 Throw New InvalidOperationException("界面预览不会执行实际安装。")
             ElseIf modrinth IsNot Nothing Then
-                result = Await Task.Run(Function() New ModrinthInstaller(Policy(), _pclBase).InstallAsync(modrinth, root, name, reuse, modrinthOptions, progress, _cancellation.Token, connections, CLng(limit * 1024 * 1024), selection.JavaPath))
+                result = Await Task.Run(Function() New ModrinthInstaller(policySnapshot, target.PclDirectory).InstallAsync(modrinth, root, name, reuse, modrinthOptions, progress, _cancellation.Token, connections, CLng(limit * 1024 * 1024), selection.JavaPath))
             ElseIf pack IsNot Nothing Then
                 result = Await Task.Run(Function() packInstaller.InstallAsync(pack, root, name, reuse, optionalFiles, progress, _cancellation.Token, connections, CLng(limit * 1024 * 1024), selection.JavaPath))
             Else
@@ -909,6 +894,10 @@ Partial Public Class MainWindow
     End Sub
 
     Private Sub SetBusy(value As Boolean)
+        If value Then
+            _launcherReadGeneration += 1
+            If LauncherReadStatus.Text.StartsWith("正在读取", StringComparison.Ordinal) Then LauncherReadStatus.Text = "当前任务使用已冻结的安装目标，旧目录读取结果将忽略。"
+        End If
         PackSearchSurface.IsEnabled = Not value
         PackDetailSurface.IsEnabled = Not value
         RefreshInstallAvailability(value)
@@ -920,6 +909,7 @@ Partial Public Class MainWindow
         RefreshPackAvailability(value)
         DownloadNav.IsEnabled = Not value
         GameFolderCard.IsEnabled = Not value
+        ExternalLauncherCard.IsEnabled = Not value
         DownloadSettingsCard.IsEnabled = Not value
         ChangeFolderButton.IsEnabled = Not value
         RefreshButton.IsEnabled = Not value

@@ -15,7 +15,7 @@ Partial Public Class MainWindow
         Try
             check(IsolationBox.Items.Count = 6 AndAlso original = 0 AndAlso
                 String.Join("/", IsolationBox.Items.Cast(Of PclComboBoxItem)().Select(Function(item) CStr(item.Content))) =
-                "跟随 PCL/关闭/隔离可安装 Mod 的版本/隔离非正式版/隔离可安装 Mod 的版本与非正式版/隔离所有版本",
+                "跟随所选启动器/关闭/隔离可安装 Mod 的版本/隔离非正式版/隔离可安装 Mod 的版本与非正式版/隔离所有版本",
                 "global settings offer follow PCL plus its five default isolation strategies")
             check(IsolationBox.Parent Is FolderSettingsGrid AndAlso GameFolderCard.Parent Is SettingsContent AndAlso Grid.GetRow(IsolationBox) = 5,
                 "default isolation is a single settings row instead of an installation card")

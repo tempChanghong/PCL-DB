@@ -44,6 +44,8 @@ Partial Public Class MainWindow
     End Sub
     Private Function PackNameProblem() As String
         If _packSelection Is Nothing Then Return Nothing
+        Dim external = ExternalInstallProblem(True)
+        If external IsNot Nothing Then Return external
         Try
             InstallPreflight.ValidateName(PackInstanceName.Text)
             If _selectedFolder IsNot Nothing Then InstallPreflight.ValidateDestination(_selectedFolder.Location, PackInstanceName.Text, False)

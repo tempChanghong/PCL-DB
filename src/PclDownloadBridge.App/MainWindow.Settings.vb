@@ -70,7 +70,7 @@ Partial Public Class MainWindow
     Private Function BuildSettings(limit As Double) As JObject
         Return New JObject From {{"pclBase", _pclBase}, {"gameRoot", If(_selectedFolder?.Location, "")},
             {"source", CInt(SelectedSource(SourceBox))}, {"versionSource", CInt(SelectedSource(VersionSourceBox))},
-            {"defaultIsolation", SelectedIsolationStrategy().GetValueOrDefault(-1)},
+            {"defaultIsolation", SelectedIsolationStrategy().GetValueOrDefault(-1)}, {"externalLaunchers", LauncherSettingsJson()},
             {"connectionsIndex", Array.IndexOf(ConnectionLevels, ConnectionCount())},
             {"speed", limit.ToString(CultureInfo.InvariantCulture)}, {"reuse", ReuseBox.IsChecked = True}, {"java", JavaPathBox.Text.Trim()}, {"appearance", _appearance.ToJson()}, {"developer", _developer.ToJson()}}
     End Function
@@ -90,7 +90,9 @@ Partial Public Class MainWindow
         If Not explicitSave AndAlso _preferenceBaseline IsNot Nothing AndAlso String.Equals(target, _preferenceBaselinePath, StringComparison.OrdinalIgnoreCase) Then
             changes = DownloadSettingsFile.ChangedValues(_preferenceBaseline, values)
         End If
+        If _launcherMigrationPending Then changes("externalLaunchers") = LauncherSettingsJson()
         If changes.HasValues Then DownloadSettingsFile.SaveChanges(target, legacyPath, changes, explicitSave)
+        _launcherMigrationPending = False
         _preferenceBaseline = values
         _preferenceBaselinePath = target
     End Sub

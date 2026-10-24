@@ -1,6 +1,7 @@
 Imports System.Globalization
 Imports System.Windows
 Imports Newtonsoft.Json.Linq
+Imports PclDownloadBridge.Core
 
 Partial Public Class MainWindow
     ' -1 follows the selected PCL; 0..4 are PCL LaunchArgumentIndieV2 values.
@@ -26,7 +27,11 @@ Partial Public Class MainWindow
 
     Private Sub RefreshIsolation(busy As Boolean)
         If IsolationBox Is Nothing OrElse IsolationHint Is Nothing Then Return
-        IsolationBox.IsEnabled = Not busy
+        Dim external = _selectedFolder IsNot Nothing AndAlso _selectedFolder.LauncherKind.HasValue AndAlso _selectedFolder.LauncherKind.Value <> ExternalLauncherKind.Pcl
+        IsolationBox.IsEnabled = Not busy AndAlso Not external
+        If external Then
+            IsolationHint.Text = "此启动器目前支持标准原版新安装。原生隔离、组件及整合包适配将在后续接入；已保留上次隔离偏好。" : Return
+        End If
         Dim strategy = SelectedIsolationStrategy(), description As String
         Select Case strategy.GetValueOrDefault(-1)
             Case 0 : description = "不同版本共用存档、Mods 与资源包，请留意兼容性；同名不同内容的文件不会被覆盖。"

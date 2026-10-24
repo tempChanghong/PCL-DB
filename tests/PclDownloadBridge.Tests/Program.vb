@@ -58,7 +58,9 @@ Module Program
             Directory.CreateDirectory(TestRoot)
             If args.Length = 2 AndAlso args(0) = "--regression" Then
                 Dim run As Task(Of List(Of String))
-                If args(1) = "modpack-catalogue" Then
+                If args(1) = "external-launchers" Then
+                    run = ExternalLauncherChecks.RunAsync(TestRoot)
+                ElseIf args(1) = "modpack-catalogue" Then
                     run = ModpackCatalogChecks.RunAsync(TestRoot)
                 ElseIf args(1).StartsWith("modrinth-", StringComparison.Ordinal) Then
                     run = ModrinthChecks.RunAsync(TestRoot, args(1))
@@ -171,6 +173,9 @@ Module Program
                 Check(True, label)
             Next
             FolderTests()
+            For Each label In ExternalLauncherChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
+                Check(True, label)
+            Next
             For Each label In ForgeChecksumChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
                 Check(True, label)
             Next

@@ -65,7 +65,7 @@
                 <Grid VerticalAlignment="Center">
                   <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
                   <TextBlock Text="安装到" Opacity="0.6" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" />
-                  <TextBlock x:Name="SelectedPath" Grid.Column="1" Text="请选择 PCL 的 .minecraft 文件夹" TextTrimming="CharacterEllipsis" FontSize="12" VerticalAlignment="Center" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" />
+                  <TextBlock x:Name="SelectedPath" Grid.Column="1" Text="请选择 .minecraft 游戏目录" TextTrimming="CharacterEllipsis" FontSize="12" VerticalAlignment="Center" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" />
                 </Grid>
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
                   <p:PclButton x:Name="ChangeFolderButton" Text="更改目录" Width="86" Height="28" Margin="10,0,0,0" Click="ChooseInstallFolder" />
@@ -346,28 +346,51 @@
                     </StackPanel>
                   </Grid>
                 </p:PclCard>
+                <p:PclCard x:Name="ExternalLauncherCard" Title="外部启动器" BodyMargin="25,37,25,15">
+                  <StackPanel>
+                    <Grid>
+                      <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" SharedSizeGroup="Name"/><ColumnDefinition/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                      <Grid.RowDefinitions><RowDefinition Height="28"/><RowDefinition Height="7"/><RowDefinition Height="28"/><RowDefinition Height="7"/><RowDefinition Height="28"/></Grid.RowDefinitions>
+                      <TextBlock Text="PCL" Style="{StaticResource SettingLabel}"/>
+                      <p:PclComboBox x:Name="PclBindingList" Grid.Column="1" Tag="Pcl" SelectionChanged="LauncherBindingSelected" MinWidth="100" ToolTip="选择一份 PCL 工作目录"/>
+                      <p:PclButton Grid.Column="2" Text="选择位置" Tag="Pcl" Width="70" Height="28" Margin="10,0,0,0" Click="AddLauncherLocation"/>
+                      <p:PclButton Grid.Column="3" Text="配置文件" Tag="Pcl" Width="70" Height="28" Margin="7,0,0,0" Click="ChooseLauncherConfig"/>
+                      <p:PclButton Grid.Column="4" Text="读取目录" Tag="Pcl" Width="70" Height="28" Margin="7,0,0,0" Click="ReadLauncherDirectories"/>
+                      <TextBlock Grid.Row="2" Text="HMCL" Style="{StaticResource SettingLabel}"/>
+                      <p:PclComboBox x:Name="HmclBindingList" Grid.Row="2" Grid.Column="1" Tag="Hmcl" SelectionChanged="LauncherBindingSelected" MinWidth="100" ToolTip="HMCL 相对目录以所选工作目录为准"/>
+                      <p:PclButton Grid.Row="2" Grid.Column="2" Text="选择位置" Tag="Hmcl" Width="70" Height="28" Margin="10,0,0,0" Click="AddLauncherLocation"/>
+                      <p:PclButton Grid.Row="2" Grid.Column="3" Text="配置文件" Tag="Hmcl" Width="70" Height="28" Margin="7,0,0,0" Click="ChooseLauncherConfig"/>
+                      <p:PclButton Grid.Row="2" Grid.Column="4" Text="读取目录" Tag="Hmcl" Width="70" Height="28" Margin="7,0,0,0" Click="ReadLauncherDirectories"/>
+                      <TextBlock Grid.Row="4" Text="PCL-CE" Style="{StaticResource SettingLabel}"/>
+                      <p:PclComboBox x:Name="CeBindingList" Grid.Row="4" Grid.Column="1" Tag="PclCe" SelectionChanged="LauncherBindingSelected" MinWidth="100" ToolTip="选择一份 PCL-CE 工作目录"/>
+                      <p:PclButton Grid.Row="4" Grid.Column="2" Text="选择位置" Tag="PclCe" Width="70" Height="28" Margin="10,0,0,0" Click="AddLauncherLocation"/>
+                      <p:PclButton Grid.Row="4" Grid.Column="3" Text="配置文件" Tag="PclCe" Width="70" Height="28" Margin="7,0,0,0" Click="ChooseLauncherConfig"/>
+                      <p:PclButton Grid.Row="4" Grid.Column="4" Text="读取目录" Tag="PclCe" Width="70" Height="28" Margin="7,0,0,0" Click="ReadLauncherDirectories"/>
+                    </Grid>
+                    <TextBlock Text="仅读取目录配置。每种启动器可绑定多份位置；读取后在下方选择安装目录。" FontSize="12" Opacity="0.6" TextWrapping="Wrap" Margin="0,10,0,0"/>
+                    <TextBlock x:Name="LauncherReadStatus" FontSize="12" Opacity="0.65" TextWrapping="Wrap" Margin="0,7,0,0" AutomationProperties.LiveSetting="Polite"/>
+                  </StackPanel>
+                </p:PclCard>
                 <p:PclCard x:Name="GameFolderCard" Title="游戏" BodyMargin="25,37,25,15">
                   <Grid x:Name="FolderSettingsGrid">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" SharedSizeGroup="Name"/><ColumnDefinition/></Grid.ColumnDefinitions>
                     <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="15"/><RowDefinition Height="28"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <TextBlock Text="游戏目录" Style="{StaticResource SettingLabel}"/>
-                    <p:PclComboBox x:Name="FolderList" Grid.Column="1" SelectionChanged="FolderSelected" MinHeight="49" HorizontalContentAlignment="Stretch" ToolTip="选择 PCL 使用的 .minecraft 文件夹">
+                    <p:PclComboBox x:Name="FolderList" Grid.Column="1" SelectionChanged="FolderSelected" MinHeight="49" HorizontalContentAlignment="Stretch" ToolTip="选择外部启动器使用的 .minecraft 文件夹；来源与目录一同绑定">
                       <p:PclComboBox.ItemTemplate><DataTemplate>
-                        <StackPanel Margin="0,2">
-                          <TextBlock Text="{Binding Name}" />
+                        <StackPanel Margin="0,2" ToolTip="{Binding Origin}">
+                          <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis"/>
                           <TextBlock Text="{Binding Location}" FontSize="12" Opacity="0.6" TextTrimming="CharacterEllipsis" Margin="0,4,0,0" />
                         </StackPanel>
                       </DataTemplate></p:PclComboBox.ItemTemplate>
                     </p:PclComboBox>
                     <TextBlock x:Name="FolderSummary" Grid.Column="1" Grid.Row="1" Text="安装前请选择游戏文件夹" FontSize="12" Opacity="0.5" TextWrapping="Wrap" Margin="0,7,0,0" />
                     <WrapPanel Grid.Column="1" Grid.Row="2" Margin="0,10,0,0">
-                      <p:PclButton Text="读取 PCL 的目录" Width="140" Height="35" Margin="0,0,20,0" Click="ChoosePcl" />
                       <p:PclButton Text="手动选择目录" Width="140" Height="35" Click="ChooseFolder" />
                     </WrapPanel>
-                    <TextBlock x:Name="PclLocation" Grid.Column="1" Grid.Row="3" FontSize="12" Opacity="0.5" Margin="0,10,0,0" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" />
                     <TextBlock Grid.Row="5" Text="默认版本隔离" Style="{StaticResource SettingLabel}"/>
                     <p:PclComboBox x:Name="IsolationBox" Grid.Row="5" Grid.Column="1" SelectedIndex="0" AutomationProperties.Name="默认版本隔离" ToolTip="当安装新版本时，据此自动设置新版本的隔离选项。已有实例及校验补全保留原有设置。">
-                      <p:PclComboBoxItem Content="跟随 PCL"/>
+                      <p:PclComboBoxItem Content="跟随所选启动器"/>
                       <p:PclComboBoxItem Content="关闭" ToolTip="不同版本共用存档、Mod 和资源包；多个模组版本可能产生冲突。"/>
                       <p:PclComboBoxItem Content="隔离可安装 Mod 的版本"/>
                       <p:PclComboBoxItem Content="隔离非正式版"/>

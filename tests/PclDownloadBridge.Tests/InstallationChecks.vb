@@ -216,8 +216,9 @@ Friend Module InstallationChecks
             Entry = New VersionEntry With {.Id = mc, .Url = Server.Url & "/version", .Sha1 = Hash(Server.Files("/version"))}
             _installer = New MinecraftInstaller(New FixturePolicy(Server.Url))
         End Sub
-        Friend Function InstallAsync(name As String, Optional selection As ComponentSelection = Nothing, Optional repair As Boolean = False, Optional progress As IProgress(Of TransferProgress) = Nothing, Optional token As CancellationToken = Nothing) As Task(Of InstallResult)
-            Return _installer.InstallAsync(Entry, Root, name, {}, progress, token, repair, components:=selection)
+        Friend Function InstallAsync(name As String, Optional selection As ComponentSelection = Nothing, Optional repair As Boolean = False, Optional progress As IProgress(Of TransferProgress) = Nothing, Optional token As CancellationToken = Nothing, Optional directoryOnly As Boolean = False) As Task(Of InstallResult)
+            Dim installer = If(directoryOnly, New MinecraftInstaller(New FixturePolicy(Server.Url), directoryOnly:=True), _installer)
+            Return installer.InstallAsync(Entry, Root, name, {}, progress, token, repair, components:=selection)
         End Function
         Friend Function NonVersionRequests() As Integer
             Return Server.Requests.Where(Function(p) p.Key <> "/version").Sum(Function(p) p.Value)

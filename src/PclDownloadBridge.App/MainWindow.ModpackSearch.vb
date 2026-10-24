@@ -384,14 +384,20 @@ Partial Public Class MainWindow
         If _selectedFolder Is Nothing Then ChooseInstallFolder(Nothing, Nothing) : StatusText.Text = "请先选择游戏目录。" : Return
         Dim limit As Double
         If Not TryGetSpeedLimit(limit) Then NavigateToSetting(SpeedLimitBox, True) : Return
-        Dim root = _selectedFolder.Location
+        Dim target = CurrentInstallTarget(), root = target.Root
+        Try
+            target.ValidateFirstBatch(False, False, True, False)
+        Catch ex As InvalidOperationException
+            PackProjectActionStatus.Text = ex.Message : PackProjectActionStatus.Visibility = Visibility.Visible
+            PackProjectIntro.BringIntoView() : Return
+        End Try
         _choosingOnline = True
         Try
             Dim proposed = If(_onlineLastRelease = projectKey & ":" & snapshot.Id, _onlineLastName, SuggestedPackName(projectName))
             Dim name = Await PromptOnlinePackAsync("输入版本名称", projectName & " · " & PackReleaseConfirmation(snapshot, displayedTitle), root, proposed, False, CancellationToken.None)
             If String.IsNullOrEmpty(name) OrElse _closing Then Return
             _onlineLastName = name : _onlineLastRelease = projectKey & ":" & snapshot.Id
-            Await RunOnlinePackInstallationAsync(snapshot, root, name, CLng(limit * 1024 * 1024), displayedTitle)
+            Await RunOnlinePackInstallationAsync(snapshot, root, name, CLng(limit * 1024 * 1024), displayedTitle, target)
         Catch ex As Exception
             If Not _closing Then StatusText.Text = ex.GetBaseException().Message
             If Not _preview Then Log(ex)
@@ -522,13 +528,17 @@ Partial Public Class MainWindow
         Next
         Return selected
     End Function
-    Private Async Function RunOnlinePackInstallationAsync(release As ModpackRelease, root As String, name As String, limit As Long, Optional displayedTitle As String = Nothing) As Task
+    Private Async Function RunOnlinePackInstallationAsync(release As ModpackRelease, root As String, name As String, limit As Long, Optional displayedTitle As String = Nothing, Optional target As LauncherInstallTarget = Nothing) As Task
+        target = If(target, CurrentInstallTarget())
+        If Not SameGameRoot(root, target.Root) Then Throw New InvalidOperationException("安装目录与冻结的启动器目标不一致。")
+        target.ValidateFirstBatch(False, False, True, False)
         InstallPreflight.ValidateDestination(root, name, False)
         CancelPackRead()
         _packSearchRequest?.Cancel() : _packDetailRequest?.Cancel()
         Dim policySnapshot = Policy(), reuse = If(ReuseBox.IsChecked = True, _folders.Select(Function(folder) folder.Location).ToList(), New List(Of String))
         Dim connections = ConnectionCount(), javaPath = JavaPathBox.Text.Trim()
         Dim request As New CancellationTokenSource : _cancellation = request : _busy = True
+        _taskInstallTarget = target
         SetBusy(True) : PersistSettings() : TaskPanel.Visibility = Visibility.Visible
         ResetTaskView(name, True, root, hasArchive:=True)
         _taskMinecraft = String.Join("、", release.GameVersions) : _taskComponents = release.Platform.ToString() & " " & PackReleaseConfirmation(release, displayedTitle).Replace(vbCrLf, " · ")
@@ -541,7 +551,7 @@ Partial Public Class MainWindow
             ElseIf _preview Then
                 Throw New InvalidOperationException("界面预览不会执行实际安装。")
             Else
-                result = Await Task.Run(Function() ModpackArchiveInstaller.InstallAsync(release, root, name, policySnapshot, _pclBase, reuse, progress, request.Token, connections, limit, javaPath,
+                result = Await Task.Run(Function() ModpackArchiveInstaller.InstallAsync(release, root, name, policySnapshot, target.PclDirectory, reuse, progress, request.Token, connections, limit, javaPath,
                     Function(package, token) Dispatcher.InvokeAsync(Function() ChooseOnlineOptionalAsync(package, token)).Task.Unwrap()))
             End If
             _taskInstancePath = result.InstancePath : TaskTitle.Text = "安装完成 · " & name
