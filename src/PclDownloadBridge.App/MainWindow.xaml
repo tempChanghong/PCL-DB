@@ -183,7 +183,7 @@
                     </Grid>
                   </StackPanel>
                   <StackPanel x:Name="PackDetailSurface" Visibility="Collapsed">
-                    <p:PclCard x:Name="PackProjectIntro" ShowHeader="False" BodyMargin="22,18,22,19">
+                    <p:PclCard x:Name="PackProjectIntro" ShowHeader="False" BodyMargin="22,18,22,19" Margin="0,0,0,25">
                       <StackPanel>
                         <Grid x:Name="PackProjectIdentity" Margin="-7,-7,0,8"/>
                         <TextBlock x:Name="PackProjectTitle" Visibility="Collapsed"/>

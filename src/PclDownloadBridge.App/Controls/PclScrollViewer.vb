@@ -9,8 +9,29 @@ Namespace Controls
     Public Class PclScrollViewer
         Inherits ScrollViewer
 
-        Public Property SmoothScrollingEnabled As Boolean = True
+        Private _smoothScrollingEnabled As Boolean = True
+        Public Property SmoothScrollingEnabled As Boolean
+            Get
+                Return _smoothScrollingEnabled
+            End Get
+            Set(value As Boolean)
+                If _smoothScrollingEnabled = value Then Return
+                _smoothScrollingEnabled = value
+                If Not value Then StopInteractiveScrolling()
+            End Set
+        End Property
+        Friend ReadOnly Property MotionPolicy As PclControlMotionPolicy
+        Private _forceMotionForChecks As Boolean
         Friend Property ForceMotionForChecks As Boolean
+            Get
+                Return _forceMotionForChecks
+            End Get
+            Set(value As Boolean)
+                If _forceMotionForChecks = value Then Return
+                _forceMotionForChecks = value
+                If value Then MotionPolicy.EnabledForChecks = True Else MotionPolicy.EnabledForChecks = Nothing
+            End Set
+        End Property
         Private _clock As AnimationClock
         Private _requestedOffset As Double = Double.NaN
         Private _lastSample As Double
@@ -19,8 +40,7 @@ Namespace Controls
             New PropertyMetadata(0.0, Sub(target, args) DirectCast(target, PclScrollViewer).ApplyOffset(CDbl(args.NewValue))))
 
         Public Sub New()
-            AddHandler Unloaded, Sub() StopScrolling()
-            AddHandler IsVisibleChanged, Sub() If Not IsVisible Then StopScrolling()
+            MotionPolicy = New PclControlMotionPolicy(Me, AddressOf StopInteractiveScrolling)
             AddHandler ScrollChanged, AddressOf OffsetChanged
         End Sub
 
@@ -81,6 +101,14 @@ Namespace Controls
             End If
         End Sub
 
+        Private Sub StopInteractiveScrolling()
+            Dim active = _clock IsNot Nothing, offset = VerticalOffset
+            StopScrolling()
+            ' Native scroll commands are queued. Replace the last issued tick,
+            ' while preserving normal completion's final queued displacement.
+            If active Then ScrollToVerticalOffset(offset)
+        End Sub
+
         Friend Sub StopScrolling()
             Dim old = _clock
             _clock = Nothing
@@ -94,8 +122,12 @@ Namespace Controls
         Friend Sub ScrollDelta(delta As Double)
             If Double.IsNaN(delta) OrElse Double.IsInfinity(delta) OrElse delta = 0 Then Return
             If _issuedOffsets.Count > 0 Then UpdateLayout()
-            If Not SmoothScrollingEnabled OrElse Not IsLoaded OrElse Not IsVisible OrElse
-                (Not ForceMotionForChecks AndAlso Not SystemParameters.ClientAreaAnimation) Then
+            ' A native acknowledgement can change page/modal ownership while
+            ' UpdateLayout runs; validate the owner again before any displacement.
+            If Not MotionPolicy.Interactive Then
+                StopInteractiveScrolling() : Return
+            End If
+            If Not SmoothScrollingEnabled OrElse Not MotionPolicy.CanAnimate Then
                 StopScrolling()
                 ScrollToVerticalOffset(Math.Max(0, Math.Min(ScrollableHeight, VerticalOffset + delta)))
                 Return
@@ -118,6 +150,7 @@ Namespace Controls
             _lastSample = origin
             _requestedOffset = origin
             Dim clock = DirectCast(New PclWheelAnimation(origin, inputs).CreateClock(True), AnimationClock)
+            If MotionPolicy.PauseForChecks Then clock.Controller.Pause()
             _clock = clock
             AddHandler clock.Completed, Sub() If _clock Is clock Then StopScrolling()
             ApplyAnimationClock(AnimatedOffsetProperty, clock)
@@ -162,6 +195,9 @@ Namespace Controls
         End Function
 
         Protected Overrides Sub OnPreviewMouseWheel(args As MouseWheelEventArgs)
+            If Not MotionPolicy.Interactive Then
+                args.Handled = True : Return
+            End If
             If args.Handled OrElse args.Delta = 0 OrElse ScrollableHeight <= 0 OrElse Not OwnsWheel(TryCast(args.OriginalSource, DependencyObject)) Then
                 MyBase.OnPreviewMouseWheel(args)
                 Return

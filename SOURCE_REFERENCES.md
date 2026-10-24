@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 滚动输入归属与详情卡片间距
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 MyScrollViewer、MyPageRight、MyMsgInput、ModAnimation 与 PageDownloadCompDetail：保留 300 ms 六次方 Fluent 滚动、卡片入退场和模态交互，详情介绍卡下方间隔恢复为源代码的 25 DIP。
+- 本工具另补齐禁用、门控、隐藏、卸载和动画偏好变化时的滚动清理，防止旧时钟及待处理原生请求在恢复后继续推进；这是桥接程序的生命周期防护。筛选栏禁用时消费旧滚轮，避免冒泡到外层原生处理器。详见 [对照和验证](docs/reviews/scroll-handoff.md)，没有改变搜索或下载安装内核。
+
 ## PCL 核心样式与图标文字动画
 
 - 界面布局、控件和动画以 PCL2 为核心，PCL-CE 仅作补充参考。重新读取固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 MyIconTextButton.xaml(.vb)、ModAnimation.AaColor、ModBase.MyColor 和 PageDownloadCompDetail，校正默认无描边、网站高亮、自然图标比例、150 ms 移出及按压时背景/文字的独立动画。

@@ -8,7 +8,11 @@ Namespace Controls
         Inherits ScrollViewer
 
         Protected Overrides Sub OnMouseWheel(e As MouseWheelEventArgs)
-            If e.Handled OrElse Not IsEnabled OrElse Not IsHitTestVisible OrElse Not IsVisible OrElse ScrollableWidth <= 0 Then Return
+            If e.Handled Then Return
+            If Not IsEnabled OrElse Not IsHitTestVisible OrElse Not IsVisible Then
+                e.Handled = True : Return
+            End If
+            If ScrollableWidth <= 0 Then Return
             ScrollToHorizontalOffset(HorizontalOffset - e.Delta / 3.0)
             e.Handled = True
         End Sub

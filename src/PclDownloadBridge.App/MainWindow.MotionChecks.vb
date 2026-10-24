@@ -12,6 +12,7 @@ Partial Public Class MainWindow
                                                      If Not ok Then Throw New InvalidOperationException(label)
                                                      passed.Add(label)
                                                  End Sub
+        VerifyScrollInteractionOwnership(directory, check)
         For Each time In {0.0, 35, 100, 175, 250, 350}
             Dim expected = -16 + 5 * (1 - Math.Pow(1 - Math.Min(1, time / 250), 3)) +
                 11 * (1 - Math.Pow(1 - Math.Min(1, time / 350), 1.5) * Math.Cos(1.5 * Math.PI * Math.Min(1, time / 350)))

@@ -87,10 +87,28 @@ Partial Public Class MainWindow
         ConnectionsSlider.Value = 8
         Slider.IncreaseSmall.Execute(Nothing, ConnectionsSlider)
         check(ConnectionCount() = 16 AndAlso ConnectionValue.Text = "16", "slider keyboard command steps to the next supported connection count")
-        SettingsPage.ScrollToTop() : arrange(850, 500)
-        ConnectionsSlider.RaiseEvent(New MouseWheelEventArgs(Mouse.PrimaryDevice, Environment.TickCount, -120) With {.RoutedEvent = Mouse.PreviewMouseWheelEvent})
-        arrange(850, 500)
-        check(ConnectionCount() = 16 AndAlso SettingsPage.VerticalOffset > 0, "wheel over the thread slider scrolls settings without changing its value")
+        ' A wheel gesture belongs to a loaded, interactive viewport. Keep the
+        ' real route on a separate owner so this layout-only fixture's controls
+        ' do not acquire a loaded/visible history that affects its later checks.
+        Dim savedAppearance = _appearance.ToJson(), wheelOwner As New MainWindow(True)
+        wheelOwner.SwitchMainPage(True) : wheelOwner.ConnectionsSlider.Value = 16
+        Dim wheelContent = DirectCast(wheelOwner.Content, FrameworkElement)
+        Dim wheelHost As New Border With {.Width = 850, .Height = 500}
+        wheelOwner.Content = Nothing : wheelHost.Child = wheelContent
+        Try
+            Using source = PreviewSurface.Attach(wheelHost, 850, 500)
+                Dim wheelLayout = ControlLayout(wheelHost)
+                wheelLayout() : wheelOwner.SettingsPage.ScrollToTop() : wheelLayout()
+                wheelOwner.ConnectionsSlider.RaiseEvent(New MouseWheelEventArgs(Mouse.PrimaryDevice, Environment.TickCount, -120) With {.RoutedEvent = Mouse.PreviewMouseWheelEvent})
+                If wheelOwner.SettingsPage.MotionClock IsNot Nothing Then SeekControl(wheelOwner.SettingsPage.MotionClock, 301)
+                wheelLayout()
+                check(ConnectionCount() = 16 AndAlso wheelOwner.ConnectionCount() = 16 AndAlso wheelOwner.SettingsPage.VerticalOffset > 0, "wheel over the thread slider scrolls settings without changing its value")
+                source.RootVisual = Nothing : FlushControlLayout()
+            End Using
+        Finally
+            wheelHost.Child = Nothing : wheelOwner.Content = wheelContent
+            FlushControlLayout() : RestoreAppearance(savedAppearance)
+        End Try
         Dim peer = UIElementAutomationPeer.CreatePeerForElement(ConnectionsSlider)
         Dim range = DirectCast(peer.GetPattern(PatternInterface.RangeValue), IRangeValueProvider)
         check(range.Minimum = 8 AndAlso range.Maximum = 64 AndAlso range.Value = 16, "slider accessibility exposes actual connection counts")

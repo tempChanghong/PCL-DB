@@ -59,6 +59,18 @@ Partial Public Class MainWindow
                 "the horizontal filter also keeps wheel ownership at its right boundary")
             verify(wheel(capsule, 120) AndAlso PackVersionFilterViewport.HorizontalOffset < right AndAlso ModpackPage.MotionClock Is Nothing,
                 "opposite wheel input leaves the horizontal boundary without starting an outer wheel clock")
+            For Each boundary In {"filter-disabled", "filter-gated", "page-gated"}
+                Dim horizontal = PackVersionFilterViewport.HorizontalOffset
+                Select Case boundary
+                    Case "filter-disabled" : PackVersionFilterViewport.IsEnabled = False
+                    Case "filter-gated" : PackVersionFilterViewport.IsHitTestVisible = False
+                    Case Else : PageSurface.IsHitTestVisible = False
+                End Select
+                wheel(visual, -120)
+                verify(Math.Abs(PackVersionFilterViewport.HorizontalOffset - horizontal) < 0.01 AndAlso ModpackPage.VerticalOffset = 0 AndAlso ModpackPage.MotionClock Is Nothing,
+                    "an inactive filter consumes stale wheel input without native outer scrolling: " & boundary)
+                PackVersionFilterViewport.IsEnabled = True : PackVersionFilterViewport.IsHitTestVisible = True : PageSurface.IsHitTestVisible = True : layout()
+            Next
             _motionPreview = True : _packDetailMotion.PauseForChecks = True : _surfaceMotion.PauseForChecks = True
             ChangePackContent(PackBrowserMode.Detail, Sub()
                                                     End Sub)
@@ -97,6 +109,7 @@ Partial Public Class MainWindow
                 PackVersionCards.Children.Cast(Of Object)().SequenceEqual(cards),
                 "wheel routing layout and entry animation preserve accepted project cards filters and installation ownership")
         Finally
+            PackVersionFilterViewport.IsEnabled = True : PackVersionFilterViewport.IsHitTestVisible = True : PageSurface.IsHitTestVisible = True
             _packDetailMotion.Finish() : _surfaceMotion.Finish()
             _motionPreview = previousMotion : _surfaceMotion.PauseForChecks = surfacePaused : _packDetailMotion.PauseForChecks = detailPaused
             ModpackPage.StopScrolling() : ModpackPage.SmoothScrollingEnabled = smooth : ModpackPage.ForceMotionForChecks = forced
