@@ -56,13 +56,13 @@ Partial Public Class MainWindow
         verify(migrated("externalLaunchers") IsNot Nothing AndAlso CInt(migrated("unrelatedFutureValue")) = 19 AndAlso CStr(migrated("gameRoot")) = game,
             "migration is saved even with an unchanged baseline while retaining unrelated preferences")
 
-        Dim h As New ExternalLauncherBinding With {.Kind = ExternalLauncherKind.Hmcl, .Workspace = hmcl}
+        Dim h As New ExternalLauncherBinding With {.Kind = ExternalLauncherKind.Hmcl, .Workspace = hmcl, .ConfigPath = hmclConfig, .SharedConfigPath = Path.Combine(hmcl, "shared.json")}
         Dim c As New ExternalLauncherBinding With {.Kind = ExternalLauncherKind.PclCe, .Workspace = ce}
         AddLauncherBinding(h) : Await ReadLauncherBindingAsync(h)
         AddLauncherBinding(c) : Await ReadLauncherBindingAsync(c) : layout()
         verify(_folders.Where(Function(folder) SameGameRoot(folder.Location, game)).Count() = 3, "one physical directory remains selectable under three launcher identities")
         verify(_selectedFolder.LauncherKind.GetValueOrDefault() = ExternalLauncherKind.Pcl, "reading other launchers does not replace an already chosen installation target")
-        Dim second = h.Copy() : second.Id = "second-hmcl" : second.ConfigPath = hmclConfig
+        Dim second = h.Copy() : second.Id = "second-hmcl" : second.ConfigPath = Nothing
         AddLauncherBinding(second)
         verify(HmclBindingList.Items.Count = 2 AndAlso CeBindingList.Items.Count = 1, "multiple copies and explicit config bindings coexist independently")
         HmclBindingList.SelectedItem = h
@@ -70,7 +70,11 @@ Partial Public Class MainWindow
         FolderList.SelectedItem = hFolder : layout()
         verify(CurrentInstallTarget().Kind = ExternalLauncherKind.Hmcl AndAlso CurrentInstallTarget().PclDirectory Is Nothing AndAlso SelectedPath.Text = game,
             "selecting an HMCL directory binds the launcher source and root together")
-        verify(Not IsolationBox.IsEnabled AndAlso IsolationHint.Text.Contains("后续"), "directory-only support preserves but does not apply PCL isolation preferences to a foreign target")
+        verify(IsolationBox.IsEnabled AndAlso IsolationHint.Text.Contains("原生隔离"), "foreign targets expose the same global preference and follow their native defaults")
+        verify(ExternalInstallProblem(pack:=True) Is Nothing, "foreign targets no longer gate the local or online modpack entry before native installation")
+        RepairBox.IsChecked = True
+        verify(ExternalInstallProblem() Is Nothing AndAlso CurrentInstallTarget().ConfigPath = hmclConfig, "foreign repair entry uses its explicit configuration source instead of the first-batch restriction")
+        RepairBox.IsChecked = False
         Dim frozen = CurrentInstallTarget()
         CeBindingList.SelectedItem = c : Await ReadLauncherBindingAsync(c)
         verify(_selectedFolder Is hFolder AndAlso frozen.Kind = ExternalLauncherKind.Hmcl AndAlso frozen.Workspace = hmcl, "refresh of an overlapping CE root preserves the chosen HMCL target and its snapshot")
@@ -130,9 +134,9 @@ Partial Public Class MainWindow
         verify(_launcherState.Bindings.Count = count AndAlso _selectedFolder Is hFolder AndAlso _taskInstallTarget.Root = installRoot,
             "queued binding or folder changes during download cannot retarget the installation")
         Dim taskWorkspace = _taskInstallTarget.Workspace
-        hFolder.LauncherWorkspace = root : _pclBase = root
-        verify(_taskInstallTarget.Workspace = taskWorkspace AndAlso _taskInstallTarget.Root = game, "task context is immutable even if the live preference objects change")
-        hFolder.LauncherWorkspace = hmcl : _pclBase = pcl
+        hFolder.LauncherWorkspace = root : hFolder.LauncherConfigPath = root : _pclBase = root
+        verify(_taskInstallTarget.Workspace = taskWorkspace AndAlso _taskInstallTarget.Root = game AndAlso _taskInstallTarget.ConfigPath = hmclConfig AndAlso _taskInstallTarget.SharedConfigPath = h.SharedConfigPath, "task context including native configuration paths is immutable even if live preference objects change")
+        hFolder.LauncherWorkspace = hmcl : hFolder.LauncherConfigPath = hmclConfig : _pclBase = pcl
         CancelInstall(Nothing, Nothing) : install.TrySetCanceled()
         Await WaitPackUiAsync(Function() Not _busy) : layout()
         verify(ExternalLauncherCard.IsEnabled AndAlso _taskOutcome = TaskOutcome.Cancelled AndAlso _selectedFolder Is hFolder,

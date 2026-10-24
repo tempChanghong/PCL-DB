@@ -13,7 +13,19 @@ End Enum
 ' are never initialized or migrated by a repair. New components, remapped assets
 ' or explicit choices freeze their value with the private instance payload.
 Friend NotInheritable Class PclIsolationPlan
+    Implements IInstanceIsolationPlan
     Friend ReadOnly Isolated As Boolean
+    Private ReadOnly Property PlanIsolated As Boolean Implements IInstanceIsolationPlan.Isolated
+        Get
+            Return Isolated
+        End Get
+    End Property
+    Private Sub WritePlanSettings(stage As String) Implements IInstanceIsolationPlan.WriteNewSettings
+        WriteNewSettings(stage)
+    End Sub
+    Private Function HoldPlan() As IInstanceConfigurationGuard Implements IInstanceIsolationPlan.LockForRepair
+        Return LockForRepair()
+    End Function
     Private ReadOnly _inputs As New List(Of Input)
     Private ReadOnly _root As String
     Private ReadOnly _name As String
@@ -158,7 +170,7 @@ Friend NotInheritable Class PclIsolationPlan
         Return New RepairGuard(Me)
     End Function
     Friend NotInheritable Class RepairGuard
-        Implements IDisposable
+        Implements IInstanceConfigurationGuard
         Private ReadOnly _plan As PclIsolationPlan
         Private ReadOnly _held As New List(Of FileStream)
         Friend Sub New(plan As PclIsolationPlan)
@@ -175,7 +187,7 @@ Friend NotInheritable Class PclIsolationPlan
                 Dispose() : Throw
             End Try
         End Sub
-        Friend Sub Verify()
+        Public Sub Verify() Implements IInstanceConfigurationGuard.Verify
             ' Missing files cannot be locked without creating user preferences.
             ' Recheck their absence and directory-based inference at every commit.
             For Each input In _plan._inputs.Where(Function(item) item.Bytes Is Nothing)

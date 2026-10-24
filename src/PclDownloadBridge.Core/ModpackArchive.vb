@@ -129,9 +129,10 @@ Public NotInheritable Class ModpackArchiveInstaller
             End Try
         End Using
     End Function
-    Public Shared Async Function InstallAsync(release As ModpackRelease, root As String, name As String, policy As SourcePolicy, pclDirectory As String, reuse As IEnumerable(Of String), progress As IProgress(Of TransferProgress), token As CancellationToken, Optional connections As Integer = 16, Optional limit As Long = 0, Optional javaPath As String = Nothing, Optional chooseOptional As Func(Of ModrinthPackage, CancellationToken, Task(Of IEnumerable(Of String))) = Nothing) As Task(Of InstallResult)
+    Public Shared Async Function InstallAsync(release As ModpackRelease, root As String, name As String, policy As SourcePolicy, pclDirectory As String, reuse As IEnumerable(Of String), progress As IProgress(Of TransferProgress), token As CancellationToken, Optional connections As Integer = 16, Optional limit As Long = 0, Optional javaPath As String = Nothing, Optional chooseOptional As Func(Of ModrinthPackage, CancellationToken, Task(Of IEnumerable(Of String))) = Nothing, Optional launcherTarget As LauncherInstallTarget = Nothing) As Task(Of InstallResult)
         release = release.Copy()
         token.ThrowIfCancellationRequested()
+        launcherTarget?.ValidateDestination(root)
         InstallPreflight.ValidateDestination(root, name, False)
         Dim blocked = ModpackCompatibility.GetInstallBlockReason(release)
         If blocked IsNot Nothing Then Throw New NotSupportedException(blocked)
@@ -154,12 +155,12 @@ Public NotInheritable Class ModpackArchiveInstaller
             ModpackCompatibility.ValidateManifest(release, package.Minecraft, package.LoaderKind)
             Dim selected = If(chooseOptional Is Nothing, Enumerable.Empty(Of String)(), Await chooseOptional(package, token).ConfigureAwait(False))
             token.ThrowIfCancellationRequested()
-            result = Await New ModrinthInstaller(policy, pclDirectory).InstallAsync(package, root, name, reuse, selected, progress, token, connections, limit, javaPath).ConfigureAwait(False)
+            result = Await New ModrinthInstaller(policy, pclDirectory, launcherTarget).InstallAsync(package, root, name, reuse, selected, progress, token, connections, limit, javaPath).ConfigureAwait(False)
         Else
             Dim package = TryCast(parsed, CurseForgePackage)
             If package Is Nothing Then Throw New InvalidDataException("下载文件与所选 CurseForge 格式不符。")
             ModpackCompatibility.ValidateManifest(release, package.Minecraft, package.LoaderKind)
-            result = Await New CurseForgeInstaller(policy, pclDirectory).InstallAsync(package, root, name, reuse, package.References.Where(Function(file) Not file.Required).Select(Function(file) file.FileId), progress, token, connections, limit, javaPath).ConfigureAwait(False)
+            result = Await New CurseForgeInstaller(policy, pclDirectory, launcherTarget:=launcherTarget).InstallAsync(package, root, name, reuse, package.References.Where(Function(file) Not file.Required).Select(Function(file) file.FileId), progress, token, connections, limit, javaPath).ConfigureAwait(False)
         End If
         result.NetworkBytes += archiveBytes : result.Reused += archiveReused : result.DynamicSplits += archiveSplits
         Return result

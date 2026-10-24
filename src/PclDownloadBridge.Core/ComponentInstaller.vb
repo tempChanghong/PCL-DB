@@ -36,7 +36,7 @@ Public Class ComponentInstaller
         _connections = connections : _limit = limit : _budget = budget
     End Sub
 
-    Public Async Function ApplyAsync(metadata As JObject, mc As String, stage As String, name As String, token As CancellationToken, Optional isolated As Boolean = True) As Task(Of JObject)
+    Public Async Function ApplyAsync(metadata As JObject, mc As String, stage As String, name As String, token As CancellationToken, Optional isolated As Boolean = True, Optional writePclSettings As Boolean = True) As Task(Of JObject)
         _publishedRuntimes.Clear()
         _selection.Validate(mc)
         ModFiles(_selection, mc) ' Reject ambiguous or escaping add-on names before downloading.
@@ -137,7 +137,7 @@ Public Class ComponentInstaller
             If IsModable(_selection) Then Directory.CreateDirectory(Path.Combine(stage, "mods"))
             Directory.CreateDirectory(Path.Combine(stage, "resourcepacks"))
             Directory.CreateDirectory(Path.Combine(stage, "PCL"))
-            File.WriteAllText(Path.Combine(stage, "PCL", "Setup.ini"), "VersionArgumentIndie:" & If(isolated, "1", "2") & vbCrLf & "VersionArgumentIndieV2:" & isolated.ToString() & vbCrLf, New UTF8Encoding(False))
+            If writePclSettings Then File.WriteAllText(Path.Combine(stage, "PCL", "Setup.ini"), "VersionArgumentIndie:" & If(isolated, "1", "2") & vbCrLf & "VersionArgumentIndieV2:" & isolated.ToString() & vbCrLf, New UTF8Encoding(False))
             Dim record As New JObject From {{"minecraft", mc}, {"components", JArray.FromObject(_selection.Entries.Select(Function(v) New With {.kind = ComponentCatalog.Label(v.Key), .version = v.Value.Version}))}}
             File.WriteAllText(Path.Combine(stage, "installation.json"), record.ToString(), New UTF8Encoding(False))
             Return merged

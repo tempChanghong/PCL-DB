@@ -7,17 +7,20 @@ Imports Newtonsoft.Json.Linq
 Public NotInheritable Class ModrinthInstaller
     Private ReadOnly _policy As SourcePolicy
     Private ReadOnly _pclDirectory As String
-    Public Sub New(policy As SourcePolicy, Optional pclDirectory As String = Nothing)
+    Private ReadOnly _target As LauncherInstallTarget
+    Public Sub New(policy As SourcePolicy, Optional pclDirectory As String = Nothing, Optional launcherTarget As LauncherInstallTarget = Nothing)
         _policy = policy : _pclDirectory = pclDirectory
+        _target = launcherTarget
     End Sub
     Public Async Function InstallAsync(package As ModrinthPackage, root As String, instanceName As String, reuseRoots As IEnumerable(Of String), optionalPaths As IEnumerable(Of String), progress As IProgress(Of TransferProgress), token As CancellationToken, Optional connections As Integer = 16, Optional limit As Long = 0, Optional javaPath As String = Nothing) As Task(Of InstallResult)
         token.ThrowIfCancellationRequested()
         If package Is Nothing Then Throw New ArgumentNullException(NameOf(package))
         If reuseRoots Is Nothing Then Throw New ArgumentNullException(NameOf(reuseRoots))
+        _target?.ValidateDestination(root)
         InstallPreflight.ValidateDestination(root, instanceName, False)
         Dim reuse = reuseRoots.ToArray(), selected = If(optionalPaths, Enumerable.Empty(Of String)()).ToArray()
         Using plan As New ModrinthInstallPlan(package, selected, token)
-            Return Await ModpackInstallation.InstallAsync(plan, _policy, _pclDirectory, root, instanceName, reuse, progress, token, package.LoaderKind, package.LoaderVersion, connections, limit, javaPath).ConfigureAwait(False)
+            Return Await ModpackInstallation.InstallAsync(plan, _policy, _pclDirectory, root, instanceName, reuse, progress, token, package.LoaderKind, package.LoaderVersion, connections, limit, javaPath, _target).ConfigureAwait(False)
         End Using
     End Function
 End Class

@@ -861,6 +861,8 @@ PCL-DB 自有的任务返回保留表单流程，改为把“保留安装视口�
 
 ## 外部启动器目录接入第一批
 
+后续原生隔离适配见 [第二批报告](docs/reviews/external-launcher-native-isolation.md)：固定 PCL `5ef81e4` 的 PathIndie / ModModpack 为主线；核对 HMCL `0d20910` 的 computeRunDirectory、shouldIsolateNewInstance、LegacyGameSettingsMigrator、实例布局和 game patch；核对 CE `915ac29` 的 McInstance.PathIndie、Config 的 Local / Instance 来源和 YamlFileProvider 回退。本程序自行实现只读、有界的配置解析与暂存配置合并，不调用上游迁移写入服务。源码及摘要另存 artifacts/native-isolation/source.json。
+
 PCL 继续参考固定 `5ef81e4` 的目录扫描和 Setup.ini 规则。另读取本地 HMCL `0d20910ea302a907d6a01fec9244ab10d2993d5e` 的 SettingsManager、GameDirectoryManager、LegacyConfigMigrator、PortablePath、JsonSchema 与仓库布局；以及 PCL-CE `915ac29795efbdf6373417389e181e1504117048` 的 Paths、States、ConfigService、文件提供方和 ModFolder。原配置只读，解析逻辑采用本程序的有界实现，不调用会迁移/保存的上游配置服务。
 
 多份绑定、旧偏好迁移、按来源保留共享根目录、冻结任务目标及阶段能力拦截属于适配层。源文件摘要、邻接仓库状态和离线回执见 `artifacts/external-launchers/`；范围及第二批隔离工作见 [目录接入报告](docs/reviews/external-launcher-directories.md)。

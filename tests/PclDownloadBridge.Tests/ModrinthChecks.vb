@@ -292,7 +292,7 @@ Friend Module ModrinthChecks
             Next
         End Using
     End Function
-    Private Sub Configure(fixture As InstallationChecks.InstallFixture)
+    Friend Sub Configure(fixture As InstallationChecks.InstallFixture)
         fixture.Fabric()
         fixture.Server.Files("/v2/versions/loader/1.20.1/0.16.9/profile/json") = fixture.Server.Files("/v2/versions/loader/1.20.1/fixture/profile/json")
         fixture.Server.Files("/v2/versions/loader/1.20.1") = Encoding.UTF8.GetBytes(New JArray(New JObject From {{"loader", New JObject From {{"version", "0.16.9"}, {"stable", True}}}}).ToString())

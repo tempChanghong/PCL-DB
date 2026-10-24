@@ -812,7 +812,7 @@ Partial Public Class MainWindow
         Dim selection = If(isPack, New ComponentSelection(), _componentSelection.Copy())
         selection.JavaPath = JavaPathBox.Text.Trim()
         Try
-            target.ValidateFirstBatch(repair, selection.Entries.Count > 0, isPack, entry.IsSupplemental)
+            target.ValidateDestination(root)
             InstallPreflight.ValidateDestination(root, name, repair)
             selection.Validate(entry.Id)
             If repair AndAlso selection.Entries.Count > 0 Then Throw New InvalidOperationException("请为组件安装使用新名称；原版校验仅支持未添加加载器的实例。")
@@ -822,11 +822,11 @@ Partial Public Class MainWindow
         End Try
         Dim connections = ConnectionCount()
         Dim isolation = If(isPack, InstanceIsolationMode.Enabled, InstanceIsolationMode.FollowPcl)
-        Dim defaultIsolation As Integer? = If(isPack OrElse repair OrElse target.Kind <> ExternalLauncherKind.Pcl, Nothing, SelectedIsolationStrategy())
+        Dim defaultIsolation As Integer? = If(isPack OrElse repair, Nothing, SelectedIsolationStrategy())
         Dim reuse = If(ReuseBox.IsChecked = True, _folders.Select(Function(f) f.Location).ToList(), New List(Of String))
         Dim policySnapshot = Policy()
-        Dim installer As New MinecraftInstaller(policySnapshot, target.PclDirectory, newInstanceIsolationStrategy:=defaultIsolation, directoryOnly:=target.Kind <> ExternalLauncherKind.Pcl)
-        Dim packInstaller As New CurseForgeInstaller(policySnapshot, target.PclDirectory)
+        Dim installer As New MinecraftInstaller(policySnapshot, target.PclDirectory, newInstanceIsolationStrategy:=defaultIsolation, launcherTarget:=target)
+        Dim packInstaller As New CurseForgeInstaller(policySnapshot, target.PclDirectory, launcherTarget:=target)
         _taskInstallTarget = target
         _cancellation = New CancellationTokenSource()
         _busy = True
@@ -854,7 +854,7 @@ Partial Public Class MainWindow
             ElseIf _preview Then
                 Throw New InvalidOperationException("界面预览不会执行实际安装。")
             ElseIf modrinth IsNot Nothing Then
-                result = Await Task.Run(Function() New ModrinthInstaller(policySnapshot, target.PclDirectory).InstallAsync(modrinth, root, name, reuse, modrinthOptions, progress, _cancellation.Token, connections, CLng(limit * 1024 * 1024), selection.JavaPath))
+                result = Await Task.Run(Function() New ModrinthInstaller(policySnapshot, target.PclDirectory, target).InstallAsync(modrinth, root, name, reuse, modrinthOptions, progress, _cancellation.Token, connections, CLng(limit * 1024 * 1024), selection.JavaPath))
             ElseIf pack IsNot Nothing Then
                 result = Await Task.Run(Function() packInstaller.InstallAsync(pack, root, name, reuse, optionalFiles, progress, _cancellation.Token, connections, CLng(limit * 1024 * 1024), selection.JavaPath))
             Else
@@ -864,7 +864,7 @@ Partial Public Class MainWindow
             TaskProgress.Value = 1
             TaskTitle.Text = If(repair, "校验补全完成", "安装完成") & " · " & name
             _taskInstancePath = result.InstancePath
-            StatusText.Text = "完成：" & result.FileCount & " 个文件，复用 " & result.Reused & " 个，传输 " & FormatBytes(result.NetworkBytes) & "。回到 PCL 刷新版本列表即可。"
+            StatusText.Text = "完成：" & result.FileCount & " 个文件，复用 " & result.Reused & " 个，传输 " & FormatBytes(result.NetworkBytes) & "。回到所选启动器刷新版本列表即可。"
             FinishTaskView(True, StatusText.Text)
             If Not _preview Then WriteLog(StatusText.Text & Environment.NewLine & result.InstancePath)
             FolderSummary.Text = _selectedFolder.Origin & " · " & _selectedFolder.VersionCount & " 个已安装实例"

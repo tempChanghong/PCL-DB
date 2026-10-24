@@ -11,6 +11,8 @@ Friend MustInherit Class ModpackInstallPlan
     Protected ReadOnly Archive As ZipArchive
     Private ReadOnly _input As FileStream
     Protected ReadOnly OverrideHashes As New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)
+    Friend Property NativeConfiguration As NativeInstanceIsolation
+    Private Shared ReadOnly NativeConfigPaths As String() = {"PCL/config.v1.yml", "PCL/config.v1.json", ".hmcl/config/instance-game-settings.json", "hmclversion.cfg"}
     Friend MustOverride ReadOnly Property Minecraft As String
     Protected MustOverride ReadOnly Property OverrideEntries As IEnumerable(Of KeyValuePair(Of String, ZipArchiveEntry))
     Protected Overridable ReadOnly Property AllowLayeredOverrides As Boolean
@@ -41,7 +43,9 @@ Friend MustInherit Class ModpackInstallPlan
             If Not targets.Add(relative) AndAlso Not AllowLayeredOverrides Then Throw New InvalidDataException("整合包下载内容与 overrides 路径冲突：" & relative)
         Next
         If Files.Any(Function(item) String.Equals(item.RelativePath, "PCL/Setup.ini", StringComparison.OrdinalIgnoreCase)) Then Throw New InvalidDataException("隔离设置只能通过整合包 overrides 合并。")
+        If Files.Any(Function(item) NativeConfigPaths.Contains(item.RelativePath, StringComparer.OrdinalIgnoreCase)) Then Throw New InvalidDataException("原生实例配置只能通过整合包 overrides 合并。")
         targets.UnionWith(reserved) : targets.Add("PCL/Setup.ini")
+        targets.UnionWith(NativeConfigPaths)
         For Each relative In targets
             Dim parent = relative
             Do While parent.Contains("/"c)
@@ -89,7 +93,7 @@ Friend MustInherit Class ModpackInstallPlan
         Next
     End Sub
     Protected Sub ValidatePayload(stage As String, token As CancellationToken)
-        PclIsolationPlan.ValidatePackSettings(stage, token)
+        If NativeConfiguration Is Nothing Then PclIsolationPlan.ValidatePackSettings(stage, token) Else NativeConfiguration.ValidateStaged(stage, token)
         For Each pair In OverrideHashes
             token.ThrowIfCancellationRequested()
             Using stream = File.OpenRead(SafeFiles.UnderRoot(stage, pair.Key)), sha = Security.Cryptography.SHA256.Create()
@@ -103,6 +107,15 @@ Friend MustInherit Class ModpackInstallPlan
             If Not OverrideHashes.ContainsKey(item.RelativePath) AndAlso Not SafeFiles.Matches(SafeFiles.UnderRoot(stage, item.RelativePath), item) Then Throw New InvalidDataException("整合包文件在发布前校验失败：" & item.RelativePath)
         Next
     End Sub
+    Friend Sub RefreshNativeHashes(stage As String)
+        If NativeConfiguration Is Nothing Then Return
+        For Each relative In NativeConfiguration.WrittenPaths
+            If Not OverrideHashes.ContainsKey(relative) Then Continue For
+            Using stream = File.OpenRead(SafeFiles.UnderRoot(stage, relative)), sha = Security.Cryptography.SHA256.Create()
+                OverrideHashes(relative) = BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "")
+            End Using
+        Next
+    End Sub
     Friend MustOverride Sub WriteLedger(stage As String, token As CancellationToken)
     Public Sub Dispose() Implements IDisposable.Dispose
         Archive?.Dispose() : _input.Dispose()
@@ -110,9 +123,9 @@ Friend MustInherit Class ModpackInstallPlan
 End Class
 
 Friend Module ModpackInstallation
-    Friend Async Function InstallAsync(plan As ModpackInstallPlan, policy As SourcePolicy, pclDirectory As String, root As String, name As String, reuse As IEnumerable(Of String), progress As IProgress(Of TransferProgress), token As CancellationToken, loaderKind As ComponentKind?, loaderVersion As String, connections As Integer, limit As Long, javaPath As String) As Task(Of InstallResult)
+    Friend Async Function InstallAsync(plan As ModpackInstallPlan, policy As SourcePolicy, pclDirectory As String, root As String, name As String, reuse As IEnumerable(Of String), progress As IProgress(Of TransferProgress), token As CancellationToken, loaderKind As ComponentKind?, loaderVersion As String, connections As Integer, limit As Long, javaPath As String, Optional launcherTarget As LauncherInstallTarget = Nothing) As Task(Of InstallResult)
         plan.ValidateTargets(name)
-        Dim installer As New MinecraftInstaller(policy, pclDirectory)
+        Dim installer As New MinecraftInstaller(policy, pclDirectory, launcherTarget:=launcherTarget)
         Dim versions = Await installer.VersionsAsync(token).ConfigureAwait(False)
         Dim entry = versions.SingleOrDefault(Function(item) item.Id = plan.Minecraft)
         If entry Is Nothing Then Throw New InvalidDataException("未找到整合包指定的 Minecraft 版本：" & plan.Minecraft)

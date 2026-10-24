@@ -49,7 +49,7 @@ Friend NotInheritable Class LegacyResourcePublication
         Return _files.Select(Function(item) New DownloadFile With {.RelativePath = If(_isolated, item.RelativePath.Substring(("versions/" & _name & "/").Length), item.RelativePath),
             .Url = item.Url, .Sha1 = item.Sha1, .Md5 = item.Md5, .Size = item.Size, .Category = "asset"}).ToList()
     End Function
-    Friend Sub Publish(token As CancellationToken, Optional guard As PclIsolationPlan.RepairGuard = Nothing)
+    Friend Sub Publish(token As CancellationToken, Optional guard As IInstanceConfigurationGuard = Nothing)
         If _isolated AndAlso Not _repair Then Return ' Directory.Move publishes the whole payload.
         Validate(_root, _files, _repair, _description)
         Dim staged = StagedFiles()

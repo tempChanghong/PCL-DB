@@ -6,6 +6,8 @@ Public Class GameFolder
     Public Property LauncherBindingId As String
     Public Property LauncherKind As ExternalLauncherKind?
     Public Property LauncherWorkspace As String
+    Public Property LauncherConfigPath As String
+    Public Property LauncherSharedConfigPath As String
     Public Property Name As String
     Public Property Location As String
     Public Property Origin As String

@@ -11,9 +11,11 @@ Public Class MinecraftInstaller
     Private ReadOnly _pclDirectory As String
     Private ReadOnly _newInstanceIsolationStrategy As Integer?
     Private ReadOnly _directoryOnly As Boolean
-    Public Sub New(policy As SourcePolicy, Optional pclDirectory As String = Nothing, Optional newInstanceIsolationStrategy As Integer? = Nothing, Optional directoryOnly As Boolean = False)
+    Private ReadOnly _launcherTarget As LauncherInstallTarget
+    Public Sub New(policy As SourcePolicy, Optional pclDirectory As String = Nothing, Optional newInstanceIsolationStrategy As Integer? = Nothing, Optional directoryOnly As Boolean = False, Optional launcherTarget As LauncherInstallTarget = Nothing)
         If newInstanceIsolationStrategy.HasValue AndAlso (newInstanceIsolationStrategy.Value < 0 OrElse newInstanceIsolationStrategy.Value > 4) Then Throw New ArgumentOutOfRangeException(NameOf(newInstanceIsolationStrategy))
         _policy = policy : _pclDirectory = pclDirectory : _newInstanceIsolationStrategy = newInstanceIsolationStrategy : _directoryOnly = directoryOnly
+        _launcherTarget = launcherTarget
     End Sub
 
     Public Async Function VersionsAsync(token As CancellationToken) As Task(Of List(Of VersionEntry))
@@ -39,6 +41,9 @@ Public Class MinecraftInstaller
         End If
         If reuseRoots Is Nothing Then Throw New ArgumentNullException(NameOf(reuseRoots))
         entry = entry.Copy()
+        _launcherTarget?.ValidateDestination(root)
+        If _launcherTarget IsNot Nothing AndAlso _launcherTarget.Kind = ExternalLauncherKind.Hmcl AndAlso {"modpack", "minecraftinstance", "manifest"}.Contains(instanceName, StringComparer.OrdinalIgnoreCase) Then Throw New ArgumentException("HMCL 保留了此实例名称，请使用其他名称。")
+        Dim nativeTarget = _launcherTarget IsNot Nothing AndAlso _launcherTarget.Kind <> ExternalLauncherKind.Pcl
         InstallPreflight.ValidateDestination(root, instanceName, repairExisting)
         If pack IsNot Nothing Then
             If entry.Id <> pack.Minecraft OrElse repairExisting OrElse isolationMode <> InstanceIsolationMode.Enabled Then Throw New InvalidDataException("整合包必须使用指定原版和新的隔离实例。")
@@ -77,6 +82,7 @@ Public Class MinecraftInstaller
                 Using reader As New StreamReader(New MemoryStream(existingBytes), Encoding.UTF8, True)
                     existing = JObject.Parse(reader.ReadToEnd())
                 End Using
+                If nativeTarget AndAlso _launcherTarget.Kind = ExternalLauncherKind.Hmcl Then existing = HmclVanillaMetadata(existing, entry.Id)
                 If entry.IsSupplemental Then SupplementalLaunchRecipe.ValidateExisting(entry.Id, existing)
                 If entry.IsSupplemental AndAlso
                     (existing.Property("assetIndex") Is Nothing OrElse
@@ -113,9 +119,15 @@ Public Class MinecraftInstaller
             Dim withComponents = components IsNot Nothing AndAlso components.Entries.Count > 0
             Dim modable = ComponentInstaller.IsModable(components)
             Dim componentMods = ComponentInstaller.ModFiles(components, entry.Id)
-            Dim isolation As PclIsolationPlan = Nothing
-            If mappedFiles.Count > 0 OrElse (Not repairExisting AndAlso (withComponents OrElse isolationMode <> InstanceIsolationMode.FollowPcl OrElse _newInstanceIsolationStrategy.HasValue)) Then
+            Dim isolation As IInstanceIsolationPlan = Nothing, native As NativeInstanceIsolation = Nothing
+            If nativeTarget Then
+                native = NativeInstanceIsolation.Resolve(_launcherTarget, instanceName, entry, metadata, repairExisting, withComponents, isolationMode, modable, _newInstanceIsolationStrategy)
+                native.ValidateDataLocation(mappedFiles.Count > 0 OrElse componentMods.Count > 0 OrElse modable)
+                isolation = native
+            ElseIf mappedFiles.Count > 0 OrElse (Not repairExisting AndAlso (withComponents OrElse isolationMode <> InstanceIsolationMode.FollowPcl OrElse _newInstanceIsolationStrategy.HasValue)) Then
                 isolation = PclIsolationPlan.Resolve(root, instanceName, entry, metadata, _pclDirectory, repairExisting, withComponents, isolationMode, modable, _newInstanceIsolationStrategy)
+            End If
+            If isolation IsNot Nothing Then
                 If isolation.Isolated Then
                     For Each item In mappedFiles
                         item.RelativePath = "versions/" & instanceName & "/" & item.RelativePath
@@ -148,7 +160,7 @@ Public Class MinecraftInstaller
               Using publication As New LegacyResourcePublication(root, stage, instanceName, mappedFiles, isolation IsNot Nothing AndAlso isolation.Isolated, repairExisting),
                     modsPublication As New LegacyResourcePublication(root, stage, instanceName, sharedMods, False, False, "Mods", holdTargets:=True)
                 Dim newSettings = isolation IsNot Nothing AndAlso Not repairExisting
-                If newSettings Then isolation.WriteNewSettings(stage)
+                If newSettings AndAlso native Is Nothing Then isolation.WriteNewSettings(stage)
                 ' Client JAR stays outside versions/ until the entire install succeeds.
                 Dim client = plan.Single(Function(f) f.RelativePath = "versions/" & instanceName & "/" & instanceName & ".jar")
                 Dim supportFiles = plan.Where(Function(f) f IsNot client AndAlso Not mappedFiles.Contains(f) AndAlso Not f.RelativePath.StartsWith("assets/objects/", StringComparison.Ordinal) AndAlso
@@ -174,7 +186,7 @@ Public Class MinecraftInstaller
                             If components IsNot Nothing AndAlso components.Entries.Count > 0 Then
                                 extension = New ComponentInstaller(_policy, components, root, reuseRoots, reporting.Branch("components"), connections, limit, budget)
                                 Try
-                                    metadata = Await extension.ApplyAsync(metadata, entry.Id, stage, instanceName, linked.Token, isolation.Isolated).ConfigureAwait(False)
+                                    metadata = Await extension.ApplyAsync(metadata, entry.Id, stage, instanceName, linked.Token, isolation.Isolated, writePclSettings:=native Is Nothing).ConfigureAwait(False)
                                 Catch ex As Exception When Not TypeOf ex Is OperationCanceledException
                                     reporting.Failed("components")
                                     Throw
@@ -209,6 +221,13 @@ Public Class MinecraftInstaller
                     End Using
                 End Using
                 If pack IsNot Nothing Then pack.CopyOverrides(stage, token)
+                If newSettings AndAlso native IsNot Nothing Then
+                    native.WriteNewSettings(stage)
+                    If pack IsNot Nothing Then
+                        pack.NativeConfiguration = native
+                        pack.RefreshNativeHashes(stage)
+                    End If
+                End If
                 If sharedComponents Then sharedMods.AddRange(SharedModsPublication.CheckedFiles(stage, componentMods, token))
                 token.ThrowIfCancellationRequested()
                 Report(progress, "完成安装", "写入版本信息")
@@ -244,13 +263,15 @@ Public Class MinecraftInstaller
                     ' Component publication has already removed its private work.
                     ' Recheck the frozen hashless content and hold readers through
                     ' this short instance commit, after all download branches join.
-                    Using runtimeGuard = extension?.LockPublishedRuntimes(token)
-                        publication.Publish(token)
-                        modsPublication.Publish(token)
+                    Using runtimeGuard = extension?.LockPublishedRuntimes(token), configurationGuard = native?.LockForRepair()
+                        publication.Publish(token, configurationGuard)
+                        modsPublication.Publish(token, configurationGuard)
                         If sharedComponents Then SharedModsPublication.FinishFolders(root, stage, modable)
                         pack?.WriteLedger(stage, token)
                         token.ThrowIfCancellationRequested()
                         runtimeGuard?.Verify(token)
+                        configurationGuard?.Verify()
+                        native?.ValidateStaged(stage, token)
                         Directory.Move(stage, instancePath)
                     End Using
                 End If
@@ -259,7 +280,7 @@ Public Class MinecraftInstaller
                 ' After the filesystem commit, return its real result even if cancellation
                 ' arrives during optional cache cleanup; never undo a published instance.
                 VerifiedComponentCache.ReleasePublishedClient(root, client)
-                Return New InstallResult With {.InstancePath = instancePath, .FileCount = plan.Count + 1 + If(newSettings, 1, 0) + If(pack Is Nothing, 0, pack.Files.Count + pack.OverrideCount + 1), .NetworkBytes = networkBytes, .Reused = reused, .DynamicSplits = splits}
+                Return New InstallResult With {.InstancePath = instancePath, .FileCount = plan.Count + 1 + If(newSettings, If(native Is Nothing, 1, native.WrittenPaths.Count()), 0) + If(pack Is Nothing, 0, pack.Files.Count + pack.OverrideCount + 1), .NetworkBytes = networkBytes, .Reused = reused, .DynamicSplits = splits}
               End Using
             Finally
                 ' Preserve transfer caches and existing versions. A locked private payload
@@ -267,6 +288,17 @@ Public Class MinecraftInstaller
                 InstallCleanup.DeleteOwnedDirectory(root, stageRelative)
             End Try
         End Using
+    End Function
+
+    ' HMCL stores vanilla metadata as its game patch. Compare that patch without
+    ' flattening or rewriting the user's manifest; loaders/inheritance stay refused.
+    Private Shared Function HmclVanillaMetadata(existing As JObject, version As String) As JObject
+        If existing("patches") Is Nothing Then Return existing
+        Dim patches = TryCast(existing("patches"), JArray)
+        If patches Is Nothing OrElse patches.Count <> 1 OrElse Not TypeOf patches(0) Is JObject OrElse existing("inheritsFrom") IsNot Nothing Then Throw New InvalidDataException("只支持补全 HMCL 的独立原版实例。")
+        Dim game = DirectCast(patches(0), JObject)
+        If CStr(game("id")) <> "game" OrElse CStr(game("version")) <> version OrElse game("inheritsFrom") IsNot Nothing Then Throw New InvalidDataException("HMCL 实例版本与所选原版不一致。")
+        Return DirectCast(game.DeepClone(), JObject)
     End Function
 
     Private Shared Async Function CancelPeersAsync(operation As Func(Of Task), linked As CancellationTokenSource, Optional failed As Action = Nothing) As Task

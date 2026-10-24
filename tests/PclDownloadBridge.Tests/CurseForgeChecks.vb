@@ -20,12 +20,12 @@ Friend Module CurseForgeChecks
             Return BitConverter.ToString(result).Replace("-", "").ToLowerInvariant() & If(composite, "-1", "")
         End Using
     End Function
-    Private Function Manifest(Optional loader As String = "fabric-0.16.9") As JObject
+    Friend Function Manifest(Optional loader As String = "fabric-0.16.9") As JObject
         Return New JObject From {{"manifestType", "minecraftModpack"}, {"manifestVersion", 1}, {"name", " Fixture pack "}, {"version", "1.0"}, {"overrides", "overrides"},
             {"minecraft", New JObject From {{"version", "1.20.1"}, {"modLoaders", If(loader Is Nothing, New JArray(), New JArray(New JObject From {{"id", loader}, {"primary", True}}))}}},
             {"files", New JArray(New JObject From {{"projectID", 1}, {"fileID", 1001}, {"required", True}}, New JObject From {{"projectID", 2}, {"fileID", 1002}, {"required", False}})}}
     End Function
-    Private Function Pack(root As String, label As String, Optional manifest As JObject = Nothing, Optional entries As Dictionary(Of String, String) = Nothing, Optional prefix As String = "") As String
+    Friend Function Pack(root As String, label As String, Optional manifest As JObject = Nothing, Optional entries As Dictionary(Of String, String) = Nothing, Optional prefix As String = "") As String
         Directory.CreateDirectory(root)
         Dim target = Path.Combine(root, "cf-" & label & ".zip")
         Using archive = ZipFile.Open(target, ZipArchiveMode.Create)

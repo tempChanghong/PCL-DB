@@ -27,11 +27,7 @@ Partial Public Class MainWindow
 
     Private Sub RefreshIsolation(busy As Boolean)
         If IsolationBox Is Nothing OrElse IsolationHint Is Nothing Then Return
-        Dim external = _selectedFolder IsNot Nothing AndAlso _selectedFolder.LauncherKind.HasValue AndAlso _selectedFolder.LauncherKind.Value <> ExternalLauncherKind.Pcl
-        IsolationBox.IsEnabled = Not busy AndAlso Not external
-        If external Then
-            IsolationHint.Text = "此启动器目前支持标准原版新安装。原生隔离、组件及整合包适配将在后续接入；已保留上次隔离偏好。" : Return
-        End If
+        IsolationBox.IsEnabled = Not busy
         Dim strategy = SelectedIsolationStrategy(), description As String
         Select Case strategy.GetValueOrDefault(-1)
             Case 0 : description = "不同版本共用存档、Mods 与资源包，请留意兼容性；同名不同内容的文件不会被覆盖。"
@@ -39,7 +35,7 @@ Partial Public Class MainWindow
             Case 2 : description = "隔离快照、预发布版、远古版本与愚人节版本。"
             Case 3 : description = "隔离可安装 Mod 的版本，以及快照等非正式版。"
             Case 4 : description = "所有新版本分别使用独立的存档、Mods 与资源包。"
-            Case Else : description = "跟随所选 PCL 的默认隔离策略；未找到设置时使用 PCL 默认值。"
+            Case Else : description = "跟随所选启动器的原生隔离策略；未找到设置时使用该启动器默认值。"
         End Select
         IsolationHint.Text = description & " 仅对之后新建的版本生效；已有实例及校验补全保留原设置，整合包始终使用独立实例。"
     End Sub

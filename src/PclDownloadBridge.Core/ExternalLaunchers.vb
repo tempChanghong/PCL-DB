@@ -91,6 +91,7 @@ Public NotInheritable Class LauncherDirectoryReader
             For Each folder In result.Folders
                 folder.LauncherBindingId = source.Id : folder.LauncherKind = source.Kind
                 folder.LauncherWorkspace = source.Workspace
+                folder.LauncherConfigPath = source.ConfigPath : folder.LauncherSharedConfigPath = source.SharedConfigPath
                 folder.Origin = source.DisplayName & " · " & source.Workspace & " · " & folder.Origin
             Next
             result.Succeeded = True
@@ -248,10 +249,14 @@ Public NotInheritable Class LauncherDirectoryReader
 
     ' Read only the flat scalar used by CE's YamlFileProvider. Unsupported YAML
     ' constructs fail visibly instead of guessing or migrating the foreign file.
-    Private Shared Function ReadYamlScalar(text As String, key As String) As String
+    Friend Shared Function ReadYamlScalar(text As String, key As String) As String
+        If text.TrimStart().StartsWith("{", StringComparison.Ordinal) OrElse text.TrimStart().StartsWith("[", StringComparison.Ordinal) Then Throw New InvalidDataException("此 YAML 配置写法暂不支持。")
         Dim found = False, value As String = Nothing
         For Each line In text.Replace(vbCrLf, vbLf).Split(ChrW(10))
-            If Not line.StartsWith(key & ":", StringComparison.Ordinal) Then Continue For
+            If Not line.StartsWith(key & ":", StringComparison.Ordinal) Then
+                If Regex.IsMatch(line, "^\s*[""']?" & Regex.Escape(key) & "[""']?\s*:", RegexOptions.IgnoreCase) Then Throw New InvalidDataException("此 YAML 配置键写法暂不支持，请使用普通顶层键。")
+                Continue For
+            End If
             If found Then Throw New InvalidDataException("PCL-CE 目录配置包含重复键。")
             found = True : value = line.Substring(key.Length + 1).Trim()
             If value.StartsWith("""", StringComparison.Ordinal) Then
@@ -276,6 +281,8 @@ Public NotInheritable Class LauncherInstallTarget
     Public ReadOnly BindingId As String
     Public ReadOnly Kind As ExternalLauncherKind
     Public ReadOnly Workspace As String
+    Public ReadOnly ConfigPath As String
+    Public ReadOnly SharedConfigPath As String
     Public ReadOnly Property PclDirectory As String
         Get
             Return If(Kind = ExternalLauncherKind.Pcl, Workspace, Nothing)
@@ -287,11 +294,10 @@ Public NotInheritable Class LauncherInstallTarget
         BindingId = folder.LauncherBindingId
         Kind = folder.LauncherKind.GetValueOrDefault(ExternalLauncherKind.Pcl)
         Workspace = If(folder.LauncherWorkspace, fallbackPcl)
+        ConfigPath = folder.LauncherConfigPath : SharedConfigPath = folder.LauncherSharedConfigPath
     End Sub
-    Public Sub ValidateFirstBatch(repair As Boolean, components As Boolean, pack As Boolean, supplemental As Boolean)
-        If Kind <> ExternalLauncherKind.Pcl AndAlso (repair OrElse components OrElse pack OrElse supplemental) Then
-            Throw New InvalidOperationException("此启动器当前支持标准原版新安装；组件、整合包、历史特供及已有实例补全将在隔离适配完成后开放。")
-        End If
+    Public Sub ValidateDestination(destination As String)
+        If Not [Enum].IsDefined(GetType(ExternalLauncherKind), Kind) OrElse Not String.Equals(LauncherDirectoryReader.AbsolutePath(destination, Nothing), Root, StringComparison.OrdinalIgnoreCase) Then Throw New InvalidOperationException("安装目录与冻结的启动器目标不一致。")
     End Sub
 End Class
 

@@ -118,14 +118,14 @@ Friend Module ExternalLauncherChecks
         For Each folder In found.Where(Function(item) item.LauncherKind.GetValueOrDefault() <> ExternalLauncherKind.Pcl)
             Dim target As New LauncherInstallTarget(folder, pcl)
             check(target.PclDirectory Is Nothing, "foreign target never inherits a PCL configuration source")
-            For Each flags In New Boolean()() {New Boolean() {True, False, False, False}, New Boolean() {False, True, False, False}, New Boolean() {False, False, True, False}, New Boolean() {False, False, False, True}}
+            For Each destination In {target.Root, target.Root & "-other", Path.Combine(target.Root, "nested"), target.Root & "-another"}
                 Dim blocked = False
                 Try
-                    target.ValidateFirstBatch(flags(0), flags(1), flags(2), flags(3))
+                    target.ValidateDestination(destination)
                 Catch ex As InvalidOperationException
                     blocked = True
                 End Try
-                check(blocked, "deferred native isolation workflows are gated for " & folder.LauncherKind.ToString())
+                check(blocked = (destination <> target.Root), "immutable native target rejects another destination for " & folder.LauncherKind.ToString())
             Next
         Next
         For Each kind In {ExternalLauncherKind.Hmcl, ExternalLauncherKind.PclCe}

@@ -58,7 +58,9 @@ Module Program
             Directory.CreateDirectory(TestRoot)
             If args.Length = 2 AndAlso args(0) = "--regression" Then
                 Dim run As Task(Of List(Of String))
-                If args(1) = "external-launchers" Then
+                If args(1) = "native-isolation" Then
+                    run = NativeIsolationChecks.RunAsync(TestRoot)
+                ElseIf args(1) = "external-launchers" Then
                     run = ExternalLauncherChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "modpack-catalogue" Then
                     run = ModpackCatalogChecks.RunAsync(TestRoot)

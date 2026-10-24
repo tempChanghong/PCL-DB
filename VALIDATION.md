@@ -2,6 +2,12 @@
 
 日期：2026-10-24（北京时间）。当前发行版本为 PCL-DB Beta 3.0（`3.0.0-beta.1`）；下方保留各开发阶段的验证记录，其中的“未打包/未发布”描述对应当时的检查范围。
 
+## Beta 3.0 后续：外部启动器原生隔离第二批（尚未发行）
+
+- 参考固定 PCL、HMCL 与 PCL-CE 源码，接入 HMCL 新版实例 JSON / 旧 hmclversion.cfg 及 CE YAML / JSON / INI 隔离规则。开放组件、CurseForge / Modrinth 导入、在线归档交接和同版本原版补全；已有实例配置及外部全局设置只读。
+- 原生配置随私有载荷原子发布，保留未知设置，复用共享 Mods/旧资源冲突拒绝与回滚；补充配置字节/缺失状态快照和发布前锁。自定义第三方运行目录需要写入 Mods/旧资源时拒绝，历史迁移状态不明确时不猜测目录。
+- 新增原生隔离回环套件及两项 UI 入口检查，当前策略 `PCL-DB-checks/2026-10-24.30`：UI 1001 / motion 913 / pack-search 359。证据在 `artifacts/native-isolation/`，详见 [原生隔离报告](docs/reviews/external-launcher-native-isolation.md)。最终检查数、可执行文件与 Commit 摘要以 validation.json / committed-validation.json 为准。没有真实游戏启动验收，未打包、推送或发版。
+
 ## Beta 3.0 后续：外部启动器目录接入第一批（尚未发行）
 
 - 新增独立的外部启动器卡片，支持 PCL、HMCL、PCL-CE 多份工作目录与显式配置文件绑定；目录来源与安装根路径一同选择。按固定源码只读读取，保留旧 `pclBase` / `gameRoot`、未知字段和其他窗口的新增绑定。

@@ -386,7 +386,7 @@ Partial Public Class MainWindow
         If Not TryGetSpeedLimit(limit) Then NavigateToSetting(SpeedLimitBox, True) : Return
         Dim target = CurrentInstallTarget(), root = target.Root
         Try
-            target.ValidateFirstBatch(False, False, True, False)
+            target.ValidateDestination(target.Root)
         Catch ex As InvalidOperationException
             PackProjectActionStatus.Text = ex.Message : PackProjectActionStatus.Visibility = Visibility.Visible
             PackProjectIntro.BringIntoView() : Return
@@ -531,7 +531,7 @@ Partial Public Class MainWindow
     Private Async Function RunOnlinePackInstallationAsync(release As ModpackRelease, root As String, name As String, limit As Long, Optional displayedTitle As String = Nothing, Optional target As LauncherInstallTarget = Nothing) As Task
         target = If(target, CurrentInstallTarget())
         If Not SameGameRoot(root, target.Root) Then Throw New InvalidOperationException("安装目录与冻结的启动器目标不一致。")
-        target.ValidateFirstBatch(False, False, True, False)
+        target.ValidateDestination(root)
         InstallPreflight.ValidateDestination(root, name, False)
         CancelPackRead()
         _packSearchRequest?.Cancel() : _packDetailRequest?.Cancel()
@@ -552,10 +552,10 @@ Partial Public Class MainWindow
                 Throw New InvalidOperationException("界面预览不会执行实际安装。")
             Else
                 result = Await Task.Run(Function() ModpackArchiveInstaller.InstallAsync(release, root, name, policySnapshot, target.PclDirectory, reuse, progress, request.Token, connections, limit, javaPath,
-                    Function(package, token) Dispatcher.InvokeAsync(Function() ChooseOnlineOptionalAsync(package, token)).Task.Unwrap()))
+                    Function(package, token) Dispatcher.InvokeAsync(Function() ChooseOnlineOptionalAsync(package, token)).Task.Unwrap(), launcherTarget:=target))
             End If
             _taskInstancePath = result.InstancePath : TaskTitle.Text = "安装完成 · " & name
-            StatusText.Text = "完成：" & result.FileCount & " 个文件。回到 PCL 刷新版本列表即可。"
+            StatusText.Text = "完成：" & result.FileCount & " 个文件。回到所选启动器刷新版本列表即可。"
             FinishTaskView(True, StatusText.Text)
         Catch ex As OperationCanceledException
             TaskTitle.Text = "已取消，可重新开始" : StatusText.Text = "已取消。已校验归档与共享文件会在重试时复用。"

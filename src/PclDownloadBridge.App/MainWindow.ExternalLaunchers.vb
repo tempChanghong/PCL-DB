@@ -69,7 +69,8 @@ Partial Public Class MainWindow
             root = LauncherDirectoryReader.AbsolutePath(root, Nothing)
             If binding Is Nothing AndAlso Not String.IsNullOrEmpty(_launcherState.TargetBindingId) Then Return
             _selectedFolder = New GameFolder With {.Name = "已保存的游戏目录", .Location = root, .Origin = If(binding Is Nothing, "手动选择", binding.DisplayName & " · " & binding.Workspace),
-                .LauncherBindingId = binding?.Id, .LauncherKind = If(binding Is Nothing, Nothing, New ExternalLauncherKind?(binding.Kind)), .LauncherWorkspace = binding?.Workspace}
+                .LauncherBindingId = binding?.Id, .LauncherKind = If(binding Is Nothing, Nothing, New ExternalLauncherKind?(binding.Kind)), .LauncherWorkspace = binding?.Workspace,
+                .LauncherConfigPath = binding?.ConfigPath, .LauncherSharedConfigPath = binding?.SharedConfigPath}
         Catch ex As Exception When TypeOf ex Is InvalidDataException OrElse TypeOf ex Is IOException OrElse TypeOf ex Is ArgumentException OrElse TypeOf ex Is NotSupportedException
             LauncherReadStatus.Text = "已保留无法解析的安装目标，请重新选择游戏目录。"
         End Try
@@ -191,7 +192,7 @@ Partial Public Class MainWindow
     Private Function ExternalInstallProblem(Optional pack As Boolean = False) As String
         If _selectedFolder Is Nothing Then Return Nothing
         Try
-            CurrentInstallTarget().ValidateFirstBatch(RepairBox.IsChecked.GetValueOrDefault(), _componentSelection.Entries.Count > 0, pack, _selectedEntry IsNot Nothing AndAlso _selectedEntry.IsSupplemental)
+            CurrentInstallTarget().ValidateDestination(_selectedFolder.Location)
         Catch ex As Exception When TypeOf ex Is InvalidDataException OrElse TypeOf ex Is IOException OrElse TypeOf ex Is ArgumentException OrElse TypeOf ex Is InvalidOperationException
             Return ex.Message
         End Try

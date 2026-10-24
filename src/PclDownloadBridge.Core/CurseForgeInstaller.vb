@@ -8,13 +8,16 @@ Public Class CurseForgeInstaller
     Private ReadOnly _policy As SourcePolicy
     Private ReadOnly _pclDirectory As String
     Private ReadOnly _resolver As CurseForgeFileResolver
-    Public Sub New(policy As SourcePolicy, Optional pclDirectory As String = Nothing, Optional resolver As CurseForgeFileResolver = Nothing)
+    Private ReadOnly _target As LauncherInstallTarget
+    Public Sub New(policy As SourcePolicy, Optional pclDirectory As String = Nothing, Optional resolver As CurseForgeFileResolver = Nothing, Optional launcherTarget As LauncherInstallTarget = Nothing)
         _policy = policy : _pclDirectory = pclDirectory : _resolver = resolver
+        _target = launcherTarget
     End Sub
     Public Async Function InstallAsync(package As CurseForgePackage, root As String, instanceName As String, reuseRoots As IEnumerable(Of String), optionalFileIds As IEnumerable(Of Long), progress As IProgress(Of TransferProgress), token As CancellationToken, Optional connections As Integer = 16, Optional limit As Long = 0, Optional javaPath As String = Nothing) As Task(Of InstallResult)
         token.ThrowIfCancellationRequested()
         If package Is Nothing Then Throw New ArgumentNullException(NameOf(package))
         If reuseRoots Is Nothing Then Throw New ArgumentNullException(NameOf(reuseRoots))
+        _target?.ValidateDestination(root)
         InstallPreflight.ValidateDestination(root, instanceName, False)
         Dim reuse = reuseRoots.ToList(), selected = If(optionalFileIds, Enumerable.Empty(Of Long)()).ToArray()
         Using plan As New CurseForgeInstallPlan(package, token)
@@ -27,7 +30,7 @@ Public Class CurseForgeInstaller
                 plan.SetFiles(Await _resolver.ResolveAsync(package, selected, token, progress).ConfigureAwait(False))
             End If
             plan.ValidateTargets(instanceName)
-            Return Await ModpackInstallation.InstallAsync(plan, _policy, _pclDirectory, root, instanceName, reuse, progress, token, package.LoaderKind, package.LoaderVersion, connections, limit, javaPath).ConfigureAwait(False)
+            Return Await ModpackInstallation.InstallAsync(plan, _policy, _pclDirectory, root, instanceName, reuse, progress, token, package.LoaderKind, package.LoaderVersion, connections, limit, javaPath, _target).ConfigureAwait(False)
         End Using
     End Function
 End Class
