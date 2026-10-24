@@ -137,6 +137,7 @@ Namespace Controls
                     End If
                     Return
                 End If
+                _headerPressed = False
                 Dim oldHeight = ActualHeight
                 Dim changed = _collapsed <> value
                 StopHeightTransition()
@@ -176,7 +177,11 @@ Namespace Controls
             Dim header As New Grid With {.Height = 40, .VerticalAlignment = VerticalAlignment.Top, .Background = Brushes.Transparent}
             _header = header
             AddHandler header.GotKeyboardFocus, Sub() Hover(True)
-            AddHandler header.LostKeyboardFocus, Sub() Hover(IsMouseOver)
+            AddHandler header.LostKeyboardFocus, Sub()
+                                                     _headerPressed = False
+                                                     Hover(IsMouseOver)
+                                                 End Sub
+            AddHandler header.LostMouseCapture, Sub() _headerPressed = False
             AddHandler header.KeyDown, Sub(sender, args)
                                            If args.OriginalSource IsNot header OrElse Not Collapsible OrElse Not IsEnabled OrElse
                                                (args.Key <> Input.Key.Enter AndAlso args.Key <> Input.Key.Space) Then Return
@@ -209,6 +214,7 @@ Namespace Controls
             AddHandler IsEnabledChanged, Sub() _headerPressed = False
             Children.Add(header)
             PclTheme.Watch(Me, Sub()
+                                  _headerPressed = False
                                   Dim active = IsMouseOver OrElse _header.IsKeyboardFocused
                                   _title.SetResourceReference(TextBlock.ForegroundProperty, If(active, "ColorBrush2", "ColorBrush1"))
                                   _arrow.SetResourceReference(Shapes.Path.FillProperty, If(active, "ColorBrush2", "ColorBrush1"))

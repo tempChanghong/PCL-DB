@@ -80,6 +80,7 @@ Partial Public Class MainWindow
     End Function
 
     Private Sub VerifyCardMotion(check As Action(Of Boolean, String), artifactDirectory As String)
+        VerifyCardGestureOwnership(artifactDirectory, check)
         Dim distances As Double() = {0, 1, -1, 799.9, -799.9, 800, -800, 800.1, -800.1, 1000, -1000, 3000, -3000, 3000.1, -3000.1, 50000, -50000}
         Dim durations As Integer() = {150, 150, 150, 150, 150, 150, 150, 363, 250, 412, 250, 912, 250, 700, 250, 700, 250}
         Dim metrics As New JArray
