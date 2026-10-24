@@ -88,7 +88,7 @@ Public NotInheritable Class ModpackCatalogClient
     Private ReadOnly _key As String
     Public Sub New(Optional handler As HttpMessageHandler = Nothing, Optional apiKey As String = Nothing)
         _client = New HttpClient(If(handler, New HttpClientHandler With {.AllowAutoRedirect = False, .AutomaticDecompression = DecompressionMethods.GZip Or DecompressionMethods.Deflate, .MaxConnectionsPerServer = 4})) With {.Timeout = Timeout.InfiniteTimeSpan}
-        _client.DefaultRequestHeaders.UserAgent.ParseAdd("PclDownloadBridge/3.0.0-beta.1 (modpack catalogue)")
+        _client.DefaultRequestHeaders.UserAgent.ParseAdd("PclDownloadBridge/4.0.0-beta.1 (modpack catalogue)")
         _key = If(apiKey, Environment.GetEnvironmentVariable("PCLDB_CURSEFORGE_API_KEY"))
     End Sub
 
