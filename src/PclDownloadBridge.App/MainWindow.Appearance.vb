@@ -11,6 +11,7 @@ Partial Public Class MainWindow
 
     Private Sub InitializeAppearance()
         _restoringAppearance = True
+        InitializePclThemeFollow()
         For i = 0 To AppearancePreferences.ThemeIds.Length - 1
             Dim radio As New PclRadioBox With {.Content = AppearancePreferences.ThemeNames(i), .Tag = AppearancePreferences.ThemeIds(i), .GroupName = "AppearanceTheme", .Style = DirectCast(FindResource("PclAppearanceRadio"), Style)}
             AddHandler radio.Checked, AddressOf AppearanceChanged
@@ -37,6 +38,8 @@ Partial Public Class MainWindow
             ColorfulBackgroundBox.IsChecked = _appearance.ColorfulBackground
             TitleTextureBox.IsChecked = _appearance.TitleTexture
             DarkModeBox.IsChecked = _appearance.DarkMode
+            FollowPclThemeBox.IsChecked = _appearance.FollowPclTheme
+            ConfigurePclThemeFollow()
             ApplyAppearance()
         Finally
             _restoringAppearance = False
@@ -64,30 +67,34 @@ Partial Public Class MainWindow
         SaveAppearance()
     End Sub
 
-    Private Sub ApplyAppearance()
-        Dim effective = _appearance.Effective(ExperimentalThemesAvailable)
+    Private Sub ApplyAppearance(Optional externalRefresh As Boolean = False)
+        Dim local = _appearance.Effective(ExperimentalThemesAvailable)
+        Dim effective = FollowedAppearance(local)
         Dim restoring = _restoringAppearance
         _restoringAppearance = True
         Try
             For Each radio In AppearanceThemes.Children.OfType(Of RadioButton)()
                 Dim choice = CStr(radio.Tag)
                 radio.Visibility = If(AppearancePreferences.PublicThemes.Contains(choice) OrElse ExperimentalThemesAvailable, Visibility.Visible, Visibility.Collapsed)
-                radio.IsChecked = choice = effective.Theme
+                radio.IsChecked = choice = local.Theme
             Next
         Finally
             _restoringAppearance = restoring
         End Try
-        PclTheme.Apply(TitleBar, Shell, effective)
+        Dim key = PaletteKey(effective)
+        Dim paletteChanged = Not externalRefresh OrElse key <> _appliedPaletteKey
+        If paletteChanged Then PclTheme.Apply(TitleBar, Shell, effective)
+        _appliedPaletteKey = key
         Opacity = _appearance.Transparency / 1000.0 + 0.4
         OpacityValue.Text = (Opacity * 100).ToString("0", CultureInfo.InvariantCulture) & "%"
         HueValue.Text = _appearance.Hue.ToString("0", CultureInfo.InvariantCulture) & "°"
         SaturationValue.Text = _appearance.Saturation.ToString("0", CultureInfo.InvariantCulture) & "%"
         LightnessValue.Text = _appearance.Lightness.ToString("+0;-0;0", CultureInfo.InvariantCulture)
-        CustomThemeGrid.Visibility = If(effective.Theme = "custom", Visibility.Visible, Visibility.Collapsed)
+        CustomThemeGrid.Visibility = If(local.Theme = "custom", Visibility.Visible, Visibility.Collapsed)
         TitleTextureBox.Visibility = If(ExperimentalThemesAvailable, Visibility.Visible, Visibility.Collapsed)
         TitleTexture.Visibility = If(effective.Theme = "colorful" AndAlso _appearance.TitleTexture, Visibility.Visible, Visibility.Collapsed)
         DownloadTab.Checked = DownloadTab.Checked : SettingsTab.Checked = SettingsTab.Checked
-        If _selectedEntry IsNot Nothing Then RefreshComponents()
+        If paletteChanged AndAlso _selectedEntry IsNot Nothing Then RefreshComponents()
     End Sub
 
     Private Sub SaveAppearance(Optional resetAll As Boolean = False)

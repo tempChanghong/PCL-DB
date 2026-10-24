@@ -14,6 +14,8 @@ Friend Class AppearancePreferences
     Public Property Lightness As Double
     Public Property ColorfulBackground As Boolean = True
     Public Property TitleTexture As Boolean = True
+    Public Property FollowPclTheme As Boolean
+    Public Property PclThemeFile As String = ""
 
     Friend Shared Function Read(token As JToken) As AppearancePreferences
         Dim value = TryCast(token, JObject)
@@ -31,6 +33,9 @@ Friend Class AppearancePreferences
         result.Lightness = Number(value, "lightness", 0, -20, 20)
         If value("colorfulBackground")?.Type = JTokenType.Boolean Then result.ColorfulBackground = CBool(value("colorfulBackground"))
         If value("titleTexture")?.Type = JTokenType.Boolean Then result.TitleTexture = CBool(value("titleTexture"))
+        If value("followPclTheme")?.Type = JTokenType.Boolean Then result.FollowPclTheme = CBool(value("followPclTheme"))
+        Dim themeFile = value("pclThemeFile")
+        If themeFile IsNot Nothing AndAlso themeFile.Type = JTokenType.String AndAlso CStr(themeFile).Length <= 4096 Then result.PclThemeFile = CStr(themeFile)
         Return result
     End Function
 
@@ -49,7 +54,7 @@ Friend Class AppearancePreferences
     End Function
 
     Friend Function ToJson() As JObject
-        Return New JObject From {{"theme", Theme}, {"publicTheme", PublicTheme}, {"darkMode", DarkMode}, {"transparency", Transparency}, {"hue", Hue}, {"saturation", Saturation}, {"lightness", Lightness}, {"colorfulBackground", ColorfulBackground}, {"titleTexture", TitleTexture}}
+        Return New JObject From {{"theme", Theme}, {"publicTheme", PublicTheme}, {"darkMode", DarkMode}, {"transparency", Transparency}, {"hue", Hue}, {"saturation", Saturation}, {"lightness", Lightness}, {"colorfulBackground", ColorfulBackground}, {"titleTexture", TitleTexture}, {"followPclTheme", FollowPclTheme}, {"pclThemeFile", PclThemeFile}}
     End Function
 
     Friend Function Merge(existing As JObject) As JObject

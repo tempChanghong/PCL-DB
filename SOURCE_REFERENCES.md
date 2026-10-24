@@ -813,6 +813,16 @@ PCL-CE、Prism 的代码用于比较原版数据及实例组织；HMCL 另辅助
 
 0.5 按用户明确的下载补全定位，将主导航缩减为「下载」「设置」；删除启动/联机/更多入口、对应占位处理代码和辅助侧栏。目录选择并入设置，任务进度成为下载流程中的状态。0.4 曾使用的侧栏描边图标 `Controls/NavIcons.xaml` 随侧栏一并移除。原控件 XAML、方块图标和字体仍由原比对脚本核验；标题栏只导入实际使用的下载、设置图标。新提供的两个恢复工具只做机制参照，范围和固定 SHA 见 `PATCH_MECHANISMS.md`，未移入其补丁实现。
 
+## 跟随 PCL 当前主题
+
+本轮仍以 `Meloong-Git/PCL` 的 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` Git 对象为准，读取并核对：
+
+- `Plain Craft Launcher 2/Pages/PageSetup/Settings.vb`：`UiLauncherTheme` 为未加密的普通设置，默认 0；`Set` 先保存再触发主题刷新。解锁记录为另一组加密注册表设置，不属于本功能。
+- `Plain Craft Launcher 2/Modules/Base/ModBase.vb`：`IniGetContent` 使用扁平 `key:value` 格式，重复键保留最后一条；`WriteIni` 定位程序旁的 `PCL/Setup.ini`。实现只打开读句柄，不调用上游可能回写默认值的设置 API。
+- `Plain Craft Launcher 2/Pages/PageSetup/PageSetupUI.xaml`：主题 ID 与中文名称对应关系；`Modules/ModSecret.vb`：公开快照缺少各非默认主题的选色分支及解锁实现，因此不声称能从公开源码完整复原所有配色。
+
+PCL-DB 对 ID 0 使用已有默认蓝色、ID 1–5 使用已有对应近似预设；实验性外观限制继续生效。ID 6–14 及未知 ID 保留可识别名称/编号，但回退本机外观。500 ms 后台采样、两次一致确认及绑定代次保护属于本程序的跨进程只读适配，不是 PCL 暴露的 API。规范化源码及摘要在 `artifacts/follow-pcl-theme/source/`、`source.json`，实现范围见 `docs/reviews/follow-pcl-theme.md`。
+
 ## 0.3 数据接口补充
 
 - [Fabric Meta](https://github.com/FabricMC/fabric-meta/blob/master/README.md)：读取版本专属 loader profile，合并 vanilla 参数并补全支持库。

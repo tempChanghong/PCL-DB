@@ -336,6 +336,7 @@ Partial Public Class MainWindow
         VerifyForgeRefreshUi(check, artifactDirectory)
         VerifyDeveloper(check, artifactDirectory)
         VerifyAppearance(check, artifactDirectory)
+        VerifyPclThemeFollow(artifactDirectory, check)
         VerifyAbout(check, artifactDirectory)
         VerifySettingsWorkflow(check, artifactDirectory)
         VerifyTaskResults(check, artifactDirectory)
@@ -958,6 +959,7 @@ Partial Public Class MainWindow
             End If
         End If
         _closing = True
+        _pclThemeMonitor.Dispose()
         RefreshInstallAction()
         _versionLoading.Reset()
         ClearVersionLoadingVisual()

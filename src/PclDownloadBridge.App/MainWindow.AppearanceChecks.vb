@@ -17,6 +17,7 @@ Partial Public Class MainWindow
                                                  End Sub
         VerifyDeveloper(check, artifactDirectory)
         VerifyAppearance(check, artifactDirectory)
+        VerifyPclThemeFollow(artifactDirectory, check)
         Return checks
     End Function
 
