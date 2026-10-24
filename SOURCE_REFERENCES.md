@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 筛选栏连续滚轮与原生请求交接
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 MyScrollViewer 与 PageDownloadCompDetail.xaml(.vb)，保留单行筛选、分组、原版垂直滚动曲线和已确认的布局。PCL MyScrollViewer 按增量累积 RealOffset、逐步夹紧并以 ScrollChanged 同步实际位置；本工具横向溢出适配也需要区分待确认目标和已显示位置。
+- 修复连续滚轮被原生 ScrollViewer 队列合并而丢失距离，补齐门控、隐藏、键鼠接管、尺寸变化和清单刷新时的旧请求清理。横向适配继续使用既有的 `-Delta / 3`，它是本项目的补充，并非声称固定 PCL 提供相同横向实现。详见 [对照与验证](docs/reviews/filter-wheel-bursts.md)。
+
 ## 卡片折叠与输入交接
 
 - 主要重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 MyCard、PageDownloadInstall 和 PageDownloadCompDetail。保留 40 DIP 折叠高度、展开时 34 DIP 标题点击范围、90 ms 悬停、原有分段高度曲线和 250 ms 箭头动画，没有采用新的 CE 布局。

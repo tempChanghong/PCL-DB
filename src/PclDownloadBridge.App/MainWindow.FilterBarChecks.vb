@@ -102,6 +102,7 @@ Partial Public Class MainWindow
             check(PackVersionFilterViewport.HorizontalOffset > 0 AndAlso ModpackPage.VerticalOffset = 0,
                 "an overflowing filter row consumes wheel input horizontally without moving the details page")
             VerifyPackFilterWheelRoutes(directory, host, layout, check)
+            VerifyPackFilterWheelBursts(directory, layout, check)
             Dim offset = PackVersionFilterViewport.HorizontalOffset
             ScrollBar.LineRightCommand.Execute(Nothing, bar) : layout()
             check(PackVersionFilterViewport.HorizontalOffset > offset, "native horizontal scrollbar commands move the overflow viewport")

@@ -14,6 +14,7 @@ Partial Public Class MainWindow
     ' PCL 5ef81e4 PageDownloadCompDetail.Load_OnFinish / UpdateFilterResult:
     ' compact the filters at nine groups, but retain exact MC cards and file IDs.
     Private Sub InitializePackVersions()
+        PackVersionFilterViewport.StopScrolling()
         _packVersionCache.Clear() : _packVersionGroups.Clear()
         PackVersionFilters.Children.Clear()
         PackVersionFilterViewport.ScrollToHorizontalOffset(0)
