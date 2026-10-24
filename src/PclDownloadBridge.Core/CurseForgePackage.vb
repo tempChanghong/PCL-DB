@@ -30,7 +30,9 @@ Public NotInheritable Class CurseForgePackage
     Friend ReadOnly OverridesFolder As String
     Private Sub New(path As String, digest As String, archive As ZipArchive)
         SourcePath = path : Sha256 = digest
-        Dim names As New Dictionary(Of String, ZipArchiveEntry)(StringComparer.OrdinalIgnoreCase), length As Long
+        ' Payloads have no fixed byte cap. Installation streams each override
+        ' and checks its declared length without buffering the whole entry.
+        Dim names As New Dictionary(Of String, ZipArchiveEntry)(StringComparer.OrdinalIgnoreCase)
         If archive.Entries.Count > 20000 Then Throw New InvalidDataException("整合包条目超过 20000 项限制。")
         For Each entry In archive.Entries
             Dim relative = entry.FullName.Replace("\"c, "/"c).TrimEnd("/"c)
@@ -38,8 +40,6 @@ Public NotInheritable Class CurseForgePackage
             If names.ContainsKey(relative) Then Throw New InvalidDataException("整合包存在重复或大小写冲突的路径：" & relative)
             If (entry.ExternalAttributes And &HF0000000) = &HA0000000 OrElse (entry.ExternalAttributes And CInt(FileAttributes.ReparsePoint)) <> 0 Then Throw New InvalidDataException("整合包包含链接条目：" & relative)
             names.Add(relative, entry)
-            length += entry.Length
-            If entry.Length > 128L * 1024 * 1024 OrElse length > 2L * 1024 * 1024 * 1024 Then Throw New InvalidDataException("整合包解压内容超过大小限制。")
         Next
         For Each pair In names
             Dim parent = pair.Key

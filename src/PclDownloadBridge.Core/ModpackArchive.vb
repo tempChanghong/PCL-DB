@@ -59,7 +59,7 @@ Public NotInheritable Class ModpackArchiveInstaller
     Public Shared Async Function AcquireAsync(release As ModpackRelease, root As String, policy As SourcePolicy, progress As IProgress(Of TransferProgress), token As CancellationToken, Optional connections As Integer = 16, Optional limit As Long = 0) As Task(Of String)
         release = release.Copy()
         ModpackArchivePolicy.Validate(release.Url, release.Platform, policy.AllowLoopback)
-        If release.Size <= 0 OrElse release.Size > 2L * 1024 * 1024 * 1024 OrElse (release.Sha1 Is Nothing AndAlso release.Sha512 Is Nothing AndAlso release.Md5 Is Nothing) Then Throw New InvalidDataException("归档缺少有效大小或校验摘要。")
+        If release.Size <= 0 OrElse (release.Sha1 Is Nothing AndAlso release.Sha512 Is Nothing AndAlso release.Md5 Is Nothing) Then Throw New InvalidDataException("归档缺少有效大小或校验摘要。")
         Dim key As String
         Using sha = SHA256.Create()
             key = BitConverter.ToString(sha.ComputeHash(Text.Encoding.UTF8.GetBytes(release.Platform.ToString() & "|" & release.ProjectId & "|" & release.Id & "|" & release.Sha1 & "|" & release.Sha512 & "|" & release.Md5))).Replace("-", "").ToLowerInvariant()

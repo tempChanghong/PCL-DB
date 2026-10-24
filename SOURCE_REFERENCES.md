@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 大整合包的读取与覆盖内容提取
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 ModModpack：两格式读取清单后通过 ExtractModpackFiles / CopyOverrideDirectory 处理覆盖内容，该层没有本工具误加的 128 MiB / 2 GiB 容量筛除。
+- 移除本地及在线整合包的固定容量上限，保留现有流式提取、摘要/声明长度、路径和发布事务校验。实际 ZIP/MRPACK 及大容量夹具验证见 [修复记录](docs/reviews/large-modpacks.md)，不推断 PCL 依赖库内部未提供的实现。
+
 ## 卡片箭头的初始化与旋转替换
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 MyCard.Init / IsSwapped 和 ModAnimation.AaRotateTransform / AniEaseOutFluent，修正默认展开卡片的初始方向，保留 180°/0°/270° 状态及 250 ms ExtraStrong 曲线。

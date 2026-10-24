@@ -12,6 +12,10 @@ Module Program
         Net.ServicePointManager.SecurityProtocol = Net.SecurityProtocolType.Tls12
         Try
             If ProcessorStreamChecks.TryRunFixture(args) Then Return
+            If args.Length = 4 AndAlso args(0) = "--large-modpack-samples" Then
+                LargeModpackChecks.SamplesAsync(args(1), args(2), args(3)).GetAwaiter().GetResult()
+                Return
+            End If
             If args.Length > 0 AndAlso args(0) = "--verify-supplemental" Then
                 If args.Length < 3 OrElse args.Length > 4 Then Throw New ArgumentException("Supplemental verification expects an output directory, canonical IDs and optional --install.")
                 If args.Length = 4 AndAlso args(3) <> "--install" Then Throw New ArgumentException("Unknown supplemental verification option.")
@@ -58,7 +62,9 @@ Module Program
             Directory.CreateDirectory(TestRoot)
             If args.Length = 2 AndAlso args(0) = "--regression" Then
                 Dim run As Task(Of List(Of String))
-                If args(1) = "native-isolation" Then
+                If args(1) = "large-modpacks" Then
+                    run = LargeModpackChecks.RunAsync(TestRoot)
+                ElseIf args(1) = "native-isolation" Then
                     run = NativeIsolationChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "external-launchers" Then
                     run = ExternalLauncherChecks.RunAsync(TestRoot)
@@ -200,6 +206,9 @@ Module Program
                 Check(True, label)
             Next
             MetadataTests()
+            For Each label In LargeModpackChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
+                Check(True, label)
+            Next
             TransferTestsAsync().GetAwaiter().GetResult()
             MetadataRaceTestsAsync().GetAwaiter().GetResult()
             For Each label In MetadataTransferChecks.RunAsync(root:=TestRoot).GetAwaiter().GetResult()

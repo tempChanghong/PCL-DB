@@ -19,7 +19,6 @@ Public NotInheritable Class ModrinthReference
         Sha1 = Text(hashes, "sha1") : Sha512 = Text(hashes, "sha512")
         If Not Regex.IsMatch(Sha1, "\A[0-9a-fA-F]{40}\z") OrElse Not Regex.IsMatch(Sha512, "\A[0-9a-fA-F]{128}\z") Then Throw New InvalidDataException("Modrinth 文件的 SHA-1 / SHA-512 无效：" & Path)
         EstimatedSize = IntegerValue(value, "fileSize", 0)
-        If EstimatedSize > 16L * 1024 * 1024 * 1024 Then Throw New InvalidDataException("Modrinth 单文件预计大小超过限制：" & Path)
         Client = "required"
         Dim environment = value("env")
         If environment IsNot Nothing Then
@@ -76,15 +75,15 @@ Public NotInheritable Class ModrinthPackage
     Friend ReadOnly OverrideSources As ReadOnlyDictionary(Of String, String)
     Private Sub New(path As String, digest As String, archive As ZipArchive)
         SourcePath = path : Sha256 = digest
-        Dim names As New Dictionary(Of String, ZipArchiveEntry)(StringComparer.OrdinalIgnoreCase), total As Long
+        ' Large payloads are streamed by ModpackInstallPlan, not loaded as text.
+        Dim names As New Dictionary(Of String, ZipArchiveEntry)(StringComparer.OrdinalIgnoreCase)
         If archive.Entries.Count > 20000 Then Throw New InvalidDataException("整合包条目超过 20000 项限制。")
         For Each entry In archive.Entries
             Dim relative = entry.FullName.Replace("\"c, "/"c).TrimEnd("/"c)
             CurseForgePackage.ValidateRelative(relative)
             If names.ContainsKey(relative) Then Throw New InvalidDataException("整合包存在重复或大小写冲突的路径：" & relative)
             If (entry.ExternalAttributes And &HF0000000) = &HA0000000 OrElse (entry.ExternalAttributes And CInt(FileAttributes.ReparsePoint)) <> 0 Then Throw New InvalidDataException("整合包包含链接条目：" & relative)
-            names.Add(relative, entry) : total += entry.Length
-            If entry.Length > 128L * 1024 * 1024 OrElse total > 2L * 1024 * 1024 * 1024 Then Throw New InvalidDataException("整合包解压内容超过大小限制。")
+            names.Add(relative, entry)
         Next
         Dim candidates = If(names.Keys.Contains("modrinth.index.json", StringComparer.Ordinal), {"modrinth.index.json"}, names.Keys.Where(Function(key) key.EndsWith("/modrinth.index.json", StringComparison.Ordinal) AndAlso key.Count(Function(ch) ch = "/"c) = 1).ToArray())
         ' Match PCL's root precedence, then require a unique wrapping folder.

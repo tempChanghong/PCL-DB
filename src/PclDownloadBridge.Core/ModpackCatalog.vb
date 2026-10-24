@@ -221,7 +221,7 @@ Public NotInheritable Class ModpackCatalogClient
         ' The archive is stored under a fixed cache name, not the remote filename.
         ' Keep ordinary long archive names while rejecting path-bearing metadata.
         If result.FileName.Length > 255 OrElse result.FileName <> result.FileName.Trim() OrElse result.FileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 Then Throw New InvalidDataException("整合包归档文件名无效。")
-        If result.Size <= 0 OrElse result.Size > 2L * 1024 * 1024 * 1024 Then Return Nothing
+        If result.Size <= 0 Then Return Nothing
         If result.Sha1 Is Nothing AndAlso result.Sha512 Is Nothing AndAlso result.Md5 Is Nothing Then Return Nothing
         ModpackArchivePolicy.Validate(result.Url, result.Platform, False)
         If result.Platform = ModpackPlatform.CurseForge Then
