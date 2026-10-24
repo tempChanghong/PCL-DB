@@ -67,6 +67,7 @@ Partial Public Class MainWindow
                     "theme changes keep the source filter selection and single-row layout in dark mode " & dark)
                 SaveControlVisual(host, IO.Path.Combine(directory, "filter-bar-" & If(dark, "dark", "blue") & ".png"))
             Next
+            VerifyFilterGestureOwnership(directory, layout, check)
             Dim middleFilter = PackVersionFilters.Children.OfType(Of PclRadioButton)().Single(Function(button) button.Text = "1.20")
             Dim cached = _packVersionCache("1.20")
             For index = 1 To 20

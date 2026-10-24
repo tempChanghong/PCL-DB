@@ -74,14 +74,12 @@ Namespace Controls
             _fillMotion = New PclMotionSlot(_fill, SolidColorBrush.ColorProperty)
             _logoMotion = New PclMotionSlot(_logoInk, SolidColorBrush.ColorProperty)
             _textMotion = New PclMotionSlot(_textInk, SolidColorBrush.ColorProperty)
-            MotionPolicy = New PclControlMotionPolicy(Me, Sub()
-                                                             _down = False : Refresh(True)
-                                                         End Sub)
+            MotionPolicy = New PclControlMotionPolicy(Me, AddressOf CancelPress)
             Cursor = Cursors.Hand
             Focusable = True
             AddHandler GotKeyboardFocus, Sub() Refresh()
-            AddHandler LostKeyboardFocus, Sub() Refresh()
-            PclTheme.Watch(Me, Sub() Refresh())
+            AddHandler LostKeyboardFocus, Sub() CancelPress()
+            PclTheme.Watch(Me, AddressOf CancelPress)
             AddHandler Loaded, Sub() Refresh()
             AddHandler MouseEnter, Sub() Refresh()
             AddHandler Unloaded, Sub()
@@ -100,6 +98,9 @@ Namespace Controls
                                              Refresh(True)
                                          End Sub
             Refresh(True)
+        End Sub
+        Private Sub CancelPress()
+            _down = False : Refresh(True)
         End Sub
         Private Sub Refresh(Optional immediate As Boolean = False, Optional inactive As Boolean = False)
             If _fillMotion Is Nothing Then Return
@@ -150,6 +151,10 @@ Namespace Controls
             MyBase.OnMouseLeave(e)
             _down = False
             Refresh()
+        End Sub
+        Protected Overrides Sub OnLostMouseCapture(e As MouseEventArgs)
+            MyBase.OnLostMouseCapture(e)
+            CancelPress()
         End Sub
         Protected Overrides Sub OnMouseLeftButtonUp(e As MouseButtonEventArgs)
             MyBase.OnMouseLeftButtonUp(e)

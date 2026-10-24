@@ -18,6 +18,7 @@ Partial Public Class MainWindow
                                                  End Sub
         Dim saved = _appearance.ToJson()
         Try
+            VerifyCapsuleGestureOwnership(directory, check)
             VerifyHintAndActionPresentation(directory, check)
             VerifyPclActionColorOwnership(directory, check)
             VerifyResourceRowMotion(directory, check)

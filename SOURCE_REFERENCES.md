@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 筛选与标题按钮的按压所有权
+
+- 以固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 MyRadioButton.xaml(.vb) 为核心：保留 90 ms 悬停、120 ms 选中、150 ms 移出以及两种角色的按压时长与配色；保持实际详情筛选的单选与卡片身份规则。
+- 固定源控件主要通过 MouseLeave 取消按压。本工具保留的键盘焦点功能还需处理 LostKeyboardFocus、主题替换和 LostMouseCapture；这三类中断统一清理按压和旧颜色时钟，不修改 Checked 或触发 Click。详见 [对照与验证](docs/reviews/capsule-gesture.md)。
+
 ## 输入弹窗关闭后的焦点与视口
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 MyMsgInput、MyScrollViewer #3854 和 MyPageRight：保留原输入框焦点、弹窗进退场及页面入场机制，沿用避免焦点自动改变滚动位置的处理思路。
