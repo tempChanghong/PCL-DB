@@ -841,6 +841,12 @@ PCL-DB 自有的任务返回保留表单流程，改为把“保留安装视口�
 
 本程序保留已有按钮曲线和输入门控，由现有页面控制器发出一次正文入场事件，把待显示按钮交给该页面所有者；正常入场时运行按钮曲线，中途结束页面动画时直接呈现终态。无需第二套页面计时器。三份 Git 对象副本及摘要位于 `artifacts/install-action-handoff/source/`、`source.json`，详见 `docs/reviews/install-action-handoff.md`。
 
+## 浮动下载按钮内部按压反馈
+
+读取固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `Controls/MyExtraTextButton.xaml.vb`、`Modules/Base/ModAnimation.vb` 和 `Controls/MyPageRight.vb`。附加按钮内部 PanScale 按下时并行执行 800 ms Strong Fluent（到 0.85）与 60 ms 默认 Fluent（减少 0.05），长按终点为 0.8；释放以默认 Back 300 ms 恢复，移出以默认 Fluent 500 ms 恢复。Strong=4、默认 Fluent/Back 使用 Middle=3，60 ms 微缩不是线性。
+
+本程序改用继承标准 Button 的 PclInstallButton，沿用原模板及原生点击/自动化入口，仅为 PART_Press 接入独立缩放；外部 Show 仍由既有控制器管理。手势取消、键盘适配和自动化门控属于本程序适配层，未声称上游有相同的 WPF Button 子类。三份规范化 Git 对象及摘要在 `artifacts/install-button-press/source/`、`source.json`，详见 `docs/reviews/install-button-press.md`。
+
 ## 0.3 数据接口补充
 
 - [Fabric Meta](https://github.com/FabricMC/fabric-meta/blob/master/README.md)：读取版本专属 loader profile，合并 vanilla 参数并补全支持库。

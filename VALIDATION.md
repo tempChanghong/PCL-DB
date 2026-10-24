@@ -2,6 +2,13 @@
 
 日期：2026-10-24（北京时间）。当前发行版本为 PCL-DB Beta 3.0（`3.0.0-beta.1`）；下方保留各开发阶段的验证记录，其中的“未打包/未发布”描述对应当时的检查范围。
 
+## Beta 3.0 后续：浮动按钮内部按压反馈（尚未发行）
+
+- 基线 `1a3714dc457252a0553fb8ccb3abc27b822ea246`。对照固定 PCL `5ef81e4` 的 MyExtraTextButton / ModAnimation，确认内部 ScaleTransform 未接入按压时钟；修改前 440 项通过后回归失败，记录为 animated=false、内部/外部 scale 均为 1。
+- 增加独立内部按压曲线：800 ms Strong Fluent 和 60 ms 默认 Fluent 并行，长按缩至 0.8，释放 300 ms Back、移出 500 ms Fluent。保留原模板、外部入场动画和原生 Button 点击/自动化，补齐门控、禁用、失焦、隐藏、主题、模板及卸载的手势取消；模板清空时立即释放旧变换。
+- 新增 63 项检查（含曲线/冻结副本、30 ms 微缩采样、实际模板、回弹、过期时钟、手势取消、静态模式和自动化）。策略 `PCL-DB-checks/2026-10-24.26`：UI 973 / motion 913 / pack-search 320，共 2206 项；固定源码/资源、97 项验证契约和 19 项进程工具另查。最终日志、图像、源码/EXE 摘要和 Commit 绑定在 `artifacts/install-button-press/`，详见 `docs/reviews/install-button-press.md`。
+- 使用隐藏 WPF 窗口、真实动画时钟、合成输入及原生 Invoke 验证，不代替桌面键鼠/帧率或真实安装验收。下载/安装内核、PCL 配置和打包实现未改；不打包、推送或发版。
+
 ## Beta 3.0 后续：浮动下载按钮与页面交接（尚未发行）
 
 - 基线 `75e7decec8c6ea64dd909fcaabb60f2055c129b6`。对照固定 PCL `5ef81e4` 的 FormMain / MyPageRight / MyExtraTextButton，确认逻辑返回安装页时，原按钮已经完整显示而安装卡片仍透明。修改前回归在 414 项通过后失败，实测按钮 visible / opacity / scale 为 true / 1 / 1，安装页 opacity 为 0。
