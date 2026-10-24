@@ -847,6 +847,12 @@ PCL-DB 自有的任务返回保留表单流程，改为把“保留安装视口�
 
 本程序改用继承标准 Button 的 PclInstallButton，沿用原模板及原生点击/自动化入口，仅为 PART_Press 接入独立缩放；外部 Show 仍由既有控制器管理。手势取消、键盘适配和自动化门控属于本程序适配层，未声称上游有相同的 WPF Button 子类。三份规范化 Git 对象及摘要在 `artifacts/install-button-press/source/`、`source.json`，详见 `docs/reviews/install-button-press.md`。
 
+## 筛选栏与外层页面的滚轮归属
+
+继续读取固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `Controls/MyScrollViewer.vb`、`Pages/PageDownload/Resource/PageDownloadCompDetail.xaml(.vb)`。保留 PanFilter 的单行 Horizontal/Left/Top 布局；参考 MyScrollViewer 的预览滚轮处理和对嵌套控件让出输入的原则，修正本程序已有横向溢出视口与外层竖向滚动之间的冲突。
+
+仅在来源链中遇到实际横向溢出的 PclFilterScrollViewer 时，外层不在预览阶段提前接管，让子视口的冒泡处理器完成滚动。未溢出时继续使用原有竖向滚动曲线。横向兜底仍属于本程序适配，未声称 PCL 原有 PanFilter 带同样的视口。规范化源码和摘要在 `artifacts/filter-wheel-routing/source/`、`source.json`，详见 `docs/reviews/filter-wheel-routing.md`。
+
 ## 0.3 数据接口补充
 
 - [Fabric Meta](https://github.com/FabricMC/fabric-meta/blob/master/README.md)：读取版本专属 loader profile，合并 vanilla 参数并补全支持库。

@@ -149,6 +149,11 @@ Namespace Controls
                 If TypeOf cursor Is ComboBoxItem OrElse (combo IsNot Nothing AndAlso combo.IsDropDownOpen) Then Return False
                 Dim text = TryCast(cursor, TextBox)
                 If text IsNot Nothing AndAlso text.AcceptsReturn Then Return False
+                ' The source-shaped one-line filter has a horizontal overflow
+                ' adapter. Let its bubble handler consume the wheel before this
+                ' ancestor starts vertical motion during the preview route.
+                Dim filter = TryCast(cursor, PclFilterScrollViewer)
+                If filter IsNot Nothing AndAlso filter.ScrollableWidth > 0 Then Return False
                 Dim nested = TryCast(cursor, ScrollViewer)
                 If nested IsNot Nothing AndAlso nested.ScrollableHeight > 0 Then Return False
                 cursor = If(TypeOf cursor Is Visual OrElse TypeOf cursor Is Media.Media3D.Visual3D, VisualTreeHelper.GetParent(cursor), LogicalTreeHelper.GetParent(cursor))

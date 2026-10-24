@@ -4,6 +4,7 @@ Imports System.Windows.Input
 Imports System.Windows.Media
 Imports System.Windows.Media.Imaging
 Imports System.Windows.Media.Animation
+Imports Newtonsoft.Json.Linq
 Imports PclDownloadBridge.Controls
 
 Partial Public Class MainWindow
@@ -44,7 +45,17 @@ Partial Public Class MainWindow
                 editor.RaiseEvent(focus)
                 check(focus.Handled, "page input gate rejects keyboard focus into hidden incoming content")
                 gate.IsHitTestVisible = True
-                check(Not RouteDownloadKey(optionalBox, Key.Space) AndAlso optionalBox.IsChecked.GetValueOrDefault(), "optional pack keyboard selection resumes when the input gate opens")
+                ' Newly attached native controls need their Loaded/template work
+                ' dispatched before the fixture sends the next keyboard route.
+                Dim beforeLoaded = optionalBox.IsLoaded
+                layout()
+                Dim blockedOptional = RouteDownloadKey(optionalBox, Key.Space)
+                IO.File.WriteAllText(IO.Path.Combine(directory, "download-keyboard-resume.json"), New JObject From {
+                    {"loadedBeforeLayout", beforeLoaded}, {"loaded", optionalBox.IsLoaded}, {"visible", optionalBox.IsVisible},
+                    {"hitTest", optionalBox.IsHitTestVisible}, {"enabled", optionalBox.IsEnabled}, {"blocked", blockedOptional},
+                    {"selected", optionalBox.IsChecked.GetValueOrDefault()}, {"modifiers", Keyboard.Modifiers.ToString()},
+                    {"capturedType", If(Mouse.Captured?.GetType().FullName, "none")}}.ToString())
+                check(Not blockedOptional AndAlso optionalBox.IsChecked.GetValueOrDefault(), "optional pack keyboard selection resumes when the input gate opens")
                 optionalBox.IsChecked = False
                 RouteDownloadKey(optionalBox, Key.Space, Sub() gate.IsHitTestVisible = False)
                 check(Not optionalBox.IsChecked.GetValueOrDefault() AndAlso Not optionalBox.IsPressed, "a space released after page exit cannot change the selection or leave the checkbox pressed")

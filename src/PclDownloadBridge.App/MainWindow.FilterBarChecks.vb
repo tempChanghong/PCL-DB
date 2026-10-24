@@ -18,9 +18,20 @@ Partial Public Class MainWindow
                                                                                          .FileName = "filterbar-" & index & ".mrpack", .Url = "https://cdn.modrinth.com/filterbar-" & index & ".mrpack",
                                                                                          .Size = 100, .Sha1 = New String("a"c, 40), .ReleaseType = "release", .Published = DateTimeOffset.UtcNow.AddDays(-2)}).ToList()
                                                                                  End Function
+        Dim wheelObservations As New JArray
         Dim wheel As Action(Of Integer) = Sub(delta)
-                                              PackVersionFilterViewport.RaiseEvent(New MouseWheelEventArgs(Mouse.PrimaryDevice, Environment.TickCount, delta) With {.RoutedEvent = Mouse.MouseWheelEvent})
+                                              Dim beforeX = PackVersionFilterViewport.HorizontalOffset, beforeY = ModpackPage.VerticalOffset
+                                              Dim args As New MouseWheelEventArgs(Mouse.PrimaryDevice, Environment.TickCount, delta) With {.RoutedEvent = Mouse.PreviewMouseWheelEvent}
+                                              PackVersionFilterViewport.RaiseEvent(args)
+                                              Dim previewHandled = args.Handled
+                                              If Not args.Handled Then
+                                                  args.RoutedEvent = Mouse.MouseWheelEvent : PackVersionFilterViewport.RaiseEvent(args)
+                                              End If
                                               ModpackPage.MotionClock?.Controller.SkipToFill() : layout()
+                                              wheelObservations.Add(New JObject From {{"delta", delta}, {"overflow", PackVersionFilterViewport.ScrollableWidth},
+                                                  {"previewHandled", previewHandled}, {"beforeX", beforeX}, {"afterX", PackVersionFilterViewport.HorizontalOffset},
+                                                  {"beforeY", beforeY}, {"afterY", ModpackPage.VerticalOffset}})
+                                              IO.File.WriteAllText(IO.Path.Combine(directory, "filter-wheel-routing-observations.json"), wheelObservations.ToString())
                                           End Sub
         Try
             FinishPackContentMotion()
@@ -88,6 +99,7 @@ Partial Public Class MainWindow
             wheel(-120)
             check(PackVersionFilterViewport.HorizontalOffset > 0 AndAlso ModpackPage.VerticalOffset = 0,
                 "an overflowing filter row consumes wheel input horizontally without moving the details page")
+            VerifyPackFilterWheelRoutes(directory, host, layout, check)
             Dim offset = PackVersionFilterViewport.HorizontalOffset
             ScrollBar.LineRightCommand.Execute(Nothing, bar) : layout()
             check(PackVersionFilterViewport.HorizontalOffset > offset, "native horizontal scrollbar commands move the overflow viewport")
