@@ -139,13 +139,13 @@ Partial Public Class MainWindow
             ShowProgress(Me, New RoutedEventArgs())
             returning.Controller.SkipToFill() : layout()
             check(_pageSwitch.Transition Is Nothing AndAlso DownloadProgress.Visibility = Visibility.Visible AndAlso VersionPage.Visibility = Visibility.Collapsed AndAlso
-                InstallPage.Visibility = Visibility.Collapsed AndAlso DownloadViewHost.IsHitTestVisible,
-                "opening task progress removes the page clock before hiding both installation panels")
+                InstallPage.Visibility = Visibility.Collapsed AndAlso _categoryMotion.Transition Is Nothing AndAlso DownloadViewHost.IsHitTestVisible,
+                "ordinary static preview task navigation removes horizontal ownership and settles both hidden installation panels without a page clock")
             SwitchMainPage(True) : SwitchMainPage(False) : layout()
             check(VersionPage.Visibility = Visibility.Collapsed AndAlso InstallPage.Visibility = Visibility.Collapsed AndAlso DownloadProgress.Visibility = Visibility.Visible,
                 "a settings round trip from task progress cannot resurrect an installation panel")
             ResumeInstallation(Me, New RoutedEventArgs()) : layout()
-            check(_pageSwitch.Transition Is Nothing AndAlso VersionPage.Visibility = Visibility.Visible AndAlso InstallPage.Visibility = Visibility.Collapsed AndAlso ProgressShortcut.Visibility = Visibility.Visible AndAlso
+            check(_pageSwitch.Transition Is Nothing AndAlso _categoryMotion.Transition Is Nothing AndAlso VersionPage.Visibility = Visibility.Visible AndAlso InstallPage.Visibility = Visibility.Collapsed AndAlso ProgressShortcut.Visibility = Visibility.Visible AndAlso
                 TaskProgress.Value = taskValue AndAlso TaskTitle.Text = taskText AndAlso _componentSelection.Item(ComponentKind.Fabric) Is selection,
                 "task back restores its actual browser origin even with an older selected version and preserves task and component choices")
             SetDownloadView(DownloadView.Install) : _pageSwitch.Finish()

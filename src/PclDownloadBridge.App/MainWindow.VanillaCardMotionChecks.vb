@@ -402,11 +402,11 @@ Partial Public Class MainWindow
                 seek(page, 140) : seek(cards, 140)
                 owner.ResetTaskView("卡片尾段任务交接", True) : owner.SetDownloadView(DownloadView.Progress) : layout()
                 check(Not owner._pageSwitch.HasMotion AndAlso owner._pageSwitch.CardMotion.ItemCount = 0 AndAlso owner.DownloadProgress.IsVisible AndAlso
-                    owner.DownloadViewHost.IsHitTestVisible AndAlso owner._componentSelection.Item(ComponentKind.Fabric) Is selected,
-                    "task progress takes over an entering vanilla page without residual decorations input gates or component mutation")
+                    owner._categoryMotion.Transition IsNot Nothing AndAlso Not owner.DownloadViewHost.IsHitTestVisible AndAlso owner._componentSelection.Item(ComponentKind.Fabric) Is selected,
+                    "task progress replaces vanilla card motion with its own gated right-page entry without component mutation")
                 owner.ResumeInstallation(Nothing, Nothing) : layout()
-                check(owner._downloadView = DownloadView.Install AndAlso Not owner._pageSwitch.HasMotion AndAlso owner.InstanceName.Text = "卡片动画保留名称",
-                    "returning from progress restores the retained vanilla form without replaying card entry or losing its custom name")
+                check(owner._downloadView = DownloadView.Install AndAlso Not owner._pageSwitch.HasMotion AndAlso owner._categoryMotion.Transition IsNot Nothing AndAlso owner.InstanceName.Text = "卡片动画保留名称",
+                    "returning from progress restores the retained form through one right-page entry without a competing horizontal clock or name reset")
 
                 Dim retired = fabric.Card
                 owner.SetDownloadView(DownloadView.Versions) : owner._pageSwitch.Finish() : owner.SetDownloadView(DownloadView.Install)

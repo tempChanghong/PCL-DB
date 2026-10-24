@@ -676,7 +676,11 @@ Partial Public Class MainWindow
             _surfaceMotion.Finish()
         End If
         Dim previous = _downloadView
-        If (previous = DownloadView.Modpacks) Xor (view = DownloadView.Modpacks) Then
+        ' FormMain.PageChangeAnim also owns entering/leaving task management.
+        ' Capture before ApplyDownloadView settles the horizontal card clocks
+        ' or expands/collapses the sidebar and toolbar for the new page.
+        If ((previous = DownloadView.Modpacks) Xor (view = DownloadView.Modpacks)) OrElse
+            ((previous = DownloadView.Progress) Xor (view = DownloadView.Progress)) Then
             Dim outgoing = DownloadContent(previous), incoming = DownloadContent(view)
             _categoryMotion.Change(outgoing, incoming, Sub() ApplyDownloadView(view, previous),
                 compositeExit:=HasPackContentMotion() OrElse _pageSwitch.HasMotion)
@@ -694,7 +698,8 @@ Partial Public Class MainWindow
         End Select
     End Function
     Private Sub ApplyDownloadView(view As DownloadView, previous As DownloadView)
-        ' SetDownloadView captures an active pack animation before reaching here.
+        ' SetDownloadView captures the displayed outgoing frame before retiring
+        ' either pack-content or horizontal installation-page motion here.
         If previous = DownloadView.Modpacks AndAlso view <> DownloadView.Modpacks Then FinishPackContentMotion()
         If view = DownloadView.Progress AndAlso previous <> DownloadView.Progress Then _progressReturnView = previous
         If view = DownloadView.Versions OrElse view = DownloadView.Install Then _vanillaView = view

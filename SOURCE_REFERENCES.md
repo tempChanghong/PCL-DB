@@ -823,6 +823,12 @@ PCL-CE、Prism 的代码用于比较原版数据及实例组织；HMCL 另辅助
 
 PCL-DB 对 ID 0 使用已有默认蓝色、ID 1–5 使用已有对应近似预设；实验性外观限制继续生效。ID 6–14 及未知 ID 保留可识别名称/编号，但回退本机外观。500 ms 后台采样、两次一致确认及绑定代次保护属于本程序的跨进程只读适配，不是 PCL 暴露的 API。规范化源码及摘要在 `artifacts/follow-pcl-theme/source/`、`source.json`，实现范围见 `docs/reviews/follow-pcl-theme.md`。
 
+## 安装与任务页之间的切换动画
+
+本轮继续读取固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`FormMain.xaml.vb` 的 TaskManager 路由和 `PageChangeAnim`，以及 `Controls/MyPageRight.vb` 的 `TriggerEnterAnimation` / `TriggerExitAnimation`。任务页使用通用页面切换：退出后 110 ms 换页，再等 30 ms 入场；卡片淡出 70 ms、上移 6 DIP、间隔 15 ms，入场从 -16 DIP 开始，并行执行 250 ms Fluent 与 350 ms Back、间隔 25 ms。
+
+PCL-DB 已有对应的 `PclSurfaceMotion`、曲线和冻结退出层，本轮仅将原版安装/浏览与任务页的两个遗漏方向接入该所有者，保留水平选择页与按钮动效的独立职责，不新建重复时钟实现。四份固定 Git 对象副本及摘要位于 `artifacts/task-progress-motion/source/`、`source.json`，说明见 `docs/reviews/task-page-motion.md`。
+
 ## 0.3 数据接口补充
 
 - [Fabric Meta](https://github.com/FabricMC/fabric-meta/blob/master/README.md)：读取版本专属 loader profile，合并 vanilla 参数并补全支持库。
