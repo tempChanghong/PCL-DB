@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 卡片悬停的颜色与时钟归属
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 MyCard.MouseEnter/MouseLeave、ModAnimation.AniType.Color 和 ModBase.MyColor：保留 90 ms、ARGB 通道插值，以及文字 Brush2/1、阴影 Object4/1 和 0.4/0.07 透明度。
+- 标题、箭头和阴影复用已有动画槽，重复目标不重启，完成、主题刷新及生命周期交接清理旧时钟；深色阴影不再误取文字色。保留折叠与页面动画独立归属，详见 [卡片悬停验证](docs/reviews/card-hover.md)。系统动画偏好与 WPF 生命周期处理是本工具适配。
+
 ## 分页按钮与缓存页面的输入归属
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 PageResource 分页按钮、ChangePage 与 MyPageRight 入退场命中门控，保留现有分页卡布局、滚动、加载及页面动画。

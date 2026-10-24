@@ -16,6 +16,15 @@ Namespace Controls
         Private ReadOnly _presenter As ContentPresenter
         Private ReadOnly _header As Grid
         Private ReadOnly _headerInfo As ContentPresenter
+        Private ReadOnly _hoverTitleInk As New SolidColorBrush()
+        Private ReadOnly _hoverArrowInk As New SolidColorBrush()
+        Private ReadOnly _hoverSlots As PclMotionSlot()
+        Friend ReadOnly Property HoverMotionPolicy As PclControlMotionPolicy
+        Friend ReadOnly Property HoverTransitions As AnimationClock()
+            Get
+                Return _hoverSlots.Select(Function(slot) slot.Clock).ToArray()
+            End Get
+        End Property
         Public Property BodyMargin As Thickness
             Get
                 Return _presenter.Margin
@@ -213,13 +222,13 @@ Namespace Controls
                                         End Sub
             AddHandler IsEnabledChanged, Sub() _headerPressed = False
             Children.Add(header)
+            _title.Foreground = _hoverTitleInk : _arrow.Fill = _hoverArrowInk
+            _hoverSlots = {New PclMotionSlot(_hoverTitleInk, SolidColorBrush.ColorProperty), New PclMotionSlot(_hoverArrowInk, SolidColorBrush.ColorProperty),
+                New PclMotionSlot(_shadow, PclDropShadow.ColorProperty), New PclMotionSlot(_shadow, OpacityProperty)}
+            HoverMotionPolicy = New PclControlMotionPolicy(Me, Sub() Hover(IsMouseOver, False))
             PclTheme.Watch(Me, Sub()
                                   _headerPressed = False
-                                  Dim active = IsMouseOver OrElse _header.IsKeyboardFocused
-                                  _title.SetResourceReference(TextBlock.ForegroundProperty, If(active, "ColorBrush2", "ColorBrush1"))
-                                  _arrow.SetResourceReference(Shapes.Path.FillProperty, If(active, "ColorBrush2", "ColorBrush1"))
-                                  _shadow.BeginAnimation(PclDropShadow.ColorProperty, Nothing)
-                                  _shadow.SetResourceReference(PclDropShadow.ColorProperty, If(active, "ColorObject4", "ColorObject1"))
+                                  Hover(IsMouseOver, False)
                               End Sub)
             AddHandler MouseEnter, Sub() Hover(True)
             AddHandler MouseLeave, Sub() Hover(False)
@@ -227,6 +236,7 @@ Namespace Controls
             AddHandler Unloaded, Sub() SettleMotion()
             AddHandler IsVisibleChanged, Sub() If Not IsVisible Then SettleMotion()
             AddHandler SizeChanged, AddressOf CardSizeChanged
+            Hover(False, False)
         End Sub
         Private _heightTransition As AnimationClock
         Private _heightTarget As Double = Double.NaN
@@ -314,12 +324,31 @@ Namespace Controls
         Private Sub UpdateShadowOffset(dpi As DpiScale)
             If _shadow IsNot Nothing Then _shadow.Margin = New Thickness(-3, -3, -3, -3 - 1 / dpi.DpiScaleY)
         End Sub
-        Private Sub Hover(inside As Boolean)
-            inside = inside OrElse _header.IsKeyboardFocused
-            ColorTo(_title, TextBlock.ForegroundProperty, Brush(If(inside, "ColorBrush2", "ColorBrush1")).Color, 90)
-            ColorTo(_arrow, Shapes.Path.FillProperty, Brush(If(inside, "ColorBrush2", "ColorBrush1")).Color, 90)
-            _shadow.BeginAnimation(PclDropShadow.ColorProperty, New ColorAnimation(Brush(If(inside, "ColorBrush4", "ColorBrush1")).Color, TimeSpan.FromMilliseconds(90)))
-            _shadow.BeginAnimation(OpacityProperty, New DoubleAnimation(If(inside, 0.4, 0.07), TimeSpan.FromMilliseconds(90)))
+        Private Sub Hover(inside As Boolean, Optional animate As Boolean = True)
+            If _hoverSlots Is Nothing Then Return
+            inside = HoverMotionPolicy.Interactive AndAlso (inside OrElse _header.IsKeyboardFocused)
+            animate = animate AndAlso HoverMotionPolicy.CanAnimate AndAlso Not PclTheme.Changing
+            Dim ink = Brush(If(inside, "ColorBrush2", "ColorBrush1")).Color
+            ChangeHoverColor(0, _hoverTitleInk.Color, ink, animate)
+            ChangeHoverColor(1, _hoverArrowInk.Color, ink, animate)
+            ' PCL MyCard uses ColorObject1/4 for shadows. ColorBrush1 is a
+            ' separate readable text color in dark mode, not the idle shadow.
+            ChangeHoverColor(2, _shadow.Color, DirectCast(FindResource(If(inside, "ColorObject4", "ColorObject1")), Color), animate)
+            Dim opacity = If(inside, 0.4, 0.07), slot = _hoverSlots(3)
+            Dim running = TryCast(slot.Clock?.Timeline, DoubleAnimation)
+            If Not animate Then
+                slot.SetValue(opacity)
+            ElseIf (running Is Nothing OrElse running.To <> opacity) AndAlso (slot.Clock IsNot Nothing OrElse _shadow.Opacity <> opacity) Then
+                slot.Animate(New DoubleAnimation(_shadow.Opacity, opacity, TimeSpan.FromMilliseconds(90)), opacity, HoverMotionPolicy.PauseForChecks)
+            End If
+        End Sub
+        Private Sub ChangeHoverColor(index As Integer, origin As Color, target As Color, animate As Boolean)
+            Dim slot = _hoverSlots(index), running = TryCast(slot.Clock?.Timeline, PclRadioColorAnimation)
+            If Not animate Then
+                slot.SetValue(target)
+            ElseIf (running Is Nothing OrElse running.Destination <> target) AndAlso (slot.Clock IsNot Nothing OrElse origin <> target) Then
+                slot.Animate(New PclRadioColorAnimation(origin, target, 90), target, HoverMotionPolicy.PauseForChecks)
+            End If
         End Sub
         Friend Function FocusHeader() As Boolean
             If Not Collapsible OrElse Not IsEnabled Then Return False
