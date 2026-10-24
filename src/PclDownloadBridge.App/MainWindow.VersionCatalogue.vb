@@ -1,6 +1,7 @@
 Imports System.Windows
 Imports System.Windows.Controls
 Imports PclDownloadBridge.Controls
+Imports PclDownloadBridge.Core
 
 Partial Public Class MainWindow
     Private Shared ReadOnly VersionCategories As String() = {"正式版", "预览版", "远古版", "愚人节版"}
@@ -79,6 +80,7 @@ Partial Public Class MainWindow
         Return New PclLazyRow(Function()
                                   Dim row As New PclListItem With {.Title = entry.DisplayId, .Height = 42, .Info = entry.Description(latest), .InfoTag = entry.SourceTag, .Logo = entry.Icon, .Tag = entry.Entry}
                                   AddHandler row.Click, Sub(sender, args)
+                                                            If Not CanSelectVersionRow(row, entry.Entry) Then Return
                                                             Dim keyboard = TypeOf args Is Input.KeyEventArgs
                                                             _keyboardVersionReturn = If(keyboard, New WeakReference(Of PclListItem)(row), Nothing)
                                                             SelectVersion(entry.Entry)
@@ -86,5 +88,16 @@ Partial Public Class MainWindow
                                                         End Sub
                                   Return row
                               End Function)
+    End Function
+
+    Private Function CanSelectVersionRow(row As PclListItem, entry As VersionEntry) As Boolean
+        If _closing OrElse _busy OrElse _choosingOnline OrElse _downloadView <> DownloadView.Versions OrElse
+            DownloadPage.Visibility <> Visibility.Visible OrElse VersionPage.Visibility <> Visibility.Visible OrElse
+            Not PageSurface.IsEnabled OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible OrElse
+            Not row.IsEnabled OrElse Not row.IsHitTestVisible OrElse row.Visibility <> Visibility.Visible OrElse
+            Not _versions.Any(Function(candidate) candidate Is entry) Then Return False
+        Dim body = TryCast(row.Parent, StackPanel)
+        Return body IsNot Nothing AndAlso VersionCards.Children.OfType(Of PclCard)().Any(
+            Function(card) card.Body Is body AndAlso Not card.Collapsed AndAlso Not card.HasDeferredBodyRefresh AndAlso card.Visibility = Visibility.Visible)
     End Function
 End Class

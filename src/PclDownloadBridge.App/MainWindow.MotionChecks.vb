@@ -12,6 +12,7 @@ Partial Public Class MainWindow
                                                      If Not ok Then Throw New InvalidOperationException(label)
                                                      passed.Add(label)
                                                  End Sub
+        VerifyVersionRowOwnership(directory, check)
         VerifyCardGestureOwnership(directory, check)
         VerifyScrollInteractionOwnership(directory, check)
         For Each time In {0.0, 35, 100, 175, 250, 350}

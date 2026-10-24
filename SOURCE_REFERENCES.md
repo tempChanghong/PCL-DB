@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 原版版本行与折叠退场
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 MyCard、MyPageRight 与 PageDownloadInstall：原版列表绑定版本 Tag，使用延迟构建和 Lambda 转发点击，退场控件不再接收操作。保留本工具已有的卡片几何、折叠/页面曲线、版本名/数据绑定与键盘返回。
+- 原版版本行点击前核对当前页面、输入门控、版本对象和仍展开的当前卡片，避免旧行在折叠退场、清单替换后进入安装页。有效缓存和补充版本增量插入继续允许选择，不依赖加载代次一刀切作废。详见 [归属验证](docs/reviews/vanilla-row-ownership.md)；这是本工具异步清单的补充防护，不宣称固定 PCL 有相同校验函数。
+
 ## 纵向静态滚动与动画模式交接
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 MyScrollViewer、PageDownloadInstall 和 PageDownloadCompDetail，保留正常的 300 ms 六次方缓动、嵌套控件路由和页面几何。原版以 RealOffset 累积增量并同步原生位置；本工具关闭平滑滚动或系统动画后的静态分支也需保留每次输入。

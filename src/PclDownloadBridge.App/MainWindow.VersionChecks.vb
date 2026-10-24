@@ -30,6 +30,10 @@ Partial Public Class MainWindow
     Private Sub VerifyVersionBrowser(check As Action(Of Boolean, String))
         Dim saved = _versions
         Try
+            ' Exercise a visible browser row; a queued hidden row now correctly
+            ' lacks authority to replace an existing installation form.
+            SwitchMainPage(False) : SetDownloadView(DownloadView.Versions)
+            _surfaceMotion.Finish() : _pageSwitch.Finish()
             Dim older = BrowserEntry("1.20.1", "release", "2023-06-12T12:00:00Z")
             Dim newer = BrowserEntry("1.21.1", "release", "2024-08-08T12:00:00Z")
             Dim snapshot = BrowserEntry("24w33a", "snapshot", "2024-08-14T12:00:00Z")
@@ -47,6 +51,7 @@ Partial Public Class MainWindow
             BrowserRows("正式版").Last().Activate()
             check(_selectedEntry Is corrected AndAlso _selectedEntry.Kind = "snapshot" AndAlso DirectCast(SelectedVersionIcon.Source, System.Windows.Media.Imaging.BitmapImage).UriSource.OriginalString.EndsWith("/Grass.png", StringComparison.Ordinal), "selecting a corrected release retains raw metadata and uses the corrected grass icon")
 
+            SetDownloadView(DownloadView.Versions) : _pageSwitch.Finish()
             Dim knownIds = {"20w14infinite", "20w14∞", "3D Shareware v1.34", "1.RV-Pre1", "15w14a", "2.0", "22w13oneblockatatime", "23w13a_or_b", "24w14potato", "25w14craftmine", "26w14a"}
             _versions = knownIds.Select(Function(id, i) BrowserEntry(id, "snapshot", (2000 + i).ToString() & "-03-29T12:00:00Z")).ToList()
             Dim identities = _versions.Select(Function(v) v.Id & "|" & v.Kind & "|" & v.Url & "|" & v.Sha1 & "|" & v.Released.ToString("O")).ToArray()
