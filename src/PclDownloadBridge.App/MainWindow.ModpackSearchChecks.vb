@@ -387,6 +387,7 @@ Partial Public Class MainWindow
         Await VerifySearchEntryOwnershipAsync(directory, layout, check)
         Await VerifyPagingEntryOwnershipAsync(directory, layout, check)
         Await VerifyDetailCardHoverAsync(directory, host, layout, check)
+        VerifyDetailCardArrow(directory, host, layout, check)
     End Function
     Private Shared Async Function WaitPackUiAsync(condition As Func(Of Boolean)) As Task
         Dim clock = System.Diagnostics.Stopwatch.StartNew()

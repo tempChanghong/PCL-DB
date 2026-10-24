@@ -16,6 +16,13 @@ Namespace Controls
         Private ReadOnly _presenter As ContentPresenter
         Private ReadOnly _header As Grid
         Private ReadOnly _headerInfo As ContentPresenter
+        Private ReadOnly _arrowMotion As PclMotionSlot
+        Friend Property PauseArrowForChecks As Boolean
+        Friend ReadOnly Property ArrowTransition As AnimationClock
+            Get
+                Return _arrowMotion.Clock
+            End Get
+        End Property
         Private ReadOnly _hoverTitleInk As New SolidColorBrush()
         Private ReadOnly _hoverArrowInk As New SolidColorBrush()
         Private ReadOnly _hoverSlots As PclMotionSlot()
@@ -65,6 +72,7 @@ Namespace Controls
                 Return _swapLogoRight
             End Get
             Set(value As Boolean)
+                If _swapLogoRight = value Then Return
                 _swapLogoRight = value
                 SettleArrow()
             End Set
@@ -165,10 +173,10 @@ Namespace Controls
                 End If
                 Dim rotation = DirectCast(_arrow.RenderTransform, RotateTransform)
                 If IsLoaded AndAlso IsVisible AndAlso changed Then
-                    rotation.BeginAnimation(RotateTransform.AngleProperty, PclCardMotion.ArrowTransition(rotation.Angle, If(value, If(SwapLogoRight, 270, 0), 180)))
+                    Dim target = If(value, If(SwapLogoRight, 270.0, 0.0), 180.0)
+                    _arrowMotion.Animate(PclCardMotion.ArrowTransition(rotation.Angle, target), target, PauseArrowForChecks)
                 Else
-                    rotation.BeginAnimation(RotateTransform.AngleProperty, Nothing)
-                    rotation.Angle = If(value, If(SwapLogoRight, 270, 0), 180)
+                    SettleArrow()
                 End If
                 RaiseEvent FoldChanged(Me, EventArgs.Empty)
             End Set
@@ -200,7 +208,8 @@ Namespace Controls
             _title = New TextBlock With {.Margin = New Thickness(15, 12, 0, 0), .FontSize = 13, .FontWeight = FontWeights.Bold, .Foreground = Brush("ColorBrush1"), .IsHitTestVisible = False}
             header.Children.Add(_title)
             _title.SetResourceReference(TextBlock.ForegroundProperty, "ColorBrush1")
-            _arrow = New Shapes.Path With {.Data = Geometry.Parse("M2,4 l-2,2 10,10 10,-10 -2,-2 -8,8 -8,-8 z"), .Stretch = Stretch.Uniform, .Height = 6, .Width = 10, .Margin = New Thickness(0, 17, 16, 0), .VerticalAlignment = VerticalAlignment.Top, .HorizontalAlignment = HorizontalAlignment.Right, .Fill = Brush("ColorBrush1"), .RenderTransform = New RotateTransform(), .RenderTransformOrigin = New Point(0.5, 0.5), .Visibility = Visibility.Collapsed}
+            _arrow = New Shapes.Path With {.Data = Geometry.Parse("M2,4 l-2,2 10,10 10,-10 -2,-2 -8,8 -8,-8 z"), .Stretch = Stretch.Uniform, .Height = 6, .Width = 10, .Margin = New Thickness(0, 17, 16, 0), .VerticalAlignment = VerticalAlignment.Top, .HorizontalAlignment = HorizontalAlignment.Right, .Fill = Brush("ColorBrush1"), .RenderTransform = New RotateTransform(180), .RenderTransformOrigin = New Point(0.5, 0.5), .Visibility = Visibility.Collapsed}
+            _arrowMotion = New PclMotionSlot(DirectCast(_arrow.RenderTransform, RotateTransform), RotateTransform.AngleProperty)
             header.Children.Add(_arrow)
             _arrow.SetResourceReference(Shapes.Path.FillProperty, "ColorBrush1")
             _headerInfo = New ContentPresenter With {.Margin = New Thickness(132, 0, 35, 0)}
@@ -293,9 +302,7 @@ Namespace Controls
             _presenter.CoerceValue(IsEnabledProperty)
         End Sub
         Private Sub SettleArrow()
-            Dim rotation = DirectCast(_arrow.RenderTransform, RotateTransform)
-            rotation.BeginAnimation(RotateTransform.AngleProperty, Nothing)
-            rotation.Angle = If(_collapsed, If(SwapLogoRight, 270, 0), 180)
+            _arrowMotion.SetValue(If(_collapsed, If(SwapLogoRight, 270.0, 0.0), 180.0))
         End Sub
         Private Sub SettleMotion()
             If _heightTransition IsNot Nothing Then

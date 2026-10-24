@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 卡片箭头的初始化与旋转替换
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 MyCard.Init / IsSwapped 和 ModAnimation.AaRotateTransform / AniEaseOutFluent，修正默认展开卡片的初始方向，保留 180°/0°/270° 状态及 250 ms ExtraStrong 曲线。
+- 旋转复用已有动画槽，自然完成、隐藏和卸载释放旧时钟，快速反向从显示值起步；重复方向属性不打断当前动画。保留独立高度、悬停与页面动画，详见 [卡片箭头验证](docs/reviews/card-arrow.md)。这是既有 WPF 适配的完善。
+
 ## 卡片悬停的颜色与时钟归属
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 MyCard.MouseEnter/MouseLeave、ModAnimation.AniType.Color 和 ModBase.MyColor：保留 90 ms、ARGB 通道插值，以及文字 Brush2/1、阴影 Object4/1 和 0.4/0.07 透明度。
