@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## PCL 核心样式与图标文字动画
+
+- 界面布局、控件和动画以 PCL2 为核心，PCL-CE 仅作补充参考。重新读取固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 MyIconTextButton.xaml(.vb)、ModAnimation.AaColor、ModBase.MyColor 和 PageDownloadCompDetail，校正默认无描边、网站高亮、自然图标比例、150 ms 移出及按压时背景/文字的独立动画。
+- 复用已实现的 PCL ARGB 字节线性颜色动画，实际中间帧与旧时钟替换检查见 [还原记录](docs/reviews/pcl-action-parity.md)。保留已确认的搜索分层和线性导入图标，不调整搜索或安装内核。
+
 ## 提示条明暗、分层搜索与紧凑操作
 
 - 主要依据固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `Controls/MyHint`、`MySearchBox` 和 `MyIconTextButton`：保留浅色提示原值、40 DIP 搜索框、90 ms 清空过渡和 27 DIP 图标文字按钮；再对照 CE `915ac29795efbdf6373417389e181e1504117048` 的 `PageComp.xaml`、`PageDownloadCompDetail.xaml`、`MyHint.xaml.cs` 及 `ToneProfileConfig.cs`，适配深色语义色、搜索/筛选分层与详情次要操作。

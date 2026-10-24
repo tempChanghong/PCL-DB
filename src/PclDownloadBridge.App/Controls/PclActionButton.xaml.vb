@@ -8,11 +8,20 @@ Imports System.Windows.Automation.Peers
 Imports System.Windows.Automation.Provider
 
 Namespace Controls
-    ' PCL/CE MyIconTextButton's 27px geometry and 70/100/200ms color states,
+    ' Fixed PCL MyIconTextButton's 27px geometry and independent 70/100/150ms color states,
     ' with native Button keyboard/automation and the bridge's lifecycle policy.
     Partial Public Class PclActionButton
         Public Shared ReadOnly TextProperty As DependencyProperty = DependencyProperty.Register("Text", GetType(String), GetType(PclActionButton), New PropertyMetadata(""))
         Public Shared ReadOnly LogoProperty As DependencyProperty = DependencyProperty.Register("Logo", GetType(Geometry), GetType(PclActionButton), New PropertyMetadata(Nothing))
+        Public Shared ReadOnly HighlightProperty As DependencyProperty = DependencyProperty.Register("Highlight", GetType(Boolean), GetType(PclActionButton), New PropertyMetadata(False, Sub(owner, change) DirectCast(owner, PclActionButton).RefreshColors(False)))
+        Public Property Highlight As Boolean
+            Get
+                Return CBool(GetValue(HighlightProperty))
+            End Get
+            Set(value As Boolean)
+                SetValue(HighlightProperty, value)
+            End Set
+        End Property
         Public Shared ReadOnly OutlinedLogoProperty As DependencyProperty = DependencyProperty.Register("OutlinedLogo", GetType(Boolean), GetType(PclActionButton), New PropertyMetadata(False))
         Public Property OutlinedLogo As Boolean
             Get
@@ -85,13 +94,14 @@ Namespace Controls
             If _inkMotion Is Nothing Then Return
             Dim active = MotionPolicy.Interactive AndAlso (IsMouseOver OrElse IsKeyboardFocused)
             Dim pressed = active AndAlso IsPressed AndAlso (_mouseDown OrElse _spaceDown)
-            Dim ink = PclAnimation.Brush(If(Not IsEnabled, "ColorBrushGray5", If(active, "ColorBrush3", "ColorBrush1"))).Color
+            Dim ink = PclAnimation.Brush(If(Not IsEnabled, "ColorBrushGray5", If(active OrElse Highlight, "ColorBrush3", "ColorBrush1"))).Color
             Dim fill = PclAnimation.Brush(If(pressed, "ColorBrush6", If(active, "ColorBrushBg1", "ColorBrushSemiTransparent"))).Color
-            SetResourceReference(BorderBrushProperty, "ColorBrush6")
             If animate AndAlso MotionPolicy.CanAnimate AndAlso Not PclTheme.Changing Then
-                Dim duration = TimeSpan.FromMilliseconds(If(pressed, 70, If(active, 100, 200)))
-                _inkMotion.Animate(New ColorAnimation(ink, duration), ink, MotionPolicy.PauseForChecks)
-                _fillMotion.Animate(New ColorAnimation(fill, duration), fill, MotionPolicy.PauseForChecks)
+                Dim duration = If(pressed, 70, If(active, 100, 150))
+                ' PCL's pressed branch changes only the background. Leave the
+                ' in-flight hover ink running at its original speed and origin.
+                If Not pressed Then _inkMotion.Animate(New PclRadioColorAnimation(_ink.Color, ink, duration), ink, MotionPolicy.PauseForChecks)
+                _fillMotion.Animate(New PclRadioColorAnimation(_fill.Color, fill, duration), fill, MotionPolicy.PauseForChecks)
             Else
                 _inkMotion.SetValue(ink) : _fillMotion.SetValue(fill)
             End If

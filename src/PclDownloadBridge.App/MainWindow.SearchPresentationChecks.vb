@@ -57,8 +57,8 @@ Partial Public Class MainWindow
                 SeekControl(old, 50) : ControlPointer(button, False)
                 Dim replacement = button.FillTransition
                 old.Controller.SkipToFill() : layout()
-                check(replacement Is button.FillTransition AndAlso replacement.Timeline.Duration.TimeSpan.TotalMilliseconds = 200, "retired compact hover cannot overwrite a newer leave transition")
-                SeekControl(replacement, 201)
+                check(replacement Is button.FillTransition AndAlso replacement.Timeline.Duration.TimeSpan.TotalMilliseconds = 150, "retired compact hover preserves PCL's hundred-and-fifty-millisecond leave transition")
+                SeekControl(replacement, 151)
                 check(button.FillTransition Is Nothing, "compact leave removes its completed color clock")
                 ControlPointer(button, True) : ControlKey(button, Key.Space, True)
                 check(button.FillTransition IsNot Nothing AndAlso button.FillTransition.Timeline.Duration.TimeSpan.TotalMilliseconds = 70, "compact held Space uses the source seventy-millisecond pressed color")
@@ -172,7 +172,9 @@ Partial Public Class MainWindow
             check(_categoryMotion.Transition Is returning AndAlso returning IsNot oldPage AndAlso _packMode = PackBrowserMode.Search, "old page and clear clocks cannot replace a rapid animated return")
             _categoryMotion.Finish() : layout()
             check(_searchClearMotion.Clock Is Nothing AndAlso PackSearchText.Text = "取消旧动画" AndAlso PackSearchClear.Opacity = 1, "rapid search return restores current content without stale animation or automatic query")
-            check(PackProjectWebsite.Height = 27 AndAlso PackProjectCopy.Height = 27 AndAlso Double.IsNaN(PackProjectWebsite.Width) AndAlso PackProjectWebsite.Logo IsNot Nothing AndAlso PackProjectCopy.Logo IsNot Nothing, "detail secondary actions use content-sized twenty-seven-DIP icon buttons")
+            check(PackProjectWebsite.Height = 27 AndAlso PackProjectCopy.Height = 27 AndAlso Double.IsNaN(PackProjectWebsite.Width) AndAlso PackProjectWebsite.Logo IsNot Nothing AndAlso PackProjectCopy.Logo IsNot Nothing AndAlso
+                PackProjectWebsite.Highlight AndAlso Not PackProjectCopy.Highlight AndAlso PackProjectWebsite.BorderThickness.Equals(New Thickness(0)) AndAlso PackProjectCopy.BorderThickness.Equals(New Thickness(0)),
+                "detail actions preserve PCL's highlighted website, neutral copy and borderless compact layout")
             check(_taskGeneration = generation AndAlso _packSearchSession Is session AndAlso _packLastQuery = accepted, "presentation changes preserve task identity and accepted query ownership")
         Finally
             PageSurface.IsHitTestVisible = True

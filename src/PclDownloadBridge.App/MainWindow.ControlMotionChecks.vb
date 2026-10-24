@@ -19,6 +19,7 @@ Partial Public Class MainWindow
         Dim saved = _appearance.ToJson()
         Try
             VerifyHintAndActionPresentation(directory, check)
+            VerifyPclActionColorOwnership(directory, check)
             VerifyResourceRowMotion(directory, check)
             VerifyCapsuleRadioMotion(directory, check)
             VerifyRadioCurves(check)

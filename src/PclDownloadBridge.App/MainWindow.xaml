@@ -189,7 +189,7 @@
                         <TextBlock x:Name="PackProjectTitle" Visibility="Collapsed"/>
                         <TextBlock x:Name="PackProjectDescription" Visibility="Collapsed"/>
                         <WrapPanel x:Name="PackProjectActions">
-                          <p:PclActionButton x:Name="PackProjectWebsite" Text="转到项目页面" Logo="{Binding Source={StaticResource IconResourceSource}}" Margin="0,0,8,0" Click="OpenPackProjectWebsite"/>
+                          <p:PclActionButton x:Name="PackProjectWebsite" Text="转到项目页面" Highlight="True" Logo="{Binding Source={StaticResource IconResourceSource}}" Margin="0,0,8,0" Click="OpenPackProjectWebsite"/>
                           <p:PclActionButton x:Name="PackProjectCopy" Text="复制名称" Logo="M320 80H864V704H752V192H320ZM160 288H656V944H160ZM272 400V832H544V400Z" Click="CopyPackProjectName"/>
                         </WrapPanel>
                         <TextBlock x:Name="PackProjectActionStatus" Visibility="Collapsed" FontSize="12" Opacity="0.75" TextWrapping="Wrap" Margin="0,8,0,0" AutomationProperties.LiveSetting="Polite"/>

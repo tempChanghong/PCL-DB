@@ -1,12 +1,12 @@
 <Button x:Class="Controls.PclActionButton" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:p="clr-namespace:PclDownloadBridge.Controls" Height="27" HorizontalAlignment="Left"
-        FocusVisualStyle="{x:Null}" Cursor="Hand" Background="{StaticResource ColorBrushSemiTransparent}" FontFamily="{StaticResource PclFont}" FontSize="13"
+        FocusVisualStyle="{x:Null}" Cursor="Hand" BorderThickness="0" Background="{StaticResource ColorBrushSemiTransparent}" FontFamily="{StaticResource PclFont}" FontSize="13"
         AutomationProperties.Name="{Binding Text, RelativeSource={RelativeSource Self}}">
   <Button.Template>
     <ControlTemplate TargetType="p:PclActionButton">
-      <Border CornerRadius="13.5" BorderThickness="1" BorderBrush="{TemplateBinding BorderBrush}" Background="{TemplateBinding Background}">
+      <Border CornerRadius="13.5" BorderThickness="{TemplateBinding BorderThickness}" BorderBrush="{TemplateBinding BorderBrush}" Background="{TemplateBinding Background}">
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-          <Path x:Name="ActionIcon" Width="16" Height="16" Margin="12,0,0,0" Stretch="Uniform" IsHitTestVisible="False"
+          <Path x:Name="ActionIcon" MaxWidth="16" MaxHeight="16" Margin="12,0,0,0" Stretch="Uniform" VerticalAlignment="Center" IsHitTestVisible="False"
                 Data="{Binding Logo, RelativeSource={RelativeSource TemplatedParent}}" Fill="{TemplateBinding Foreground}" Stroke="{TemplateBinding Foreground}"
                 StrokeThickness="0" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
           <TextBlock Text="{Binding Text, RelativeSource={RelativeSource TemplatedParent}}" Foreground="{TemplateBinding Foreground}"

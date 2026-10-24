@@ -2,7 +2,7 @@
 
 VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载补全工具，简称 PCL-DB。最新发布为 **Beta 3.0**（`3.0.0-beta.1`），包含 CurseForge 版本列表修复、历史特供版本、统一隔离设置及界面动画优化。[Beta 3.0 发布说明](docs/releases/3.0.0-beta.1.md)。
 
-以 PCL2 限制前代码为主要参照，读取 PCL 使用的 `.minecraft`，安装结果使用 PCL 能读取的版本目录格式。原五个启动器仓库不需要修改。
+界面布局、控件与动画以 PCL2 限制前源码为核心，PCL-CE 仅作补充参考。读取 PCL 使用的 `.minecraft`，安装结果使用 PCL 能读取的版本目录格式。原五个启动器仓库不需要修改。
 
 当前源码的「设置 → 外部启动器」支持 PCL、HMCL、PCL-CE 多份位置及目录配置的只读绑定，安装任务冻结来源、配置位置与目标路径。HMCL / PCL-CE 已接入原生隔离、组件、CurseForge / Modrinth 整合包及同版本原版补全；已有实例配置保持不变。[接入范围与验证](docs/reviews/external-launcher-native-isolation.md)。
 
