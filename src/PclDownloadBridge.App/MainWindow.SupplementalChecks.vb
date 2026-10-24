@@ -25,7 +25,7 @@ Partial Public Class MainWindow
             Await loading
             results("normalRowRetained") = BrowserRows("正式版").Single() Is originalRow
             Dim blueRow = BrowserRows("愚人节版").First()
-            results("categoriesAndLatest") = blueRow.Tag Is blue AndAlso blueRow.Info.StartsWith("[PCL-DB 特供] ", StringComparison.Ordinal) AndAlso BrowserRows("愚人节版").Any(Function(row) row.Tag Is red) AndAlso
+            results("categoriesAndLatest") = blueRow.Tag Is blue AndAlso blueRow.InfoTag = "UVMC 特供下载" AndAlso BrowserRows("愚人节版").Any(Function(row) row.Tag Is red) AndAlso
                 BrowserRows("愚人节版").Any(Function(row) row.Tag Is purple) AndAlso BrowserRows("愚人节版").Select(Function(row) row.Info).Distinct().Count() = 3 AndAlso
                 BrowserRows("特供版本").Count = 0 AndAlso BrowserRows("远古版").Count = 0 AndAlso BrowserRows("预览版").Count = 0 AndAlso BrowserRows("最新版本").Single().Tag Is normal
             AddSupplementalVersionCards()
@@ -43,8 +43,9 @@ Partial Public Class MainWindow
                 Dim snapshot = entry.Copy(), row = BrowserRows("愚人节版").Single(Function(item) item.Tag Is entry)
                 row.Activate() : Await RefreshComponentListsAsync()
                 Dim detail = SupplementalVersions.VariantDescription(entry)
+                Dim colour = If(entry Is blue, "蓝色", If(entry Is red, "红色", "紫色"))
                 If _selectedEntry IsNot entry OrElse row.Title <> names(entry.Id) OrElse InstanceName.Text <> names(entry.Id) OrElse SelectedVersionText.Text <> names(entry.Id) OrElse
-                    String.IsNullOrEmpty(detail) OrElse row.Info <> "[PCL-DB 特供] 2013 | APRIL FOOLS! | " & detail OrElse Not ComponentHint.Text.Contains(detail) OrElse
+                    String.IsNullOrEmpty(detail) OrElse row.InfoTag <> "UVMC 特供下载" OrElse row.Info <> "2013 | 这个秘密计划了两年的更新将游戏推向了一个新高度！（" & colour & "版本）" OrElse Not ComponentHint.Text.Contains(detail) OrElse
                     entry.Id <> snapshot.Id OrElse entry.SupplementalId <> snapshot.SupplementalId OrElse entry.Url <> snapshot.Url OrElse entry.Sha1 <> snapshot.Sha1 OrElse entry.Kind <> snapshot.Kind OrElse entry.Released <> snapshot.Released OrElse
                     _componentRequests.Count <> 0 OrElse _componentSelection.Entries.Count <> 0 Then Throw New InvalidOperationException("Colour variant selection changed identity or retained another variant's explanation.")
             Next

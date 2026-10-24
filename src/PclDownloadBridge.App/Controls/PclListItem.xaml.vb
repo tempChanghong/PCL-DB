@@ -38,6 +38,8 @@ Namespace Controls
         Private ReadOnly _info As TextBlock
         Private ReadOnly _background As Border
         Private ReadOnly _check As Border
+        Private _infoTag As Border
+        Private _infoTagText As TextBlock
         Private _logo As FrameworkElement
         Private _selected As Boolean
         Private _down As Boolean
@@ -94,6 +96,35 @@ Namespace Controls
                 _info.Text = value
                 _info.Visibility = If(String.IsNullOrEmpty(value), Visibility.Collapsed, Visibility.Visible)
                 RefreshMetrics()
+            End Set
+        End Property
+        ' CE MyListItem.PanTags / Tags: a separate auto-sized gray label before
+        ' LabInfo. Add its column lazily so ordinary PCL rows retain their layout.
+        Public Property InfoTag As String
+            Get
+                Return If(_infoTagText?.Text, "")
+            End Get
+            Set(value As String)
+                value = If(value, "")
+                If value = InfoTag Then Return
+                If value.Length = 0 Then
+                    Children.Remove(_infoTag)
+                    ColumnDefinitions.RemoveAt(3)
+                    SetColumnSpan(LabTitle, 1) : SetColumn(_info, 3) : SetColumnSpan(_background, 5)
+                    _infoTag = Nothing : _infoTagText = Nothing
+                    Return
+                End If
+                If _infoTag Is Nothing Then
+                    ColumnDefinitions.Insert(3, New ColumnDefinition With {.Width = GridLength.Auto})
+                    SetColumnSpan(LabTitle, 2) : SetColumn(_info, 4) : SetColumnSpan(_background, 6)
+                    _infoTagText = New TextBlock With {.FontSize = 11}
+                    _infoTagText.SetResourceReference(TextBlock.ForegroundProperty, "PclResourceTagInk")
+                    _infoTag = New Border With {.Child = _infoTagText, .Padding = New Thickness(3, 1, 3, 1), .CornerRadius = New CornerRadius(3),
+                        .Margin = New Thickness(3.5, 0, 0, 0), .VerticalAlignment = VerticalAlignment.Bottom, .IsHitTestVisible = False, .SnapsToDevicePixels = True, .UseLayoutRounding = False}
+                    _infoTag.SetResourceReference(Border.BackgroundProperty, "PclResourceTagBackground")
+                    SetColumn(_infoTag, 3) : SetRow(_infoTag, 2) : Children.Add(_infoTag)
+                End If
+                _infoTagText.Text = value
             End Set
         End Property
         Public Property Logo As String

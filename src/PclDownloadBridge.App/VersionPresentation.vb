@@ -9,6 +9,7 @@ Friend NotInheritable Class VersionPresentation
     Public ReadOnly Property Kind As String
     Public ReadOnly Property DisplayId As String
     Public ReadOnly Property Lore As String
+    Public ReadOnly Property SourceTag As String
 
     ' PCL McVersion.IsStandardFormat, including its prefix-based pre-release handling.
     Friend Shared Function IsStandardFormat(value As String) As Boolean
@@ -25,8 +26,13 @@ Friend NotInheritable Class VersionPresentation
         If value.IsSupplemental Then
             If SupplementalVersions.Label(value) = "愚人节版" Then Kind = "special"
             DisplayId = SupplementalVersions.DisplayName(value)
-            Dim detail = SupplementalVersions.VariantDescription(value)
-            Lore = "[PCL-DB 特供] " & If(detail IsNot Nothing, "2013 | APRIL FOOLS! | " & detail, If(Kind = "special", AprilFoolsLore(value.Id), value.Released.ToString("yyyy/MM/dd HH:mm")))
+            SourceTag = "UVMC 特供下载"
+            Lore = If(Kind = "special", AprilFoolsLore(value.Id), value.Released.ToString("yyyy/MM/dd HH:mm"))
+            Select Case value.Id
+                Case "2.0_blue" : Lore &= "（蓝色版本）"
+                Case "2.0_red" : Lore &= "（红色版本）"
+                Case "2.0_purple" : Lore &= "（紫色版本）"
+            End Select
             Return
         End If
         If Kind <> "snapshot" Then Return

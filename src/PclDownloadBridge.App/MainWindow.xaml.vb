@@ -345,6 +345,7 @@ Partial Public Class MainWindow
         VerifyCurseForge(check, artifactDirectory)
         VerifyModrinth(check, artifactDirectory)
         VerifyRowLayout(artifactDirectory, check)
+        VerifySupplementalTags(artifactDirectory, check)
         VerifySummaryLayout(artifactDirectory, check)
         VerifyExternalLauncherUi(artifactDirectory, check)
         Return checks

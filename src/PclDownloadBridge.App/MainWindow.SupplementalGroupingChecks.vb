@@ -117,7 +117,8 @@ Partial Public Class MainWindow
                     owner.BrowserRows("愚人节版").Select(Function(row) row.Tag).SequenceEqual(New Object() {officialFool, blue, purple}) AndAlso
                     owner.VersionCards.Children.OfType(Of PclCard)().Count() = 5 AndAlso
                     owner.VersionCards.Children.OfType(Of PclCard)().All(Function(card) Not {"特供版本", "远古版本补充", "历史快照补充"}.Any(Function(title) card.Title.StartsWith(title & " (", StringComparison.Ordinal))) AndAlso
-                    additions.All(Function(entry) New VersionPresentation(entry).Description(False).StartsWith("[PCL-DB 特供] ", StringComparison.Ordinal))
+                    additions.All(Function(entry) New VersionPresentation(entry).SourceTag = "UVMC 特供下载") AndAlso
+                    additions.All(Function(entry) owner.BrowserRows(New VersionPresentation(entry).Category).Single(Function(row) row.Tag Is entry).InfoTag = "UVMC 特供下载")
                 Dim before = body.Children.Cast(Of UIElement)().ToArray()
                 owner.AddSupplementalVersionCards() : layout()
                 result("mixedRepeatedMergeIsVisuallyIdempotent") = previewCard.Body Is body AndAlso before.SequenceEqual(body.Children.Cast(Of UIElement)()) AndAlso

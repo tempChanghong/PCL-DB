@@ -859,6 +859,10 @@ PCL-DB 自有的任务返回保留表单流程，改为把“保留安装视口�
 
 项目身份/代次失效、页面门控、卡片内反馈和异步延迟属于本程序适配；既有页面动画和安装任务继续各自管理。规范化 Git 对象与 SHA-256 在 `artifacts/project-action-recovery/source/`、`source.json`；详见 [项目操作验证](docs/reviews/project-action-recovery.md)。
 
+## UVMC 来源标签与 2.0 说明
+
+UVMC 来源标签另参见 [版本行对照](docs/reviews/uvmc-source-tags.md)：读取 CE `915ac29` 的 `Controls/MyListItem.xaml.cs`（PanTags / Tags）、`Pages/PageDownload/ModDownloadLib.cs`（来源标签）、`PCL.Core/Minecraft/McVersionClassifier.cs` 及 zh-CN 资源；结合固定 PCL 原版本行与 GetMcFoolName，保留本项目三色显示名和独立版本身份。源码副本与 SHA-256 存于 artifacts/uvmc-source-tag/source.json。
+
 ## 外部启动器目录接入第一批
 
 后续原生隔离适配见 [第二批报告](docs/reviews/external-launcher-native-isolation.md)：固定 PCL `5ef81e4` 的 PathIndie / ModModpack 为主线；核对 HMCL `0d20910` 的 computeRunDirectory、shouldIsolateNewInstance、LegacyGameSettingsMigrator、实例布局和 game patch；核对 CE `915ac29` 的 McInstance.PathIndie、Config 的 Local / Instance 来源和 YamlFileProvider 回退。本程序自行实现只读、有界的配置解析与暂存配置合并，不调用上游迁移写入服务。源码及摘要另存 artifacts/native-isolation/source.json。

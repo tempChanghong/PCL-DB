@@ -77,7 +77,7 @@ Partial Public Class MainWindow
 
     Private Function CreateVersionPlaceholder(entry As VersionPresentation, latest As Boolean) As PclLazyRow
         Return New PclLazyRow(Function()
-                                  Dim row As New PclListItem With {.Title = entry.DisplayId, .Height = 42, .Info = entry.Description(latest), .Logo = entry.Icon, .Tag = entry.Entry}
+                                  Dim row As New PclListItem With {.Title = entry.DisplayId, .Height = 42, .Info = entry.Description(latest), .InfoTag = entry.SourceTag, .Logo = entry.Icon, .Tag = entry.Entry}
                                   AddHandler row.Click, Sub(sender, args)
                                                             Dim keyboard = TypeOf args Is Input.KeyEventArgs
                                                             _keyboardVersionReturn = If(keyboard, New WeakReference(Of PclListItem)(row), Nothing)

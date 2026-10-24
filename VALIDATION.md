@@ -2,6 +2,11 @@
 
 日期：2026-10-24（北京时间）。当前发行版本为 PCL-DB Beta 3.0（`3.0.0-beta.1`）；下方保留各开发阶段的验证记录，其中的“未打包/未发布”描述对应当时的检查范围。
 
+## Beta 3.0 后续：UVMC 灰色来源标签（尚未发行）
+
+- 对照 PCL-CE `915ac29` 的 MyListItem.Tags、ModDownloadLib、McVersionClassifier 与中文资源，以及固定 PCL `5ef81e4` 的说明行和愚人节文案。补充版本使用独立的 `UVMC 特供下载` 灰色标签；三色 2.0 使用 2013 年“这个秘密计划了两年的更新将游戏推向了一个新高度！”说明和颜色后缀，保留原有英文颜色名称及安装提示中的功能差异。
+- 新增 11 项 WPF 检查，覆盖实际版本行、深色、窄宽省略和标签增删时的布局/动画保持。策略 `PCL-DB-checks/2026-10-24.31`：UI 1012 / motion 913。Core 补充版本检查及固定源码/验证契约另查，最终记录在 `artifacts/uvmc-source-tag/validation.json`。详见 [来源标签对照](docs/reviews/uvmc-source-tags.md)。未修改下载身份、源或安装内核，未打包、推送或发版。
+
 ## Beta 3.0 后续：外部启动器原生隔离第二批（尚未发行）
 
 - 参考固定 PCL、HMCL 与 PCL-CE 源码，接入 HMCL 新版实例 JSON / 旧 hmclversion.cfg 及 CE YAML / JSON / INI 隔离规则。开放组件、CurseForge / Modrinth 导入、在线归档交接和同版本原版补全；已有实例配置及外部全局设置只读。
