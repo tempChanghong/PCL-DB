@@ -13,6 +13,7 @@ Partial Public Class MainWindow
         Dim blue As New VersionEntry With {.Id = "2.0_blue", .SupplementalId = "2point0_blue", .Kind = "snapshot", .Released = DateTimeOffset.Parse("2035-04-01T12:00:00Z")}
         Dim red As New VersionEntry With {.Id = "2.0_red", .SupplementalId = "2point0_red", .Kind = "snapshot", .Released = blue.Released}
         Dim purple As New VersionEntry With {.Id = "2.0_purple", .SupplementalId = "2point0_purple", .Kind = "snapshot", .Released = blue.Released}
+        Dim names As New Dictionary(Of String, String) From {{"2.0_blue", "2.0 (Blue)"}, {"2.0_red", "2.0 (Red)"}, {"2.0_purple", "2.0 (Purple)"}}
         Try
             _versionProvider = Function(policy, token) Task.FromResult(New List(Of VersionEntry) From {normal})
             Dim pending = ListGate(Of VersionEntry)()
@@ -24,7 +25,7 @@ Partial Public Class MainWindow
             Await loading
             results("normalRowRetained") = BrowserRows("正式版").Single() Is originalRow
             Dim blueRow = BrowserRows("愚人节版").First()
-            results("categoriesAndLatest") = blueRow.Tag Is blue AndAlso blueRow.Info.StartsWith("[PCL-DB特供] ", StringComparison.Ordinal) AndAlso BrowserRows("愚人节版").Any(Function(row) row.Tag Is red) AndAlso
+            results("categoriesAndLatest") = blueRow.Tag Is blue AndAlso blueRow.Info.StartsWith("[PCL-DB 特供] ", StringComparison.Ordinal) AndAlso BrowserRows("愚人节版").Any(Function(row) row.Tag Is red) AndAlso
                 BrowserRows("愚人节版").Any(Function(row) row.Tag Is purple) AndAlso BrowserRows("愚人节版").Select(Function(row) row.Info).Distinct().Count() = 3 AndAlso
                 BrowserRows("特供版本").Count = 0 AndAlso BrowserRows("远古版").Count = 0 AndAlso BrowserRows("预览版").Count = 0 AndAlso BrowserRows("最新版本").Single().Tag Is normal
             AddSupplementalVersionCards()
@@ -42,8 +43,8 @@ Partial Public Class MainWindow
                 Dim snapshot = entry.Copy(), row = BrowserRows("愚人节版").Single(Function(item) item.Tag Is entry)
                 row.Activate() : Await RefreshComponentListsAsync()
                 Dim detail = SupplementalVersions.VariantDescription(entry)
-                If _selectedEntry IsNot entry OrElse InstanceName.Text <> SupplementalVersions.DisplayName(entry) OrElse SelectedVersionText.Text <> SupplementalVersions.DisplayName(entry) OrElse
-                    String.IsNullOrEmpty(detail) OrElse Not row.Info.Contains(detail) OrElse Not ComponentHint.Text.Contains(detail) OrElse
+                If _selectedEntry IsNot entry OrElse row.Title <> names(entry.Id) OrElse InstanceName.Text <> names(entry.Id) OrElse SelectedVersionText.Text <> names(entry.Id) OrElse
+                    String.IsNullOrEmpty(detail) OrElse row.Info <> "[PCL-DB 特供] 2013 | APRIL FOOLS! | " & detail OrElse Not ComponentHint.Text.Contains(detail) OrElse
                     entry.Id <> snapshot.Id OrElse entry.SupplementalId <> snapshot.SupplementalId OrElse entry.Url <> snapshot.Url OrElse entry.Sha1 <> snapshot.Sha1 OrElse entry.Kind <> snapshot.Kind OrElse entry.Released <> snapshot.Released OrElse
                     _componentRequests.Count <> 0 OrElse _componentSelection.Entries.Count <> 0 Then Throw New InvalidOperationException("Colour variant selection changed identity or retained another variant's explanation.")
             Next
@@ -129,7 +130,7 @@ Partial Public Class MainWindow
             _supplementalProvider = Function(policy, token) Task.FromResult(New List(Of VersionEntry) From {blue, red})
             Await LoadVersionsAsync(True)
             results("officialRdAndFoolsRetained") = BrowserRows("远古版").Single().Tag Is rd AndAlso Not rd.IsSupplemental AndAlso BrowserRows("愚人节版").Any(Function(row) row.Tag Is fool) AndAlso
-                BrowserRows("愚人节版").Count = 3 AndAlso BrowserRows("愚人节版").First().Title.Contains("2.0（蓝色版）") AndAlso BrowserRows("特供版本").Count = 0 AndAlso BrowserRows("战斗测试版").Count = 0 AndAlso BrowserRows("实验快照").Count = 0
+                BrowserRows("愚人节版").Count = 3 AndAlso BrowserRows("愚人节版").First().Title.Contains("2.0 (Blue)") AndAlso BrowserRows("特供版本").Count = 0 AndAlso BrowserRows("战斗测试版").Count = 0 AndAlso BrowserRows("实验快照").Count = 0
             Dim history As New List(Of VersionEntry)
             For Each id In SupplementalVersions.HistoricalAlphaIds.Concat(SupplementalVersions.HistoricalBetaIds).Concat(SupplementalVersions.HistoricalSnapshotIds)
                 history.Add(New VersionEntry With {.Id = id, .SupplementalId = id, .Kind = If(SupplementalVersions.HistoricalSnapshotIds.Contains(id), "snapshot", If(SupplementalVersions.HistoricalBetaIds.Contains(id), "old_beta", "old_alpha")), .Released = blue.Released})

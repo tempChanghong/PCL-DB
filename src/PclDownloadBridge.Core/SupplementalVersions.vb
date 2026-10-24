@@ -95,9 +95,9 @@ Public NotInheritable Class SupplementalVersions
 
     Public Shared Function DisplayName(entry As VersionEntry) As String
         Select Case entry.Id
-            Case "2.0_blue" : Return "2.0（蓝色版）"
-            Case "2.0_red" : Return "2.0（红色版）"
-            Case "2.0_purple" : Return "2.0（紫色版）"
+            Case "2.0_blue" : Return "2.0 (Blue)"
+            Case "2.0_red" : Return "2.0 (Red)"
+            Case "2.0_purple" : Return "2.0 (Purple)"
             Case Else : Return entry.Id
         End Select
     End Function
