@@ -39,4 +39,19 @@ Partial Public Class MainWindow
         FocusManager.SetFocusedElement(FocusManager.GetFocusScope(PackSearchText), PackSearchText)
         PackSearchText.Focus()
     End Sub
+
+    Private Function CanUsePackSearchInput(sender As Object) As Boolean
+        Dim source = TryCast(sender, UIElement)
+        Return Not _busy AndAlso Not _choosingOnline AndAlso Not _closing AndAlso _downloadView = DownloadView.Modpacks AndAlso
+            _packMode = PackBrowserMode.Search AndAlso _searchInputPolicy.Interactive AndAlso PageSurface.IsHitTestVisible AndAlso DownloadViewHost.IsHitTestVisible AndAlso
+            source IsNot Nothing AndAlso source.IsEnabled AndAlso source.IsVisible AndAlso source.IsHitTestVisible
+    End Function
+
+    Private Sub SubmitPackSearch(sender As Object, e As RoutedEventArgs)
+        If CanUsePackSearchInput(sender) Then RunPackSearch(sender, e)
+    End Sub
+
+    Private Sub ResetPackSearchFromUi(sender As Object, e As RoutedEventArgs)
+        If CanUsePackSearchInput(sender) Then ResetPackSearch(sender, e)
+    End Sub
 End Class

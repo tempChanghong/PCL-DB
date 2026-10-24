@@ -384,6 +384,7 @@ Partial Public Class MainWindow
         SaveControlVisual(host, Path.Combine(directory, "pack-search-minimum.png"))
         VerifySearchPresentation(directory, host, layout, check)
         Await VerifyPromptFocusAsync(directory, host, layout, check)
+        Await VerifySearchEntryOwnershipAsync(directory, layout, check)
     End Function
     Private Shared Async Function WaitPackUiAsync(condition As Func(Of Boolean)) As Task
         Dim clock = System.Diagnostics.Stopwatch.StartNew()

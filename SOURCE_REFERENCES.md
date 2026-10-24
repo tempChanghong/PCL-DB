@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 搜索与重置的界面入口
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 PageResource.StartNewSearch / EnterTrigger / ResetFilter 和 MyPageRight 的入退场命中门控。保留同一搜索流程、回车入口、重置草稿和缓存行为，以及已确认的搜索分层与动画。
+- 搜索按钮、回车和重置图标统一经当前搜索页/输入归属校验，再进入原有内部方法。隐藏的缓存搜索控件或尚未放行的页面不能因迟到输入替换查询或清空条件；内部自动搜索、分页与加载机制保持。详见 [搜索入口验证](docs/reviews/search-entry.md)，这是本工具复用缓存页面后的补充防护。
+
 ## 详情操作与模态输入交接
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 PageDownloadCompDetail 复制入口、ModBase.ClipboardSet 和 MyMsgInput：保留四次尝试、200 ms 间隔及现有输入框进退场。项目操作继续异步等待，不阻塞 WPF 线程。

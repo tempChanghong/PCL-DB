@@ -144,7 +144,7 @@
                         </p:PclTextBox>
                         <Path Width="14" Height="14" Margin="14,0,0,0" HorizontalAlignment="Left" IsHitTestVisible="False" Fill="{DynamicResource ColorBrush1}" Stretch="Uniform" Data="M675.9168 242.816C556.3008 123.2 362.4448 123.2 242.8288 242.816 123.2128 362.432 123.2128 556.288 242.8288 675.904 362.4448 795.52 556.3008 795.52 675.9168 675.904 795.5328 556.288 795.5328 362.432 675.9168 242.816ZM1000.7168 892.48C1030.6048 922.368 1030.6048 970.816 1000.7168 1000.704 970.8288 1030.656 922.3808 1030.656 892.4288 1000.704L730.0608 838.336C728.1408 836.416 727.4368 833.92 725.7728 831.872 546.3168 960.448 295.7568 945.408 134.5408 784.192-44.8512 604.8-44.8512 313.92 134.5408 134.528 313.9328-44.864 604.8128-44.864 784.2048 134.528 945.4208 295.744 960.4608 546.304 831.8848 725.76 833.9328 727.424 836.4288 728.128 838.3488 730.048L1000.7168 892.48Z"/>
                         <p:PclIconButton x:Name="PackSearchClear" Width="24" Height="24" Margin="0,0,70,0" HorizontalAlignment="Right" Theme="Neutral" LogoScale="0.75" Logo="F1 M2,0 L0,2 8,10 0,18 2,20 10,12 18,20 20,18 12,10 20,2 18,0 10,8 2,0Z" Opacity="0" IsHitTestVisible="False" IsEnabled="False" AutomationProperties.Name="清空搜索内容" ToolTip="清空搜索内容" Click="ClearPackSearchText"/>
-                        <p:PclButton x:Name="PackSearchButton" Text="搜索" Highlight="True" Width="60" Margin="0,4,4,4" HorizontalAlignment="Right" Click="RunPackSearch"/>
+                        <p:PclButton x:Name="PackSearchButton" Text="搜索" Highlight="True" Width="60" Margin="0,4,4,4" HorizontalAlignment="Right" Click="SubmitPackSearch"/>
                       </Grid>
                     </p:PclCard>
                     <p:PclCard x:Name="PackSearchFilters" ShowHeader="False" BodyMargin="20,15,20,15">
@@ -159,7 +159,7 @@
                           <TextBlock Text="版本" Grid.Row="2" VerticalAlignment="Center" Margin="0,0,18,0"/>
                           <p:PclComboBox x:Name="PackSearchGame" Grid.Row="2" Grid.Column="1" IsEditable="True" IsTextSearchEnabled="False"/>
                           <StackPanel Grid.Row="2" Grid.Column="3" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right">
-                            <p:PclIconButton x:Name="PackSearchReset" Width="28" Height="28" Margin="0,0,8,0" Theme="Neutral" Logo="M864 508C864 701 707 858 514 858C321 858 164 701 164 508C164 315 321 158 514 158C606 158 688 193 750 250L640 360H940V60L827 173C746 95 636 48 514 48C260 48 54 254 54 508C54 762 260 968 514 968C768 968 974 762 974 508Z" ToolTip="重置条件" AutomationProperties.Name="重置搜索条件" Click="ResetPackSearch"/>
+                            <p:PclIconButton x:Name="PackSearchReset" Width="28" Height="28" Margin="0,0,8,0" Theme="Neutral" Logo="M864 508C864 701 707 858 514 858C321 858 164 701 164 508C164 315 321 158 514 158C606 158 688 193 750 250L640 360H940V60L827 173C746 95 636 48 514 48C260 48 54 254 54 508C54 762 260 968 514 968C768 968 974 762 974 508Z" ToolTip="重置条件" AutomationProperties.Name="重置搜索条件" Click="ResetPackSearchFromUi"/>
                             <p:PclActionButton x:Name="PackSearchImport" Text="导入整合包" OutlinedLogo="True" Logo="M12 15V3 M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5" Click="OpenLocalPacks"/>
                           </StackPanel>
                         </Grid>

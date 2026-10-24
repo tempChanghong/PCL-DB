@@ -82,7 +82,7 @@ Partial Public Class MainWindow
     End Sub
     Private Sub PackSearchEnter(sender As Object, e As KeyEventArgs)
         If e.Key <> Key.Enter OrElse e.IsRepeat Then Return
-        e.Handled = True : RunPackSearch(sender, e)
+        e.Handled = True : SubmitPackSearch(sender, e)
     End Sub
     Private Sub ChangePackMode(mode As PackBrowserMode)
         If _packMode = mode Then Return
