@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 纵向静态滚动与动画模式交接
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 MyScrollViewer、PageDownloadInstall 和 PageDownloadCompDetail，保留正常的 300 ms 六次方缓动、嵌套控件路由和页面几何。原版以 RealOffset 累积增量并同步原生位置；本工具关闭平滑滚动或系统动画后的静态分支也需保留每次输入。
+- 静态分支复用现有目标与原生确认队列；门控、隐藏、卸载及指针/键盘/触摸接管均可撤销待确认请求。静态与动画切换先处理已接受的位移，不增加逐滚轮同步布局。详见 [静态滚动验证](docs/reviews/immediate-scroll.md)。这是本工具静态回退的补充，不宣称原版提供相同回退实现。
+
 ## 筛选栏连续滚轮与原生请求交接
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 MyScrollViewer 与 PageDownloadCompDetail.xaml(.vb)，保留单行筛选、分组、原版垂直滚动曲线和已确认的布局。PCL MyScrollViewer 按增量累积 RealOffset、逐步夹紧并以 ScrollChanged 同步实际位置；本工具横向溢出适配也需要区分待确认目标和已显示位置。

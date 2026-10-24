@@ -72,9 +72,9 @@ Namespace Controls
         End Sub
 
         Private Sub OffsetChanged(sender As Object, args As ScrollChangedEventArgs)
-            If Not ReferenceEquals(args.OriginalSource, Me) OrElse _clock Is Nothing Then Return
+            If Not ReferenceEquals(args.OriginalSource, Me) OrElse Double.IsNaN(_requestedOffset) Then Return
             If args.ViewportHeightChange <> 0 Then
-                StopScrolling()
+                StopInteractiveScrolling()
                 Return
             End If
             Dim layoutClamp = False
@@ -99,10 +99,13 @@ Namespace Controls
                     StopScrolling()
                 End If
             End If
+            If _clock Is Nothing AndAlso Math.Abs(VerticalOffset - _requestedOffset) < 0.5 Then
+                _requestedOffset = Double.NaN : _issuedOffsets.Clear()
+            End If
         End Sub
 
         Private Sub StopInteractiveScrolling()
-            Dim active = _clock IsNot Nothing, offset = VerticalOffset
+            Dim active = _clock IsNot Nothing OrElse Not Double.IsNaN(_requestedOffset), offset = VerticalOffset
             StopScrolling()
             ' Native scroll commands are queued. Replace the last issued tick,
             ' while preserving normal completion's final queued displacement.
@@ -121,15 +124,21 @@ Namespace Controls
 
         Friend Sub ScrollDelta(delta As Double)
             If Double.IsNaN(delta) OrElse Double.IsInfinity(delta) OrElse delta = 0 Then Return
-            If _issuedOffsets.Count > 0 Then UpdateLayout()
+            If _issuedOffsets.Count > 0 AndAlso (_clock IsNot Nothing OrElse (SmoothScrollingEnabled AndAlso MotionPolicy.CanAnimate)) Then UpdateLayout()
             ' A native acknowledgement can change page/modal ownership while
             ' UpdateLayout runs; validate the owner again before any displacement.
             If Not MotionPolicy.Interactive Then
                 StopInteractiveScrolling() : Return
             End If
             If Not SmoothScrollingEnabled OrElse Not MotionPolicy.CanAnimate Then
-                StopScrolling()
-                ScrollToVerticalOffset(Math.Max(0, Math.Min(ScrollableHeight, VerticalOffset + delta)))
+                If _clock IsNot Nothing Then StopInteractiveScrolling()
+                ' The native command is queued even without an animation clock.
+                ' Accumulate accepted input until ScrollChanged acknowledges it.
+                Dim immediateOrigin = If(Double.IsNaN(_requestedOffset), VerticalOffset, _requestedOffset)
+                _requestedOffset = Math.Max(0, Math.Min(ScrollableHeight, immediateOrigin + delta))
+                _issuedOffsets.Add(_requestedOffset)
+                If _issuedOffsets.Count > 64 Then _issuedOffsets.RemoveAt(0)
+                ScrollToVerticalOffset(_requestedOffset)
                 Return
             End If
             Dim inputs As New List(Of Point)
@@ -207,15 +216,15 @@ Namespace Controls
         End Sub
 
         Protected Overrides Sub OnPreviewMouseDown(args As MouseButtonEventArgs)
-            StopScrolling()
+            StopInteractiveScrolling()
             MyBase.OnPreviewMouseDown(args)
         End Sub
         Protected Overrides Sub OnPreviewKeyDown(args As KeyEventArgs)
-            StopScrolling()
+            StopInteractiveScrolling()
             MyBase.OnPreviewKeyDown(args)
         End Sub
         Protected Overrides Sub OnPreviewTouchDown(args As TouchEventArgs)
-            StopScrolling()
+            StopInteractiveScrolling()
             MyBase.OnPreviewTouchDown(args)
         End Sub
     End Class

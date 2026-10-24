@@ -304,6 +304,7 @@ Partial Public Class MainWindow
         VerifyProjectTagsUi(directory, host, layout, check)
         _packReleases = originalReleases : InitializePackVersions()
         Await VerifyDetailScrollHandoffAsync(directory, host, layout, check)
+        Await VerifyDetailImmediateScrollAsync(directory, layout, check)
         Await VerifyPackProjectActionsAsync(directory, host, layout, check)
 
         Dim olderProject As New ModpackProject With {.Platform = ModpackPlatform.Modrinth, .Id = "older", .Name = "older"}
