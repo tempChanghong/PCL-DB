@@ -19,12 +19,25 @@ Namespace Controls
             End Get
             Set(value As PclHintTheme)
                 _theme = value
-                Dim colors = If(value = PclHintTheme.Yellow, {"#ffebd7", "#f57a00", "#d86c00"}, If(value = PclHintTheme.Blue, {"#d9ecff", "#1172d4", "#0f64b8"}, {"#ffdddf", "#d82929", "#bf0b0b"}))
+                RefreshColors()
+            End Set
+        End Property
+        Private Sub RefreshColors()
+            If _text Is Nothing Then Return
+            ' Keep fixed PCL's original light colors; CE MyHint uses semantic hue
+            ' and CurrentTone (dark L7=.225 / L2=.75), independent of accent hue.
+            If PclTheme.IsDarkMode Then
+                Dim hue = If(Theme = PclHintTheme.Yellow, 40.0, If(Theme = PclHintTheme.Blue, 210.0, 355.0))
+                Background = New SolidColorBrush(PclTheme.Hsl2(hue, 90, 22.5))
+                BorderBrush = New SolidColorBrush(PclTheme.Hsl2(hue, 90, 75))
+                _text.Foreground = New SolidColorBrush(PclTheme.Hsl2(hue, 90, 75))
+            Else
+                Dim colors = If(Theme = PclHintTheme.Yellow, {"#ffebd7", "#f57a00", "#d86c00"}, If(Theme = PclHintTheme.Blue, {"#d9ecff", "#1172d4", "#0f64b8"}, {"#ffdddf", "#d82929", "#bf0b0b"}))
                 Background = New SolidColorBrush(CType(ColorConverter.ConvertFromString(colors(0)), Color))
                 BorderBrush = New SolidColorBrush(CType(ColorConverter.ConvertFromString(colors(1)), Color))
                 _text.Foreground = New SolidColorBrush(CType(ColorConverter.ConvertFromString(colors(2)), Color))
-            End Set
-        End Property
+            End If
+        End Sub
         Public Property Text As String
             Get
                 Return _text.Text
@@ -44,6 +57,8 @@ Namespace Controls
             Dim panel As New Grid With {.UseLayoutRounding = False, .SnapsToDevicePixels = False}
             panel.Children.Add(_text)
             Child = panel
+            RefreshColors()
+            PclTheme.Watch(Me, AddressOf RefreshColors)
         End Sub
     End Class
 End Namespace

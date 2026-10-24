@@ -80,7 +80,11 @@ Partial Public Class MainWindow
                 check(ModpackPage.Visibility = Visibility.Visible AndAlso VersionPage.Visibility = Visibility.Collapsed AndAlso InstallPage.Visibility = Visibility.Collapsed AndAlso ModpackNav.Selected, "category ownership and sidebar selection change immediately")
                 check(DownloadNav.IsHitTestVisible AndAlso DownloadSidebar.Opacity = 1 AndAlso DownloadPage.Opacity = 1 AndAlso Not DownloadViewHost.IsHitTestVisible, "category motion keeps sidebar and toolbar stable while gating the right pane")
                 Dim plan = DirectCast(entering.Timeline, ParallelTimeline)
-                check(plan.Children.OfType(Of PclPageYAnimation)().Select(Function(item) item.BeginTime.Value.TotalMilliseconds).SequenceEqual({140.0, 165.0}) AndAlso _categoryMotion.ItemCount = 2, "CurseForge and Modrinth cards enter with PCL first delay and 25 millisecond item staggering")
+                IO.File.WriteAllText(IO.Path.Combine(directory, "layered-search-entry-timing.json"), New JObject From {
+                    {"count", _categoryMotion.ItemCount}, {"beginMilliseconds", New JArray(plan.Children.OfType(Of PclPageYAnimation)().Select(Function(item) item.BeginTime.Value.TotalMilliseconds))}}.ToString())
+                check(plan.Children.OfType(Of PclPageYAnimation)().Select(Function(item) item.BeginTime.Value.TotalMilliseconds).SequenceEqual({140.0, 165.0, 190.0}) AndAlso _categoryMotion.ItemCount = 3 AndAlso
+                    TypeOf PackSearchInputCard.RenderTransform Is TransformGroup AndAlso TypeOf PackSearchFilters.RenderTransform Is TransformGroup AndAlso TypeOf PackResultsCard.RenderTransform Is TransformGroup,
+                    "separate search, filter and result cards enter with PCL first delay and twenty-five-millisecond staggering")
                 seek(entering, 70)
                 check(DownloadGhost.Children.Count > 0 AndAlso Not DownloadGhost.IsHitTestVisible AndAlso ModpackPage.Opacity = 0 AndAlso Not DownloadViewHost.IsHitTestVisible, "category exit snapshots are inert and hidden incoming cards cannot be clicked")
                 UpdateVersions() : layout()

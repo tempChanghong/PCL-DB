@@ -6,6 +6,12 @@ Namespace Controls
     Friend Module PclTheme
         Private Event PaletteChanged As EventHandler
         Friend Property Changing As Boolean
+        Private _darkMode As Boolean
+        Friend ReadOnly Property IsDarkMode As Boolean
+            Get
+                Return _darkMode
+            End Get
+        End Property
         Friend Sub Watch(control As FrameworkElement, refresh As Action)
             Dim watching = False
             Dim handler As EventHandler = Sub() refresh()
@@ -43,6 +49,7 @@ Namespace Controls
         End Function
         Friend Sub Apply(title As System.Windows.Controls.Grid, shell As System.Windows.Controls.Grid, Optional appearance As AppearancePreferences = Nothing)
             appearance = If(appearance, New AppearancePreferences)
+            _darkMode = appearance.DarkMode
             ' Only the default blue arguments are present in public PCL ModSecret.
             ' Other named presets are independent HSL adaptations, not recovered hidden-theme data.
             Dim hue As Double = 210, saturation As Double = 85, adjustment As Double = 0

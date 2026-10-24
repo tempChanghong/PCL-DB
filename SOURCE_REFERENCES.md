@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 提示条明暗、分层搜索与紧凑操作
+
+- 主要依据固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `Controls/MyHint`、`MySearchBox` 和 `MyIconTextButton`：保留浅色提示原值、40 DIP 搜索框、90 ms 清空过渡和 27 DIP 图标文字按钮；再对照 CE `915ac29795efbdf6373417389e181e1504117048` 的 `PageComp.xaml`、`PageDownloadCompDetail.xaml`、`MyHint.xaml.cs` 及 `ToneProfileConfig.cs`，适配深色语义色、搜索/筛选分层与详情次要操作。
+- 导入入口改用 CE 同款 Lucide download 圆角线性路径，许可随文档保留。按钮继续使用原生 WPF 输入/自动化与本工具时钟槽和门控，清空保留查询/结果所有权；未修改查询、下载安装或外部配置机制。详见 [对照与验证](docs/reviews/ce-ui-polish.md)。
+
 ## 版本筛选栏的单行横排与关系验证
 
 - 重读固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadCompDetail.xaml(.vb)`、`MyRadioButton.xaml(.vb)`：PanFilter 为 Horizontal／Left／Top 的 StackPanel，边距 `10,10,0,10`；按钮为 Highlight 单选、边距 `2,0,2,0`、文字边距 `-2,0,10,0`、高度 27 DIP 和圆角 13.5 DIP。当前已有胶囊绘制继续保留，本轮将原 WrapPanel 改为同源的横向 StackPanel；普通筛选卡为 47 DIP 高。

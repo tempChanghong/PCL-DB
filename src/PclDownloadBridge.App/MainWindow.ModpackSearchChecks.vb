@@ -378,8 +378,9 @@ Partial Public Class MainWindow
         check(_onlinePromptMotion Is Nothing AndAlso Not PackNameOverlay.IsVisible AndAlso PageSurface.IsEnabled, "input dialog close releases owned clocks, its shade and background input gate")
         _motionPreview = False
         host.Width = 810 : host.Height = 470 : layout()
-        check(PackSearchSurface.ActualWidth > 500 AndAlso PackSearchButton.ActualWidth = 140 AndAlso ModpackPage.ScrollableHeight > 0, "search cards and paging stay usable at the minimum window size")
+        check(PackSearchSurface.ActualWidth > 500 AndAlso PackSearchButton.ActualWidth = 60 AndAlso ModpackPage.ScrollableHeight > 0, "layered search cards and paging stay usable at the minimum window size")
         SaveControlVisual(host, Path.Combine(directory, "pack-search-minimum.png"))
+        VerifySearchPresentation(directory, host, layout, check)
     End Function
     Private Shared Async Function WaitPackUiAsync(condition As Func(Of Boolean)) As Task
         Dim clock = System.Diagnostics.Stopwatch.StartNew()

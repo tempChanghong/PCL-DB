@@ -47,6 +47,7 @@ Partial Public Class MainWindow
     Private ReadOnly _packIconSlots As New SemaphoreSlim(4)
 
     Private Sub InitializePackSearch()
+        InitializeSearchPresentation()
         _packResultMotion = New PclSurfaceMotion(PackSearchResultsHost, PackSearchGhost,
             Function() CanAnimatePackContent(PackBrowserMode.Search),
             Function(surface) PclSurfaceMotion.Units(surface))

@@ -18,6 +18,7 @@ Partial Public Class MainWindow
                                                  End Sub
         Dim saved = _appearance.ToJson()
         Try
+            VerifyHintAndActionPresentation(directory, check)
             VerifyResourceRowMotion(directory, check)
             VerifyCapsuleRadioMotion(directory, check)
             VerifyRadioCurves(check)

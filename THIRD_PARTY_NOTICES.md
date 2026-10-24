@@ -9,6 +9,7 @@ Plain Craft Launcher - Download Bridge（简称 PCL-DB）是第三方独立下�
 - PCL 的许可文件实际名为 `LICENCE`。本项目根目录原样保留固定基线的该文件，其中链接《PCL 分发有限许可》，并附《PCL 存储库合理使用指南》。此前“未见统一 LICENSE”的说明遗漏了这个拼写，现予更正。
 - 本项目大量参照 PCL 的下载功能、控件及素材，保留上游许可与指南，首位提供原作者署名和赞助入口。默认提供蓝色系及深色模式，额外主题位于需要验证的开发者选项中；该入口不代表取得上游对额外配色的授权。
 - 本仓库不将 PCL 源码、字体、图片或其他第三方内容重新许可为 MIT、Apache 或 GPL；各自原有权利与要求继续适用。原始资源的固定提交及 SHA-256 见 `reference/pcl-assets.json`，源码快照见 `reference/PCL/manifest.json`。
+- Lucide / Feather 的 download 线性图标：参照 PCL-CE `915ac29795efbdf6373417389e181e1504117048` 的整合包导入入口及随附 `lucide/download.svg`，将 SVG 路径适配为 WPF 圆角描边，不引入 SVG 运行时。Lucide ISC 与该 Feather 派生图标的 MIT 许可附后。
 - Newtonsoft.Json 13.0.3：MIT License，Copyright (c) 2007 James Newton-King。
 - MeloongCore（Meloong-Git/MeloongCore，固定提交 `c774ae4c85fd94e0eaa171db21e78a65870df19b`）：将 `Shared/Utils/StringUtils.cs` 的 `FormatTimeSpan` 简短与详细时间分支适配为 VB.NET，增加明确的时间参数和不依赖区域设置的数字格式，并修正简短分支 24–47 小时的小时数回绕；没有引入新的运行时程序集。原代码按 Apache License 2.0 提供，完整许可附后。该提交由本项目参考的固定 PCL 提交引用，相关作者与贡献者保留权利。
 - UVMC（unlisted-versions-of-minecraft）：战斗测试版与实验快照的公开元数据来源，项目为 https://zkitefly.github.io/unlisted-versions-of-minecraft/ 。仅在运行时读取其公开清单和版本 JSON，没有打包该项目的清单、游戏文件或源代码；界面单独标明 UVMC 来源，不表示该项目或 PCL 上游认可本工具。
@@ -224,3 +225,49 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
+## Lucide / Feather icon licenses
+
+ISC License
+
+Copyright (c) 2026 Lucide Icons and Contributors
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+---
+
+The following Lucide icons are derived from the Feather project:
+
+airplay, alert-circle, alert-octagon, alert-triangle, aperture, arrow-down-circle, arrow-down-left, arrow-down-right, arrow-down, arrow-left-circle, arrow-left, arrow-right-circle, arrow-right, arrow-up-circle, arrow-up-left, arrow-up-right, arrow-up, at-sign, calendar, cast, check, chevron-down, chevron-left, chevron-right, chevron-up, chevrons-down, chevrons-left, chevrons-right, chevrons-up, circle, clipboard, clock, code, columns, command, compass, corner-down-left, corner-down-right, corner-left-down, corner-left-up, corner-right-down, corner-right-up, corner-up-left, corner-up-right, crosshair, database, divide-circle, divide-square, dollar-sign, download, external-link, feather, frown, hash, headphones, help-circle, info, italic, key, layout, life-buoy, link-2, link, loader, lock, log-in, log-out, maximize, meh, minimize, minimize-2, minus-circle, minus-square, minus, monitor, moon, more-horizontal, more-vertical, move, music, navigation-2, navigation, octagon, pause-circle, percent, plus-circle, plus-square, plus, power, radio, rss, search, server, share, shopping-bag, sidebar, smartphone, smile, square, table-2, tablet, target, terminal, trash-2, trash, triangle, tv, type, upload, x-circle, x-octagon, x-square, x, zoom-in, zoom-out
+
+The MIT License (MIT) (for the icons listed above)
+
+Copyright (c) 2013-present Cole Bemis
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
