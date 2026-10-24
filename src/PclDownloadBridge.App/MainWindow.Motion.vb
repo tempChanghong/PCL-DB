@@ -18,6 +18,13 @@ Partial Public Class MainWindow
     End Sub
 
     Private Sub InitializeMotion()
+        For Each motion In {_surfaceMotion, _categoryMotion}
+            Dim owner = motion
+            ' MyPageRight starts MyExtraTextButton.Show when content enters,
+            ' after FormMain's page handoff, rather than on logical navigation.
+            AddHandler owner.ContentRevealed, Sub() ReleaseInstallActionEntry(owner, True)
+            AddHandler owner.Settled, Sub() ReleaseInstallActionEntry(owner, False)
+        Next
         For Each viewer In MotionViewers()
             viewer.SmoothScrollingEnabled = Not _preview
         Next
@@ -44,6 +51,7 @@ Partial Public Class MainWindow
     Private Sub SelectSurface(target As FrameworkElement, Optional prepare As Action = Nothing)
         Dim previous = ActiveSurface()
         If previous IsNot target Then
+            _installActionEntryOwner = If(target Is DownloadPage AndAlso _downloadView = DownloadView.Install, _surfaceMotion, Nothing)
             _pendingSurfaceFocus = Nothing
             ClearDownloadFocus()
             For Each viewer In MotionViewers()
@@ -66,5 +74,6 @@ Partial Public Class MainWindow
                 prepare?.Invoke()
                 RefreshTitleNavigation()
             End Sub, compositeExit:=previous IsNot target AndAlso (_pageSwitch.HasMotion OrElse _categoryMotion.Transition IsNot Nothing OrElse HasPackContentMotion()))
+        If _surfaceMotion.Transition Is Nothing Then ReleaseInstallActionEntry(_surfaceMotion, False)
     End Sub
 End Class

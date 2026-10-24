@@ -260,8 +260,8 @@ Partial Public Class MainWindow
                     owner.DownloadProgress.IsVisible,
                     "task progress takes ownership without leaving a floating vanilla download action")
                 owner.ResumeInstallation(Nothing, Nothing) : layout()
-                check(owner._downloadView = DownloadView.Install AndAlso owner.InstallActionHost.IsVisible AndAlso owner._installActionMotion.Transition Is Nothing,
-                    "task return restores the retained vanilla action without creating a second installation or animation")
+                check(owner._downloadView = DownloadView.Install AndAlso Not owner.InstallActionHost.IsVisible AndAlso owner._installActionMotion.Transition Is Nothing,
+                    "task return defers the retained vanilla action until page reveal without creating a second installation")
                 owner._motionPreview = False : owner.SetDownloadView(DownloadView.Versions) : owner.SetDownloadView(DownloadView.Install) : layout()
                 check(owner._installActionMotion.Transition Is Nothing AndAlso owner._installActionMotion.Scale.ScaleX = 1 AndAlso owner.InstallActionHost.Opacity = 1,
                     "disabled preview page motion preserves a fully rendered install action without a display clock")

@@ -44,6 +44,7 @@ Partial Public Class MainWindow
         downloads.VerifyDownloadCategoryMotion(directory, check)
         VerifyTaskPageMotion(directory, passed)
         VerifyTaskReturnFocus(directory, passed)
+        VerifyInstallActionHandoff(directory, passed)
         VerifyInstallActionMotion(directory, check)
         VerifyVanillaCardMotion(directory, check)
         VerifyControlMotionUi(directory, passed)

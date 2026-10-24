@@ -681,10 +681,13 @@ Partial Public Class MainWindow
         ' or expands/collapses the sidebar and toolbar for the new page.
         If ((previous = DownloadView.Modpacks) Xor (view = DownloadView.Modpacks)) OrElse
             ((previous = DownloadView.Progress) Xor (view = DownloadView.Progress)) Then
+            _installActionEntryOwner = If(view = DownloadView.Install, _categoryMotion, Nothing)
             Dim outgoing = DownloadContent(previous), incoming = DownloadContent(view)
             _categoryMotion.Change(outgoing, incoming, Sub() ApplyDownloadView(view, previous),
                 compositeExit:=HasPackContentMotion() OrElse _pageSwitch.HasMotion)
+            If _categoryMotion.Transition Is Nothing Then ReleaseInstallActionEntry(_categoryMotion, False)
         Else
+            _installActionEntryOwner = Nothing
             _categoryMotion.Finish()
             ApplyDownloadView(view, previous)
         End If

@@ -20,6 +20,7 @@ Namespace Controls
         Private _clock As ClockGroup
         Friend Property PauseForChecks As Boolean
         Friend Event Settled As EventHandler
+        Friend Event ContentRevealed As EventHandler
         Private Class Entry
             Friend Target As FrameworkElement
             Friend OriginalTransform As Transform
@@ -154,11 +155,18 @@ Namespace Controls
                 If PauseForChecks Then group.Controller.Pause()
                 _clock = group
                 _host.IsHitTestVisible = False
+                Dim revealed = False
                 AddHandler group.CurrentTimeInvalidated, Sub()
                                                             If _clock IsNot group Then Return
                                                             Dim elapsed = If(group.CurrentTime, TimeSpan.Zero).TotalMilliseconds
                                                             If elapsed >= 110 Then _overlay.Children.Clear()
-                                                            If elapsed >= If(snapshot Is Nothing, 0, 140) Then _host.IsHitTestVisible = True
+                                                            If elapsed >= If(snapshot Is Nothing, 0, 140) Then
+                                                                _host.IsHitTestVisible = True
+                                                                If Not revealed Then
+                                                                    revealed = True
+                                                                    RaiseEvent ContentRevealed(Me, EventArgs.Empty)
+                                                                End If
+                                                            End If
                                                         End Sub
                 AddHandler group.Completed, Sub() If _clock Is group Then Finish()
                 For i = 0 To bindings.Count - 1

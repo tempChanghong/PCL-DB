@@ -44,7 +44,7 @@ Partial Public Class MainWindow
                                            gates.Add(gate)
                                            Return gate.Task
                                        End Function
-                owner._motionPreview = True : owner._categoryMotion.PauseForChecks = True
+                owner._motionPreview = True : owner._categoryMotion.PauseForChecks = True : owner._installActionMotion.PauseForChecks = True
                 owner.StartInstall(Nothing, Nothing) : layout()
                 check(owner._busy AndAlso starts = 1 AndAlso owner._downloadView = DownloadView.Progress,
                     "task transition starts the actual install handler once and immediately owns the progress state")
@@ -92,7 +92,7 @@ Partial Public Class MainWindow
                     owner.InstanceName.Text = "动画任务保留名称" AndAlso owner.InstallScroll.VerticalOffset = scroll,
                     "task return retains component identity card body instance name and install scroll position")
                 check(Not owner.DownloadViewHost.IsHitTestVisible AndAlso owner.InstallPage.Opacity = 0 AndAlso owner._installActionMotion.Transition Is Nothing,
-                    "task return has one page owner and gates the incoming form without a competing action animation")
+                    "task return has one page owner and defers the action until its content handoff")
                 entering.Controller.SkipToFill() : layout()
                 check(owner._categoryMotion.Transition Is returning AndAlso Not owner.DownloadViewHost.IsHitTestVisible,
                     "the retired task-entry clock cannot finish a later return or open its input gate")
@@ -135,7 +135,7 @@ Partial Public Class MainWindow
                 host.Width = 900 : layout()
                 check(owner._categoryMotion.Transition Is Nothing AndAlso owner.DownloadGhost.Children.Count = 0 AndAlso owner.DownloadViewHost.IsHitTestVisible AndAlso owner.DownloadProgress.Opacity = 1,
                     "resizing task entry settles its final page and removes every owned overlay")
-                owner._categoryMotion.PauseForChecks = False
+                owner._categoryMotion.PauseForChecks = False : owner._installActionMotion.PauseForChecks = False
                 owner.ResumeInstallation(Nothing, Nothing)
                 check(PumpMotionUntil(Function() owner._categoryMotion.Transition Is Nothing) AndAlso owner.InstallPage.IsVisible AndAlso owner.DownloadViewHost.IsHitTestVisible,
                     "unpaused task return completes on the real dispatcher and restores the retained form")

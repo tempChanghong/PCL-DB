@@ -835,6 +835,12 @@ PCL-DB 已有对应的 `PclSurfaceMotion`、曲线和冻结退出层，本轮仅
 
 PCL-DB 自有的任务返回保留表单流程，改为把“保留安装视口”作为当前待执行焦点请求的闭包参数，在交接结束后聚焦滚动容器；不全局屏蔽 BringIntoView，也不阻止用户主动选择名称框。该适配不是从上游复制的一套任务返回 API。四份规范化 Git 对象及摘要在 `artifacts/task-return-focus/source/`、`source.json`，验证边界见 `docs/reviews/task-return-focus.md`。
 
+## 浮动下载按钮与页面交接
+
+继续读取固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `FormMain.xaml.vb`、`Controls/MyPageRight.vb` 和 `Controls/MyExtraTextButton.xaml.vb`。`FormMain.PageChangeAnim` 在退出 110 ms 后换页、再等 30 ms 触发入场；`MyPageRight.TriggerEnterAnimation` 此时才设置附加按钮 `Show=True`，按钮再执行自身延迟 50 ms 的淡入和并行缩放。
+
+本程序保留已有按钮曲线和输入门控，由现有页面控制器发出一次正文入场事件，把待显示按钮交给该页面所有者；正常入场时运行按钮曲线，中途结束页面动画时直接呈现终态。无需第二套页面计时器。三份 Git 对象副本及摘要位于 `artifacts/install-action-handoff/source/`、`source.json`，详见 `docs/reviews/install-action-handoff.md`。
+
 ## 0.3 数据接口补充
 
 - [Fabric Meta](https://github.com/FabricMC/fabric-meta/blob/master/README.md)：读取版本专属 loader profile，合并 vanilla 参数并补全支持库。
