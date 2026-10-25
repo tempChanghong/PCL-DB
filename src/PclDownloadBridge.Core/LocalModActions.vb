@@ -240,7 +240,7 @@ Public NotInheritable Class LocalModActions
         If String.IsNullOrWhiteSpace(name) OrElse IO.Path.GetFileName(name) <> name OrElse name.EndsWith(".", StringComparison.Ordinal) OrElse name.EndsWith(" ", StringComparison.Ordinal) Then Throw New InvalidDataException("Mod 文件名无效。")
         Return SafeFiles.UnderRoot(directory, name)
     End Function
-    Private Shared Sub EnsureAliases(directory As String, enabledName As String, exceptPath As String)
+    Friend Shared Sub EnsureAliases(directory As String, enabledName As String, exceptPath As String)
         For Each name In {enabledName, enabledName & ".disabled", enabledName & ".old"}
             Dim candidate = Child(directory, name)
             If exceptPath IsNot Nothing AndAlso Same(candidate, exceptPath) Then Continue For
@@ -281,7 +281,7 @@ Public NotInheritable Class LocalModActions
         End Try
     End Sub
 
-    Private NotInheritable Class OperationGate
+    Friend NotInheritable Class OperationGate
         Implements IDisposable
         Private Shared ReadOnly Active As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
         Private ReadOnly _identity As String
@@ -292,9 +292,11 @@ Public NotInheritable Class LocalModActions
         Private ReadOnly _directories As New Dictionary(Of String, SafeFileHandle)(StringComparer.OrdinalIgnoreCase)
         Friend Sub New(instance As InstalledInstance, directory As String, token As CancellationToken)
             token.ThrowIfCancellationRequested()
-            If Not IO.Directory.Exists(instance.RunDirectory) Then Throw New DirectoryNotFoundException("实际运行目录尚不存在，请先在启动器中确认目录。")
+            Dim runDirectory = If(instance?.RunDirectory, IO.Path.GetDirectoryName(directory))
+            If instance Is Nothing AndAlso Not IO.Path.GetFileName(directory).Equals("mods", StringComparison.OrdinalIgnoreCase) Then Throw New IOException("共享 Mods 目录无效。")
+            If Not IO.Directory.Exists(runDirectory) Then Throw New DirectoryNotFoundException("实际运行目录尚不存在，请先在启动器中确认目录。")
             Dim identity As String = Nothing
-            _runDirectory = NativeLease.OpenDirectory(instance.RunDirectory, identity)
+            _runDirectory = NativeLease.OpenDirectory(runDirectory, identity)
             _identity = identity & "/MODS"
             SyncLock Active
                 If Not Active.Add(_identity) Then
@@ -315,18 +317,20 @@ Public NotInheritable Class LocalModActions
                 End Try
                 If Not _ownsMutex Then Throw New IOException("另一个进程正在修改这个 Mods 文件夹，请稍后重试。")
                 token.ThrowIfCancellationRequested()
-                InstalledInstanceCatalog.EnsureUnchanged(instance, token)
-                _directories.Add(IO.Path.GetFullPath(instance.RunDirectory), _runDirectory)
-                HoldDirectoryChain(instance.RunDirectory)
-                HoldDirectoryChain(instance.Target.Root)
+                If instance IsNot Nothing Then InstalledInstanceCatalog.EnsureUnchanged(instance, token)
+                _directories.Add(IO.Path.GetFullPath(runDirectory), _runDirectory)
+                HoldDirectoryChain(runDirectory)
+                If instance IsNot Nothing Then HoldDirectoryChain(instance.Target.Root)
                 If IO.Directory.Exists(directory) Then HoldModsDirectory(directory)
-                Dim lockPath = SafeFiles.UnderRoot(instance.Target.Root, ".vanilla-downloader/install.lock")
-                IO.Directory.CreateDirectory(IO.Path.GetDirectoryName(lockPath))
-                Try
-                    _rootLock = New FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None)
-                Catch ex As IOException
-                    Throw New IOException("这个游戏目录正在安装或被其他任务占用，请稍后修改 Mod。", ex)
-                End Try
+                If instance IsNot Nothing Then
+                    Dim lockPath = SafeFiles.UnderRoot(instance.Target.Root, ".vanilla-downloader/install.lock")
+                    IO.Directory.CreateDirectory(IO.Path.GetDirectoryName(lockPath))
+                    Try
+                        _rootLock = New FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None)
+                    Catch ex As IOException
+                        Throw New IOException("这个游戏目录正在安装或被其他任务占用，请稍后修改 Mod。", ex)
+                    End Try
+                End If
                 token.ThrowIfCancellationRequested()
             Catch
                 Dispose() : Throw
@@ -368,7 +372,7 @@ Public NotInheritable Class LocalModActions
 
     ' A rename is performed on the same read-leased file that was hashed. This
     ' prevents a different file being substituted after validation on Windows.
-    Private NotInheritable Class NativeLease
+    Friend NotInheritable Class NativeLease
         Implements IDisposable
         Friend ReadOnly Stream As FileStream
         Friend Property CurrentPath As String

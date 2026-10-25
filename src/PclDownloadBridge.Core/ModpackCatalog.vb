@@ -15,6 +15,8 @@ End Enum
 ' PCL 5ef81e4 PageResource / ResourceSearcher / ResourceVersion. Catalogue
 ' identities are platform-qualified and never inferred from a display name.
 Public NotInheritable Class ModpackQuery
+    Public Property Kind As CommunityResourceKind = CommunityResourceKind.Modpack
+    Public Property Loader As String = ""
     Public Property Text As String = ""
     Public Property Minecraft As String = ""
     Public Property Category As String = "/"
@@ -25,6 +27,8 @@ Public NotInheritable Class ModpackQuery
 End Class
 
 Public NotInheritable Class ModpackProject
+    Public Property Kind As CommunityResourceKind = CommunityResourceKind.Modpack
+    Public Property PreferredVersionId As String
     Public Property Platform As ModpackPlatform
     Public Property Id As String
     Public Property Name As String
@@ -40,12 +44,14 @@ Public NotInheritable Class ModpackProject
     Public Property Loaders As String() = {}
     Public ReadOnly Property Key As String
         Get
-            Return Platform.ToString() & ":" & Id
+            Return Platform.ToString() & ":" & Id & If(Kind = CommunityResourceKind.Modpack, "", ":" & Kind.ToString())
         End Get
     End Property
 End Class
 
 Public NotInheritable Class ModpackRelease
+    Public Property Kind As CommunityResourceKind = CommunityResourceKind.Modpack
+    Public Property Dependencies As ResourceDependency() = {}
     Public Property Platform As ModpackPlatform
     Public Property ProjectId As String
     Public Property Id As String
@@ -71,6 +77,7 @@ Public NotInheritable Class ModpackRelease
         Dim result = DirectCast(MemberwiseClone(), ModpackRelease)
         result.GameVersions = DirectCast(GameVersions.Clone(), String())
         result.Loaders = DirectCast(Loaders.Clone(), String())
+        result.Dependencies = Dependencies.Select(Function(item) New ResourceDependency With {.ProjectId = item.ProjectId, .VersionId = item.VersionId}).ToArray()
         Return result
     End Function
 End Class
@@ -93,12 +100,17 @@ Public NotInheritable Class ModpackCatalogClient
     End Sub
 
     Public Shared Function SearchUrl(platform As ModpackPlatform, query As ModpackQuery, offset As Integer) As String
+        If query IsNot Nothing Then
+            CommunityResources.Name(query.Kind)
+            If query.Loader Is Nothing OrElse Not {"", "fabric", "forge", "neoforge", "quilt", "liteloader"}.Contains(query.Loader, StringComparer.Ordinal) Then Throw New ArgumentException("加载器无效。")
+        End If
         If query Is Nothing OrElse offset < 0 OrElse query.Text Is Nothing OrElse query.Category Is Nothing OrElse query.Minecraft Is Nothing OrElse CInt(query.Platforms) < 1 OrElse CInt(query.Platforms) > 3 Then Throw New ArgumentException("搜索条件无效。")
         Dim categories = query.Category.Split("/"c)
         If categories.Length <> 2 OrElse query.Text.Length > 256 OrElse query.Minecraft.Length > 100 Then Throw New ArgumentException("搜索条件过长或分类无效。")
         Dim text = Uri.EscapeDataString(query.Text.Trim()), game = Uri.EscapeDataString(query.Minecraft.Trim())
         If platform = ModpackPlatform.CurseForge Then
-            Dim url = "https://api.curseforge.com/v1/mods/search?gameId=432&classId=4471&sortField=2&sortOrder=desc&pageSize=40&index=" & offset.ToString(Globalization.CultureInfo.InvariantCulture)
+            Dim url = "https://api.curseforge.com/v1/mods/search?gameId=432&classId=" & CommunityResources.ClassId(query.Kind).ToString() & "&sortField=2&sortOrder=desc&pageSize=40&index=" & offset.ToString(Globalization.CultureInfo.InvariantCulture)
+            If query.Loader <> "" Then url &= "&modLoaderType=" & New Dictionary(Of String, String) From {{"forge", "1"}, {"liteloader", "3"}, {"fabric", "4"}, {"quilt", "5"}, {"neoforge", "6"}}(query.Loader)
             If text <> "" Then url &= "&searchFilter=" & text
             If game <> "" Then url &= "&gameVersion=" & game
             If categories(0) <> "" Then url &= "&categoryId=" & Uri.EscapeDataString(categories(0))
@@ -106,7 +118,8 @@ Public NotInheritable Class ModpackCatalogClient
         End If
         If platform <> ModpackPlatform.Modrinth Then Throw New ArgumentException("请选择一个内容平台。")
         Dim facets As New JArray()
-        facets.Add(New JArray("project_type:modpack"))
+        facets.Add(New JArray("project_type:" & CommunityResources.ProjectType(query.Kind)))
+        If query.Loader <> "" Then facets.Add(New JArray("categories:" & query.Loader))
         If categories(1) <> "" Then facets.Add(New JArray("categories:" & categories(1)))
         If game <> "" Then facets.Add(New JArray("versions:" & query.Minecraft.Trim()))
         Return "https://api.modrinth.com/v2/search?limit=40&index=relevance&offset=" & offset.ToString(Globalization.CultureInfo.InvariantCulture) & "&query=" & text & "&facets=" & Uri.EscapeDataString(facets.ToString(Newtonsoft.Json.Formatting.None))
@@ -119,25 +132,53 @@ Public NotInheritable Class ModpackCatalogClient
         Dim result As New ModpackCatalogPage With {.Returned = items.Count}
         result.Total = If(platform = ModpackPlatform.Modrinth, Number(data, "total_hits"), Number(ObjectValue(data, "pagination"), "totalCount"))
         For Each item In items.OfType(Of JObject)()
-            If platform = ModpackPlatform.Modrinth Then
-                If Text(item, "project_type") <> "modpack" Then Continue For
-            ElseIf Number(item, "classId") <> 4471 Then
-                Continue For
-            End If
-            result.Projects.Add(ParseProject(platform, item, True))
+            If Not CommunityResources.Matches(platform, item, query.Kind) Then Continue For
+            Dim project = ParseProject(platform, item, True)
+            project.Kind = query.Kind
+            FixResourceWebsite(project, item)
+            result.Projects.Add(project)
         Next
         Return result
     End Function
 
-    Public Async Function GetProjectAsync(platform As ModpackPlatform, id As String, token As CancellationToken) As Task(Of ModpackProject)
+    Public Async Function GetProjectAsync(platform As ModpackPlatform, id As String, token As CancellationToken, Optional kind As CommunityResourceKind = CommunityResourceKind.Modpack) As Task(Of ModpackProject)
         ValidateId(platform, id)
         Dim url = If(platform = ModpackPlatform.Modrinth, "https://api.modrinth.com/v2/project/", "https://api.curseforge.com/v1/mods/") & id
         Dim data = Await JsonAsync(url, token).ConfigureAwait(False)
         If platform = ModpackPlatform.CurseForge Then data = ObjectValue(data, "data")
-        If (platform = ModpackPlatform.Modrinth AndAlso Text(data, "project_type") <> "modpack") OrElse (platform = ModpackPlatform.CurseForge AndAlso Number(data, "classId") <> 4471) Then Throw New InvalidDataException("项目不是客户端整合包。")
+        If Not CommunityResources.Matches(platform, data, kind) Then Throw New InvalidDataException("项目的资源类型不匹配。")
         Dim result = ParseProject(platform, data, False)
+        result.Kind = If(kind = CommunityResourceKind.Any, CommunityResources.Infer(platform, data), kind)
+        FixResourceWebsite(result, data)
         If result.Id <> id Then Throw New InvalidDataException("返回的整合包项目 ID 不匹配。")
         Return result
+    End Function
+
+    Private Shared Sub FixResourceWebsite(project As ModpackProject, data As JObject)
+        If project.Kind = CommunityResourceKind.Modpack Then Return
+        Dim slug = Uri.EscapeDataString(Text(data, "slug"))
+        If project.Platform = ModpackPlatform.Modrinth Then
+            project.Website = "https://modrinth.com/" & If(project.Kind = CommunityResourceKind.DataPack, "datapack", CommunityResources.ProjectType(project.Kind)) & "/" & slug
+        Else
+            Dim section = If(project.Kind = CommunityResourceKind.Mod, "mc-mods", If(project.Kind = CommunityResourceKind.ResourcePack, "texture-packs", If(project.Kind = CommunityResourceKind.Shader, "shaders", "data-packs")))
+            project.Website = "https://www.curseforge.com/minecraft/" & section & "/" & slug
+        End If
+    End Sub
+
+    Public Async Function ResolveDependencyAsync(platform As ModpackPlatform, dependency As ResourceDependency, token As CancellationToken) As Task(Of ModpackProject)
+        Dim id = dependency.ProjectId
+        Dim kind = CommunityResourceKind.Any
+        If platform = ModpackPlatform.Modrinth AndAlso Not String.IsNullOrEmpty(dependency.VersionId) Then
+            ValidateId(platform, dependency.VersionId)
+            Dim version = Await JsonAsync("https://api.modrinth.com/v2/version/" & dependency.VersionId, token).ConfigureAwait(False)
+            If Text(version, "id") <> dependency.VersionId OrElse (Not String.IsNullOrEmpty(id) AndAlso Text(version, "project_id") <> id) Then Throw New InvalidDataException("前置版本所属项目不匹配。")
+            id = Text(version, "project_id")
+            Dim loaders = TryCast(version("loaders"), JArray)
+            If loaders IsNot Nothing AndAlso loaders.Values(Of String)().Contains("datapack") AndAlso Not loaders.Values(Of String)().Any(Function(value) {"fabric", "forge", "neoforge", "quilt", "liteloader"}.Contains(value)) Then kind = CommunityResourceKind.DataPack
+        End If
+        Dim project = Await GetProjectAsync(platform, id, token, kind).ConfigureAwait(False)
+        project.PreferredVersionId = dependency.VersionId
+        Return project
     End Function
 
     Public Async Function GetVersionsAsync(project As ModpackProject, token As CancellationToken) As Task(Of List(Of ModpackRelease))
@@ -162,7 +203,7 @@ Public NotInheritable Class ModpackCatalogClient
             For Each item In items.OfType(Of JObject)()
                 Dim release = ParseRelease(project, item)
                 rawIds.Add(Text(item, "id"))
-                If release IsNot Nothing AndAlso seen.Add(release.Id) Then result.Add(release)
+                If release IsNot Nothing AndAlso (String.IsNullOrEmpty(project.PreferredVersionId) OrElse release.Id = project.PreferredVersionId) AndAlso seen.Add(release.Id) Then result.Add(release)
             Next
             offset += items.Count
             If rawIds.Count > 0 AndAlso rawIds.All(Function(id) fetched.Contains(id)) Then Throw New InvalidDataException("整合包版本分页返回了重复结果，请重试。")
@@ -175,12 +216,13 @@ Public NotInheritable Class ModpackCatalogClient
     End Function
 
     Public Shared Function ParseRelease(project As ModpackProject, data As JObject) As ModpackRelease
-        Dim result As New ModpackRelease With {.Platform = project.Platform, .ProjectId = project.Id, .Id = Text(data, "id"), .Name = Text(data, If(project.Platform = ModpackPlatform.Modrinth, "name", "displayName"))}
+        Dim result As New ModpackRelease With {.Kind = project.Kind, .Platform = project.Platform, .ProjectId = project.Id, .Id = Text(data, "id"), .Name = Text(data, If(project.Platform = ModpackPlatform.Modrinth, "name", "displayName"))}
         ValidateId(project.Platform, result.Id)
         If project.Platform = ModpackPlatform.Modrinth Then
             If Text(data, "project_id") <> project.Id Then Throw New InvalidDataException("Modrinth 版本所属项目不匹配。")
             If Text(data, "status", False) <> "" AndAlso Text(data, "status") <> "listed" AndAlso Text(data, "status") <> "archived" Then Return Nothing
-            Dim candidates = ArrayValue(data, "files").OfType(Of JObject)().Where(Function(file) Text(file, "filename").EndsWith(".mrpack", StringComparison.OrdinalIgnoreCase)).ToList()
+            If Not CommunityResources.FileKind(project, Strings(data, "loaders")).HasValue Then Return Nothing
+            Dim candidates = ArrayValue(data, "files").OfType(Of JObject)().Where(Function(file) If(project.Kind = CommunityResourceKind.Modpack, Text(file, "filename").EndsWith(".mrpack", StringComparison.OrdinalIgnoreCase), CommunityResources.AcceptsFile(project.Kind, Text(file, "filename"))) AndAlso Not {"sources-jar", "dev-jar", "javadoc-jar", "signature"}.Contains(Text(file, "file_type", False))).ToList()
             Dim primary = candidates.Where(Function(file) CBool(If(file("primary"), New JValue(False)))).ToList()
             Dim chosen = If(primary.Count = 1, primary(0), If(candidates.Count = 1, candidates(0), Nothing))
             If chosen Is Nothing Then Return Nothing
@@ -189,6 +231,7 @@ Public NotInheritable Class ModpackCatalogClient
             result.Sha1 = Digest(hashes, "sha1", 40) : result.Sha512 = Digest(hashes, "sha512", 128)
             result.Version = Text(data, "version_number") : result.Published = DateValue(data, "date_published")
             result.ReleaseType = Text(data, "version_type") : result.GameVersions = Strings(data, "game_versions") : result.Loaders = Strings(data, "loaders")
+            If project.Kind <> CommunityResourceKind.Modpack Then result.Dependencies = ReadDependencies(project.Platform, data)
         Else
             If Text(data, "modId") <> project.Id Then Throw New InvalidDataException("CurseForge 文件所属项目不匹配。")
             If Flag(data, "isServerPack", False) Then Return Nothing
@@ -196,13 +239,17 @@ Public NotInheritable Class ModpackCatalogClient
             If Flag(data, "isEarlyAccessContent", False) Then Return Nothing
             If data("fileStatus") IsNot Nothing AndAlso Number(data, "fileStatus") <> 4 Then Return Nothing
             result.FileName = Text(data, "fileName")
-            If Not result.FileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) Then Return Nothing
+            If Not CommunityResources.AcceptsFile(project.Kind, result.FileName) OrElse (project.Kind = CommunityResourceKind.Modpack AndAlso Not result.FileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) Then Return Nothing
             result.Url = Text(data, "downloadUrl", False)
             If result.Url = "" Then Return Nothing
             result.Size = Number(data, "fileLength") : result.Version = result.Name : result.Published = DateValue(data, "fileDate")
             result.ReleaseType = If(Number(data, "releaseType") = 1, "release", If(Number(data, "releaseType") = 2, "beta", "alpha"))
             Dim raw = ReadCurseForgeTags(data("gameVersions"), result)
             result.Loaders = raw.Where(Function(value) {"Forge", "NeoForge", "Fabric", "Quilt"}.Contains(value, StringComparer.OrdinalIgnoreCase)).ToArray()
+            If project.Kind <> CommunityResourceKind.Modpack Then
+                result.GameVersionMetadataError = Nothing
+                result.Dependencies = ReadDependencies(project.Platform, data)
+            End If
             For Each hash In ArrayValue(data, "hashes").OfType(Of JObject)()
                 Dim algorithm = Number(hash, "algo")
                 If algorithm = 1 Then
@@ -221,6 +268,7 @@ Public NotInheritable Class ModpackCatalogClient
         ' The archive is stored under a fixed cache name, not the remote filename.
         ' Keep ordinary long archive names while rejecting path-bearing metadata.
         If result.FileName.Length > 255 OrElse result.FileName <> result.FileName.Trim() OrElse result.FileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 Then Throw New InvalidDataException("整合包归档文件名无效。")
+        If result.Kind <> CommunityResourceKind.Modpack Then CommunityResources.ValidateFileName(result.Kind, result.FileName)
         If result.Size <= 0 Then Return Nothing
         If result.Sha1 Is Nothing AndAlso result.Sha512 Is Nothing AndAlso result.Md5 Is Nothing Then Return Nothing
         ModpackArchivePolicy.Validate(result.Url, result.Platform, False)
@@ -230,6 +278,28 @@ Public NotInheritable Class ModpackCatalogClient
             If Uri.UnescapeDataString(address.AbsolutePath) <> expected Then Throw New InvalidDataException("CurseForge 下载地址与指定文件不匹配。")
         End If
         Return result
+    End Function
+
+    Private Shared Function ReadDependencies(platform As ModpackPlatform, data As JObject) As ResourceDependency()
+        Dim result As New List(Of ResourceDependency)
+        Dim values = TryCast(data("dependencies"), JArray)
+        If values Is Nothing Then Return {}
+        If values.Count > 256 Then Throw New InvalidDataException("前置声明过多。")
+        For Each item In values.OfType(Of JObject)()
+            If platform = ModpackPlatform.Modrinth Then
+                If Text(item, "dependency_type", False) <> "required" Then Continue For
+                Dim project = Text(item, "project_id", False), version = Text(item, "version_id", False)
+                If project <> "" Then ValidateId(platform, project)
+                If version <> "" Then ValidateId(platform, version)
+                If project <> "" OrElse version <> "" Then result.Add(New ResourceDependency With {.ProjectId = project, .VersionId = version})
+            ElseIf Number(item, "relationType") = 3 Then
+                Dim id = Text(item, "modId") : ValidateId(platform, id)
+                result.Add(New ResourceDependency With {.ProjectId = id})
+            End If
+        Next
+        Dim owner = Text(data, If(platform = ModpackPlatform.Modrinth, "project_id", "modId")), versionId = Text(data, "id")
+        Return result.Where(Function(item) item.ProjectId <> owner AndAlso (platform <> ModpackPlatform.Modrinth OrElse item.VersionId <> versionId)).
+            GroupBy(Function(item) item.ProjectId & ":" & item.VersionId, StringComparer.Ordinal).Select(Function(group) group.First()).ToArray()
     End Function
 
     Private Shared Function ReadDownloadCount(value As JToken) As Long?

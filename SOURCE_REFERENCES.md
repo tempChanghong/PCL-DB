@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 社区资源下载入口恢复
+
+- 固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadLeft`、`PageResource`、四个资源页、`PageDownloadCompDetail`、`ResourceSearcher`、`ResourceVersion`、`ResourceProject` 为主要依据。按原顺序、原图标和分类接入 Mod、数据包、资源包、光影包；沿用已有搜索、详情分组、标题返回、加载与页面/卡片动画，整合包保持默认路径。
+- 十二份源码原字节、Git blob 和 SHA-256 在 `artifacts/community-rescue/source/manifest.json`。普通资源使用 PCL 的文件保存思路，必需前置独立展示；混合 Mod/数据包/插件按版本加载器与对应文件筛选。固定版本前置保留项目及版本 ID，返回保留上层详情、筛选与搜索记录。
+- 现有高速下载、来源主机与摘要校验继续使用。另存为采用与本地 Mod 相同的 Windows 文件句柄发布；保存到共享 Mods 时共用物理目录互斥和别名检查，普通资源不会进入整合包安装器。未自动安装前置或启用资源包/光影，未修改启动器或游戏配置。[范围与验证](docs/reviews/community-resource-rescue.md)。
+
 ## 本地 Mod 专用行
 
 - 固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MyLocalModItem.xaml/.vb` 是本轮主要依据：44 DIP 行高、`6/34/7` 左侧列、34 DIP/6 DIP 圆角图标、14/12 DIP 名称与版本副标题、文件名/描述次行、禁用删除线与 20 DIP 角标，以及完整背板和动作区的 120/180 ms 反馈。独立 `PclLocalModItem` 仅用于本地 Mod，不修改全局通用列表控件。

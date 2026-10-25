@@ -66,7 +66,7 @@ Partial Public Class MainWindow
         SaveControlVisual(host, Path.Combine(directory, "pack-search-loading.png"))
         PackProjectRows.Children.Clear() : layout()
         check(loader.Transition Is Nothing, "unloading the PCL loading view releases its repeating clocks")
-        check(PackSearchSurface.IsVisible AndAlso Not PackLocalSurface.IsVisible AndAlso DownloadNav.Children.Count = 2, "modpack landing exposes PCL search while retaining two sidebar destinations")
+        check(PackSearchSurface.IsVisible AndAlso Not PackLocalSurface.IsVisible AndAlso DownloadNav.Children.Count = 7, "modpack landing exposes PCL search beside vanilla and all community resource destinations")
         OpenLocalPacks(Nothing, Nothing) : layout()
         check(PackLocalSurface.IsVisible AndAlso ImportPackButton.IsVisible AndAlso ImportModrinthButton.IsVisible, "local CF and MR imports remain accessible from the search page")
         BackToPackSearch(Nothing, Nothing) : layout()

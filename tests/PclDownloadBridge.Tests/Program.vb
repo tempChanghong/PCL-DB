@@ -12,6 +12,10 @@ Module Program
         Net.ServicePointManager.SecurityProtocol = Net.SecurityProtocolType.Tls12
         Try
             If ProcessorStreamChecks.TryRunFixture(args) Then Return
+            If args.Length = 2 AndAlso args(0) = "--live-community-resources" Then
+                CommunityResourceChecks.LiveAsync(args(1)).GetAwaiter().GetResult()
+                Return
+            End If
             If args.Length = 4 AndAlso args(0) = "--large-modpack-samples" Then
                 LargeModpackChecks.SamplesAsync(args(1), args(2), args(3)).GetAwaiter().GetResult()
                 Return
@@ -64,6 +68,8 @@ Module Program
                 Dim run As Task(Of List(Of String))
                 If args(1) = "local-mods" Then
                     run = LocalModChecks.RunAsync(TestRoot)
+                ElseIf args(1) = "community-resources" Then
+                    run = CommunityResourceChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "local-mod-actions-followup" Then
                     run = LocalModActionFollowupChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "local-mod-catalog-followup" Then
@@ -163,6 +169,9 @@ Module Program
                 Next
                 Return
             End If
+            For Each label In CommunityResourceChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
+                Check(True, label)
+            Next
             For Each label In ModpackCatalogChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
                 Check(True, label)
             Next

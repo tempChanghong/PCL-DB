@@ -64,7 +64,9 @@ Public NotInheritable Class ModpackArchiveInstaller
         Using sha = SHA256.Create()
             key = BitConverter.ToString(sha.ComputeHash(Text.Encoding.UTF8.GetBytes(release.Platform.ToString() & "|" & release.ProjectId & "|" & release.Id & "|" & release.Sha1 & "|" & release.Sha512 & "|" & release.Md5))).Replace("-", "").ToLowerInvariant()
         End Using
-        Dim relative = ".vanilla-downloader/pack-archives/" & key & "/original." & If(release.Platform = ModpackPlatform.Modrinth, "mrpack", "zip")
+        Dim relative = If(release.Kind = CommunityResourceKind.Modpack,
+            ".vanilla-downloader/pack-archives/" & key & "/original." & If(release.Platform = ModpackPlatform.Modrinth, "mrpack", "zip"),
+            ".vanilla-downloader/community-files/" & release.Kind.ToString() & "/" & key & "/" & release.FileName)
         Dim file As New DownloadFile With {.RelativePath = relative, .Url = release.Url, .Size = release.Size, .Sha1 = release.Sha1, .Sha512 = release.Sha512, .Md5 = release.Md5, .Category = If(release.Platform = ModpackPlatform.Modrinth, "modrinth-archive", "curseforge-archive")}
         If release.Platform = ModpackPlatform.CurseForge Then
             file.AlternateUrls = {"edge.forgecdn.net", "mediafilez.forgecdn.net", "media.forgecdn.net"}.Select(Function(host) New UriBuilder(release.Url) With {.Host = host}).Select(Function(address) address.Uri.AbsoluteUri).Where(Function(address) address <> release.Url).ToArray()
@@ -132,6 +134,7 @@ Public NotInheritable Class ModpackArchiveInstaller
     Public Shared Async Function InstallAsync(release As ModpackRelease, root As String, name As String, policy As SourcePolicy, pclDirectory As String, reuse As IEnumerable(Of String), progress As IProgress(Of TransferProgress), token As CancellationToken, Optional connections As Integer = 16, Optional limit As Long = 0, Optional javaPath As String = Nothing, Optional chooseOptional As Func(Of ModrinthPackage, CancellationToken, Task(Of IEnumerable(Of String))) = Nothing, Optional launcherTarget As LauncherInstallTarget = Nothing) As Task(Of InstallResult)
         release = release.Copy()
         token.ThrowIfCancellationRequested()
+        If release.Kind <> CommunityResourceKind.Modpack Then Throw New InvalidOperationException("普通资源请使用文件下载，不会创建游戏实例。")
         launcherTarget?.ValidateDestination(root)
         InstallPreflight.ValidateDestination(root, name, False)
         Dim blocked = ModpackCompatibility.GetInstallBlockReason(release)

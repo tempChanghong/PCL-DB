@@ -24,7 +24,7 @@ Public NotInheritable Class ModpackSearchSession
             _offsets(platform) = 0
         Next
         ' PCL ResourceSearcher distinguishes an unsupported category from no hits.
-        If _offsets.Count = 0 Then Throw New ArgumentException(_query.Platforms.ToString() & " 不支持所选的整合包类型，请更改来源或类型。")
+        If _offsets.Count = 0 Then Throw New ArgumentException(_query.Platforms.ToString() & " 不支持所选的" & CommunityResources.Name(_query.Kind) & "类型，请更改来源或类型。")
     End Sub
     ' PCL opens details with Loader.Input.GameVersion, not the editable form.
     Public ReadOnly Property Query As ModpackQuery

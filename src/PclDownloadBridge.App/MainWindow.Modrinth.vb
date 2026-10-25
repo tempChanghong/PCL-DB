@@ -40,6 +40,7 @@ Partial Public Class MainWindow
         StartInstall(sender, e)
     End Sub
     Private Sub SelectModrinthPackage(package As ModrinthPackage, Optional navigate As Boolean = True, Optional request As System.Threading.CancellationTokenSource = Nothing)
+        If navigate AndAlso _resourceKind <> CommunityResourceKind.Modpack Then SelectResourceKind(CommunityResourceKind.Modpack) : _categoryMotion.Finish()
         If _packReadCancellation IsNot request Then CancelPackRead()
         Dim sameArchive = _modrinthSelection IsNot Nothing AndAlso _modrinthSelection.Sha256 = package.Sha256
         Dim editedName = ModrinthInstanceName.Text

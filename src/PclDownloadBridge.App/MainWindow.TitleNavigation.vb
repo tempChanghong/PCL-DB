@@ -1,6 +1,7 @@
 Imports System.Windows
 Imports System.Windows.Input
 Imports PclDownloadBridge.Controls
+Imports PclDownloadBridge.Core
 
 Partial Public Class MainWindow
     Private ReadOnly _titleNavigation As PclTitleNavigation
@@ -15,7 +16,7 @@ Partial Public Class MainWindow
             If _downloadView = DownloadView.Progress Then
                 title = "任务管理"
             ElseIf _downloadView = DownloadView.Modpacks AndAlso _packMode = PackBrowserMode.Detail Then
-                title = If(ActivePackProject()?.Name, "整合包详情")
+                title = If(ActivePackProject()?.Name, CommunityResources.Name(_resourceKind) & "详情")
             End If
         End If
         _titleNavigation.SelectTitle(title)

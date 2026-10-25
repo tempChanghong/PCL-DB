@@ -54,7 +54,12 @@ Partial Public Class MainWindow
         _packDetailMotion = New PclSurfaceMotion(PackDetailResultsHost, PackDetailGhost,
             Function() CanAnimatePackContent(PackBrowserMode.Detail),
             Function(surface) PclSurfaceMotion.Units(surface))
-        AddHandler PackDetailSurface.IsVisibleChanged, Sub() If Not PackDetailSurface.IsVisible Then RetirePackProjectAction()
+        AddHandler PackDetailSurface.IsVisibleChanged, Sub()
+                                                          If _closing Then Return
+                                                          If PackDetailSurface.IsVisible Then RefreshResourceDependencyLabels() : Return
+                                                          RetirePackProjectAction()
+                                                          _dependencyRequest?.Cancel() : _resourceNamesRequest?.Cancel()
+                                                      End Sub
         AddHandler PackProjectIntro.IsEnabledChanged, Sub() If Not PackProjectIntro.IsEnabled Then RetirePackProjectAction()
         AddHandler PackProjectIntro.IsHitTestVisibleChanged, Sub() If Not PackProjectIntro.IsHitTestVisible Then RetirePackProjectAction()
         _packSearchLoading = New PclLoadingPresentation(PackSearchResultsHost, AddressOf CanTimePackLoading, Function() PackEntryMotion(PackBrowserMode.Search))
@@ -69,6 +74,7 @@ Partial Public Class MainWindow
         Dim tags = New Dictionary(Of String, String) From {{"全部", "/"}, {"战斗", "4483/combat"}, {"任务", "4478/quests"}, {"科技", "4472/technology"}, {"魔法", "4473/magic"}, {"冒险", "4475/adventure"}, {"优化", "/optimization"}, {"轻量", "4481/lightweight"}, {"多人", "4484/"}, {"大型", "4482/"}}
         For Each pair In tags : PackSearchCategory.Items.Add(New PclComboBoxItem With {.Content = pair.Key, .Tag = pair.Value}) : Next
         PackSearchCategory.SelectedIndex = 0
+        ConfigureResourceSearch()
         AddHandler PackSearchText.KeyDown, AddressOf PackSearchEnter
         AddHandler PackSearchGame.KeyDown, AddressOf PackSearchEnter
         AddHandler OnlinePackName.TextChanged, Sub() ValidateOnlinePackName()
@@ -109,17 +115,25 @@ Partial Public Class MainWindow
         End If
     End Sub
     Private Sub OpenLocalPacks(sender As Object, e As RoutedEventArgs)
-        If _busy OrElse _choosingOnline Then Return
+        If _busy OrElse _choosingOnline OrElse _resourceKind <> CommunityResourceKind.Modpack Then Return
         ChangePackMode(PackBrowserMode.Local)
     End Sub
     Private Sub BackToPackSearch(sender As Object, e As RoutedEventArgs)
         If _choosingOnline Then Return
+        _dependencyRequest?.Cancel()
+        ResetResourceNames()
+        If _packMode = PackBrowserMode.Detail AndAlso _resourceBack.Count > 0 Then
+            _packDetailRequest?.Cancel()
+            Dim frame = _resourceBack.Pop()
+            ChangePackContent(PackBrowserMode.Detail, Sub() RestoreResourceDetail(frame))
+            Return
+        End If
         ChangePackMode(PackBrowserMode.Search)
     End Sub
     Private Async Sub RunPackSearch(sender As Object, e As RoutedEventArgs)
         If _busy OrElse _choosingOnline OrElse _closing OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible Then Return
         Dim game = PackSearchGameValue(), category = TryCast(PackSearchCategory.SelectedItem, ComboBoxItem)
-        Dim query As New ModpackQuery With {.Text = PackSearchText.Text.Trim(), .Minecraft = game,
+        Dim query As New ModpackQuery With {.Kind = _resourceKind, .Loader = If(_resourceKind = CommunityResourceKind.Mod, CStr(TryCast(ResourceLoader.SelectedItem, ComboBoxItem)?.Tag), ""), .Text = PackSearchText.Text.Trim(), .Minecraft = game,
             .Platforms = If(PackSearchSource.SelectedIndex = 1, ModpackPlatform.CurseForge, If(PackSearchSource.SelectedIndex = 2, ModpackPlatform.Modrinth, ModpackPlatform.All)),
             .Category = If(category Is Nothing, "/", CStr(category.Tag))}
         ' Structured identity keeps literal separators in different fields distinct.
@@ -137,6 +151,7 @@ Partial Public Class MainWindow
         If _packSearchSession IsNot Nothing AndAlso key = _packLastQuery AndAlso _packSearchRequest Is Nothing AndAlso _packSearchSession.ErrorMessage = "" AndAlso cacheAge >= TimeSpan.Zero AndAlso cacheAge <= TimeSpan.FromSeconds(60) Then candidate = _packSearchSession
         _packSearchRequest?.Cancel()
         _packDetailRequest?.Cancel()
+        _dependencyRequest?.Cancel() : _resourceBack.Clear()
         If candidate IsNot _packSearchSession Then _packLastSearch = DateTime.UtcNow
         _packSearchSession = candidate : _packLastQuery = key
         _packProject = Nothing : _packVerifiedProject = Nothing : _packDetailCompletedProject = Nothing : _packReleases.Clear()
@@ -149,6 +164,7 @@ Partial Public Class MainWindow
         PackSearchText.Text = "" : PackSearchGame.SelectedIndex = 0 : PackSearchSource.SelectedIndex = 0 : PackSearchCategory.SelectedIndex = 0
         PackSearchGame.Text = "全部 (也可自行输入)"
         PackSearchInputHint.Visibility = Visibility.Collapsed
+        ResourceLoader.SelectedIndex = 0
         _packLastQuery = Nothing
     End Sub
     Private Async Sub FirstPackPage(sender As Object, e As RoutedEventArgs)
@@ -186,9 +202,9 @@ Partial Public Class MainWindow
         _packSearchLoading.Start(request, request.Token, AddressOf PreparePackSearchLoading, Sub() ChangePackResults(Sub()
                               PackSearchHint.Visibility = Visibility.Collapsed : PackPagingCard.Visibility = Visibility.Collapsed
                               PackResultsCard.Visibility = Visibility.Visible
-                              PackProjectRows.Children.Clear() : PackResultsCard.Title = "正在获取整合包列表…"
+                              PackProjectRows.Children.Clear() : PackResultsCard.Title = "正在获取" & CommunityResources.Name(_resourceKind) & "列表…"
                               PackResultsCard.HorizontalAlignment = HorizontalAlignment.Center
-                              PackProjectRows.Children.Add(New PclLoadingView("正在获取整合包列表"))
+                              PackProjectRows.Children.Add(New PclLoadingView("正在获取" & CommunityResources.Name(_resourceKind) & "列表"))
                           End Sub))
         Try
             Dim items As List(Of ModpackProject)
@@ -210,7 +226,7 @@ Partial Public Class MainWindow
             Dim limitReached = page = ModpackSearchSession.MaxPage AndAlso session.Count >= (page + 1) * ModpackCatalogClient.PageSize AndAlso
                 (session.HasMore OrElse session.Count > (page + 1) * ModpackCatalogClient.PageSize)
             ChangePackResults(Sub()
-                                  PackProjectRows.Children.Clear() : PackResultsCard.Title = "整合包" : PackResultsCard.Visibility = Visibility.Visible
+                                  PackProjectRows.Children.Clear() : PackResultsCard.Title = CommunityResources.Name(_resourceKind) : PackResultsCard.Visibility = Visibility.Visible
                                   PackResultsCard.HorizontalAlignment = HorizontalAlignment.Stretch
                                   For Each project In items
                                       Dim row As New PclResourceItem(project) With {.Tag = project}
@@ -218,7 +234,7 @@ Partial Public Class MainWindow
                                       PackProjectRows.Children.Add(row)
                                       LoadPackIconAsync(row, project, artworkToken)
                                   Next
-                                  If items.Count = 0 Then PackProjectRows.Children.Add(New TextBlock With {.Text = If(session.HasMore, "暂无结果，可点击「继续加载」。", If(session.ErrorMessage = "", "没有找到符合条件的整合包。", "获取失败，请重试或更换来源。")), .Margin = New Thickness(10), .TextWrapping = TextWrapping.Wrap})
+                                  If items.Count = 0 Then PackProjectRows.Children.Add(New TextBlock With {.Text = If(session.HasMore, "暂无结果，可点击「继续加载」。", If(session.ErrorMessage = "", "没有找到符合条件的" & CommunityResources.Name(_resourceKind) & "。", "获取失败，请重试或更换来源。")), .Margin = New Thickness(10), .TextWrapping = TextWrapping.Wrap})
                                   PackSearchHint.Theme = If(items.Count > 0 OrElse session.HasMore, PclHintTheme.Yellow, PclHintTheme.Red)
                                   If items.Count > 0 Then
                                       PackSearchHint.Text = If(retainedPage, "加载失败，已保留结果。点击搜索重试。", "部分来源暂不可用，已显示可用结果。点击搜索重试。")
@@ -303,9 +319,11 @@ Partial Public Class MainWindow
         If _busy OrElse _choosingOnline OrElse _closing OrElse Not DownloadViewHost.IsHitTestVisible OrElse Not PackSearchResultsHost.IsHitTestVisible Then Return
         Dim changingProject = _packProject Is Nothing OrElse _packProject.Key <> project.Key
         If changingProject Then
+            _dependencyRequest?.Cancel() : ResetResourceNames() : _resourceBack.Clear()
             RetirePromptFocus()
             _packProject = project : _packVerifiedProject = Nothing : _packDetailCompletedProject = Nothing : _packReleases.Clear() : _packDetailScroll = 0
             _packTargetGame = If(_packSearchSession?.Query.Minecraft, "")
+            _resourceTargetLoader = If(_packSearchSession?.Query.Loader, "")
             _packVersionCache.Clear()
         End If
         RenderPackProject(ActivePackProject())
@@ -320,6 +338,7 @@ Partial Public Class MainWindow
     End Sub
     Private Async Function LoadPackDetailsAsync(project As ModpackProject) As Task
         If project Is Nothing OrElse project IsNot _packProject OrElse _closing Then Return
+        ResetResourceNames()
         _packDetailRequest?.Cancel()
         _packDetailCompletedProject = Nothing
         Dim request As New CancellationTokenSource : _packDetailRequest = request
@@ -332,8 +351,10 @@ Partial Public Class MainWindow
                                                  End Sub))
         Try
             Using client = _packCatalogFactory()
-                Dim verified = Await client.GetProjectAsync(project.Platform, project.Id, request.Token)
+                Dim verified = Await client.GetProjectAsync(project.Platform, project.Id, request.Token, project.Kind)
+                verified.PreferredVersionId = project.PreferredVersionId
                 Dim releases = Await client.GetVersionsAsync(verified, request.Token)
+                If verified.Kind = CommunityResourceKind.Mod AndAlso Not String.IsNullOrEmpty(_resourceTargetLoader) Then releases = releases.Where(Function(item) item.Loaders.Contains(_resourceTargetLoader, StringComparer.OrdinalIgnoreCase)).ToList()
                 If _closing OrElse request.IsCancellationRequested OrElse _packDetailRequest IsNot request OrElse _packProject IsNot project Then Return
                 Await _packDetailLoading.CompleteAsync(request)
                 If _closing OrElse request.IsCancellationRequested OrElse _packDetailRequest IsNot request OrElse _packProject IsNot project Then Return
@@ -352,7 +373,7 @@ Partial Public Class MainWindow
                 _packDetailCompletedProject = Nothing
                 ChangePackContent(PackBrowserMode.Detail, Sub()
                                                              PackVersionCards.Children.Clear()
-                                                             PackDetailHint.Theme = PclHintTheme.Red : PackDetailHint.Text = "无法获取可安装的客户端版本，请重试。" : PackDetailHint.ToolTip = ex.GetBaseException().Message : PackDetailHint.Visibility = Visibility.Visible : PackDetailRetry.Visibility = Visibility.Visible
+                                                             PackDetailHint.Theme = PclHintTheme.Red : PackDetailHint.Text = "无法获取可下载的版本，请重试。" : PackDetailHint.ToolTip = ex.GetBaseException().Message : PackDetailHint.Visibility = Visibility.Visible : PackDetailRetry.Visibility = Visibility.Visible
                                                          End Sub)
             End If
         Finally

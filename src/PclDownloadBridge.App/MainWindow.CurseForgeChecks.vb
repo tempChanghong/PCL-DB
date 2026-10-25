@@ -50,7 +50,7 @@ Partial Public Class MainWindow
                                End Sub
         _selectedFolder = New GameFolder With {.Location = root, .Name = "CF fixture"}
         layout()
-        check(DownloadNav.Children.Count = 2 AndAlso VanillaNav.Title = "原版游戏" AndAlso ModpackNav.Title = "整合包", "download sidebar exposes exactly vanilla and modpacks")
+        check(DownloadNav.Children.Count = 7 AndAlso DownloadNav.Children.OfType(Of PclListItem)().Select(Function(item) item.Title).SequenceEqual({"原版游戏", "Mod", "整合包", "数据包", "资源包", "光影包"}), "download sidebar retains PCL vanilla and the five community resource entries in source order")
         check(DownloadSidebar.ActualWidth = 135 AndAlso VanillaNav.Height = 36 AndAlso ModpackNav.Height = 36 AndAlso VanillaNav.IsSidebar AndAlso ModpackNav.IsSidebar, "sidebar uses PCL dimensions and animated list controls")
         SelectVersion(_versions(0)) : _pageSwitch.Finish()
         SelectComponent(_componentEntries(ComponentKind.Fabric)(0))

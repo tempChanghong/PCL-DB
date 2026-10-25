@@ -44,7 +44,7 @@ Partial Public Class MainWindow
                                End Sub
         _selectedFolder = New GameFolder With {.Location = root, .Name = "MR fixture"}
         ShowModpackDownloads(Me, New RoutedEventArgs()) : layout()
-        check(DownloadNav.Children.Count = 2 AndAlso CurseForgeCard.Title = "CurseForge" AndAlso ModrinthCard.Title = "Modrinth" AndAlso ModrinthCard.Margin.Equals(CurseForgeCard.Margin), "MR joins the existing modpack page without adding sidebar destinations")
+        check(DownloadNav.Children.Count = 7 AndAlso CurseForgeCard.Title = "CurseForge" AndAlso ModrinthCard.Title = "Modrinth" AndAlso ModrinthCard.Margin.Equals(CurseForgeCard.Margin), "MR retains its existing modpack format card beside the expanded PCL community sidebar")
         check(ModrinthOptionsCard.Visibility = Visibility.Collapsed AndAlso ImportModrinthButton.IsEnabled AndAlso IsPackFile(source) AndAlso IsPackFile("test.ZIP") AndAlso Not IsPackFile("test.exe"), "MR landing uses its own card and accepts ZIP/MRPACK drop formats")
         Await ReadLocalPackAsync(source) : layout()
         Dim package = _modrinthSelection, box = DirectCast(ModrinthOptionalFiles.Children(0), PclCheckBox)

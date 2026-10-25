@@ -148,6 +148,7 @@ Partial Public Class MainWindow
         Return Not _closing AndAlso Not request.IsCancellationRequested AndAlso _packSelection Is package AndAlso _packReadCancellation Is request
     End Function
     Private Sub SelectCurseForgePackage(package As CurseForgePackage, Optional request As CancellationTokenSource = Nothing, Optional navigate As Boolean = True)
+        If navigate AndAlso _resourceKind <> CommunityResourceKind.Modpack Then SelectResourceKind(CommunityResourceKind.Modpack) : _categoryMotion.Finish()
         If _packReadCancellation IsNot request Then CancelPackRead()
         Dim sameArchive = _packSelection IsNot Nothing AndAlso _packSelection.Sha256 = package.Sha256
         Dim editedName = PackInstanceName.Text

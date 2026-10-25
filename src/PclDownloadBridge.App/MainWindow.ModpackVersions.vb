@@ -85,7 +85,7 @@ Partial Public Class MainWindow
             PackVersionCards.Children.Add(card)
         Next
         PackDetailHint.Theme = PclHintTheme.Blue : PackDetailHint.ToolTip = Nothing
-        PackDetailHint.Text = "没有符合条件的可安装版本。"
+        PackDetailHint.Text = If(ActivePackProject()?.Kind = CommunityResourceKind.Modpack, "没有符合条件的可安装版本。", "没有可下载的版本，可转到项目页面获取。")
         PackDetailHint.Visibility = If(names.Count = 0, Visibility.Visible, Visibility.Collapsed)
     End Sub
 
@@ -93,11 +93,12 @@ Partial Public Class MainWindow
         Dim rows As New StackPanel
         Dim titles = PackReleaseTitles(releases)
         Dim now = DateTimeOffset.UtcNow
+        AddResourceDependencies(rows, releases)
         For index = 0 To releases.Count - 1
             Dim selected = releases(index), title = titles(index)
             Dim row As New PclListItem With {.Height = 42, .Title = title, .Info = PackReleaseInfo(selected, title, now), .ToolTip = PackReleaseToolTip(selected), .Tag = selected,
                 .Logo = "pack://application:,,,/Images/Blocks/" & If(selected.ReleaseType = "release", "Release", If(selected.ReleaseType = "beta", "Beta", "Alpha")) & ".png"}
-            Dim blocked = ModpackCompatibility.GetInstallBlockReason(selected)
+            Dim blocked = If(selected.Kind = CommunityResourceKind.Modpack, ModpackCompatibility.GetInstallBlockReason(selected), Nothing)
             If blocked IsNot Nothing Then
                 row.IsEnabled = False : row.Focusable = False : row.Cursor = Input.Cursors.Arrow
                 row.Info &= "，暂不支持自动安装" : row.ToolTip = blocked & vbCrLf & vbCrLf & row.ToolTip.ToString()
@@ -105,7 +106,8 @@ Partial Public Class MainWindow
                 row.SetResourceReference(PclListItem.ForegroundProperty, "ColorBrushGray4")
             End If
             AddHandler row.Click, Sub()
-                                      If PackVersionCards.Children.OfType(Of PclCard)().Any(Function(card) Not card.Collapsed AndAlso card.Body Is rows) Then InstallOnlinePack(selected, title, row)
+                                      If Not PackVersionCards.Children.OfType(Of PclCard)().Any(Function(card) Not card.Collapsed AndAlso card.Body Is rows) Then Return
+                                      If selected.Kind = CommunityResourceKind.Modpack Then InstallOnlinePack(selected, title, row) Else SaveCommunityResource(selected, row)
                                   End Sub
             rows.Children.Add(row)
         Next

@@ -249,7 +249,7 @@ Partial Public Class MainWindow
         VerifyVersionRowOwnership(artifactDirectory, check)
         check(Shell.RowDefinitions(0).Height.Value = 48, "PCL title bar is 48 DIP")
         check(TopTabs.Children.Count = 3 AndAlso ManagementTab.Text = "管理" AndAlso DownloadTab.Text = "下载" AndAlso SettingsTab.Text = "设置", "Management, Download and Settings are the main navigation")
-        check(FindName("FoldersPage") Is Nothing AndAlso FindName("TasksPage") Is Nothing AndAlso DownloadNav.Children.Count = 2, "download navigation contains only vanilla and modpacks without standalone folder or task pages")
+        check(FindName("FoldersPage") Is Nothing AndAlso FindName("TasksPage") Is Nothing AndAlso DownloadNav.Children.Count = 7 AndAlso DownloadNav.Children.OfType(Of PclListItem)().Count() = 6, "download navigation contains vanilla and five community entries without standalone folder or task pages")
         check(Not _hasTask AndAlso ProgressShortcut.Visibility = Visibility.Collapsed, "fresh download page has no empty task entry")
         check(VersionCards.Children.Count = 5, "latest plus four PCL categories")
         Dim releaseCard = DirectCast(VersionCards.Children(1), PclCard)
@@ -718,7 +718,11 @@ Partial Public Class MainWindow
     Private Sub RefreshDownloadChrome()
         Dim view = _downloadView
         Dim packCategory = view = DownloadView.Modpacks OrElse (view = DownloadView.Progress AndAlso _progressReturnView = DownloadView.Modpacks)
-        VanillaNav.Selected = Not packCategory : ModpackNav.Selected = packCategory
+        VanillaNav.Selected = Not packCategory : ModpackNav.Selected = packCategory AndAlso _resourceKind = CommunityResourceKind.Modpack
+        ModNav.Selected = packCategory AndAlso _resourceKind = CommunityResourceKind.Mod
+        DataPackNav.Selected = packCategory AndAlso _resourceKind = CommunityResourceKind.DataPack
+        ResourcePackNav.Selected = packCategory AndAlso _resourceKind = CommunityResourceKind.ResourcePack
+        ShaderNav.Selected = packCategory AndAlso _resourceKind = CommunityResourceKind.Shader
         EmptyVersions.Visibility = If(view = DownloadView.Versions AndAlso _versions.Count = 0 AndAlso
             (_versionLoading Is Nothing OrElse _versionLoading.Phase = PclLoadingPresentation.Phases.Idle) AndAlso VersionLoadingCard.Visibility <> Visibility.Visible,
             Visibility.Visible, Visibility.Collapsed)
@@ -733,9 +737,7 @@ Partial Public Class MainWindow
         Await RefreshCurrentListsIfNeededAsync()
     End Sub
     Private Sub ShowModpackDownloads(sender As Object, e As RoutedEventArgs)
-        If _busy Then Return
-        SetDownloadView(DownloadView.Modpacks)
-        EnsurePackSearch()
+        SelectResourceKind(CommunityResourceKind.Modpack)
     End Sub
 
     Private Async Sub ShowDownload(sender As Object, e As RoutedEventArgs)
@@ -999,6 +1001,8 @@ Partial Public Class MainWindow
         CompleteOnlinePrompt(Nothing)
         _packSearchRequest?.Cancel()
         _packDetailRequest?.Cancel()
+        _dependencyRequest?.Cancel() : _resourceNamesRequest?.Cancel() : _resourceNamesRequest?.Dispose()
+        _resourceNamesRequest = Nothing
         _packArtworkRequest?.Cancel()
         _packArtworkRequest?.Dispose()
         _packArtworkRequest = Nothing

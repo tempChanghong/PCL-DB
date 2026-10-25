@@ -143,7 +143,11 @@ Partial Public Class MainWindow
             Case "processors" : start = 0.81 : weight = 0.16
             Case Else : start = 0.97 : weight = 0.03
         End Select
-        If _taskHasArchive AndAlso phase <> "archive" Then start = 0.1 + 0.9 * start : weight *= 0.9
+        If _taskResourceTransfer Then
+            start = If(phase = "commit", 0.95, 0) : weight = If(phase = "commit", 0.05, 0.95)
+        ElseIf _taskHasArchive AndAlso phase <> "archive" Then
+            start = 0.1 + 0.9 * start : weight *= 0.9
+        End If
         _taskOverall = Math.Max(_taskOverall, Math.Min(0.99, start + weight * Math.Max(0, fraction)))
         If value.PhaseFractions IsNot Nothing Then
             Dim states = value.PhaseFractions

@@ -15,6 +15,8 @@ Partial Public Class MainWindow
     Private _taskMinecraft As String
     Private _taskComponents As String
     Private _taskDiagnostic As String
+    Private _taskResourceFile As String
+    Private _taskResourceTransfer As Boolean
     Private _taskAction As Action(Of String, String)
 
     Private Sub ResetTaskResult(root As String)
@@ -23,6 +25,8 @@ Partial Public Class MainWindow
         _taskMinecraft = _selectedEntry?.Id
         _taskComponents = String.Join("、", _componentSelection.Entries.Values.Select(Function(c) ComponentLabel(c)))
         _taskDiagnostic = Nothing
+        _taskResourceFile = Nothing
+        _taskResourceTransfer = False
         _taskOutcome = TaskOutcome.Running
         TaskResultActions.Visibility = Visibility.Collapsed
         TaskResultLocation.Text = ""
@@ -45,6 +49,14 @@ Partial Public Class MainWindow
     End Function
 
     Private Function TaskFolderPath() As String
+        If _taskFinished AndAlso _taskOutcome = TaskOutcome.Succeeded AndAlso Not String.IsNullOrEmpty(_taskResourceFile) Then
+            Try
+                If File.Exists(_taskResourceFile) AndAlso (File.GetAttributes(_taskResourceFile) And FileAttributes.ReparsePoint) = 0 Then Return Path.GetDirectoryName(Path.GetFullPath(_taskResourceFile))
+            Catch ex As Exception When TypeOf ex Is IOException OrElse TypeOf ex Is UnauthorizedAccessException OrElse TypeOf ex Is ArgumentException
+                Return Nothing
+            End Try
+            Return Nothing
+        End If
         If Not _taskFinished OrElse _taskOutcome <> TaskOutcome.Succeeded OrElse String.IsNullOrWhiteSpace(_taskRoot) OrElse String.IsNullOrWhiteSpace(_taskInstancePath) Then Return Nothing
         Try
             PclDownloadBridge.Core.SafeFiles.ValidateInstanceName(_taskName)

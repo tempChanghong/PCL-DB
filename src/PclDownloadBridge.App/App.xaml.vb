@@ -62,6 +62,7 @@ Partial Public Class App
                     If scope = "pack-search" Then
                         checkWindow.VerifyPackSearchUi(directory, passed)
                         checkWindow.VerifyPackPagingUi(directory, passed)
+                        checkWindow.VerifyCommunityResourceUi(directory, passed)
                     ElseIf scope = "all" Then
                         checkWindow.VerifyUi(directory, passed)
                     ElseIf scope = "appearance" Then
