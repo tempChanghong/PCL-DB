@@ -71,6 +71,7 @@ Partial Public Class App
                         checkWindow.VerifyExperiencePaletteUi(directory, passed)
                         checkWindow.VerifyKeyboardHandoffPromptUi(directory, passed)
                         checkWindow.VerifyResourceInstallationUi(directory, passed)
+                        checkWindow.VerifyResourceTargetRecoveryUi(directory, passed)
                     ElseIf scope = "all" Then
                         checkWindow.VerifyUi(directory, passed)
                     ElseIf scope = "appearance" Then

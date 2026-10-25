@@ -79,7 +79,7 @@ Partial Public Class MainWindow
             ValidateResourceTarget()
             Dim current = TryCast(FocusManager.GetFocusedElement(FocusManager.GetFocusScope(PackNameDialog)), FrameworkElement)
             If Not IsPromptFocusTarget(current, PackNameDialog) Then FocusPromptTarget(ResourceTargetInstance, OnlinePromptBody)
-        Catch ex As OperationCanceledException
+        Catch ex As OperationCanceledException When request.IsCancellationRequested
         Catch ex As Exception
             If _resourceTargetRequest Is request AndAlso _resourceTargetPrompt Then _resourceTargetLoading = False : _resourceTargetProblem = ex.GetBaseException().Message : ValidateResourceTarget()
         End Try
@@ -103,14 +103,15 @@ Partial Public Class MainWindow
         Dim instance = TryCast(TryCast(ResourceTargetInstance.SelectedItem, ComboBoxItem)?.Tag, InstalledInstance)
         If instance Is Nothing OrElse _resourceTargetRelease.Kind <> CommunityResourceKind.DataPack Then ValidateResourceTarget() : Return
         Dim request = CancellationTokenSource.CreateLinkedTokenSource(_resourceTargetRequest.Token)
+        Dim token = request.Token
         _resourceWorldRequest = request : _resourceWorldLoading = True : ValidateResourceTarget()
         Try
-            Dim worlds = Await Task.Run(Function() CommunityResourceInstallation.Worlds(instance, request.Token), request.Token)
+            Dim worlds = Await RunManagementWorkerAsync(Function() CommunityResourceInstallation.Worlds(instance, token), token)
             If request.IsCancellationRequested OrElse _resourceWorldRequest IsNot request OrElse Not _resourceTargetPrompt OrElse TryCast(TryCast(ResourceTargetInstance.SelectedItem, ComboBoxItem)?.Tag, InstalledInstance) IsNot instance Then Return
             For Each world In worlds : ResourceTargetWorld.Items.Add(New PclComboBoxItem With {.Content = world.Name, .Tag = world, .ToolTip = world.Folder}) : Next
             ResourceTargetWorld.SelectedIndex = -1 : ResourceTargetWorld.IsEnabled = worlds.Count > 0
             If worlds.Count = 0 Then _resourceTargetProblem = "没有可用存档，请先在游戏中创建存档，或使用另存为。"
-        Catch ex As OperationCanceledException
+        Catch ex As OperationCanceledException When request.IsCancellationRequested
         Catch ex As Exception
             If _resourceWorldRequest Is request AndAlso _resourceTargetPrompt Then _resourceTargetProblem = ex.GetBaseException().Message
         Finally
@@ -131,6 +132,8 @@ Partial Public Class MainWindow
                 problem = "正在读取已安装版本…"
             ElseIf _resourceWorldLoading Then
                 problem = "正在读取存档…"
+            ElseIf _resourceTargetValidating Then
+                problem = "正在检查安装目标…"
             ElseIf instance Is Nothing Then
                 problem = "请选择安装目标版本。"
             Else
@@ -141,7 +144,7 @@ Partial Public Class MainWindow
         OnlinePackConfirm.IsEnabled = problem Is Nothing AndAlso Not _resourceTargetValidating
         ResourceTargetRefresh.IsEnabled = Not _resourceTargetLoading AndAlso Not _resourceTargetValidating
         OnlinePackNameHint.Text = If(problem, "") : OnlinePackNameHint.Visibility = If(problem Is Nothing, Visibility.Collapsed, Visibility.Visible)
-        OnlinePackNameHint.Theme = If(_resourceTargetLoading OrElse _resourceWorldLoading, PclHintTheme.Blue, PclHintTheme.Red)
+        OnlinePackNameHint.Theme = If(_resourceTargetLoading OrElse _resourceWorldLoading OrElse _resourceTargetValidating, PclHintTheme.Blue, PclHintTheme.Red)
         If instance IsNot Nothing Then
             Try
                 Dim path = CommunityResourceInstallation.ResourceDirectory(_resourceTargetRelease, instance, world)
@@ -156,14 +159,15 @@ Partial Public Class MainWindow
     Private Async Sub ConfirmResourceTargetAsync()
         If Not _resourceTargetPrompt OrElse _resourceTargetValidating OrElse Not OnlinePackConfirm.IsEnabled Then Return
         Dim request = _resourceTargetRequest, instance = DirectCast(DirectCast(ResourceTargetInstance.SelectedItem, ComboBoxItem).Tag, InstalledInstance)
+        Dim token = request.Token
         Dim world = TryCast(TryCast(ResourceTargetWorld.SelectedItem, ComboBoxItem)?.Tag, InstalledWorld)
         _resourceTargetValidating = True : ResourceTargetInstance.IsEnabled = False : ResourceTargetWorld.IsEnabled = False : ValidateResourceTarget()
         Try
             Dim release = _resourceTargetRelease.Copy()
-            Dim plan = Await Task.Run(Function() CommunityResourceInstallation.Create(release, instance, world, request.Token), request.Token)
+            Dim plan = Await RunManagementWorkerAsync(Function() CommunityResourceInstallation.Create(release, instance, world, token), token)
             If request.IsCancellationRequested OrElse _resourceTargetRequest IsNot request OrElse Not _resourceTargetPrompt Then Return
             _confirmedResourcePlan = plan : CompleteOnlinePrompt("yes")
-        Catch ex As OperationCanceledException
+        Catch ex As OperationCanceledException When request.IsCancellationRequested
         Catch ex As Exception
             If _resourceTargetPrompt AndAlso _resourceTargetRequest Is request Then _resourceTargetProblem = ex.GetBaseException().Message
         Finally
