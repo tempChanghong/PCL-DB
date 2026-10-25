@@ -34,6 +34,7 @@ Partial Public Class MainWindow
     End Sub
 
     Private Function ManagementContent() As FrameworkElement
+        If LocalModsPage.Visibility = Visibility.Visible Then Return LocalModsPage
         Return If(ManagementDetailPage.Visibility = Visibility.Visible, DirectCast(ManagementDetailPage, FrameworkElement), ManagementListPage)
     End Function
     Private Shared Function SameManagementTarget(a As LauncherInstallTarget, b As LauncherInstallTarget) As Boolean
@@ -60,12 +61,14 @@ Partial Public Class MainWindow
         Dim target = If(_selectedFolder Is Nothing, Nothing, CurrentInstallTarget())
         If Not SameManagementTarget(target, _managementTarget) Then
             CancelManagementRequest()
+            CancelLocalModRequest()
             _managementReturnName = Nothing
             _managementDirty = True
             _managementTarget = Nothing : _managedInstance = Nothing : _managementInstances.Clear()
             ChangeManagementContent(Sub()
                                         ManagementListPage.Visibility = Visibility.Visible
                                         ManagementDetailPage.Visibility = Visibility.Collapsed
+                                        LocalModsPage.Visibility = Visibility.Collapsed
                                         RenderManagementRows()
                                         ManagementStatus.Text = If(target Is Nothing, "请选择游戏目录。", "点击刷新读取已安装版本。")
                                     End Sub, ManagementListPage)
@@ -74,7 +77,7 @@ Partial Public Class MainWindow
     End Sub
     Private Sub ManagementFolderSelected(sender As Object, e As SelectionChangedEventArgs)
         If _managementRestoringFolders Then Return
-        If _busy OrElse _choosingOnline OrElse _closing Then RefreshManagementFolders() : Return
+        If _busy OrElse _choosingOnline OrElse _localModWriting OrElse _closing Then RefreshManagementFolders() : Return
         Dim folder = TryCast(ManagementFolders.SelectedItem, GameFolder)
         If folder Is Nothing Then Return
         FolderList.SelectedItem = folder
@@ -97,16 +100,19 @@ Partial Public Class MainWindow
                                             _managedInstance = instance
                                             RenderManagedInstance()
                                             ManagementDetailPage.Visibility = Visibility.Visible : ManagementListPage.Visibility = Visibility.Collapsed
+                                            LocalModsPage.Visibility = Visibility.Collapsed
                                             ManagementDetailPage.ScrollToHome()
                                             RefreshTitleNavigation()
                                         End Sub, ManagementDetailPage)
             End If
         End If
+        If ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible Then Await LoadLocalModsAsync(True)
         If ManagementPage.Visibility = Visibility.Visible Then FocusManagementViewport()
     End Sub
     Private Async Sub RefreshManagement(sender As Object, e As RoutedEventArgs)
         If ManagementPage.Visibility <> Visibility.Visible OrElse Not PageSurface.IsHitTestVisible OrElse _managementPreparing Then Return
         Await ScanManagementAsync(True)
+        If ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible Then Await LoadLocalModsAsync(True)
     End Sub
     Private Async Function ScanManagementAsync(force As Boolean) As Task
         If _closing OrElse _selectedFolder Is Nothing OrElse ManagementPage.Visibility <> Visibility.Visible Then Return
@@ -126,16 +132,17 @@ Partial Public Class MainWindow
             _managedInstance = instances.FirstOrDefault(Function(item) item.Name = selectedName)
             ChangeManagementContent(Sub()
                                         RenderManagementRows()
-                                        If ManagementDetailPage.Visibility = Visibility.Visible Then
+                                        If ManagementDetailPage.Visibility = Visibility.Visible OrElse LocalModsPage.Visibility = Visibility.Visible Then
                                             If _managedInstance Is Nothing Then
                                                 ManagementDetailPage.Visibility = Visibility.Collapsed : ManagementListPage.Visibility = Visibility.Visible
+                                                LocalModsPage.Visibility = Visibility.Collapsed : CancelLocalModRequest()
                                             Else
-                                                RenderManagedInstance()
+                                                If ManagementDetailPage.Visibility = Visibility.Visible Then RenderManagedInstance()
                                             End If
                                         End If
                                         ManagementStatus.Text = If(instances.Count = 0, "这个目录中还没有已安装版本。", "")
                                         RefreshTitleNavigation()
-                                    End Sub, If(ManagementDetailPage.Visibility = Visibility.Visible AndAlso _managedInstance Is Nothing, DirectCast(ManagementListPage, FrameworkElement), Nothing))
+                                    End Sub, If((ManagementDetailPage.Visibility = Visibility.Visible OrElse LocalModsPage.Visibility = Visibility.Visible) AndAlso _managedInstance Is Nothing, DirectCast(ManagementListPage, FrameworkElement), Nothing))
         Catch ex As OperationCanceledException
         Catch ex As Exception
             If generation = _managementGeneration AndAlso ManagementPage.Visibility = Visibility.Visible AndAlso Not _closing Then
@@ -166,7 +173,7 @@ Partial Public Class MainWindow
         End If
     End Sub
     Private Sub ManagementSearchChanged(sender As Object, e As TextChangedEventArgs)
-        If ManagementRows Is Nothing OrElse ManagementPage.Visibility <> Visibility.Visible OrElse ManagementDetailPage.Visibility = Visibility.Visible Then Return
+        If ManagementRows Is Nothing OrElse ManagementPage.Visibility <> Visibility.Visible OrElse ManagementListPage.Visibility <> Visibility.Visible Then Return
         ' Filtering has no navigation or data side effects; release old row clocks
         ' before detaching rows, and retain the focused search editor.
         _surfaceMotion?.Finish() : _managementMotion?.Finish()
@@ -216,6 +223,7 @@ Partial Public Class MainWindow
         If _closing OrElse ManagementPage.Visibility <> Visibility.Visible OrElse Not PageSurface.IsHitTestVisible OrElse Not ManagementViewHost.IsHitTestVisible OrElse
             Not _managementInstances.Contains(instance) Then Return
         CancelManagementRequest()
+        CancelLocalModRequest()
         _managementReturnName = Nothing
         _managementListOffset = ManagementListPage.VerticalOffset
         Dim outgoing = ManagementContent()
@@ -224,6 +232,7 @@ Partial Public Class MainWindow
                                                                   RenderManagedInstance()
                                                                   ManagementListPage.Visibility = Visibility.Collapsed
                                                                   ManagementDetailPage.Visibility = Visibility.Visible
+                                                                  LocalModsPage.Visibility = Visibility.Collapsed
                                                                   ManagementDetailPage.ScrollToHome()
                                                                   RefreshTitleNavigation()
                                 End Sub, ManagementDetailPage)
@@ -273,10 +282,11 @@ Partial Public Class MainWindow
     End Sub
     Private Sub RefreshManagementAvailability()
         If ManagementFolders Is Nothing Then Return
-        ManagementFolders.IsEnabled = Not _busy AndAlso Not _choosingOnline AndAlso Not _managementPreparing
+        ManagementFolders.IsEnabled = Not _busy AndAlso Not _choosingOnline AndAlso Not _managementPreparing AndAlso Not _localModWriting
         ManagementChooseFolder.IsEnabled = ManagementFolders.IsEnabled
         ManagementRefresh.IsEnabled = Not _managementPreparing
-        ManagedRepair.IsEnabled = Not _busy AndAlso Not _choosingOnline AndAlso Not _managementScanning AndAlso Not _managementPreparing AndAlso _managedInstance IsNot Nothing AndAlso _managedInstance.IsVanillaRepairCandidate
+        ManagedRepair.IsEnabled = Not _busy AndAlso Not _choosingOnline AndAlso Not _localModWriting AndAlso Not _managementScanning AndAlso Not _managementPreparing AndAlso _managedInstance IsNot Nothing AndAlso _managedInstance.IsVanillaRepairCandidate
+        ManagedMods.IsEnabled = _managedInstance IsNot Nothing AndAlso _managedInstance.Problem Is Nothing AndAlso _managedInstance.RunDirectory IsNot Nothing
         For Each button In ManagedFolderActions.Children.OfType(Of PclButton)()
             Dim folder = ManagedFolderLocation(CStr(button.Tag))
             button.IsEnabled = folder IsNot Nothing AndAlso Directory.Exists(folder)
@@ -305,7 +315,7 @@ Partial Public Class MainWindow
         Await PrepareManagedRepairAsync()
     End Sub
     Private Async Function PrepareManagedRepairAsync() As Task
-        If _closing OrElse _busy OrElse _choosingOnline OrElse _managementPreparing OrElse _managementScanning OrElse _managedInstance Is Nothing OrElse
+        If _closing OrElse _busy OrElse _choosingOnline OrElse _localModWriting OrElse _managementPreparing OrElse _managementScanning OrElse _managedInstance Is Nothing OrElse
             Not _managedInstance.IsVanillaRepairCandidate OrElse ManagementPage.Visibility <> Visibility.Visible OrElse ManagementDetailPage.Visibility <> Visibility.Visible OrElse
             Not PageSurface.IsHitTestVisible OrElse Not ManagementViewHost.IsHitTestVisible Then Return
         CancelManagementRequest()

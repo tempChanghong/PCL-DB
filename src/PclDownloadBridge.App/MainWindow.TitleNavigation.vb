@@ -10,6 +10,7 @@ Partial Public Class MainWindow
         If _titleNavigation Is Nothing Then Return
         Dim title As String = Nothing
         If ManagementPage.Visibility = Visibility.Visible AndAlso ManagementDetailPage.Visibility = Visibility.Visible Then title = _managedInstance?.Name
+        If ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible Then title = _localModInstance?.Name & " · Mod 管理"
         If DownloadPage.Visibility = Visibility.Visible Then
             If _downloadView = DownloadView.Progress Then
                 title = "任务管理"
@@ -18,6 +19,7 @@ Partial Public Class MainWindow
             End If
         End If
         _titleNavigation.SelectTitle(title)
+        ManagementToolbar.Visibility = If(ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible, Visibility.Collapsed, Visibility.Visible)
         Dim child = _downloadView = DownloadView.Progress OrElse (_downloadView = DownloadView.Modpacks AndAlso _packMode = PackBrowserMode.Detail)
         DownloadSidebar.Visibility = If(child, Visibility.Collapsed, Visibility.Visible)
         DownloadPage.ColumnDefinitions(0).Width = New GridLength(If(child, 0, 135))
@@ -30,6 +32,10 @@ Partial Public Class MainWindow
     Private Function NavigateTitleBack() As Boolean
         If _closing OrElse _choosingOnline OrElse _onlinePrompt IsNot Nothing Then Return False
         If ManagementPage.Visibility = Visibility.Visible Then
+            If LocalModsPage.Visibility = Visibility.Visible Then
+                BackFromLocalMods()
+                Return True
+            End If
             If ManagementDetailPage.Visibility <> Visibility.Visible Then Return False
             BackFromManagement(Me, New RoutedEventArgs())
             Return True

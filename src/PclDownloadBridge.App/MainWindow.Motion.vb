@@ -36,7 +36,7 @@ Partial Public Class MainWindow
     End Sub
 
     Private Function MotionViewers() As PclScrollViewer()
-        Return {VersionScroll, InstallScroll, ModpackPage, DownloadProgress, SettingsPage, AboutPage, ManagementListPage, ManagementDetailPage}
+        Return {VersionScroll, InstallScroll, ModpackPage, DownloadProgress, SettingsPage, AboutPage, ManagementListPage, ManagementDetailPage, LocalModsPage}
     End Function
     Private Function ActiveSurface() As FrameworkElement
         Return If(AboutPage.Visibility = Visibility.Visible, DirectCast(AboutPage, FrameworkElement),
@@ -71,6 +71,7 @@ Partial Public Class MainWindow
                     _managementMotion?.Finish()
                     If previous Is ManagementPage Then
                         CancelManagementRequest()
+                        CancelLocalModRequest()
                         _managementReturnName = Nothing
                     End If
                     If target IsNot DownloadPage AndAlso _pageSwitch.HasMotion Then _pageSwitch.Finish()

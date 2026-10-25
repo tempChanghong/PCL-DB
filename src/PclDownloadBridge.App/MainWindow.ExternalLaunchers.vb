@@ -22,7 +22,7 @@ Partial Public Class MainWindow
         End Select
     End Function
     Private Function LauncherEditingAllowed() As Boolean
-        Return Not _busy AndAlso Not _choosingOnline AndAlso Not _closing AndAlso Not _restoringSettings AndAlso Not _launcherState.ReadOnlyFormat AndAlso
+        Return Not _busy AndAlso Not _choosingOnline AndAlso Not _localModWriting AndAlso Not _closing AndAlso Not _restoringSettings AndAlso Not _launcherState.ReadOnlyFormat AndAlso
             ExternalLauncherCard.IsVisible AndAlso ExternalLauncherCard.IsHitTestVisible
     End Function
     Private Sub InitializeExternalLaunchers()

@@ -363,10 +363,45 @@
                         <p:PclButton Text="截图文件夹" Tag="screenshots" Width="130" Height="32" Margin="0,8,12,0" Click="OpenManagedFolder"/>
                       </WrapPanel>
                     </p:PclCard>
+                    <p:PclCard Title="内容管理" BodyMargin="25,40,25,18" Margin="0,0,0,15">
+                      <p:PclButton x:Name="ManagedMods" Text="Mod 管理" Width="130" Height="32" HorizontalAlignment="Left" Click="ShowLocalMods"/>
+                    </p:PclCard>
                     <p:PclCard Title="文件检查" BodyMargin="25,40,25,18">
                       <StackPanel>
                         <p:PclButton x:Name="ManagedRepair" Text="校验与补全" Width="130" Height="32" HorizontalAlignment="Left" Click="RepairManagedInstance"/>
                         <TextBlock x:Name="ManagedRepairStatus" FontSize="12" Opacity="0.65" TextWrapping="Wrap" Margin="0,10,0,0" AutomationProperties.LiveSetting="Polite"/>
+                      </StackPanel>
+                    </p:PclCard>
+                  </StackPanel>
+                </p:PclScrollViewer>
+                <p:PclScrollViewer x:Name="LocalModsPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="True" IsTabStop="False">
+                  <StackPanel Margin="25,15,25,25">
+                    <p:PclCard ShowHeader="False" BodyMargin="16,12,16,12" Margin="0,0,0,15">
+                      <p:PclTextBox x:Name="LocalModSearch" Height="30" HintText="搜索 Mod 名称 / 版本 / ID" MaxLength="256" TextChanged="LocalModSearchChanged" AutomationProperties.Name="搜索本地 Mod"/>
+                    </p:PclCard>
+                    <p:PclHint x:Name="LocalModSharedHint" Visibility="Collapsed" Margin="0,0,0,15"/>
+                    <p:PclCard ShowHeader="False" BodyMargin="15" Margin="0,0,0,15">
+                      <StackPanel>
+                        <TextBlock x:Name="LocalModDirectory" FontSize="12" Opacity="0.65" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text,RelativeSource={RelativeSource Self}}" Margin="0,0,0,12"/>
+                        <WrapPanel>
+                          <p:PclButton x:Name="LocalModOpen" Text="打开文件夹" Width="110" Height="32" Margin="0,0,12,6" Click="OpenLocalModFolder"/>
+                          <p:PclButton x:Name="LocalModImport" Text="从文件安装" Width="110" Height="32" Margin="0,0,12,6" Click="ChooseLocalMods"/>
+                          <p:PclButton x:Name="LocalModRefresh" Text="刷新列表" Width="100" Height="32" Margin="0,0,12,6" Click="RefreshLocalMods"/>
+                          <p:PclButton x:Name="LocalModCancel" Text="取消操作" Width="100" Height="32" Margin="0,0,0,6" Visibility="Collapsed" Click="CancelLocalModOperation"/>
+                        </WrapPanel>
+                        <TextBlock x:Name="LocalModStatus" FontSize="12" Opacity="0.65" TextWrapping="Wrap" Margin="0,5,0,0" AutomationProperties.LiveSetting="Polite"/>
+                      </StackPanel>
+                    </p:PclCard>
+                    <p:PclCard x:Name="LocalModListCard" ShowHeader="False" BodyMargin="15,12,15,15">
+                      <StackPanel>
+                        <StackPanel Orientation="Horizontal" Height="28" Margin="0,0,0,10">
+                          <p:PclRadioButton x:Name="LocalModAll" Text="全部" Tag="all" ColorType="Highlight" Checked="True" Margin="2,0" Click="FilterLocalMods"/>
+                          <p:PclRadioButton x:Name="LocalModEnabled" Text="已启用" Tag="enabled" ColorType="Highlight" Margin="2,0" Click="FilterLocalMods"/>
+                          <p:PclRadioButton x:Name="LocalModDisabled" Text="已禁用" Tag="disabled" ColorType="Highlight" Margin="2,0" Click="FilterLocalMods"/>
+                        </StackPanel>
+                        <TextBlock x:Name="LocalModSummary" FontSize="12" Opacity="0.65" Margin="0,0,0,8"/>
+                        <StackPanel x:Name="LocalModRows"/>
+                        <TextBlock x:Name="LocalModEmpty" Text="尚未安装 Mod。" FontSize="13" Opacity="0.65" TextWrapping="Wrap" Margin="8,12,8,12" Visibility="Collapsed"/>
                       </StackPanel>
                     </p:PclCard>
                   </StackPanel>

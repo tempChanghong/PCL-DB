@@ -45,7 +45,7 @@ Partial Public Class MainWindow
         If issue Is Nothing Then issue = ManagedRepairProblem()
         If issue Is Nothing Then issue = ExternalInstallProblem()
         If issue Is Nothing AndAlso RepairBox.IsChecked.GetValueOrDefault() AndAlso _componentSelection.Entries.Count > 0 Then issue = "请为组件安装使用新名称；原版校验仅支持未添加加载器的实例。"
-        Dim active = If(busy, _busy)
+        Dim active = If(busy, _busy) OrElse _localModWriting
         InstallButton.IsEnabled = Not active AndAlso issue Is Nothing
         InstallButton.ToolTip = If(active, "请等待当前安装任务结束。", issue)
         RefreshPackAvailability(busy)

@@ -380,6 +380,7 @@ Partial Public Class MainWindow
     End Sub
 
     Private Async Sub InstallOnlinePack(release As ModpackRelease, Optional displayedTitle As String = Nothing, Optional returnTarget As FrameworkElement = Nothing)
+        If _localModWriting Then Return
         If _busy OrElse _choosingOnline OrElse _readingPack OrElse _closing OrElse _packProject Is Nothing OrElse _packMode <> PackBrowserMode.Detail OrElse _downloadView <> DownloadView.Modpacks OrElse Not DownloadPage.IsVisible OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible OrElse Not PackDetailResultsHost.IsHitTestVisible Then Return
         Dim project = ActivePackProject(), snapshot = release.Copy()
         If snapshot.Platform <> project.Platform OrElse snapshot.ProjectId <> project.Id Then Return

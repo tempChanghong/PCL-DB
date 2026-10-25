@@ -54,6 +54,7 @@ Partial Public Class MainWindow
         VerifyControlMotionUi(directory, passed)
         VerifyTitleNavigation(check, directory, True)
         VerifyManagementMotion(directory, check)
+        VerifyLocalModMotion(directory, check)
         Return passed
     End Function
 

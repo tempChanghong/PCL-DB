@@ -1,0 +1,258 @@
+Imports System.IO
+Imports System.Threading
+Imports System.Windows
+Imports System.Windows.Controls
+Imports PclDownloadBridge.Controls
+Imports PclDownloadBridge.Core
+
+Partial Public Class MainWindow
+    Private _localMods As New List(Of LocalModEntry)
+    Private _localModInstance As InstalledInstance
+    Private _localModRequest As CancellationTokenSource
+    Private _localModGeneration As Long
+    Private _localModScanning As Boolean
+    Private _localModReadSucceeded As Boolean
+    Private _localModWriting As Boolean
+    Private _localModWriteRequest As CancellationTokenSource
+    Private _localModOperationGeneration As Long
+    Private _localModWriteOwner As InstalledInstance
+    Private _localModFilter As String = "all"
+    Private _localModDetailOffset As Double
+    Private ReadOnly _localModRowViews As New Dictionary(Of LocalModEntry, Grid)
+    Private _localModProvider As Func(Of InstalledInstance, CancellationToken, Task(Of List(Of LocalModEntry))) =
+        Function(instance, token) Task.Run(Function() LocalModCatalog.Scan(instance, token), token)
+    Private _localModImporter As Func(Of InstalledInstance, String(), CancellationToken, Task(Of LocalModActionResult)) =
+        Function(instance, files, token) Task.Run(Function() LocalModActions.ImportFiles(instance, files, token), token)
+    Private _localModToggle As Func(Of InstalledInstance, LocalModEntry, Boolean, CancellationToken, Task(Of LocalModActionResult)) =
+        Function(instance, entry, enabled, token) Task.Run(Function() LocalModActions.SetEnabled(instance, entry, enabled, token), token)
+
+    Private Function SameLocalModContext(instance As InstalledInstance) As Boolean
+        Return instance IsNot Nothing AndAlso _managedInstance IsNot Nothing AndAlso instance.Name = _managedInstance.Name AndAlso
+            Not String.IsNullOrEmpty(instance.RunDirectory) AndAlso Not String.IsNullOrEmpty(_managedInstance.RunDirectory) AndAlso
+            SameManagementTarget(instance.Target, _managedInstance.Target) AndAlso SameGameRoot(instance.RunDirectory, _managedInstance.RunDirectory)
+    End Function
+    Private Function LocalModInputAllowed() As Boolean
+        Return Not _closing AndAlso Not _restoringSettings AndAlso Not _restoringLaunchers AndAlso ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible AndAlso
+            PageSurface.IsHitTestVisible AndAlso ManagementViewHost.IsHitTestVisible AndAlso SameLocalModContext(_localModInstance)
+    End Function
+    Private Sub CancelLocalModRequest()
+        _localModGeneration += 1
+        _localModRequest?.Cancel() : _localModRequest = Nothing : _localModScanning = False
+        _localModReadSucceeded = False
+    End Sub
+    Private Async Sub ShowLocalMods(sender As Object, e As RoutedEventArgs)
+        If _closing OrElse _managedInstance Is Nothing OrElse _managedInstance.Problem IsNot Nothing OrElse _managedInstance.RunDirectory Is Nothing OrElse
+            ManagementPage.Visibility <> Visibility.Visible OrElse ManagementDetailPage.Visibility <> Visibility.Visible OrElse
+            Not PageSurface.IsHitTestVisible OrElse Not ManagementViewHost.IsHitTestVisible Then Return
+        CancelManagementRequest() : CancelLocalModRequest()
+        _localModDetailOffset = ManagementDetailPage.VerticalOffset
+        If Not SameLocalModContext(_localModInstance) Then
+            _localMods = New List(Of LocalModEntry)()
+            LocalModSearch.Text = "" : _localModFilter = "all"
+        End If
+        _localModInstance = _managedInstance
+        ChangeManagementContent(Sub()
+                                    ManagementDetailPage.Visibility = Visibility.Collapsed
+                                    ManagementListPage.Visibility = Visibility.Collapsed
+                                    LocalModsPage.Visibility = Visibility.Visible
+                                    LocalModsPage.ScrollToHome()
+                                    RenderLocalMods()
+                                    RefreshTitleNavigation()
+                                End Sub, LocalModsPage)
+        Await LoadLocalModsAsync(True)
+        If LocalModInputAllowed() Then FocusManagementViewport()
+    End Sub
+    Private Async Sub RefreshLocalMods(sender As Object, e As RoutedEventArgs)
+        If Not LocalModInputAllowed() OrElse _localModWriting Then Return
+        Await LoadLocalModsAsync(True)
+    End Sub
+    Private Async Function LoadLocalModsAsync(force As Boolean) As Task
+        If _closing OrElse ManagementPage.Visibility <> Visibility.Visible OrElse LocalModsPage.Visibility <> Visibility.Visible OrElse
+            _managedInstance Is Nothing OrElse _managedInstance.RunDirectory Is Nothing OrElse _managedInstance.Problem IsNot Nothing OrElse
+            (_localModScanning AndAlso Not force) Then Return
+        CancelLocalModRequest()
+        Dim instance = _managedInstance, request As New CancellationTokenSource(), generation = _localModGeneration
+        _localModInstance = instance : _localModRequest = request : _localModScanning = True
+        LocalModStatus.Text = "正在读取 Mod 列表…"
+        RefreshLocalModAvailability()
+        Try
+            Dim entries = Await _localModProvider(instance, request.Token)
+            If request.IsCancellationRequested OrElse generation <> _localModGeneration OrElse _closing OrElse Not SameLocalModContext(instance) OrElse
+                ManagementPage.Visibility <> Visibility.Visible OrElse LocalModsPage.Visibility <> Visibility.Visible Then Return
+            ChangeManagementContent(Sub()
+                                        _localMods = entries
+                                        _localModReadSucceeded = True
+                                        RenderLocalMods()
+                                        LocalModStatus.Text = If(entries.Count = 0, "可从文件安装 Mod，或将文件拖入此页。", "")
+                                    End Sub)
+        Catch ex As OperationCanceledException
+        Catch ex As Exception
+            If generation = _localModGeneration AndAlso Not _closing AndAlso LocalModsPage.Visibility = Visibility.Visible Then
+                LocalModStatus.Text = "无法读取 Mod 列表：" & ex.Message
+            End If
+        Finally
+            If generation = _localModGeneration Then _localModRequest = Nothing : _localModScanning = False
+            request.Dispose()
+            RefreshLocalModAvailability()
+        End Try
+    End Function
+    Private Sub RenderLocalMods()
+        LocalModRows.Children.Clear()
+        Dim current = New HashSet(Of LocalModEntry)(_localMods)
+        For Each obsolete In _localModRowViews.Keys.Where(Function(entry) Not current.Contains(entry)).ToList()
+            _localModRowViews.Remove(obsolete)
+        Next
+        LocalModAll.Checked = _localModFilter = "all" : LocalModEnabled.Checked = _localModFilter = "enabled" : LocalModDisabled.Checked = _localModFilter = "disabled"
+        Dim enabledCount = _localMods.Where(Function(entry) entry.Enabled).Count()
+        LocalModAll.Text = "全部 (" & _localMods.Count & ")" : LocalModEnabled.Text = "启用 (" & enabledCount & ")" : LocalModDisabled.Text = "禁用 (" & (_localMods.Count - enabledCount) & ")"
+        Dim query = LocalModSearch.Text.Trim()
+        Dim visible = _localMods.Where(Function(entry) (_localModFilter = "all" OrElse entry.Enabled = (_localModFilter = "enabled")) AndAlso
+            (query.Length = 0 OrElse (entry.DisplayName & " " & entry.Version & " " & entry.FileName & " " & entry.Description & " " & String.Join(" ", entry.ModIds)).IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0)).ToList()
+        For Each entry In visible
+            Dim captured = entry
+            Dim existing As Grid = Nothing
+            If _localModRowViews.TryGetValue(captured, existing) Then
+                LocalModRows.Children.Add(existing)
+                Continue For
+            End If
+            Dim row As New Grid With {.Height = 44, .Tag = captured}
+            row.ColumnDefinitions.Add(New ColumnDefinition()) : row.ColumnDefinitions.Add(New ColumnDefinition With {.Width = New GridLength(34)})
+            Dim info = If(captured.Problem, captured.LoaderSummary & If(String.IsNullOrEmpty(captured.Version), "", " · " & captured.Version) & " · " & If(captured.Enabled, "已启用", "已禁用"))
+            Dim item As New PclListItem With {.Title = captured.DisplayName, .Info = info, .Height = 44,
+                .Logo = "pack://application:,,,/Images/Blocks/NoIcon.png", .ToolTip = ShortLocalModText(captured.FileName & vbCrLf & captured.Description & If(captured.Problem Is Nothing, "", vbCrLf & captured.Problem) & vbCrLf & String.Join(vbCrLf, captured.Warnings), 4096)}
+            item.Title = ShortLocalModText(captured.DisplayName, 200) : item.Info = ShortLocalModText(info, 512)
+            item.Opacity = If(captured.Enabled, 1.0, 0.65)
+            Dim toggle As New PclIconButton With {.Width = 28, .Height = 28, .VerticalAlignment = VerticalAlignment.Center,
+                .ToolTip = If(captured.Enabled, "禁用", "启用") & " " & captured.FileName, .Tag = captured, .IsEnabled = captured.CanToggle,
+                .Logo = If(captured.Enabled,
+                    "M508 990.4c-261.6 0-474.4-212-474.4-474.4S246.4 41.6 508 41.6s474.4 212 474.4 474.4S769.6 990.4 508 990.4zM508 136.8c-209.6 0-379.2 169.6-379.2 379.2 0 209.6 169.6 379.2 379.2 379.2s379.2-169.6 379.2-379.2C887.2 306.4 717.6 136.8 508 136.8zM697.6 563.2 318.4 563.2c-26.4 0-47.2-21.6-47.2-47.2 0-26.4 21.6-47.2 47.2-47.2l379.2 0c26.4 0 47.2 21.6 47.2 47.2C744.8 542.4 724 563.2 697.6 563.2z",
+                    "M512 0a512 512 0 1 0 512 512A512 512 0 0 0 512 0z m0 921.6a409.6 409.6 0 1 1 409.6-409.6 409.6 409.6 0 0 1-409.6 409.6z M716.8 339.968l-256 253.44L328.192 460.8A51.2 51.2 0 0 0 256 532.992l168.448 168.96a51.2 51.2 0 0 0 72.704 0l289.28-289.792A51.2 51.2 0 0 0 716.8 339.968z")}
+            AddHandler toggle.Click, Async Sub() Await ToggleLocalModAsync(captured)
+            Grid.SetColumn(toggle, 1) : row.Children.Add(item) : row.Children.Add(toggle)
+            _localModRowViews.Add(captured, row)
+            LocalModRows.Children.Add(row)
+        Next
+        LocalModSummary.Text = visible.Count & " / " & _localMods.Count & " 个 Mod"
+        LocalModEmpty.Visibility = If(visible.Count = 0, Visibility.Visible, Visibility.Collapsed)
+        LocalModEmpty.Text = If(_localMods.Count = 0, "尚未安装 Mod。", "没有找到匹配的 Mod。")
+        If _localModInstance IsNot Nothing Then
+            LocalModDirectory.Text = Path.Combine(_localModInstance.RunDirectory, "mods")
+            Dim sharedDirectory = Not _localModInstance.IsIsolated.GetValueOrDefault() OrElse _managementInstances.Where(Function(instance) instance.RunDirectory IsNot Nothing AndAlso SameGameRoot(instance.RunDirectory, _localModInstance.RunDirectory)).Count() > 1
+            LocalModSharedHint.Text = "这个 Mods 目录可能被其他实例共用，启用、禁用和导入会同时影响它们。"
+            LocalModSharedHint.Visibility = If(sharedDirectory, Visibility.Visible, Visibility.Collapsed)
+        End If
+        RefreshLocalModAvailability()
+    End Sub
+    Private Shared Function ShortLocalModText(value As String, maximum As Integer) As String
+        If value Is Nothing Then Return ""
+        Return If(value.Length <= maximum, value, value.Substring(0, maximum) & "…")
+    End Function
+    Private Sub LocalModSearchChanged(sender As Object, e As TextChangedEventArgs)
+        If LocalModRows Is Nothing OrElse Not LocalModInputAllowed() Then Return
+        _surfaceMotion.Finish() : _managementMotion.Finish()
+        RenderLocalMods()
+    End Sub
+    Private Sub FilterLocalMods(sender As Object, e As RoutedEventArgs)
+        If Not LocalModInputAllowed() Then Return
+        _localModFilter = CStr(DirectCast(sender, FrameworkElement).Tag)
+        _surfaceMotion.Finish() : _managementMotion.Finish()
+        RenderLocalMods()
+    End Sub
+    Private Sub BackFromLocalMods()
+        If LocalModsPage.Visibility <> Visibility.Visible Then Return
+        CancelLocalModRequest()
+        ChangeManagementContent(Sub()
+                                    LocalModsPage.Visibility = Visibility.Collapsed
+                                    ManagementDetailPage.Visibility = Visibility.Visible
+                                    RenderManagedInstance()
+                                    ManagementDetailPage.ScrollToVerticalOffset(_localModDetailOffset)
+                                    RefreshTitleNavigation()
+                                End Sub, ManagementDetailPage)
+        FocusManagementViewport()
+    End Sub
+    Private Sub RefreshLocalModAvailability()
+        If LocalModRows Is Nothing Then Return
+        Dim canWrite = _localModReadSucceeded AndAlso Not _busy AndAlso Not _choosingOnline AndAlso Not _restoringSettings AndAlso Not _restoringLaunchers AndAlso Not _localModWriting AndAlso Not _localModScanning AndAlso SameLocalModContext(_localModInstance)
+        LocalModRows.IsEnabled = canWrite
+        LocalModImport.IsEnabled = canWrite : LocalModRefresh.IsEnabled = Not _localModWriting
+        LocalModOpen.IsEnabled = _localModInstance IsNot Nothing AndAlso _localModInstance.RunDirectory IsNot Nothing AndAlso Directory.Exists(Path.Combine(_localModInstance.RunDirectory, "mods"))
+        LocalModCancel.Visibility = If(_localModWriting, Visibility.Visible, Visibility.Collapsed)
+        LocalModCancel.IsEnabled = _localModWriteRequest IsNot Nothing AndAlso Not _localModWriteRequest.IsCancellationRequested
+        If _localModWriting AndAlso _localModWriteOwner IsNot Nothing Then
+            LocalModCancel.ToolTip = "取消 " & _localModWriteOwner.Name & " 的 Mod 文件操作"
+            If Not SameLocalModContext(_localModWriteOwner) Then LocalModStatus.Text = "正在处理 " & _localModWriteOwner.Name & " 的 Mod 文件，请等待操作结束。"
+        End If
+    End Sub
+    Private Sub RefreshLocalModWriteGates()
+        RefreshManagementAvailability()
+        GameFolderCard.IsEnabled = Not _busy AndAlso Not _localModWriting
+        ExternalLauncherCard.IsEnabled = Not _busy AndAlso Not _localModWriting
+        ChangeFolderButton.IsEnabled = Not _busy AndAlso Not _localModWriting
+        RefreshInstallAvailability()
+        RefreshLocalModAvailability()
+    End Sub
+    Private Async Sub ChooseLocalMods(sender As Object, e As RoutedEventArgs)
+        If Not LocalModInputAllowed() OrElse Not LocalModImport.IsEnabled Then Return
+        Dim owner = _localModInstance
+        Dim dialog As New Microsoft.Win32.OpenFileDialog With {.Title = "从文件安装 Mod", .Filter = "Mod 文件 (*.jar;*.litemod;*.disabled;*.old)|*.jar;*.litemod;*.disabled;*.old", .Multiselect = True, .CheckFileExists = True}
+        If dialog.ShowDialog(Me) <> True OrElse Not LocalModInputAllowed() OrElse _localModInstance IsNot owner Then Return
+        Await ImportLocalModFilesAsync(dialog.FileNames)
+    End Sub
+    Private Async Function ImportLocalModFilesAsync(paths As String()) As Task
+        If paths Is Nothing OrElse paths.Length = 0 Then Return
+        Dim files = paths.ToArray()
+        Await RunLocalModWriteAsync(Function(instance, token) _localModImporter(instance, files, token), "正在导入 Mod…")
+    End Function
+    Private Async Function ToggleLocalModAsync(entry As LocalModEntry) As Task
+        If entry Is Nothing OrElse Not _localMods.Contains(entry) OrElse Not entry.CanToggle Then Return
+        Await RunLocalModWriteAsync(Function(instance, token) _localModToggle(instance, entry, Not entry.Enabled, token), If(entry.Enabled, "正在禁用 Mod…", "正在启用 Mod…"))
+    End Function
+    Private Async Function RunLocalModWriteAsync(operation As Func(Of InstalledInstance, CancellationToken, Task(Of LocalModActionResult)), message As String) As Task
+        If Not LocalModInputAllowed() OrElse Not _localModReadSucceeded OrElse _busy OrElse _choosingOnline OrElse _localModWriting OrElse _localModScanning Then Return
+        CancelLocalModRequest()
+        _localModOperationGeneration += 1
+        Dim operationGeneration = _localModOperationGeneration
+        Dim owner = _localModInstance, request As New CancellationTokenSource(), outcome As String = Nothing, taskGeneration = _taskGeneration
+        _localModWriting = True : _localModWriteRequest = request
+        _localModWriteOwner = owner
+        LocalModStatus.Text = message
+        RefreshLocalModWriteGates()
+        Try
+            Dim result = Await operation(owner, request.Token)
+            outcome = "完成：更改 " & result.ChangedCount & " 个，跳过 " & result.SkippedCount & " 个。" &
+                If(result.Warnings.Count = 0, "", " " & ShortLocalModText(String.Join("；", result.Warnings), 1024))
+        Catch ex As OperationCanceledException
+            outcome = "操作已取消，可重新尝试。"
+        Catch ex As Exception
+            outcome = ex.Message
+        Finally
+            _localModWriting = False : _localModWriteRequest = Nothing : request.Dispose()
+            _localModWriteOwner = Nothing
+            _managementDirty = True
+            RefreshLocalModWriteGates()
+        End Try
+        If _closing Then Return
+        If SameLocalModContext(owner) AndAlso ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible Then
+            Dim refresh = LoadLocalModsAsync(True), readGeneration = _localModGeneration
+            Await refresh
+            If operationGeneration = _localModOperationGeneration AndAlso readGeneration = _localModGeneration AndAlso _localModReadSucceeded AndAlso Not _localModWriting AndAlso Not _localModScanning AndAlso
+                SameLocalModContext(owner) AndAlso LocalModsPage.Visibility = Visibility.Visible AndAlso Not _closing Then LocalModStatus.Text = outcome
+        Else
+            If ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible Then Await LoadLocalModsAsync(True)
+            If operationGeneration = _localModOperationGeneration AndAlso Not _localModWriting AndAlso Not _busy AndAlso taskGeneration = _taskGeneration Then StatusText.Text = owner.Name & " · " & outcome
+        End If
+    End Function
+    Private Sub CancelLocalModOperation(sender As Object, e As RoutedEventArgs)
+        _localModWriteRequest?.Cancel()
+        LocalModStatus.Text = "正在等待文件操作退出…"
+        RefreshLocalModAvailability()
+    End Sub
+    Private Sub OpenLocalModFolder(sender As Object, e As RoutedEventArgs)
+        If Not LocalModInputAllowed() Then Return
+        Try
+            _managementOpenFolder(InstalledInstanceCatalog.FolderPath(_localModInstance, "mods"))
+        Catch ex As Exception
+            LocalModStatus.Text = ex.Message
+        End Try
+    End Sub
+End Class

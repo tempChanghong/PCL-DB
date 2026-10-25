@@ -26,7 +26,7 @@ Partial Public Class MainWindow
     End Function
     Private Sub RefreshModrinthAvailability(Optional busy As Boolean? = Nothing)
         If ModrinthInstanceName Is Nothing Then Return
-        Dim issue = ModrinthNameProblem(), active = If(busy, _busy) OrElse _readingPack
+        Dim issue = ModrinthNameProblem(), active = If(busy, _busy) OrElse _readingPack OrElse _localModWriting
         ModrinthInstanceName.ValidationMessage = If(issue, "") : ModrinthNameHint.Text = If(issue, "")
         ModrinthNameHint.Visibility = If(issue Is Nothing, Visibility.Collapsed, Visibility.Visible)
         ModrinthOptionsCard.IsEnabled = Not active : ImportModrinthButton.IsEnabled = Not active

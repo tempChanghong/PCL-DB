@@ -19,6 +19,7 @@ Partial Public Class MainWindow
         VerifyTitleNavigation(check, artifactDirectory, False)
         VerifyDownloadFocusOwnership(check)
         VerifyManagementUi(artifactDirectory, check)
+        VerifyLocalModUi(artifactDirectory, check)
         Return checks
     End Function
 

@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 本地 Mod 识别、启停和导入
+
+- 核心依据为 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `LocalResourceFile`、`LocalResourceLoaders`、`PageInstanceMod`、`MyLocalModItem`：实际隔离目录、启停后缀、导入启用名称、44 DIP 行、搜索/筛选、右侧启停图标及既有页面动画。后缀只移除末尾一次，不沿用中间字符串替换或导入前删除目标的行为。
+- 本地元数据格式补充参考 PCL-CE `915ac29795efbdf6373417389e181e1504117048` 的 `ModLocalComp`，独立实现有界只读解析，不调用会写配置或联网关联的上游服务。来源 Git blob 与 SHA-256 在 `artifacts/local-mods/source/manifest.json`。
+- 写入使用独立的文件句柄校验/重命名、实际目录互斥与安装锁；异常/取消仅回收本次拥有的新增文件，保留配置和已有内容。实现与验证边界见[本地 Mod 管理](docs/reviews/local-mod-management.md)。
+
 ## 已安装实例列表、概览与只读目录解析
 
 - 以固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `McInstance/PathIndie/JsonObject`、`PageSelectRight` 和 `PageInstanceOverall` 为核心，复用现有 PCL 列表行、卡片、标题返回与逐项动画。独立适配读取规则，省去上游缓存、配置初始化以及快捷目录的自动创建。

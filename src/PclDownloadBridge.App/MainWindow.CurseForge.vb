@@ -33,7 +33,7 @@ Partial Public Class MainWindow
     Private Sub RefreshPackAvailability(Optional busy As Boolean? = Nothing)
         RefreshModrinthAvailability(busy)
         If PackInstanceName Is Nothing Then Return
-        Dim issue = PackNameProblem(), active = If(busy, _busy) OrElse _readingPack
+        Dim issue = PackNameProblem(), active = If(busy, _busy) OrElse _readingPack OrElse _localModWriting
         PackInstanceName.ValidationMessage = If(issue, "")
         PackNameHint.Text = If(issue, "")
         PackNameHint.Visibility = If(issue Is Nothing, Visibility.Collapsed, Visibility.Visible)
@@ -196,6 +196,11 @@ Partial Public Class MainWindow
     Private Sub PackDragOver(sender As Object, e As DragEventArgs)
         If Not e.Data.GetDataPresent(DataFormats.FileDrop) Then Return
         Dim files = TryCast(e.Data.GetData(DataFormats.FileDrop), String())
+        If ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible AndAlso files IsNot Nothing AndAlso files.Length > 0 AndAlso files.All(Function(path) LocalModCatalog.IsSupportedFile(path) AndAlso Not IO.Path.GetExtension(LocalModCatalog.EnabledFileName(path)).Equals(".zip", StringComparison.OrdinalIgnoreCase)) Then
+            e.Effects = If(LocalModInputAllowed() AndAlso LocalModImport.IsEnabled, DragDropEffects.Copy, DragDropEffects.None)
+            e.Handled = True
+            Return
+        End If
         e.Effects = If(Not _busy AndAlso Not _readingPack AndAlso Not _choosingOnline AndAlso files IsNot Nothing AndAlso files.Length = 1 AndAlso IsPackFile(files(0)), DragDropEffects.Copy, DragDropEffects.None)
         e.Handled = True
     End Sub
@@ -203,6 +208,10 @@ Partial Public Class MainWindow
         If Not e.Data.GetDataPresent(DataFormats.FileDrop) Then Return
         e.Handled = True
         Dim files = TryCast(e.Data.GetData(DataFormats.FileDrop), String())
+        If ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible AndAlso files IsNot Nothing AndAlso files.Length > 0 AndAlso files.All(Function(path) LocalModCatalog.IsSupportedFile(path) AndAlso Not IO.Path.GetExtension(LocalModCatalog.EnabledFileName(path)).Equals(".zip", StringComparison.OrdinalIgnoreCase)) Then
+            Await ImportLocalModFilesAsync(files)
+            Return
+        End If
         If _busy OrElse _readingPack OrElse _choosingOnline OrElse files Is Nothing OrElse files.Length <> 1 OrElse Not IsPackFile(files(0)) Then Return
         Await ReadLocalPackAsync(files(0))
     End Sub

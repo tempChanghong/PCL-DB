@@ -619,7 +619,7 @@ Partial Public Class MainWindow
 
     Private Sub FolderSelected(sender As Object, e As SelectionChangedEventArgs)
         If _restoringLaunchers Then Return
-        If _busy OrElse _choosingOnline Then
+        If _busy OrElse _choosingOnline OrElse _localModWriting Then
             _restoringLaunchers = True : FolderList.SelectedItem = _selectedFolder : _restoringLaunchers = False : Return
         End If
         Dim folder = TryCast(FolderList.SelectedItem, GameFolder)
@@ -787,7 +787,7 @@ Partial Public Class MainWindow
     End Sub
 
     Private Async Sub StartInstall(sender As Object, e As RoutedEventArgs)
-        If _busy OrElse _closing OrElse DownloadPage.Visibility <> Visibility.Visible OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible Then Return
+        If _busy OrElse _localModWriting OrElse _closing OrElse DownloadPage.Visibility <> Visibility.Visible OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible Then Return
         If _downloadView <> DownloadView.Install AndAlso _downloadView <> DownloadView.Modpacks Then Return
         If sender Is InstallButton AndAlso (Not InstallActionHost.IsVisible OrElse Not InstallActionHost.IsHitTestVisible) Then Return
         If sender Is ModrinthInstallButton OrElse sender Is ModrinthInstanceName Then _activeModrinth = True
@@ -936,6 +936,7 @@ Partial Public Class MainWindow
             If ManagementPage.Visibility = Visibility.Visible Then RefreshManagement(Me, New RoutedEventArgs())
         End If
         RefreshManagementAvailability()
+        RefreshLocalModAvailability()
     End Sub
 
     Private Function CreateTaskProgress() As IProgress(Of TransferProgress)
@@ -970,6 +971,14 @@ Partial Public Class MainWindow
     End Sub
 
     Private Sub WindowClosing(sender As Object, e As CancelEventArgs)
+        If _localModWriting Then
+            CancelLocalModOperation(sender, Nothing)
+            If _localModWriting Then
+                e.Cancel = True
+                StatusText.Text = "正在等待 Mod 文件操作退出，请稍后关闭窗口。"
+                Return
+            End If
+        End If
         If _busy Then
             CancelInstall(sender, Nothing)
             If _busy Then
@@ -980,6 +989,7 @@ Partial Public Class MainWindow
         End If
         _closing = True
         CancelManagementRequest()
+        CancelLocalModRequest()
         _managementMotion?.Finish()
         _pclThemeMonitor.Dispose()
         RefreshInstallAction()
