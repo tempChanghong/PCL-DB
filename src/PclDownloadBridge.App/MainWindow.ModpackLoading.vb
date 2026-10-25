@@ -7,6 +7,7 @@ Partial Public Class MainWindow
     ' Offline UI previews are immediate by default; the timing regression suite
     ' explicitly enables the same request-owned controller used in the real window.
     Private _packLoadingTimingForChecks As Boolean
+    Private _packAutoSearchForChecks As Boolean
 
     Private Function CanTimePackLoading() As Boolean
         Return AllowPageMotion() AndAlso (Not _preview OrElse _packLoadingTimingForChecks)

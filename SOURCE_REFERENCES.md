@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 社区资源搜索与版本显示修复
+
+- 主参照仍为 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`。重新读取 `ResourceProject.vb` 合并 `latestFiles` 与 `latestFilesIndexes` 的游戏版本声明、`ResourceVersion.vb` 的空 `downloadUrl` ForgeCDN 回退，以及 `ResourceSearcher.vb` 的来源和文件筛选。项目先绑定资源类型，再读取 JAR/ZIP 元数据；声明只供展示，不推测兼容范围，不替代指定发布文件的验证。
+- 读取 `PageResource.xaml/.vb`、`PageDownloadMod.xaml` 的 `TypeNameSpaced=" Mod "`，保留原搜索图标并增加图文间距。对照 `MyPageRight.vb` 与 `FormMain.xaml.vb` 的父级页面入场顺序，修复缓存结果在父级内容更新期间同步返回、导致父子动画共同保存透明度的冲突；父级统一收集最终卡片入场，既有时间、门控和清理逻辑保留。[修复、实际联网与回归范围](docs/reviews/resource-search-repair.md)。
+
 ## 社区资源安装到指定实例
 
 - 刷新边界继续参照固定 PCL `PageInstanceMod.ReloadModList` 的显式刷新与 `ScrollToHome`，以及 `MyMsgSelect` 的选择确认/滚动正文；显式刷新先清理旧滚动，迟到旧时钟不能改变新正文。初次打开允许合理默认实例，刷新时不把失效的明确选择替换为另一个实例；禁用项允许查看原因。原下载、隔离与原子发布内核不变。[刷新边界与验证](docs/reviews/resource-refresh-boundaries.md)。

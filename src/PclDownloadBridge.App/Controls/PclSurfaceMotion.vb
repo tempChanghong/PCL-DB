@@ -18,6 +18,12 @@ Namespace Controls
         Private _surface As FrameworkElement
         Private _surfaceOpacity As Double
         Private _clock As ClockGroup
+        Private _applying As Integer
+        Friend ReadOnly Property ApplyingContent As Boolean
+            Get
+                Return _applying > 0
+            End Get
+        End Property
         Friend Property PauseForChecks As Boolean
         Friend Event Settled As EventHandler
         Friend Event ContentRevealed As EventHandler
@@ -55,7 +61,7 @@ Namespace Controls
 
         Friend Sub Change(outgoing As FrameworkElement, incoming As FrameworkElement, changePage As Action, Optional contentRefresh As Boolean = False, Optional compositeExit As Boolean = False)
             If outgoing Is incoming AndAlso Not contentRefresh Then
-                changePage()
+                ApplyContent(changePage)
                 Return
             End If
             Dim animate = _enabled() AndAlso _host.IsLoaded AndAlso _host.IsVisible AndAlso _host.ActualWidth > 0 AndAlso _host.ActualHeight > 0
@@ -69,7 +75,7 @@ Namespace Controls
             End If
             StopOwnedMotion()
             Dim previousOrigin = If(snapshot Is Nothing, New Point(), _host.TranslatePoint(New Point(), Nothing))
-            changePage()
+            ApplyContent(changePage)
             If Not animate Then Return
             Try
                 incoming.UpdateLayout()
@@ -182,6 +188,15 @@ Namespace Controls
             Catch
                 StopOwnedMotion()
                 Throw
+            End Try
+        End Sub
+
+        Private Sub ApplyContent(changePage As Action)
+            _applying += 1
+            Try
+                changePage()
+            Finally
+                _applying -= 1
             End Try
         End Sub
 

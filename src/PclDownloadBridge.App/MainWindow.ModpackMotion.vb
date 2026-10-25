@@ -18,6 +18,12 @@ Partial Public Class MainWindow
     ' An existing parent entry must capture its composited frame before replacing
     ' detached children; hidden responses only update their own cached controls.
     Private Sub ChangePackContent(mode As PackBrowserMode, update As Action)
+        ' Cached responses may finish synchronously inside the parent's content
+        ' transaction, before its entry clock exists. Let that parent collect the
+        ' final cards; two controllers must never save each other's opacity zero.
+        If _surfaceMotion.ApplyingContent OrElse _categoryMotion.ApplyingContent Then
+            FinishPackContentMotion() : update() : Return
+        End If
         If _packMode <> mode OrElse _downloadView <> DownloadView.Modpacks OrElse Not DownloadPage.IsVisible Then
             update() : Return
         End If

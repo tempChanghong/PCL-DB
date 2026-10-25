@@ -84,7 +84,7 @@ Partial Public Class MainWindow
         PackProjectRows.Children.Add(New TextBlock With {.Text = "输入名称或选择条件后搜索整合包。", .Margin = New Thickness(10)})
     End Sub
     Private Sub EnsurePackSearch()
-        If Not _preview AndAlso Not _busy AndAlso Not _closing AndAlso _packSearchSession Is Nothing AndAlso _downloadView = DownloadView.Modpacks AndAlso _packMode = PackBrowserMode.Search AndAlso DownloadPage.IsVisible AndAlso DownloadViewHost.IsHitTestVisible AndAlso PageSurface.IsHitTestVisible Then RunPackSearch(Nothing, Nothing)
+        If (Not _preview OrElse _packAutoSearchForChecks) AndAlso Not _busy AndAlso Not _closing AndAlso _packSearchSession Is Nothing AndAlso _downloadView = DownloadView.Modpacks AndAlso _packMode = PackBrowserMode.Search AndAlso DownloadPage.IsVisible AndAlso DownloadViewHost.IsHitTestVisible AndAlso PageSurface.IsHitTestVisible Then RunPackSearch(Nothing, Nothing)
     End Sub
     Private Sub PackSearchEnter(sender As Object, e As KeyEventArgs)
         If e.Key <> Key.Enter OrElse e.IsRepeat Then Return
@@ -202,9 +202,9 @@ Partial Public Class MainWindow
         _packSearchLoading.Start(request, request.Token, AddressOf PreparePackSearchLoading, Sub() ChangePackResults(Sub()
                               PackSearchHint.Visibility = Visibility.Collapsed : PackPagingCard.Visibility = Visibility.Collapsed
                               PackResultsCard.Visibility = Visibility.Visible
-                              PackProjectRows.Children.Clear() : PackResultsCard.Title = "正在获取" & CommunityResources.Name(_resourceKind) & "列表…"
+                              PackProjectRows.Children.Clear() : PackResultsCard.Title = "正在获取" & ResourceNameSpaced(_resourceKind) & "列表…"
                               PackResultsCard.HorizontalAlignment = HorizontalAlignment.Center
-                              PackProjectRows.Children.Add(New PclLoadingView("正在获取" & CommunityResources.Name(_resourceKind) & "列表"))
+                              PackProjectRows.Children.Add(New PclLoadingView("正在获取" & ResourceNameSpaced(_resourceKind) & "列表"))
                           End Sub))
         Try
             Dim items As List(Of ModpackProject)
@@ -234,7 +234,7 @@ Partial Public Class MainWindow
                                       PackProjectRows.Children.Add(row)
                                       LoadPackIconAsync(row, project, artworkToken)
                                   Next
-                                  If items.Count = 0 Then PackProjectRows.Children.Add(New TextBlock With {.Text = If(session.HasMore, "暂无结果，可点击「继续加载」。", If(session.ErrorMessage = "", "没有找到符合条件的" & CommunityResources.Name(_resourceKind) & "。", "获取失败，请重试或更换来源。")), .Margin = New Thickness(10), .TextWrapping = TextWrapping.Wrap})
+                                  If items.Count = 0 Then PackProjectRows.Children.Add(New TextBlock With {.Text = If(session.HasMore, "暂无结果，可点击「继续加载」。", If(session.ErrorMessage = "", "没有找到符合条件的" & ResourceNameSpaced(_resourceKind) & "。", "获取失败，请重试或更换来源。")), .Margin = New Thickness(10), .TextWrapping = TextWrapping.Wrap})
                                   PackSearchHint.Theme = If(items.Count > 0 OrElse session.HasMore, PclHintTheme.Yellow, PclHintTheme.Red)
                                   If items.Count > 0 Then
                                       PackSearchHint.Text = If(retainedPage, "加载失败，已保留结果。点击搜索重试。", "部分来源暂不可用，已显示可用结果。点击搜索重试。")

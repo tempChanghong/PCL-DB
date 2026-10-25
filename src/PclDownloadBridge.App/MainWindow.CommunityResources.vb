@@ -39,6 +39,7 @@ Partial Public Class MainWindow
         ResetResourceNames()
         _packSearchRequest?.Cancel() : _packDetailRequest?.Cancel() : _packArtworkRequest?.Cancel()
         _packSearchRequest = Nothing : _packDetailRequest = Nothing
+        _packSearchLoading?.Reset() : _packDetailLoading?.Reset()
         FinishPackContentMotion()
     End Sub
     Private Sub ResetResourceNames()
@@ -103,6 +104,7 @@ Partial Public Class MainWindow
                 PackSearchHint.Visibility = Visibility.Collapsed : PackSearchInputHint.Visibility = Visibility.Collapsed
                 PackPagingCard.Visibility = Visibility.Collapsed : PackResultsCard.Title = CommunityResources.Name(kind)
                 PackResultsCard.HorizontalAlignment = HorizontalAlignment.Stretch
+                PackResultsCard.Visibility = Visibility.Visible
                 PackDetailRetry.Visibility = Visibility.Collapsed : PackDetailHint.Visibility = Visibility.Collapsed
                 PackVersionFilterCard.Visibility = Visibility.Collapsed
                 PackSearchSurface.Visibility = If(state.Mode = PackBrowserMode.Search, Visibility.Visible, Visibility.Collapsed)
@@ -114,7 +116,7 @@ Partial Public Class MainWindow
                 ElseIf state.Session IsNot Nothing Then
                     RestoreResourceSearchAsync(state.Page)
                 Else
-                    PackProjectRows.Children.Add(New TextBlock With {.Text = "输入名称或选择条件后搜索" & CommunityResources.Name(kind) & "。", .Margin = New Thickness(10)})
+                    PackProjectRows.Children.Add(New TextBlock With {.Text = "输入名称或选择条件后搜索" & ResourceNameSpaced(kind) & "。", .Margin = New Thickness(10)})
                 End If
                 ModpackPage.UpdateLayout() : ModpackPage.ScrollToVerticalOffset(If(state.Mode = PackBrowserMode.Search, state.Scroll, _packDetailScroll))
             End Sub, contentRefresh:=previous = DownloadView.Modpacks, compositeExit:=HasPackContentMotion() OrElse _pageSwitch.HasMotion)
@@ -176,10 +178,10 @@ Partial Public Class MainWindow
         End Try
     End Sub
     Private Sub ConfigureResourceSearch()
-        Dim name = CommunityResources.Name(_resourceKind)
+        Dim name = ResourceNameSpaced(_resourceKind)
         PackSearchText.ToolTip = "输入" & name & "名称，按 Enter 搜索"
-        PackSearchText.Tag = "搜索" & name
-        Automation.AutomationProperties.SetName(PackSearchText, "搜索" & name)
+        PackSearchText.Tag = ("搜索" & name).TrimEnd()
+        Automation.AutomationProperties.SetName(PackSearchText, CStr(PackSearchText.Tag))
         PackSearchImport.Visibility = If(_resourceKind = CommunityResourceKind.Modpack, Visibility.Visible, Visibility.Collapsed)
         ResourceLoaderFilters.Visibility = If(_resourceKind = CommunityResourceKind.Mod, Visibility.Visible, Visibility.Collapsed)
         If ResourceLoader.Items.Count = 0 Then
@@ -194,6 +196,11 @@ Partial Public Class MainWindow
         For Each pair In tags : PackSearchCategory.Items.Add(New PclComboBoxItem With {.Content = pair.Key, .Tag = pair.Value, .IsEnabled = pair.Value IsNot Nothing}) : Next
         PackSearchCategory.SelectedIndex = 0
     End Sub
+
+    Private Shared Function ResourceNameSpaced(kind As CommunityResourceKind) As String
+        ' PCL PageResource.TypeNameSpaced keeps Latin names separated from CJK.
+        Return If(kind = CommunityResourceKind.Mod, " Mod ", CommunityResources.Name(kind))
+    End Function
     Private Async Sub OpenResourceDependency(project As ModpackProject, dependency As ResourceDependency, owner As FrameworkElement)
         If Not CanUseResourceDetail(owner) OrElse ActivePackProject() IsNot project Then Return
         _dependencyRequest?.Cancel()

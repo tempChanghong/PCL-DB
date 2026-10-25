@@ -45,20 +45,45 @@ Public NotInheritable Class ModpackProjectMetadata
 
     Public Shared Function ReadLoaders(project As ModpackProject, data As JObject) As String()
         If project.Platform = ModpackPlatform.Modrinth Then Return NormalizeLoaders(OptionalStrings(data("loaders")).Concat(OptionalStrings(data("categories"))))
+        Return NormalizeLoaders(ClientFiles(project, data).SelectMany(Function(file) OptionalStrings(file("gameVersions"))))
+    End Function
+
+    Public Shared Function ReadVersions(project As ModpackProject, data As JObject) As String()
+        ' PCL ResourceProject unions latestFiles and latestFilesIndexes (#3599).
+        ' These are optional display declarations, never archive authorization or
+        ' the version binding used by installation. Do not infer a supported range.
+        If project.Platform <> ModpackPlatform.CurseForge Then Return {}
+        Dim values = ClientFiles(project, data).SelectMany(Function(file) OptionalStrings(file("gameVersions"))).ToList()
+        Dim indexes = TryCast(data("latestFilesIndexes"), JArray)
+        If indexes IsNot Nothing Then
+            For Each entry In indexes.OfType(Of JObject)()
+                Dim fileId = entry("fileId"), name = entry("filename"), game = entry("gameVersion"), number As Long
+                If fileId Is Nothing OrElse fileId.Type <> JTokenType.Integer OrElse Not Long.TryParse(fileId.ToString(), NumberStyles.None, CultureInfo.InvariantCulture, number) OrElse number <= 0 Then Continue For
+                If Not AcceptsFileName(project, name) OrElse game Is Nothing OrElse game.Type <> JTokenType.String OrElse CStr(game).Length > 100 Then Continue For
+                values.Add(CStr(game).Trim())
+            Next
+        End If
+        Return values.Where(AddressOf ModpackCatalogClient.IsExactMinecraftVersion).Distinct(StringComparer.OrdinalIgnoreCase).ToArray()
+    End Function
+
+    Private Shared Function AcceptsFileName(project As ModpackProject, name As JToken) As Boolean
+        If name Is Nothing OrElse name.Type <> JTokenType.String Then Return False
+        Dim value = CStr(name)
+        Return value.Length <= 255 AndAlso value = value.Trim() AndAlso value.IndexOfAny(IO.Path.GetInvalidFileNameChars()) < 0 AndAlso
+            CommunityResources.AcceptsFile(project.Kind, value) AndAlso (project.Kind <> CommunityResourceKind.Modpack OrElse value.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+    End Function
+
+    Private Shared Iterator Function ClientFiles(project As ModpackProject, data As JObject) As IEnumerable(Of JObject)
         Dim files = TryCast(data("latestFiles"), JArray)
-        If project.Platform <> ModpackPlatform.CurseForge OrElse files Is Nothing Then Return {}
-        Dim declarations As New List(Of String)
+        If project.Platform <> ModpackPlatform.CurseForge OrElse files Is Nothing Then Return
         For Each file In files.OfType(Of JObject)()
             Dim owner = file("modId"), name = file("fileName"), status = file("fileStatus")
             If owner Is Nothing OrElse (owner.Type <> JTokenType.Integer AndAlso owner.Type <> JTokenType.String) OrElse owner.ToString() <> project.Id Then Continue For
-            If name Is Nothing OrElse name.Type <> JTokenType.String OrElse Not CStr(name).EndsWith(".zip", StringComparison.OrdinalIgnoreCase) OrElse CStr(name).IndexOfAny(IO.Path.GetInvalidFileNameChars()) >= 0 Then Continue For
+            If Not AcceptsFileName(project, name) Then Continue For
             If Not FlagIs(file, "isServerPack", False, False) OrElse Not FlagIs(file, "isAvailable", True, True) OrElse Not FlagIs(file, "isEarlyAccessContent", False, False) Then Continue For
             If status IsNot Nothing AndAlso status.Type <> JTokenType.Null AndAlso (status.Type <> JTokenType.Integer OrElse status.ToString() <> "4") Then Continue For
-            declarations.AddRange(OptionalStrings(file("gameVersions")))
+            Yield file
         Next
-        ' No fallback to numeric latestFilesIndexes.modLoader, no inferred game
-        ' range and no archive URLs: this is only a union of project declarations.
-        Return NormalizeLoaders(declarations)
     End Function
 
     Public Shared Function LoaderText(loaders As IEnumerable(Of String)) As String

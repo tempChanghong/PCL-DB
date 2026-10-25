@@ -36,6 +36,7 @@ Module CommunityResourceChecks
     End Class
     Friend Async Function RunAsync(root As String) As Task(Of List(Of String))
         Dim passed As New List(Of String), folder = Path.Combine(root, "community-" & Guid.NewGuid().ToString("N"))
+        Await ResourceCatalogueRepairChecks.VerifyAsync(passed)
         Directory.CreateDirectory(folder)
         For Each kind In {CommunityResourceKind.Mod, CommunityResourceKind.DataPack, CommunityResourceKind.ResourcePack, CommunityResourceKind.Shader}
             Dim query As New ModpackQuery With {.Kind = kind, .Text = "a & 中", .Minecraft = "1.20.1"}

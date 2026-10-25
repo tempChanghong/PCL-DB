@@ -69,7 +69,7 @@ Friend Module ModpackProjectMetadataChecks
             Dim project = Await client.GetProjectAsync(ModpackPlatform.CurseForge, "12", CancellationToken.None)
             Dim page = Await client.SearchAsync(ModpackPlatform.CurseForge, New ModpackQuery(), 0, CancellationToken.None)
             Check(project.Tags.SequenceEqual({"轻量", "科技"}) AndAlso project.Loaders.SequenceEqual({"Forge"}) AndAlso page.Projects(0).Tags.SequenceEqual(project.Tags) AndAlso page.Projects(0).Loaders.SequenceEqual(project.Loaders), "CF search and detail retain category and bound client-file loader declarations", passed)
-            Check(project.GameVersions.Length = 0 AndAlso project.Id = "12" AndAlso handler.Addresses.Count = 2, "a CF latest-file sample never becomes the full project compatibility range or causes extra network requests", passed)
+            Check(project.GameVersions.SequenceEqual({"1.20.1"}) AndAlso project.Id = "12" AndAlso handler.Addresses.Count = 2, "CF latest-file versions remain explicit display declarations without inventing a compatibility range or extra network requests", passed)
         End Using
         Dim mutations As Tuple(Of String, JToken)() = {
             Tuple.Create(Of String, JToken)("modId", New JValue(13)), Tuple.Create(Of String, JToken)("modId", JValue.CreateNull()), Tuple.Create(Of String, JToken)("modId", New JValue(12.5)),

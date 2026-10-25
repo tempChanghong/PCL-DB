@@ -142,8 +142,8 @@
                         <p:PclTextBox x:Name="PackSearchText" MaxLength="256" HasBackground="False" BorderThickness="0" FontSize="13.5" AutomationProperties.Name="搜索整合包" ToolTip="输入整合包名称，按 Enter 搜索">
                           <p:PclTextBox.Template><ControlTemplate TargetType="p:PclTextBox">
                             <Grid Background="{DynamicResource ColorBrushTransparent}">
-                              <ScrollViewer x:Name="PART_ContentHost" Margin="32,0,102,0" VerticalAlignment="Center" Focusable="False"/>
-                              <TextBlock Text="{TemplateBinding Tag}" Margin="32,0,102,0" VerticalAlignment="Center" Foreground="{DynamicResource ColorBrushGray4}" IsHitTestVisible="False" x:Name="Placeholder" Visibility="Collapsed"/>
+                              <ScrollViewer x:Name="PART_ContentHost" Margin="40,0,102,0" VerticalAlignment="Center" Focusable="False"/>
+                              <TextBlock Text="{TemplateBinding Tag}" Margin="40,0,102,0" VerticalAlignment="Center" Foreground="{DynamicResource ColorBrushGray4}" IsHitTestVisible="False" x:Name="Placeholder" Visibility="Collapsed"/>
                             </Grid>
                             <ControlTemplate.Triggers><Trigger Property="Text" Value=""><Setter TargetName="Placeholder" Property="Visibility" Value="Visible"/></Trigger></ControlTemplate.Triggers>
                           </ControlTemplate></p:PclTextBox.Template>

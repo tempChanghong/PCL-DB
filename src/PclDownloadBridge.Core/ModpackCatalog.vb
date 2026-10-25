@@ -133,8 +133,7 @@ Public NotInheritable Class ModpackCatalogClient
         result.Total = If(platform = ModpackPlatform.Modrinth, Number(data, "total_hits"), Number(ObjectValue(data, "pagination"), "totalCount"))
         For Each item In items.OfType(Of JObject)()
             If Not CommunityResources.Matches(platform, item, query.Kind) Then Continue For
-            Dim project = ParseProject(platform, item, True)
-            project.Kind = query.Kind
+            Dim project = ParseProject(platform, item, True, query.Kind)
             FixResourceWebsite(project, item)
             result.Projects.Add(project)
         Next
@@ -147,8 +146,7 @@ Public NotInheritable Class ModpackCatalogClient
         Dim data = Await JsonAsync(url, token).ConfigureAwait(False)
         If platform = ModpackPlatform.CurseForge Then data = ObjectValue(data, "data")
         If Not CommunityResources.Matches(platform, data, kind) Then Throw New InvalidDataException("项目的资源类型不匹配。")
-        Dim result = ParseProject(platform, data, False)
-        result.Kind = If(kind = CommunityResourceKind.Any, CommunityResources.Infer(platform, data), kind)
+        Dim result = ParseProject(platform, data, False, kind)
         FixResourceWebsite(result, data)
         If result.Id <> id Then Throw New InvalidDataException("返回的整合包项目 ID 不匹配。")
         Return result
@@ -241,7 +239,14 @@ Public NotInheritable Class ModpackCatalogClient
             result.FileName = Text(data, "fileName")
             If Not CommunityResources.AcceptsFile(project.Kind, result.FileName) OrElse (project.Kind = CommunityResourceKind.Modpack AndAlso Not result.FileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) Then Return Nothing
             result.Url = Text(data, "downloadUrl", False)
-            If result.Url = "" Then Return Nothing
+            If result.Url = "" Then
+                ' PCL ResourceVersion.FromPlatformJson retains public files whose
+                ' Core API downloadUrl is null. Preserve exact file identity and
+                ' escaping; the normal size, hash and CDN path checks still apply.
+                Dim fileIdNumber = Long.Parse(result.Id, Globalization.CultureInfo.InvariantCulture)
+                result.Url = "https://edge.forgecdn.net/files/" & (fileIdNumber \ 1000).ToString(Globalization.CultureInfo.InvariantCulture) & "/" &
+                    (fileIdNumber Mod 1000).ToString(Globalization.CultureInfo.InvariantCulture) & "/" & Uri.EscapeDataString(result.FileName)
+            End If
             result.Size = Number(data, "fileLength") : result.Version = result.Name : result.Published = DateValue(data, "fileDate")
             result.ReleaseType = If(Number(data, "releaseType") = 1, "release", If(Number(data, "releaseType") = 2, "beta", "alpha"))
             Dim raw = ReadCurseForgeTags(data("gameVersions"), result)
@@ -328,7 +333,7 @@ Public NotInheritable Class ModpackCatalogClient
         Return tags
     End Function
 
-    Private Shared Function IsExactMinecraftVersion(value As String) As Boolean
+    Friend Shared Function IsExactMinecraftVersion(value As String) As Boolean
         ' McVersion.IsStandardFormat / GetVanillaName at PCL 5ef81e4 are the
         ' modern/pre/rc/year-snapshot basis. Anchor the entire tag: never extract
         ' a version-like substring from Forge, Java or other mixed labels.
@@ -340,8 +345,8 @@ Public NotInheritable Class ModpackCatalogClient
             Regex.IsMatch(value, historical, options) OrElse value = "2.0"
     End Function
 
-    Private Shared Function ParseProject(platform As ModpackPlatform, data As JObject, search As Boolean) As ModpackProject
-        Dim result As New ModpackProject With {.Platform = platform}
+    Private Shared Function ParseProject(platform As ModpackPlatform, data As JObject, search As Boolean, kind As CommunityResourceKind) As ModpackProject
+        Dim result As New ModpackProject With {.Platform = platform, .Kind = If(kind = CommunityResourceKind.Any, CommunityResources.Infer(platform, data), kind)}
         If platform = ModpackPlatform.Modrinth Then
             result.Id = Text(data, If(search, "project_id", "id")) : result.Name = Text(data, "title") : result.Summary = Text(data, "description", False)
             result.IconUrl = Text(data, "icon_url", False) : result.Website = "https://modrinth.com/modpack/" & Uri.EscapeDataString(Text(data, "slug"))
@@ -354,6 +359,7 @@ Public NotInheritable Class ModpackCatalogClient
             result.Downloads = Number(data, "downloadCount") : result.Updated = DateValue(data, "dateModified")
         End If
         ValidateId(platform, result.Id)
+        If platform = ModpackPlatform.CurseForge Then result.GameVersions = ModpackProjectMetadata.ReadVersions(result, data)
         result.Tags = ModpackProjectMetadata.ReadTags(platform, data("categories"))
         result.Loaders = ModpackProjectMetadata.ReadLoaders(result, data)
         Return result
