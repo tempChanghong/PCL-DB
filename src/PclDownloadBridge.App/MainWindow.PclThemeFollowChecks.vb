@@ -42,7 +42,7 @@ Partial Public Class MainWindow
         check(PclThemeSnapshot.Parse(unicodeBytes).ThemeId = 3, "PCL theme reader accepts a BOM-marked UTF16 configuration")
         check(Not PclThemeSnapshot.Parse(New Byte(PclThemeSnapshot.MaximumBytes) {}).Success,
             "oversized PCL theme configuration is bounded before decoding")
-        For Each id In {6, 12, 14, 999, -1}
+        For Each id In {6, 13, 14, 999, -1}
             Dim unknown = parse("UiLauncherTheme:" & id)
             check(unknown.Success AndAlso unknown.ThemeId = id AndAlso unknown.Preset Is Nothing,
                 "unsupported PCL theme IDs remain identifiable and never become an arbitrary preset: " & id)

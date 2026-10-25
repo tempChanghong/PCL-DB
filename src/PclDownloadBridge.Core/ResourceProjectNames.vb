@@ -44,10 +44,7 @@ Public NotInheritable Class ResourceProjectNames
     End Sub
     Public Shared Function GetTitle(project As ModpackProject) As ResourceProjectTitle
         If project Is Nothing Then Return New ResourceProjectTitle("", "")
-        Dim raw = If(project.Name, ""), translated As String = Nothing
-        If (project.Kind = CommunityResourceKind.Mod OrElse project.Kind = CommunityResourceKind.DataPack) AndAlso Not String.IsNullOrEmpty(project.Slug) Then
-            Entries.Value.TryGetValue(project.Platform.ToString() & ":" & project.Slug, translated)
-        End If
+        Dim raw = If(project.Name, ""), translated = GetTranslation(project)
         If translated IsNot Nothing AndAlso translated <> raw Then
             Dim opening = translated.IndexOf(" (", StringComparison.Ordinal), closing = translated.LastIndexOf(")"c)
             If opening > 0 AndAlso closing > opening Then
@@ -58,6 +55,17 @@ Public NotInheritable Class ResourceProjectNames
             End If
             Return New ResourceProjectTitle(translated, raw)
         End If
+        Return UntranslatedTitle(raw)
+    End Function
+    Public Shared Function GetTranslation(project As ModpackProject) As String
+        If project Is Nothing Then Return Nothing
+        Dim translated As String = Nothing
+        If (project.Kind = CommunityResourceKind.Mod OrElse project.Kind = CommunityResourceKind.DataPack) AndAlso Not String.IsNullOrEmpty(project.Slug) Then
+            Entries.Value.TryGetValue(project.Platform.ToString() & ":" & project.Slug, translated)
+        End If
+        Return translated
+    End Function
+    Private Shared Function UntranslatedTitle(raw As String) As ResourceProjectTitle
         ' PCL separates abbreviations and loader editions from untranslated names.
         Dim parts = Regex.Split(raw, " \| | - |[()\[\]{}]").Select(Function(value) value.Trim(" "c, "/"c, "\"c)).Where(Function(value) value <> "").ToArray()
         Dim normal As New List(Of String), subtitles As New List(Of String)

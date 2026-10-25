@@ -84,6 +84,7 @@ Partial Public Class MainWindow
         Dim key = PaletteKey(effective)
         Dim paletteChanged = Not externalRefresh OrElse key <> _appliedPaletteKey
         If paletteChanged Then PclTheme.Apply(TitleBar, Shell, effective)
+        ConfigureThemeCycle(effective)
         _appliedPaletteKey = key
         Opacity = _appearance.Transparency / 1000.0 + 0.4
         OpacityValue.Text = (Opacity * 100).ToString("0", CultureInfo.InvariantCulture) & "%"

@@ -94,10 +94,13 @@ Public NotInheritable Class ModpackCatalogClient
     Public Const PageSize As Integer = 40
     Private ReadOnly _client As HttpClient
     Private ReadOnly _key As String
-    Public Sub New(Optional handler As HttpMessageHandler = Nothing, Optional apiKey As String = Nothing)
+    Private ReadOnly _communitySource As Integer
+    Public Sub New(Optional handler As HttpMessageHandler = Nothing, Optional apiKey As String = Nothing, Optional communitySource As Integer = 2)
         _client = New HttpClient(If(handler, New HttpClientHandler With {.AllowAutoRedirect = False, .AutomaticDecompression = DecompressionMethods.GZip Or DecompressionMethods.Deflate, .MaxConnectionsPerServer = 4})) With {.Timeout = Timeout.InfiniteTimeSpan}
         _client.DefaultRequestHeaders.UserAgent.ParseAdd("PclDownloadBridge/4.1.0-beta.1 (modpack catalogue)")
         _key = If(apiKey, Environment.GetEnvironmentVariable("PCLDB_CURSEFORGE_API_KEY"))
+        If communitySource < 0 OrElse communitySource > 2 Then Throw New ArgumentOutOfRangeException(NameOf(communitySource))
+        _communitySource = communitySource
     End Sub
 
     Public Shared Function SearchUrl(platform As ModpackPlatform, query As ModpackQuery, offset As Integer) As String
@@ -382,14 +385,16 @@ Public NotInheritable Class ModpackCatalogClient
             ' omit downloadUrl/hashes, so HTTP 200 there is not a Core response.
             urls.Add(url.Replace("https://api.curseforge.com/", "https://mod.mcimirror.top/curseforge/"))
         End If
+        If url.StartsWith("https://api.modrinth.com/", StringComparison.Ordinal) Then urls.Add(url.Replace("https://api.modrinth.com/", "https://mod.mcimirror.top/modrinth/"))
+        If _communitySource = 0 Then urls = urls.OrderByDescending(Function(address) New Uri(address).Host = "mod.mcimirror.top").ToList()
         Dim failures As New List(Of String)
         For Each address In urls
-            Dim mirror = New Uri(address).Host = "mod.mcimirror.top" AndAlso address.Contains("/curseforge/")
+            Dim mirror = New Uri(address).Host = "mod.mcimirror.top"
             For attempt = 1 To If(mirror, 2, 1)
                 token.ThrowIfCancellationRequested()
                 Dim retry = False
                 Try
-                    Return Await FetchTokenAsync(address, If(mirror, 10, 15), token).ConfigureAwait(False)
+                    Return Await FetchTokenAsync(address, If(mirror OrElse _communitySource = 1, 10, If(_communitySource = 2, 30, 15)), token).ConfigureAwait(False)
                 Catch ex As Exception When Not token.IsCancellationRequested
                     failures.Add(New Uri(address).Host & "：" & If(TypeOf ex Is OperationCanceledException, "请求超时", ex.GetBaseException().Message))
                     Dim http = TryCast(ex, CatalogueHttpException)

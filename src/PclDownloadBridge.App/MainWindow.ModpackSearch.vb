@@ -41,7 +41,7 @@ Partial Public Class MainWindow
     Private _choosingOnline As Boolean
     Private _onlineLastName As String
     Private _onlineLastRelease As String
-    Private _packCatalogFactory As Func(Of ModpackCatalogClient) = Function() New ModpackCatalogClient()
+    Private _packCatalogFactory As Func(Of ModpackCatalogClient) = Function() New ModpackCatalogClient(communitySource:=_communityPreferences.Source)
     Private _onlineInstallRunner As Func(Of ModpackRelease, String, String, IProgress(Of TransferProgress), CancellationToken, Task(Of InstallResult))
     Private ReadOnly _packIcons As New Dictionary(Of String, BitmapSource)(StringComparer.Ordinal)
     Private ReadOnly _packIconSlots As New SemaphoreSlim(4)
@@ -77,6 +77,12 @@ Partial Public Class MainWindow
         ConfigureResourceSearch()
         AddHandler PackSearchText.KeyDown, AddressOf PackSearchEnter
         AddHandler PackSearchGame.KeyDown, AddressOf PackSearchEnter
+        AddHandler PackSearchSource.SelectionChanged, Sub() PackSearchInputsChanged()
+        AddHandler PackSearchCategory.SelectionChanged, Sub() PackSearchInputsChanged()
+        AddHandler PackSearchGame.SelectionChanged, Sub() PackSearchInputsChanged()
+        AddHandler ResourceLoader.SelectionChanged, Sub() PackSearchInputsChanged()
+        AddHandler PackSearchText.TextChanged, Sub() PackSearchInputsChanged()
+        PackSearchGame.AddHandler(TextBox.TextChangedEvent, New TextChangedEventHandler(Sub() PackSearchInputsChanged()))
         AddHandler OnlinePackName.TextChanged, Sub() ValidateOnlinePackName()
         AddHandler OnlinePackName.KeyDown, Sub(sender, e)
                                                 If e.Key = Key.Enter AndAlso Not e.IsRepeat Then e.Handled = True : ConfirmOnlinePackName(sender, e)
@@ -137,20 +143,39 @@ Partial Public Class MainWindow
         End If
         ChangePackMode(PackBrowserMode.Search)
     End Sub
-    Private Async Sub RunPackSearch(sender As Object, e As RoutedEventArgs)
-        If _busy OrElse _choosingOnline OrElse _closing OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible Then Return
+    Private Function CurrentPackQuery() As ModpackQuery
         Dim game = PackSearchGameValue(), category = TryCast(PackSearchCategory.SelectedItem, ComboBoxItem)
-        Dim query As New ModpackQuery With {.Kind = _resourceKind, .Loader = If(_resourceKind = CommunityResourceKind.Mod, CStr(TryCast(ResourceLoader.SelectedItem, ComboBoxItem)?.Tag), ""), .Text = PackSearchText.Text.Trim(), .Minecraft = game,
+        Return New ModpackQuery With {.Kind = _resourceKind, .Loader = If(_resourceKind = CommunityResourceKind.Mod, CStr(TryCast(ResourceLoader.SelectedItem, ComboBoxItem)?.Tag), ""), .Text = PackSearchText.Text.Trim(), .Minecraft = game,
             .Platforms = If(PackSearchSource.SelectedIndex = 1, ModpackPlatform.CurseForge, If(PackSearchSource.SelectedIndex = 2, ModpackPlatform.Modrinth, ModpackPlatform.All)),
             .Category = If(category Is Nothing, "/", CStr(category.Tag))}
+    End Function
+    Private _packFiltersPending As Boolean
+    Private _packSearchValidation As Boolean
+    Private Sub PackSearchInputsChanged(Optional userEdit As Boolean = True)
+        If _closing OrElse _packSearchSession Is Nothing OrElse _packMode <> PackBrowserMode.Search OrElse Not PackSearchSurface.IsVisible Then Return
+        If Not userEdit AndAlso _packSearchValidation Then Return
+        If userEdit Then _packSearchValidation = False
+        Dim pending = JsonConvert.SerializeObject(CurrentPackQuery()) <> _packLastQuery
+        If pending Then
+            PackSearchInputHint.Theme = PclHintTheme.Blue
+            PackSearchInputHint.Text = "筛选已更改，点击「搜索」应用。" : PackSearchInputHint.Visibility = Visibility.Visible
+            _packFiltersPending = True
+        ElseIf _packFiltersPending Then
+            PackSearchInputHint.Visibility = Visibility.Collapsed : _packFiltersPending = False
+        End If
+    End Sub
+    Private Async Sub RunPackSearch(sender As Object, e As RoutedEventArgs)
+        If _busy OrElse _choosingOnline OrElse _closing OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible Then Return
+        Dim query = CurrentPackQuery()
         ' Structured identity keeps literal separators in different fields distinct.
         Dim key = JsonConvert.SerializeObject(query), candidate As ModpackSearchSession
         Try
             candidate = New ModpackSearchSession(query)
         Catch ex As ArgumentException
+            _packSearchValidation = True : _packFiltersPending = False : PackSearchInputHint.Theme = PclHintTheme.Red
             PackSearchInputHint.Text = ex.Message : PackSearchInputHint.Visibility = Visibility.Visible : Return
         End Try
-        PackSearchInputHint.Visibility = Visibility.Collapsed
+        _packSearchValidation = False : _packFiltersPending = False : PackSearchInputHint.Visibility = Visibility.Collapsed
         ' Like PCL's Loader.ShouldStart / Start, keep the accepted identical request.
         ' In particular, do not enumerate mutable session errors while it is fetching.
         If _packSearchSession IsNot Nothing AndAlso key = _packLastQuery AndAlso _packSearchRequest IsNot Nothing AndAlso Not _packSearchRequest.IsCancellationRequested Then Return
@@ -173,6 +198,7 @@ Partial Public Class MainWindow
         PackSearchInputHint.Visibility = Visibility.Collapsed
         ResourceLoader.SelectedIndex = 0
         _packLastQuery = Nothing
+        PackSearchInputsChanged()
     End Sub
     Private Async Sub FirstPackPage(sender As Object, e As RoutedEventArgs)
         Await LoadPackSearchPageAsync(0)
@@ -278,6 +304,7 @@ Partial Public Class MainWindow
                                   PackNextPage.Text = If(session.Count < (page + 1) * ModpackCatalogClient.PageSize AndAlso session.HasMore, "继续加载", "下一页")
                               End Sub)
             If Not previewShown AndAlso _packMode = PackBrowserMode.Search AndAlso _downloadView = DownloadView.Modpacks Then ModpackPage.ScrollToHome()
+            PackSearchInputsChanged(False)
         Catch ex As Exception
             ' Intentional cancellation has already revoked ownership. An unexpected
             ' cancellation of the current request must still leave a terminal view.

@@ -57,7 +57,7 @@ Namespace Controls
             End Get
         End Property
 
-        Public Sub New(entry As LocalModEntry)
+        Public Sub New(entry As LocalModEntry, Optional fileNameFirst As Boolean = False)
             If entry Is Nothing Then Throw New ArgumentNullException(NameOf(entry))
             Tag = entry : Height = 44 : Background = Brushes.Transparent : SnapsToDevicePixels = True : Focusable = False
             For Each columnSize As GridLength In {New GridLength(6), New GridLength(34), New GridLength(7), GridLength.Auto, New GridLength(1, GridUnitType.Star), New GridLength(4)}
@@ -87,17 +87,18 @@ Namespace Controls
             _versionColumn = New ColumnDefinition With {.Width = GridLength.Auto}
             _extendColumn = New ColumnDefinition()
             _titleGrid.ColumnDefinitions.Add(_titleColumn) : _titleGrid.ColumnDefinitions.Add(_versionColumn) : _titleGrid.ColumnDefinitions.Add(_extendColumn)
-            TitleLabel = New TextBlock With {.Text = Bounded(entry.DisplayName, 200), .FontSize = 14, .TextTrimming = TextTrimming.CharacterEllipsis,
+            TitleLabel = New TextBlock With {.Text = Bounded(If(fileNameFirst, Path.GetFileNameWithoutExtension(entry.EnabledName), entry.DisplayName), 200), .FontSize = 14, .TextTrimming = TextTrimming.CharacterEllipsis,
                 .VerticalAlignment = VerticalAlignment.Bottom, .TextDecorations = If(entry.Enabled, Nothing, TextDecorations.Strikethrough)}
             TitleLabel.SetResourceReference(TextBlock.ForegroundProperty, If(entry.Enabled, "ColorBrush1", "ColorBrushGray4"))
             _titleGrid.Children.Add(TitleLabel)
             VersionLabel = New TextBlock With {.Text = If(String.IsNullOrEmpty(entry.Version), "", "  |  " & Bounded(Flat(entry.Version), 200)), .FontSize = 12,
                 .TextTrimming = TextTrimming.CharacterEllipsis, .VerticalAlignment = VerticalAlignment.Bottom, .Opacity = 0.4,
-                .Visibility = If(String.IsNullOrEmpty(entry.Version), Visibility.Collapsed, Visibility.Visible)}
+                .Visibility = If(fileNameFirst OrElse String.IsNullOrEmpty(entry.Version), Visibility.Collapsed, Visibility.Visible)}
             VersionLabel.SetResourceReference(TextBlock.ForegroundProperty, "ColorBrushGray1")
             SetColumn(VersionLabel, 1) : _titleGrid.Children.Add(VersionLabel)
             SetColumn(_titleGrid, 3) : SetColumnSpan(_titleGrid, 2) : SetRow(_titleGrid, 1) : Children.Add(_titleGrid)
             Dim description = Path.GetFileNameWithoutExtension(entry.EnabledName)
+            If fileNameFirst Then description = entry.DisplayName & If(String.IsNullOrWhiteSpace(entry.Version), "", " (" & entry.Version & ")")
             If Not String.IsNullOrWhiteSpace(entry.Description) Then description &= ": " & Flat(entry.Description)
             InfoLabel = New TextBlock With {.Text = Bounded(Flat(If(entry.Problem, description)), 512), .FontSize = 12, .TextTrimming = TextTrimming.CharacterEllipsis,
                 .VerticalAlignment = VerticalAlignment.Bottom, .Margin = New Thickness(0, 0, 3, 1), .IsHitTestVisible = False}

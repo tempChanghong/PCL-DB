@@ -9,6 +9,36 @@ Partial Public Class MainWindow
     Private _restoringSettings As Boolean
     Private _preferenceBaseline As JObject
     Private _preferenceBaselinePath As String
+    Private _communityPreferences As New CommunityResourcePreferences
+    Private _restoringCommunityPreferences As Boolean
+    Private Sub RestoreCommunityPreferences(settings As JObject)
+        _restoringCommunityPreferences = True
+        Try
+            _communityPreferences = CommunityResourcePreferences.Read(settings?("communityResources"))
+            CommunitySourceBox.SelectedIndex = _communityPreferences.Source
+            CommunityFileNameBox.SelectedIndex = _communityPreferences.FileNameStyle
+            CommunityLocalModStyleBox.SelectedIndex = _communityPreferences.LocalModStyle
+        Finally
+            _restoringCommunityPreferences = False
+        End Try
+    End Sub
+    Private Sub CommunitySettingsChanged(sender As Object, e As SelectionChangedEventArgs)
+        If _restoringCommunityPreferences OrElse _restoringSettings OrElse _closing OrElse CommunityLocalModStyleBox Is Nothing Then Return
+        _communityPreferences = CommunityResourcePreferences.Read(New JObject From {{"source", CommunitySourceBox.SelectedIndex}, {"fileNameStyle", CommunityFileNameBox.SelectedIndex}, {"localModStyle", CommunityLocalModStyleBox.SelectedIndex}})
+        _packLastQuery = Nothing
+        If SettingsSaveFeedback IsNot Nothing Then ClearSettingsFeedback(sender, Nothing)
+        If _preview OrElse _restoringSettings OrElse _settingsLoadFailed OrElse _preferenceBaseline Is Nothing Then Return
+        Try
+            Dim values = _communityPreferences.ToJson(), changes = values
+            If String.Equals(IO.Path.GetFullPath(SettingsFile), _preferenceBaselinePath, StringComparison.OrdinalIgnoreCase) Then
+                changes = DownloadSettingsFile.ChangedValues(TryCast(_preferenceBaseline("communityResources"), JObject), values)
+            End If
+            If changes.HasValues Then DownloadSettingsFile.SaveChanges(SettingsFile, LegacySettingsFile, New JObject From {{"communityResources", changes}})
+            _preferenceBaseline("communityResources") = values
+        Catch ex As Exception
+            ReportSettingsSave("社区资源设置已应用，但未能保存：" & ex.GetBaseException().Message, True)
+        End Try
+    End Sub
     Private Sub InitializeSettingsFeedback()
         AddHandler SourceBox.SelectionChanged, AddressOf ClearSettingsFeedback
         AddHandler VersionSourceBox.SelectionChanged, AddressOf ClearSettingsFeedback
@@ -62,6 +92,7 @@ Partial Public Class MainWindow
     End Function
 
     Private Sub RestoreSourcePreferences(settings As JObject)
+        RestoreCommunityPreferences(settings)
         Dim fileSource = StoredSource(settings, "source", SourcePreference.Automatic)
         SourceBox.SelectedIndex = Array.IndexOf(SourceChoices, fileSource)
         ' The old single option controlled both: preserve its meaning on upgrade.
@@ -70,7 +101,7 @@ Partial Public Class MainWindow
     Private Function BuildSettings(limit As Double) As JObject
         Return New JObject From {{"pclBase", _pclBase}, {"gameRoot", If(_selectedFolder?.Location, "")},
             {"source", CInt(SelectedSource(SourceBox))}, {"versionSource", CInt(SelectedSource(VersionSourceBox))},
-            {"defaultIsolation", SelectedIsolationStrategy().GetValueOrDefault(-1)}, {"externalLaunchers", LauncherSettingsJson()},
+            {"defaultIsolation", SelectedIsolationStrategy().GetValueOrDefault(-1)}, {"externalLaunchers", LauncherSettingsJson()}, {"communityResources", _communityPreferences.ToJson()},
             {"connectionsIndex", Array.IndexOf(ConnectionLevels, ConnectionCount())},
             {"speed", limit.ToString(CultureInfo.InvariantCulture)}, {"reuse", ReuseBox.IsChecked = True}, {"java", JavaPathBox.Text.Trim()}, {"appearance", _appearance.ToJson()}, {"developer", _developer.ToJson()}}
     End Function

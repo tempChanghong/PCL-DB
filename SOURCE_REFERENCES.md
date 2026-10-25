@@ -1,5 +1,13 @@
 # PCL2 代码依据
 
+## 社区资源设置、滑稽彩与窗口默认值
+
+- 固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`PageSetupSystem.xaml` 的社区资源卡片及三组选择，`Settings.vb` 的 ToolDownloadMod/ToolDownloadTranslateV2/ToolModLocalNameStyle 与 900×550 窗口默认值；`PageDownloadCompDetail.xaml.vb` 的中文建议文件名和 Mod 波浪号规避，`MyLocalModItem.Refresh` 的两种本地名称样式。
+- `PageResource.xaml/.vb` 以“搜索”提交筛选、“重置条件”只清空输入。保留该流程，替换容易误作刷新的圆形图标，并增加未提交筛选的蓝色提示。既有网络请求、结果和返回状态仍属于原查询，不按尚未提交的来源重标。
+- `ModDownload.DlModRequest/DlSourceModGet` 的官方/镜像顺序和 MCIM 路径用于社区元数据、归档文件。CF 官方接口缺少凭据时直接用公开镜像，不读取 PCL 的受保护凭据；按请求快照固定偏好，保留原校验、共享目录互斥与发布流程。
+- `ModMain.vb` 确认 ThemeNow=12 每 250ms 刷新，`ModSecret.vb` 公开 HSL2 调色与界面颜色应用，但不公开滑稽彩的色相参数/相位。新增独立 90 秒色相循环作动态近似，不宣称与 PCL 同相；保留实验外观权限。仅更新颜色资源，不逐帧广播主题重置或刷新组件；隐藏、最小化和关闭停止计时。辅助读取 PCL-CE `915ac29795efbdf6373417389e181e1504117048` 的 ThemeService 作为色彩服务边界参考，没有引入其 LCH 配色。
+- 13 份固定 Git 对象与摘要保存在 `artifacts/community-settings/source/manifest.json`。详见[范围及验证](docs/reviews/community-settings.md)。
+
 ## 本地版本分类与资源中文呈现
 
 - 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`PCLCS/Minecraft/McVersion.cs` 的特殊名称、JSON 类型和 UTC+2 愚人节日期规则，`ModMinecraft.vb` 的实例图标优先级；本工具只读继承链与 HMCL 原版分支，不移植 PCL 的 State/Info/Logo 缓存写入。

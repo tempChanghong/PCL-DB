@@ -394,7 +394,8 @@ Partial Public Class MainWindow
     Private ReadOnly _sourceSelection As New SourceSelectionState()
     Private _supplementalProvider As Func(Of SourcePolicy, CancellationToken, Task(Of List(Of VersionEntry)))
     Private Function Policy() As SourcePolicy
-        Return New SourcePolicy(_sourceSelection) With {.Preference = SelectedSource(SourceBox), .VersionPreference = SelectedSource(VersionSourceBox)}
+        Return New SourcePolicy(_sourceSelection) With {.Preference = SelectedSource(SourceBox), .VersionPreference = SelectedSource(VersionSourceBox),
+            .CommunityPreference = If(_communityPreferences.Source = 0, SourcePreference.MirrorFirst, If(_communityPreferences.Source = 1, SourcePreference.Automatic, SourcePreference.OfficialFirst))}
     End Function
 
     Private Async Function LoadVersionsAsync(Optional restart As Boolean = False) As Task
@@ -993,6 +994,7 @@ Partial Public Class MainWindow
             End If
         End If
         _closing = True
+        _pclThemeCycleTimer?.Stop()
         CancelManagementRequest()
         CancelLocalModRequest()
         _managementMotion?.Finish()

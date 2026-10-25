@@ -2,6 +2,8 @@
 
 VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载与本地实例管理工具，简称 PCL-DB。最新发布为 **Beta 4.1**（`4.1.0-beta.1`），修复大整合包的容量误拦截，保留 Beta 4.0 的外部启动器支持、主题跟随及下载/详情动画。[Beta 4.1 发布说明](docs/releases/4.1.0-beta.1.md)。
 
+当前源码恢复 PCL 式社区资源设置（来源、另存为文件名格式、Mod 管理样式）；搜索页明确区分“搜索”与“重置条件”，标明未应用的筛选。增加滑稽彩的动态近似跟随，保留实验外观权限；默认窗口对齐 PCL 的 900×550。[录屏与设置修复记录](docs/reviews/community-settings.md)。尚未打包发行。
+
 当前源码补齐管理列表的愚人节、远古与快照分类及图标；资源搜索和详情使用 PCL 内置 MC 百科名称库，保留英文副标题，扩展各类中文标签，并按已知正式版清单缩写版本范围。[分类与资源呈现验证](docs/reviews/catalogue-presentation.md)。尚未打包发行。
 
 当前源码继续修复资源浏览：首次进入直接加载；混合搜索先显示已返回的来源，CurseForge 临时失败会重试。新增读取本地 Mod 内置 PNG/JPEG 图标，修正实例详情图标拉伸；跟随主题直接使用外部启动器卡片选定的 PCL。[录屏问题与验证](docs/reviews/resource-browser-followup.md)。尚未打包发行。

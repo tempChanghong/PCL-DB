@@ -86,6 +86,7 @@ Partial Public Class MainWindow
         _categoryMotion.Change(DownloadContent(previous), ModpackPage,
             Sub()
                 SaveResourceBrowser() : CancelResourceRequests()
+                _packFiltersPending = False : _packSearchValidation = False
                 _resourceKind = kind
                 Dim state As ResourceBrowserState = Nothing
                 If Not _resourceBrowsers.TryGetValue(kind, state) Then state = New ResourceBrowserState()
@@ -250,7 +251,7 @@ Partial Public Class MainWindow
             If _resourceSaveChooser IsNot Nothing Then
                 destination = _resourceSaveChooser(snapshot)
             ElseIf Not _preview Then
-                Dim dialog As New Microsoft.Win32.SaveFileDialog With {.Title = "选择保存位置", .FileName = snapshot.FileName, .AddExtension = True,
+                Dim dialog As New Microsoft.Win32.SaveFileDialog With {.Title = "选择保存位置", .FileName = _communityPreferences.SuggestedFileName(project, snapshot), .AddExtension = True,
                     .DefaultExt = Path.GetExtension(snapshot.FileName), .Filter = CommunityResources.Name(snapshot.Kind) & "文件 (*" & Path.GetExtension(snapshot.FileName) & ")|*" & Path.GetExtension(snapshot.FileName), .OverwritePrompt = False}
                 Dim initial = ResourceSaveDirectory(snapshot.Kind)
                 If initial IsNot Nothing Then dialog.InitialDirectory = initial

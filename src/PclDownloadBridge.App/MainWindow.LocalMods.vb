@@ -130,9 +130,12 @@ Partial Public Class MainWindow
             FlushLocalModInteraction()
         End Try
     End Function
+    Private _localModRenderedStyle As Integer
     Private Sub RenderLocalMods()
         _localModFilterPending = False
         LocalModRows.Children.Clear()
+        If _localModRenderedStyle <> _communityPreferences.LocalModStyle Then _localModRowViews.Clear()
+        _localModRenderedStyle = _communityPreferences.LocalModStyle
         Dim current = New HashSet(Of LocalModEntry)(_localMods)
         For Each obsolete In _localModRowViews.Keys.Where(Function(entry) Not current.Contains(entry)).ToList()
             _localModRowViews.Remove(obsolete)
@@ -154,7 +157,7 @@ Partial Public Class MainWindow
                 LocalModRows.Children.Add(existing)
                 Continue For
             End If
-            Dim row As New PclLocalModItem(captured)
+            Dim row As New PclLocalModItem(captured, _communityPreferences.LocalModStyle = 1)
             AddHandler row.ToggleButton.Click, Async Sub() Await ToggleLocalModAsync(captured)
             _localModRowViews.Add(captured, row)
             LocalModRows.Children.Add(row)

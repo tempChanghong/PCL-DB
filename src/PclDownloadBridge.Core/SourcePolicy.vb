@@ -30,6 +30,7 @@ Public Class SourcePolicy
         _selection = If(selection, New SourceSelectionState())
     End Sub
     Public Property Preference As SourcePreference = SourcePreference.Automatic
+    Public Property CommunityPreference As SourcePreference?
     ' Legacy callers keep their combined preference; the app sets both explicitly.
     Public Property VersionPreference As SourcePreference?
     Public ReadOnly Property EffectiveVersionPreference As SourcePreference
@@ -53,6 +54,10 @@ Public Class SourcePolicy
         End If
         If original.Scheme <> "https" AndAlso Not (AllowLoopback AndAlso original.IsLoopback AndAlso original.Scheme = "http") Then Throw New ArgumentException("下载地址必须使用 HTTPS。")
         Dim mirrors As New List(Of String)
+        Dim community = category = "modrinth-archive" OrElse category = "curseforge-archive"
+        If community AndAlso {"cdn.modrinth.com", "edge.forgecdn.net", "mediafilez.forgecdn.net", "media.forgecdn.net"}.Contains(original.Host.ToLowerInvariant()) Then
+            mirrors.Add(New UriBuilder(original) With {.Host = "mod.mcimirror.top"}.Uri.AbsoluteUri)
+        End If
         Select Case original.Host.ToLowerInvariant()
             Case "resources.download.minecraft.net"
                 mirrors.Add("https://bmclapi2.bangbang93.com/assets" & original.PathAndQuery)
@@ -87,6 +92,7 @@ Public Class SourcePolicy
                 End If
         End Select
         Dim officialFirst = If(category = "version", EffectiveVersionPreference <> SourcePreference.MirrorFirst, PreferOfficial)
+        If community AndAlso CommunityPreference.HasValue Then officialFirst = CommunityPreference.Value <> SourcePreference.MirrorFirst
         If Not officialFirst Then Return mirrors.Concat({url}).Distinct().ToList()
         Return {url}.Concat(mirrors).Distinct().ToList()
     End Function

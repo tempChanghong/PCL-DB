@@ -26,6 +26,7 @@ Friend NotInheritable Class PclThemeSnapshot
     End Property
     Friend ReadOnly Property Preset As String
         Get
+            If Success AndAlso ThemeId = 12 Then Return "custom"
             Return If(Success AndAlso ThemeId >= 0 AndAlso ThemeId < Presets.Length, Presets(ThemeId), Nothing)
         End Get
     End Property

@@ -47,6 +47,32 @@ Namespace Controls
             Dim m = light - chroma / 2
             Return Color.FromRgb(CByte(Math.Max(0, Math.Min(255, (values(0) + m) * 255))), CByte(Math.Max(0, Math.Min(255, (values(1) + m) * 255))), CByte(Math.Max(0, Math.Min(255, (values(2) + m) * 255))))
         End Function
+        Private Sub CycleColor(index As String, color As Color)
+            Dim brush = TryCast(Application.Current.Resources("ColorBrush" & index), SolidColorBrush)
+            If brush IsNot Nothing AndAlso Not brush.IsFrozen Then brush.Color = color Else Application.Current.Resources("ColorBrush" & index) = New SolidColorBrush(color)
+            Application.Current.Resources("ColorObject" & index) = color
+        End Sub
+        Friend Sub ApplyCycleFrame(title As System.Windows.Controls.Grid, shell As System.Windows.Controls.Grid, appearance As AppearancePreferences)
+            Dim hue = appearance.Hue, sat = appearance.Saturation, adjustment = appearance.Lightness
+            Dim lightness = If(appearance.DarkMode, {90.0, 75.0, 65.0, 58.0, 40.0, 30.0, 23.0, 20.0}, {25 + adjustment * 0.3, 45 + adjustment, 55 + adjustment, 65 + adjustment, 80 + adjustment * 0.4, 91 + adjustment * 0.1, 95, 97})
+            For i = 0 To 7
+                CycleColor((i + 1).ToString(Globalization.CultureInfo.InvariantCulture), If(appearance.DarkMode AndAlso i = 0, Color.FromRgb(228, 234, 242), Hsl2(hue, If(i = 0, sat * 0.2, sat), lightness(i))))
+            Next
+            Dim c4 = DirectCast(Application.Current.Resources("ColorBrush4"), SolidColorBrush).Color, c5 = DirectCast(Application.Current.Resources("ColorBrush5"), SolidColorBrush).Color
+            CycleColor("Bg0", Color.FromRgb(CByte(c4.R * 0.4 + c5.R * 0.4 + 166 * 0.2), CByte(c4.G * 0.4 + c5.G * 0.4 + 166 * 0.2), CByte(c4.B * 0.4 + c5.B * 0.4 + 166 * 0.2)))
+            Dim c7 = DirectCast(Application.Current.Resources("ColorBrush7"), SolidColorBrush).Color
+            CycleColor("Bg1", Color.FromArgb(190, c7.R, c7.G, c7.B))
+            Dim top = TryCast(title.Background, LinearGradientBrush)
+            If top IsNot Nothing AndAlso Not top.IsFrozen AndAlso top.GradientStops.Count = 3 Then
+                For i = 0 To 2 : top.GradientStops(i).Color = Hsl2(hue, sat, If(i = 1, 54, 48) + adjustment) : Next
+            End If
+            Dim background = TryCast(shell.Background, LinearGradientBrush)
+            If Not appearance.DarkMode AndAlso appearance.ColorfulBackground AndAlso background IsNot Nothing AndAlso Not background.IsFrozen AndAlso background.GradientStops.Count = 3 Then
+                For i = 0 To 2 : background.GradientStops(i).Color = Hsl2(hue + (i - 1) * 15, sat * 0.8, 91) : Next
+            End If
+            ' Update live brushes only. No palette broadcast, row rebuild,
+            ' component refresh or animation-clock cancellation on each frame.
+        End Sub
         Friend Sub Apply(title As System.Windows.Controls.Grid, shell As System.Windows.Controls.Grid, Optional appearance As AppearancePreferences = Nothing)
             appearance = If(appearance, New AppearancePreferences)
             _darkMode = appearance.DarkMode
