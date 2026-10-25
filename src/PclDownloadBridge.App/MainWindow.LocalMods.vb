@@ -2,6 +2,7 @@ Imports System.IO
 Imports System.Threading
 Imports System.Windows
 Imports System.Windows.Controls
+Imports System.Windows.Input
 Imports PclDownloadBridge.Controls
 Imports PclDownloadBridge.Core
 
@@ -18,6 +19,9 @@ Partial Public Class MainWindow
     Private _localModWriteOwner As InstalledInstance
     Private _localModFilter As String = "all"
     Private _localModDetailOffset As Double
+    Private _localModFocusRestore As Action
+    Private _localModFilterPending As Boolean
+    Private _localModInteractionFlushing As Boolean
     Private ReadOnly _localModRowViews As New Dictionary(Of LocalModEntry, Grid)
     Private _localModProvider As Func(Of InstalledInstance, CancellationToken, Task(Of List(Of LocalModEntry))) =
         Function(instance, token) Task.Run(Function() LocalModCatalog.Scan(instance, token), token)
@@ -45,6 +49,7 @@ Partial Public Class MainWindow
         _localModGeneration += 1
         _localModRequest?.Cancel() : _localModRequest = Nothing : _localModScanning = False
         _localModReadSucceeded = False
+        _localModFocusRestore = Nothing : _localModFilterPending = False
     End Sub
     Private Async Sub ShowLocalMods(sender As Object, e As RoutedEventArgs)
         If _closing OrElse _managedInstance Is Nothing OrElse _managedInstance.Problem IsNot Nothing OrElse _managedInstance.RunDirectory Is Nothing OrElse
@@ -118,9 +123,11 @@ Partial Public Class MainWindow
             If generation = _localModGeneration Then _localModRequest = Nothing : _localModScanning = False
             request.Dispose()
             RefreshLocalModAvailability()
+            FlushLocalModInteraction()
         End Try
     End Function
     Private Sub RenderLocalMods()
+        _localModFilterPending = False
         LocalModRows.Children.Clear()
         Dim current = New HashSet(Of LocalModEntry)(_localMods)
         For Each obsolete In _localModRowViews.Keys.Where(Function(entry) Not current.Contains(entry)).ToList()
@@ -172,9 +179,61 @@ Partial Public Class MainWindow
         Return If(value.Length <= maximum, value, value.Substring(0, maximum) & "…")
     End Function
     Private Sub LocalModSearchChanged(sender As Object, e As TextChangedEventArgs)
-        If LocalModRows Is Nothing OrElse Not LocalModInputAllowed() Then Return
+        If LocalModRows Is Nothing OrElse _closing OrElse _restoringSettings OrElse _restoringLaunchers OrElse
+            ManagementPage.Visibility <> Visibility.Visible OrElse LocalModsPage.Visibility <> Visibility.Visible OrElse Not SameLocalModContext(_localModInstance) Then Return
+        If Not LocalModInputAllowed() Then
+            ' Text editing commands and accessibility can change the editor while
+            ' page clocks gate normal key input. Apply the latest query at handoff.
+            _localModFilterPending = True
+            Return
+        End If
         _surfaceMotion.Finish() : _managementMotion.Finish()
         RenderLocalMods()
+    End Sub
+    Private Sub FlushLocalModInteraction()
+        If _localModInteractionFlushing OrElse Not LocalModInputAllowed() Then Return
+        _localModInteractionFlushing = True
+        Try
+            If _localModFilterPending Then
+                _localModFilterPending = False
+                _surfaceMotion.Finish() : _managementMotion.Finish()
+                RenderLocalMods()
+            End If
+            Dim restore = _localModFocusRestore
+            _localModFocusRestore = Nothing
+            restore?.Invoke()
+        Finally
+            _localModInteractionFlushing = False
+        End Try
+    End Sub
+    Private Sub QueueLocalModWriteFocus(owner As InstalledInstance, entry As LocalModEntry, previous As IInputElement, inputVersion As Long, operationGeneration As Long, readGeneration As Long)
+        If entry Is Nothing Then Return
+        _localModFocusRestore = Sub()
+                                   If _closing OrElse _localModWriting OrElse _localModScanning OrElse operationGeneration <> _localModOperationGeneration OrElse
+                                       readGeneration <> _localModGeneration OrElse Not SameLocalModContext(owner) OrElse Not LocalModInputAllowed() Then Return
+                                   Dim current = Keyboard.FocusedElement
+                                   ' Disabling/detaching the old row can return WPF
+                                   ' focus to this presentation root before handoff.
+                                   Dim source = PresentationSource.FromVisual(LocalModsPage)
+                                   If current IsNot Nothing AndAlso current IsNot previous AndAlso current IsNot Me AndAlso current IsNot LocalModsPage AndAlso current IsNot source?.RootVisual Then Return
+                                   Dim destination As UIElement = LocalModsPage
+                                   If inputVersion = _downloadFocusInputVersion AndAlso _localModReadSucceeded Then
+                                       Dim replacement = _localMods.FirstOrDefault(Function(item) String.Equals(item.FileName, entry.FileName, StringComparison.OrdinalIgnoreCase))
+                                       If replacement Is Nothing Then replacement = _localMods.FirstOrDefault(Function(item) String.Equals(item.EnabledName, entry.EnabledName, StringComparison.OrdinalIgnoreCase))
+                                       Dim row As Grid = Nothing
+                                       If replacement IsNot Nothing AndAlso _localModRowViews.TryGetValue(replacement, row) AndAlso LocalModRows.Children.Contains(row) Then
+                                           Dim button = row.Children.OfType(Of PclIconButton)().FirstOrDefault()
+                                           If button IsNot Nothing AndAlso button.IsEnabled AndAlso button.IsVisible Then destination = button
+                                       End If
+                                   End If
+                                   Dim offset = LocalModsPage.VerticalOffset
+                                   FocusManager.SetFocusedElement(FocusManager.GetFocusScope(destination), destination)
+                                   destination.Focus()
+                                   ' Focus must not bring a newly built row over the
+                                   ' user's retained viewport (PCL MyScrollViewer #3854).
+                                   LocalModsPage.ScrollToVerticalOffset(offset)
+                               End Sub
+        FlushLocalModInteraction()
     End Sub
     Private Sub FilterLocalMods(sender As Object, e As RoutedEventArgs)
         If Not LocalModInputAllowed() Then Return
@@ -233,6 +292,9 @@ Partial Public Class MainWindow
     End Function
     Private Async Function RunLocalModWriteAsync(operation As Func(Of InstalledInstance, CancellationToken, Task(Of LocalModActionResult)), message As String) As Task
         If Not LocalModInputAllowed() OrElse Not _localModReadSucceeded OrElse _busy OrElse _choosingOnline OrElse _localModWriting OrElse _localModScanning Then Return
+        Dim focused = Keyboard.FocusedElement, inputVersion = _downloadFocusInputVersion
+        Dim focusedRow = LocalModRows.Children.OfType(Of Grid)().FirstOrDefault(Function(row) row.IsKeyboardFocusWithin)
+        Dim focusedEntry = TryCast(focusedRow?.Tag, LocalModEntry)
         CancelLocalModRequest()
         _localModOperationGeneration += 1
         Dim operationGeneration = _localModOperationGeneration
@@ -259,6 +321,9 @@ Partial Public Class MainWindow
         If SameLocalModContext(owner) AndAlso ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible Then
             Dim refresh = LoadLocalModsAsync(True), readGeneration = _localModGeneration
             Await refresh
+            If operationGeneration = _localModOperationGeneration AndAlso readGeneration = _localModGeneration Then
+                QueueLocalModWriteFocus(owner, focusedEntry, focused, inputVersion, operationGeneration, readGeneration)
+            End If
             If operationGeneration = _localModOperationGeneration AndAlso readGeneration = _localModGeneration AndAlso _localModReadSucceeded AndAlso Not _localModWriting AndAlso Not _localModScanning AndAlso
                 SameLocalModContext(owner) AndAlso LocalModsPage.Visibility = Visibility.Visible AndAlso Not _closing Then LocalModStatus.Text = outcome
         Else

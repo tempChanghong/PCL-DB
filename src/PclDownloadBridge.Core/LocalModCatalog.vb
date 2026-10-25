@@ -163,7 +163,7 @@ Public NotInheritable Class LocalModCatalog
         Dim manifest As New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)
         If entries.ContainsKey("META-INF/MANIFEST.MF") Then
             Try
-                manifest = ReadManifest(ReadText(entries("META-INF/MANIFEST.MF"), token))
+                manifest = ReadManifest(entries("META-INF/MANIFEST.MF"), token)
             Catch ex As Exception When TypeOf ex Is InvalidDataException OrElse TypeOf ex Is IOException OrElse TypeOf ex Is DecoderFallbackException
                 result.Warnings.Add("无法读取 JAR 清单：" & ex.Message)
             End Try
@@ -220,6 +220,11 @@ Public NotInheritable Class LocalModCatalog
         Return value.Substring(0, count) & "…"
     End Function
     Private Shared Function ReadText(entry As ZipArchiveEntry, token As CancellationToken) As String
+        Using reader As New StreamReader(New MemoryStream(ReadBytes(entry, token)), New UTF8Encoding(False, True), True)
+            Return reader.ReadToEnd()
+        End Using
+    End Function
+    Private Shared Function ReadBytes(entry As ZipArchiveEntry, token As CancellationToken) As Byte()
         If entry.Length > MetadataLimit Then Throw New InvalidDataException("Mod 元数据超过读取范围。")
         Using source = entry.Open(), buffer As New MemoryStream()
             Dim bytes(65535) As Byte
@@ -230,9 +235,7 @@ Public NotInheritable Class LocalModCatalog
                 If buffer.Length + count > MetadataLimit Then Throw New InvalidDataException("Mod 元数据超过读取范围。")
                 buffer.Write(bytes, 0, count)
             Loop
-            Using reader As New StreamReader(New MemoryStream(buffer.ToArray()), New UTF8Encoding(False, True), True)
-                Return reader.ReadToEnd()
-            End Using
+            Return buffer.ToArray()
         End Using
     End Function
     Private Shared Function ParseObject(text As String) As JObject
@@ -274,6 +277,34 @@ Public NotInheritable Class LocalModCatalog
             Return Nothing
         End If
         Return value
+    End Function
+    Private Shared Function ReadManifest(entry As ZipArchiveEntry, token As CancellationToken) As Dictionary(Of String, String)
+        Dim bytes = ReadBytes(entry, token), offset = 0, hasHeader = False
+        ' JAR manifests fold at byte boundaries, including within a UTF-8 code
+        ' point. Unfold the main section before decoding, as java.util.jar does.
+        If bytes.Length >= 3 AndAlso bytes(0) = &HEF AndAlso bytes(1) = &HBB AndAlso bytes(2) = &HBF Then offset = 3
+        Using unfolded As New MemoryStream()
+            While offset < bytes.Length
+                token.ThrowIfCancellationRequested()
+                Dim finish = offset
+                While finish < bytes.Length AndAlso bytes(finish) <> 10 AndAlso bytes(finish) <> 13
+                    finish += 1
+                End While
+                If finish = offset Then Exit While ' Named entry sections do not supply Mod metadata.
+                If bytes(offset) = 32 Then
+                    If Not hasHeader Then Throw New InvalidDataException("JAR 清单续行缺少字段。")
+                    unfolded.Write(bytes, offset + 1, finish - offset - 1)
+                Else
+                    If hasHeader Then unfolded.WriteByte(10)
+                    unfolded.Write(bytes, offset, finish - offset)
+                    hasHeader = True
+                End If
+                offset = finish
+                If offset < bytes.Length AndAlso bytes(offset) = 13 Then offset += 1
+                If offset < bytes.Length AndAlso bytes(offset) = 10 Then offset += 1
+            End While
+            Return ReadManifest(New UTF8Encoding(False, True).GetString(unfolded.ToArray()))
+        End Using
     End Function
     Private Shared Function ReadManifest(text As String) As Dictionary(Of String, String)
         Dim result As New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase), key As String = Nothing

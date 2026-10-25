@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 本地 Mod 清单续行与操作交接
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.EDMods/RefreshUI`、`LocalResourceFile`，以实际启用名称关联启停前后的资源，保留原有隔离目录、只读识别、44 DIP 行和 PCL 卡片时序。焦点交接是本工具全量校验重扫后的适配，不引入上游同名文件覆盖行为。
+- PCL-CE `915ac29795efbdf6373417389e181e1504117048` 的 `ModLocalComp` 仅补充 `${file.jarVersion}` 对应 `Implementation-Version` 的信息来源。[官方 JAR 规范](https://docs.oracle.com/en/java/javase/25/docs/specs/jar/jar.html)规定按字节折行及空格续行；以真实 JDK 生成和读取的清单交叉验证，先合并主节的字节续行再解码，不放宽其他元数据或导入校验。[范围与验证](docs/reviews/local-mod-manifest-interaction.md)。
+
 ## 本地 Mod 的刷新交接与状态别名复核
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.Refresh/LoaderRun/InstallMods/EDMods`：刷新实际 `PathIndie/mods`、启用名称与末尾状态后缀保持同一资源关系。沿用既有 44 DIP 行、筛选、入退场和共享目录提示；独立增加只读实例快照刷新、过期请求门控与发布后别名复核，保留本工具的非覆盖及自有文件回收机制。

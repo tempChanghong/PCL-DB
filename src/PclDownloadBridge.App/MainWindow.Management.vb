@@ -31,6 +31,10 @@ Partial Public Class MainWindow
             Function() AllowPageMotion() AndAlso ManagementPage.IsVisible AndAlso _surfaceMotion.Transition Is Nothing,
             Function(surface) PclSurfaceMotion.Units(surface))
         AddHandler _managementMotion.Settled, Sub() FocusManagementViewport()
+        AddHandler _managementMotion.ContentRevealed, Sub() FlushLocalModInteraction()
+        AddHandler _managementMotion.Settled, Sub() FlushLocalModInteraction()
+        AddHandler _surfaceMotion.ContentRevealed, Sub() FlushLocalModInteraction()
+        AddHandler _surfaceMotion.Settled, Sub() FlushLocalModInteraction()
     End Sub
 
     Private Function ManagementContent() As FrameworkElement
