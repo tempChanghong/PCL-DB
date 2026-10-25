@@ -56,6 +56,12 @@ Namespace Controls
         Private _outlineLogo As Boolean
         Private ReadOnly _hoverMotion As PclListHoverMotion
         Private ReadOnly _selectionMotion As PclListSelectionMotion
+        Friend ReadOnly Property MotionPolicy As PclControlMotionPolicy
+        Private ReadOnly Property AcceptsInput As Boolean
+            Get
+                Return IsEnabled AndAlso IsHitTestVisible AndAlso (Not IsLoaded OrElse IsVisible)
+            End Get
+        End Property
         Friend ReadOnly Property SelectionTransition As Animation.ClockGroup
             Get
                 Return _selectionMotion.Transition
@@ -204,12 +210,11 @@ Namespace Controls
             Focusable = IsHitTestVisible
             AddHandler IsHitTestVisibleChanged, Sub()
                                                    Focusable = IsHitTestVisible
-                                                   If Not IsHitTestVisible Then _down = False
-                                                   RefreshHover(True)
-                                                   _selectionMotion?.Update(_selected, False)
                                                End Sub
             AddHandler GotKeyboardFocus, Sub() RefreshHover()
-            AddHandler LostKeyboardFocus, Sub() RefreshHover()
+            AddHandler LostKeyboardFocus, Sub()
+                                              If _down Then CancelPress() Else RefreshHover()
+                                          End Sub
             _background = New Border With {.CornerRadius = New CornerRadius(6), .BorderThickness = New Thickness(1), .Background = Brush("ColorBrush7"), .BorderBrush = Brush("ColorBrush6"), .Opacity = 0, .IsHitTestVisible = False, .RenderTransform = New ScaleTransform(0.75, 0.75), .RenderTransformOrigin = New Point(0.5, 0.5)}
             SetColumnSpan(_background, 5)
             SetRowSpan(_background, 4)
@@ -223,10 +228,14 @@ Namespace Controls
             Children.Add(_check)
             _hoverMotion = New PclListHoverMotion(_background, DirectCast(RenderTransform, ScaleTransform))
             _selectionMotion = New PclListSelectionMotion(Me, _check)
+            MotionPolicy = New PclControlMotionPolicy(Me, Sub()
+                                                             CancelPress()
+                                                             _selectionMotion.Update(_selected, False)
+                                                         End Sub)
             PclTheme.Watch(Me, Sub()
                                   _background.BorderBrush = Brush("ColorBrush6")
                                   _check.Background = Brush("ColorBrush3")
-                                  RefreshHover()
+                                  CancelPress()
                                   _selectionMotion.Update(_selected, False)
                               End Sub, Sub()
                                            _background.SetResourceReference(Border.BorderBrushProperty, "ColorBrush6")
@@ -239,24 +248,16 @@ Namespace Controls
                                         If args.HeightChanged Then _selectionMotion.Update(_selected, AllowSelectionMotion())
                                     End Sub
             AddHandler MouseEnter, Sub() RefreshHover()
-            AddHandler Unloaded, Sub()
-                                     _down = False : RefreshHover(True, True)
-                                     _selectionMotion.Update(_selected, False)
-                                 End Sub
-            AddHandler IsVisibleChanged, Sub()
-                                             If Not IsVisible Then _down = False
-                                             RefreshHover(True, Not IsVisible)
-                                             _selectionMotion?.Update(_selected, False)
-                                         End Sub
-            AddHandler IsEnabledChanged, Sub()
-                                             _down = False
-                                             RefreshHover(True)
-                                             _selectionMotion?.Update(_selected, False)
-                                         End Sub
             RefreshMetrics()
         End Sub
+        Private Sub CancelPress()
+            _down = False
+            ' Unloaded controls may retain WPF's pointer cache. Keep their plate
+            ' inert even though unhosted controls still accept explicit calls.
+            RefreshHover(True, Not IsLoaded OrElse Not IsVisible)
+        End Sub
         Private Function AllowSelectionMotion() As Boolean
-            Return IsLoaded AndAlso IsVisible AndAlso IsEnabled AndAlso IsHitTestVisible AndAlso ActualHeight > 0 AndAlso Not PclTheme.Changing
+            Return MotionPolicy IsNot Nothing AndAlso MotionPolicy.CanAnimate AndAlso ActualHeight > 0 AndAlso Not PclTheme.Changing
         End Function
         Private Sub RefreshHover(Optional immediate As Boolean = False, Optional inactive As Boolean = False, Optional paletteOnly As Boolean = False)
             If _hoverMotion Is Nothing Then Return
@@ -267,11 +268,11 @@ Namespace Controls
             Dim fill = Brush(If(pressed, "ColorBrush6", If(active, "ColorBrushBg1", "ColorBrush7"))).Color
             If paletteOnly Then _hoverMotion.RefreshPalette(fill) : Return
             _hoverMotion.Update(active, pressed, IsSidebar, fill,
-                Not immediate AndAlso IsLoaded AndAlso IsVisible AndAlso interactive AndAlso Not PclTheme.Changing)
+                Not immediate AndAlso MotionPolicy IsNot Nothing AndAlso MotionPolicy.CanAnimate AndAlso interactive AndAlso Not PclTheme.Changing)
         End Sub
         Protected Overrides Sub OnMouseLeftButtonDown(e As MouseButtonEventArgs)
             MyBase.OnMouseLeftButtonDown(e)
-            If Not IsEnabled Then Return
+            If Not AcceptsInput Then Return
             _down = True
             RefreshHover()
             e.Handled = True
@@ -283,18 +284,22 @@ Namespace Controls
         End Sub
         Protected Overrides Sub OnMouseLeftButtonUp(e As MouseButtonEventArgs)
             MyBase.OnMouseLeftButtonUp(e)
-            Dim clicked = _down AndAlso IsEnabled
+            Dim clicked = _down AndAlso AcceptsInput
             _down = False
             RefreshHover()
             If clicked Then RaiseEvent Click(Me, e)
             e.Handled = True
         End Sub
+        Protected Overrides Sub OnLostMouseCapture(e As MouseEventArgs)
+            MyBase.OnLostMouseCapture(e)
+            If _down Then CancelPress()
+        End Sub
         Friend Sub Activate()
-            If IsEnabled Then RaiseEvent Click(Me, New RoutedEventArgs())
+            If AcceptsInput Then RaiseEvent Click(Me, New RoutedEventArgs())
         End Sub
         Protected Overrides Sub OnKeyDown(e As KeyEventArgs)
             MyBase.OnKeyDown(e)
-            If Not IsEnabled OrElse Not IsHitTestVisible OrElse (e.Key <> Key.Enter AndAlso e.Key <> Key.Space) Then Return
+            If Not AcceptsInput OrElse (e.Key <> Key.Enter AndAlso e.Key <> Key.Space) Then Return
             e.Handled = True
             If Not e.IsRepeat Then RaiseEvent Click(Me, e)
         End Sub

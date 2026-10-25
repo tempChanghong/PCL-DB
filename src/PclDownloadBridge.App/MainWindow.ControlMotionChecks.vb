@@ -33,6 +33,8 @@ Partial Public Class MainWindow
             VerifyRadioBoxMotion(directory, check)
             VerifyAppearanceRadioIntegration(directory, check)
             VerifyLoadingMotionUi(directory, check)
+            VerifyBasicControlInputUi(directory, passed)
+            VerifyBasicControlMotionUi(directory, passed)
         Finally
             RestoreAppearance(saved)
         End Try
