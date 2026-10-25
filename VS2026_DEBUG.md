@@ -103,6 +103,8 @@ F9 切换断点，F10 逐过程，F11 逐语句。`Directory.Build.props` 明确
 
 默认使用托管调试，启动配置关闭本机代码调试。需要查看被捕获的校验错误时，可在「调试 → 窗口 → 异常设置」（Ctrl+Alt+E）中搜索 `System.IO.InvalidDataException` / `System.IO.IOException`，临时勾选“引发时中断”。下载器会捕获部分异常进行重试，取消也会使用 `OperationCanceledException`，因此日常调试可保持 VS 默认的未处理异常设置。
 
+本地管理后台任务会在工作委托内处理本请求的取消，并保持任务的 Canceled 状态；真实读取失败和其他来源的取消保留为错误。快速刷新、返回或切换实例时，Core 中的 `ThrowIfCancellationRequested` 仍是正常取消检查。若特意启用了“引发时中断”，VS 仍可能停在此处，不能仅凭这一次中断认定进程崩溃；参见 [Microsoft 的异常中断说明](https://learn.microsoft.com/en-us/visualstudio/debugger/managing-exceptions-with-the-debugger?view=visualstudio)。普通读取错误会写入 `%LOCALAPPDATA%\PclDownloadBridge\logs\yyyy-MM-dd.log`。源码更新后需停止旧调试会话、重新生成并 F5，已加载的旧 DLL 不会自动获得修复。[本轮处理与证据](docs/reviews/management-cancellation.md)。
+
 ## 本机复查
 
 在项目根目录执行：

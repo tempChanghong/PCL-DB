@@ -23,7 +23,7 @@ Partial Public Class MainWindow
     Private _managementTaskOrigin As InstalledInstance
     Private _managementReturnName As String
     Private _managementProvider As Func(Of LauncherInstallTarget, CancellationToken, Task(Of List(Of InstalledInstance))) =
-        Function(target, token) Task.Run(Function() InstalledInstanceCatalog.Scan(target, token), token)
+        Function(target, token) RunManagementWorkerAsync(Function() InstalledInstanceCatalog.Scan(target, token), token)
     Private _managementOpenFolder As Action(Of String) = Sub(folder) Process.Start(New ProcessStartInfo(folder) With {.UseShellExecute = True})
 
     Private Sub InitializeManagement()
@@ -151,9 +151,10 @@ Partial Public Class MainWindow
                                         ManagementStatus.Text = If(instances.Count = 0, "这个目录中还没有已安装版本。", "")
                                         RefreshTitleNavigation()
                                     End Sub, If((ManagementDetailPage.Visibility = Visibility.Visible OrElse LocalModsPage.Visibility = Visibility.Visible) AndAlso _managedInstance Is Nothing, DirectCast(ManagementListPage, FrameworkElement), Nothing))
-        Catch ex As OperationCanceledException
+        Catch ex As OperationCanceledException When request.IsCancellationRequested
         Catch ex As Exception
             If generation = _managementGeneration AndAlso ManagementPage.Visibility = Visibility.Visible AndAlso Not _closing Then
+                If Not _preview Then Log(ex)
                 ManagementStatus.Text = "无法读取版本列表：" & ex.GetBaseException().Message
                 _managementDirty = True
             End If

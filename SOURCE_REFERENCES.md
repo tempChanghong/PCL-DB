@@ -1,5 +1,9 @@
 # PCL2 代码依据
 
+## 本地管理后台取消边界
+
+- 读取固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `Modules/Base/ModLoader.vb`：在线程委托内捕获取消，并区分已重启的旧线程和当前线程的手动取消；正常结果仅在仍属当前线程时发布，失败单独进入 Failed。本工具继续采用现有 CancellationToken 和代次检查，在 Task.Run 的工作委托内将本请求取消转换为 Canceled 任务；其他异常保留 Faulted，不修改 Core 文件/隔离操作。[本轮取消处理与验证](docs/reviews/management-cancellation.md)。
+
 ## 社区资源搜索与版本显示修复
 
 - 主参照仍为 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`。重新读取 `ResourceProject.vb` 合并 `latestFiles` 与 `latestFilesIndexes` 的游戏版本声明、`ResourceVersion.vb` 的空 `downloadUrl` ForgeCDN 回退，以及 `ResourceSearcher.vb` 的来源和文件筛选。项目先绑定资源类型，再读取 JAR/ZIP 元数据；声明只供展示，不推测兼容范围，不替代指定发布文件的验证。

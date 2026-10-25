@@ -27,13 +27,13 @@ Partial Public Class MainWindow
     Private _localModSearchClearPolicy As PclControlMotionPolicy
     Private ReadOnly _localModRowViews As New Dictionary(Of LocalModEntry, Grid)
     Private _localModProvider As Func(Of InstalledInstance, CancellationToken, Task(Of List(Of LocalModEntry))) =
-        Function(instance, token) Task.Run(Function() LocalModCatalog.Scan(instance, token), token)
+        Function(instance, token) RunManagementWorkerAsync(Function() LocalModCatalog.Scan(instance, token), token)
     Private _localModInstanceReader As Func(Of InstalledInstance, CancellationToken, Task(Of InstalledInstance)) =
-        Function(instance, token) Task.Run(Function() InstalledInstanceCatalog.Read(instance.Target, instance.Name, token), token)
+        Function(instance, token) RunManagementWorkerAsync(Function() InstalledInstanceCatalog.Read(instance.Target, instance.Name, token), token)
     Private _localModImporter As Func(Of InstalledInstance, String(), CancellationToken, Task(Of LocalModActionResult)) =
-        Function(instance, files, token) Task.Run(Function() LocalModActions.ImportFiles(instance, files, token), token)
+        Function(instance, files, token) RunManagementWorkerAsync(Function() LocalModActions.ImportFiles(instance, files, token), token)
     Private _localModToggle As Func(Of InstalledInstance, LocalModEntry, Boolean, CancellationToken, Task(Of LocalModActionResult)) =
-        Function(instance, entry, enabled, token) Task.Run(Function() LocalModActions.SetEnabled(instance, entry, enabled, token), token)
+        Function(instance, entry, enabled, token) RunManagementWorkerAsync(Function() LocalModActions.SetEnabled(instance, entry, enabled, token), token)
 
     Private Function SameLocalModContext(instance As InstalledInstance) As Boolean
         Return SameLocalModIdentity(instance) AndAlso
@@ -117,9 +117,10 @@ Partial Public Class MainWindow
                                         RenderLocalMods()
                                         LocalModStatus.Text = If(entries.Count = 0, "可从文件安装 Mod，或将文件拖入此页。", "")
                                     End Sub)
-        Catch ex As OperationCanceledException
+        Catch ex As OperationCanceledException When request.IsCancellationRequested
         Catch ex As Exception
             If generation = _localModGeneration AndAlso Not _closing AndAlso LocalModsPage.Visibility = Visibility.Visible Then
+                If Not _preview Then Log(ex)
                 LocalModStatus.Text = "无法读取 Mod 列表：" & ex.Message
             End If
         Finally
@@ -332,9 +333,10 @@ Partial Public Class MainWindow
             Dim result = Await operation(owner, request.Token)
             outcome = "完成：更改 " & result.ChangedCount & " 个，跳过 " & result.SkippedCount & " 个。" &
                 If(result.Warnings.Count = 0, "", " " & ShortLocalModText(String.Join("；", result.Warnings), 1024))
-        Catch ex As OperationCanceledException
+        Catch ex As OperationCanceledException When request.IsCancellationRequested
             outcome = "操作已取消，可重新尝试。"
         Catch ex As Exception
+            If Not _preview Then Log(ex)
             outcome = ex.Message
         Finally
             _localModWriting = False : _localModWriteRequest = Nothing : request.Dispose()
