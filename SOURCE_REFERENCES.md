@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 启动目录恢复与手动路径身份（2026-10-26）
+
+- 主参照 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`FormMain.xaml.vb` 在启动阶段尽早启动 McFolderListLoader；`PageSelectLeft.xaml.vb` 以 McFolderSelected 为当前目录，显式目录选择后重载版本列表；`ModMinecraft.vb` 保存并恢复 LaunchFolderSelect。
+- 本工具将启动恢复的生命周期留在窗口，不随设置页隐藏而退役；正常手动目录发现仍在离开设置后退役。PCL 单启动器的路径去重不能直接用于三种启动器共用目录：重选当前路径保留原绑定，从别处手动选入只复用未绑定的手动记录，不猜测 PCL/HMCL/PCL-CE。
+- 不修改启动器配置与隔离解析。固定原始对象及摘要在 `artifacts/launcher-recovery/source/manifest.json`，详见[修复与验证](docs/reviews/launcher-recovery-2026-10-26.md)。
+
 ## 资源安装弹窗的失败恢复（2026-10-26）
 
 - 主参照 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`Modules/Base/ModLoader.vb` 在工作线程中捕获异常，区别取消、失败与退役输出；`PageDownloadCompDetail.xaml.vb` 的 Load_State 和安装加载器状态显式呈现失败、取消并支持重试，不让加载状态静默悬挂。

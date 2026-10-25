@@ -351,6 +351,7 @@ Partial Public Class MainWindow
         VerifySupplementalTags(artifactDirectory, check)
         VerifySummaryLayout(artifactDirectory, check)
         VerifyExternalLauncherUi(artifactDirectory, check)
+        VerifyLauncherSelectionRecoveryUi(artifactDirectory, checks)
         Return checks
     End Function
 
@@ -600,6 +601,7 @@ Partial Public Class MainWindow
     End Sub
 
     Private Sub ChooseFolder(sender As Object, e As RoutedEventArgs)
+        If Not CanSelectManualFolder() Then Return
         Using dialog As New System.Windows.Forms.FolderBrowserDialog With {.Description = "选择安装目标的 .minecraft 游戏根目录", .ShowNewFolderButton = True}
             If _selectedFolder IsNot Nothing Then dialog.SelectedPath = _selectedFolder.Location
             If dialog.ShowDialog() <> System.Windows.Forms.DialogResult.OK Then Return
@@ -608,11 +610,22 @@ Partial Public Class MainWindow
         PersistSettings()
     End Sub
 
+    Private Function CanSelectManualFolder() As Boolean
+        Return Not _restoringSettings AndAlso Not _restoringLaunchers AndAlso Not _busy AndAlso Not _choosingOnline AndAlso Not _localModWriting AndAlso Not _closing
+    End Function
     Private Sub SelectManualFolder(root As String)
+        If Not CanSelectManualFolder() Then Return
         root = Path.GetFullPath(root)
-        Dim match = _folders.FirstOrDefault(Function(f) String.Equals(f.Location.TrimEnd("\"c), root.TrimEnd("\"c), StringComparison.OrdinalIgnoreCase))
+        ' One root may belong to several launchers. Preserve an explicit active
+        ' binding; otherwise a manual path is its own identity, never a guess.
+        Dim match = _selectedFolder
+        If match Is Nothing OrElse Not SameGameRoot(match.Location, root) Then
+            match = _folders.FirstOrDefault(Function(f) String.IsNullOrEmpty(f.LauncherBindingId) AndAlso SameGameRoot(f.Location, root))
+        End If
         If match Is Nothing Then
             match = New GameFolder With {.Name = "手动选择的游戏目录", .Location = root, .Origin = "手动选择"}
+        End If
+        If Not _folders.Contains(match) Then
             _folders.Add(match)
             FolderList.ItemsSource = Nothing
             FolderList.ItemsSource = _folders

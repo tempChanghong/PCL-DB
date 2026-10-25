@@ -12,6 +12,8 @@ VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载与本地实例管理
 
 资源安装弹窗补齐扫描异常的错误提示和刷新重试，校验目标时显示加载状态，取消后重开保留新的请求所有权。[资源安装恢复检查](docs/reviews/resource-recovery-2026-10-26.md)。尚未打包发行。
 
+修复启动目录恢复被页面切换打断、手动重选共享路径误换启动器身份的问题；偏好恢复和安装期间不接收新的手动目录修改。[目录恢复与身份检查](docs/reviews/launcher-recovery-2026-10-26.md)。尚未打包发行。
+
 当前源码补齐管理列表的愚人节、远古与快照分类及图标；资源搜索和详情使用 PCL 内置 MC 百科名称库，保留英文副标题，扩展各类中文标签，并按已知正式版清单缩写版本范围。[分类与资源呈现验证](docs/reviews/catalogue-presentation.md)。尚未打包发行。
 
 当前源码继续修复资源浏览：首次进入直接加载；混合搜索先显示已返回的来源，CurseForge 临时失败会重试。新增读取本地 Mod 内置 PNG/JPEG 图标，修正实例详情图标拉伸；跟随主题直接使用外部启动器卡片选定的 PCL。[录屏问题与验证](docs/reviews/resource-browser-followup.md)。尚未打包发行。

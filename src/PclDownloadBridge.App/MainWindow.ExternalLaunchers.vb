@@ -26,7 +26,11 @@ Partial Public Class MainWindow
             ExternalLauncherCard.IsVisible AndAlso ExternalLauncherCard.IsHitTestVisible
     End Function
     Private Sub InitializeExternalLaunchers()
-        AddHandler SettingsPage.IsVisibleChanged, Sub() If Not SettingsPage.IsVisible Then _launcherReadGeneration += 1
+        AddHandler SettingsPage.IsVisibleChanged, Sub()
+                                                     ' Startup restoration belongs to the window, not to the
+                                                     ' settings page. Manual discovery still retires on exit.
+                                                     If Not SettingsPage.IsVisible AndAlso Not _restoringSettings Then _launcherReadGeneration += 1
+                                                 End Sub
     End Sub
     Private Sub RenderLauncherBindings()
         _restoringLaunchers = True
