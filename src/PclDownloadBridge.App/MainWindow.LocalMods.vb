@@ -153,21 +153,8 @@ Partial Public Class MainWindow
                 LocalModRows.Children.Add(existing)
                 Continue For
             End If
-            Dim row As New Grid With {.Height = 44, .Tag = captured}
-            row.ColumnDefinitions.Add(New ColumnDefinition()) : row.ColumnDefinitions.Add(New ColumnDefinition With {.Width = New GridLength(34)})
-            Dim info = If(captured.Problem, captured.LoaderSummary & If(String.IsNullOrEmpty(captured.Version), "", " · " & captured.Version) & " · " & If(captured.Enabled, "已启用", "已禁用"))
-            Dim item As New PclListItem With {.Title = captured.DisplayName, .Info = info, .Height = 44,
-                .Logo = "pack://application:,,,/Images/Blocks/NoIcon.png", .ToolTip = ShortLocalModText(String.Join(vbCrLf,
-                    {captured.FileName, captured.Problem, String.Join(vbCrLf, captured.Warnings), captured.Description}.Where(Function(value) Not String.IsNullOrWhiteSpace(value))), 4096)}
-            item.Title = ShortLocalModText(captured.DisplayName, 200) : item.Info = ShortLocalModText(info, 512)
-            item.Opacity = If(captured.Enabled, 1.0, 0.65)
-            Dim toggle As New PclIconButton With {.Width = 28, .Height = 28, .VerticalAlignment = VerticalAlignment.Center,
-                .ToolTip = If(captured.Enabled, "禁用", "启用") & " " & captured.FileName, .Tag = captured, .IsEnabled = captured.CanToggle,
-                .Logo = If(captured.Enabled,
-                    "M508 990.4c-261.6 0-474.4-212-474.4-474.4S246.4 41.6 508 41.6s474.4 212 474.4 474.4S769.6 990.4 508 990.4zM508 136.8c-209.6 0-379.2 169.6-379.2 379.2 0 209.6 169.6 379.2 379.2 379.2s379.2-169.6 379.2-379.2C887.2 306.4 717.6 136.8 508 136.8zM697.6 563.2 318.4 563.2c-26.4 0-47.2-21.6-47.2-47.2 0-26.4 21.6-47.2 47.2-47.2l379.2 0c26.4 0 47.2 21.6 47.2 47.2C744.8 542.4 724 563.2 697.6 563.2z",
-                    "M512 0a512 512 0 1 0 512 512A512 512 0 0 0 512 0z m0 921.6a409.6 409.6 0 1 1 409.6-409.6 409.6 409.6 0 0 1-409.6 409.6z M716.8 339.968l-256 253.44L328.192 460.8A51.2 51.2 0 0 0 256 532.992l168.448 168.96a51.2 51.2 0 0 0 72.704 0l289.28-289.792A51.2 51.2 0 0 0 716.8 339.968z")}
-            AddHandler toggle.Click, Async Sub() Await ToggleLocalModAsync(captured)
-            Grid.SetColumn(toggle, 1) : row.Children.Add(item) : row.Children.Add(toggle)
+            Dim row As New PclLocalModItem(captured)
+            AddHandler row.ToggleButton.Click, Async Sub() Await ToggleLocalModAsync(captured)
             _localModRowViews.Add(captured, row)
             LocalModRows.Children.Add(row)
         Next

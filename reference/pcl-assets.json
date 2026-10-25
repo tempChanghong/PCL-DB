@@ -97,6 +97,11 @@
       "File": "Images/Blocks/NoIcon.png",
       "Source": "Plain Craft Launcher 2/Images/Icons/NoIcon.png",
       "Hash": "9FC701416380CCE10945DA27D152811954B20A9BB52613644B1767F0F95D84D1"
+    },
+    {
+      "File": "Images/Icons/Disabled.png",
+      "Source": "Plain Craft Launcher 2/Images/Icons/Disabled.png",
+      "Hash": "D7C63435C574F5A1A89ECF8AA49C64D83D691ED85407BB8A5ACD2F5A4A0AE7B0"
     }
   ]
 }

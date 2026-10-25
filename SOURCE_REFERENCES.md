@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 本地 Mod 专用行
+
+- 固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MyLocalModItem.xaml/.vb` 是本轮主要依据：44 DIP 行高、`6/34/7` 左侧列、34 DIP/6 DIP 圆角图标、14/12 DIP 名称与版本副标题、文件名/描述次行、禁用删除线与 20 DIP 角标，以及完整背板和动作区的 120/180 ms 反馈。独立 `PclLocalModItem` 仅用于本地 Mod，不修改全局通用列表控件。
+- 禁用角标从相同固定提交的 `Images/Icons/Disabled.png` 原样导入；原 19 项资源保持，资源清单增至 20 项，导入器和校验同步更新。九份源码原字节与角标 Git blob/SHA-256 在 `artifacts/local-mod-rows/source/`，原 44 份固定源码清单不改。
+- 保留离线识别、全量摘要重扫、现有按钮事件与目录/代次保护；错误优先显示时仍保留已读版本、物理启停状态及“声明加载器”上下文，不把元数据声明解释为兼容性。PCL-CE 仍仅辅助元数据参考。[本轮范围与验证](docs/reviews/local-mod-pcl-rows.md)。
+
 ## 本地 Mod 搜索、筛选与操作栏样式
 
 - 核心为固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MySearchBox.xaml/.vb`、`PageInstanceMod.xaml` 与 `RefreshBars`：40 DIP 搜索卡片、14 DIP 图标、24 DIP 清除按钮与 90 ms 显隐、35 DIP 操作按钮、15 DIP 间距，以及按搜索候选计算筛选数量和可见性。只在当前 Mod 页适配，沿用既有字体、明暗颜色和控件按压。

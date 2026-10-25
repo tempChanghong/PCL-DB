@@ -58,6 +58,7 @@ Partial Public Class MainWindow
         VerifyLocalModFollowupMotion(directory, check)
         VerifyLocalModInteractionMotion(directory, check)
         VerifyLocalModStyleMotion(directory, check)
+        VerifyLocalModRowMotion(directory, check)
         Return passed
     End Function
 

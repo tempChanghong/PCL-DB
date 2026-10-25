@@ -12,6 +12,8 @@ Mod 页“刷新列表”会重新只读读取当前实例的隔离设置，外�
 
 Mod 页进一步按 PCL2 对齐 40 DIP 搜索卡片、清空按钮、操作栏与搜索筛选计数。长描述不再挤掉文件冲突警告，取消操作的同步反馈也已修正。[本轮界面与联动检查](docs/reviews/local-mod-pcl-style.md)。
 
+本地 Mod 列表使用 PCL2 专用行的布局与文字层级：名称和版本分层、下行显示文件名与描述，禁用行使用删除线与角标。整行悬停、键盘焦点和启停按钮共享反馈，错误行也保留已读取的信息。[列表样式与交互检查](docs/reviews/local-mod-pcl-rows.md)。
+
 界面布局、控件与动画以 PCL2 限制前源码为核心，PCL-CE 仅作补充参考。读取 PCL、HMCL、PCL-CE 使用的游戏目录，按所选启动器的原生隔离与实例配置安装。原五个启动器仓库不需要修改。
 
 当前源码的「设置 → 外部启动器」支持 PCL、HMCL、PCL-CE 多份位置及目录配置的只读绑定，安装任务冻结来源、配置位置与目标路径。HMCL / PCL-CE 已接入原生隔离、组件、CurseForge / Modrinth 整合包及同版本原版补全；已有实例配置保持不变。[接入范围与验证](docs/reviews/external-launcher-native-isolation.md)。

@@ -6,6 +6,7 @@ Plain Craft Launcher - Download Bridge（简称 PCL-DB）是第三方独立下�
 - 0.26 的标题纹理直接使用 PCL `Images/Themes/12.png`，保留原始图片字节和透明度；配色预设除默认蓝色参数外为本项目独立设置，未搬运主题解锁、赞助或账号数据。
 - 0.27 的关于页参照同一固定基线的 `PageOtherAbout.xaml(.vb)`，采用信息行、圆形图标和操作区布局；项目圆标及文字缩写为本项目制作。BMCLAPI 由 bangbang93 维护，源码链接为 https://github.com/bangbang93/openbmclapi。PCL-CE、HMCL 与 PrismLauncher 的补充参照范围见 `SOURCE_REFERENCES.md`。
 - 0.57 关于页进一步使用同一固定提交的 `Images/Heads/LTCat.jpg`、`HerobrineXia.png`、`bangbang93.png` 原始字节作为对应来源人物的头像；其来源与 SHA-256 列于 `reference/pcl-assets.json`。本项目的 DB 圆标及线条图标独立制作，不将上游人物头像作为本项目维护者或产品标志。
+- 本地 Mod 行的禁用角标使用同一固定提交的 `Images/Icons/Disabled.png` 原始字节；来源和 SHA-256 同样列于 `reference/pcl-assets.json`，未将该素材重新许可。
 - PCL 的许可文件实际名为 `LICENCE`。本项目根目录原样保留固定基线的该文件，其中链接《PCL 分发有限许可》，并附《PCL 存储库合理使用指南》。此前“未见统一 LICENSE”的说明遗漏了这个拼写，现予更正。
 - 本项目大量参照 PCL 的下载功能、控件及素材，保留上游许可与指南，首位提供原作者署名和赞助入口。默认提供蓝色系及深色模式，额外主题位于需要验证的开发者选项中；该入口不代表取得上游对额外配色的授权。
 - 本仓库不将 PCL 源码、字体、图片或其他第三方内容重新许可为 MIT、Apache 或 GPL；各自原有权利与要求继续适用。原始资源的固定提交及 SHA-256 见 `reference/pcl-assets.json`，源码快照见 `reference/PCL/manifest.json`。

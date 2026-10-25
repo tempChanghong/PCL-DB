@@ -25,6 +25,8 @@ Partial Public Class MainWindow
         VerifyLocalModStyleUi(artifactDirectory, check)
         VerifyLocalModWarningUi(artifactDirectory, check)
         VerifyLocalModCancelUi(artifactDirectory, check)
+        VerifyLocalModRowUi(artifactDirectory, check)
+        VerifyLocalModRowDiagnosticsUi(artifactDirectory, check)
         Return checks
     End Function
 

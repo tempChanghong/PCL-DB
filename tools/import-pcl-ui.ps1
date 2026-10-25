@@ -122,6 +122,7 @@ try {
     $mappedAssets = @{'Images/Blocks/Release.png'='Images/ReleaseTypes/Release.png'; 'Images/Blocks/Beta.png'='Images/ReleaseTypes/Beta.png';
         'Images/Blocks/Alpha.png'='Images/ReleaseTypes/Alpha.png'; 'Images/Blocks/NoIcon.png'='Images/Icons/NoIcon.png'}
     $assets += @('Images/Blocks/Release.png','Images/Blocks/Beta.png','Images/Blocks/Alpha.png','Images/Blocks/NoIcon.png')
+    $assets += @('Images/Icons/Disabled.png')
     $assetEntries = @()
     foreach ($relative in $assets) {
         $source = 'Plain Craft Launcher 2/' + $(if ($mappedAssets.ContainsKey($relative)) { $mappedAssets[$relative] } else { $relative })

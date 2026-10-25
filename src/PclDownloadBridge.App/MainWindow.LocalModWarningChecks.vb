@@ -43,7 +43,7 @@ Partial Public Class MainWindow
                 For Each hasProblem In {False, True}
                     Dim name = If(hasProblem, "long-problem.jar", "long-warning.jar")
                     Dim entry = owner._localMods.Single(Function(item) item.FileName = name)
-                    Dim itemView = owner._localModRowViews(entry).Children.OfType(Of PclListItem)().Single()
+                    Dim itemView = DirectCast(owner._localModRowViews(entry), PclLocalModItem)
                     Dim tooltip = TryCast(itemView.ToolTip, String)
                     check(entry.Recognized AndAlso entry.Description.Length = 4096 AndAlso entry.Warnings.Count >= 2 AndAlso
                         (entry.Problem IsNot Nothing) = hasProblem,
