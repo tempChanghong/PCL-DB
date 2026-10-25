@@ -278,7 +278,7 @@ Partial Public Class MainWindow
         Dim destination = Path.Combine(folder, child)
         Return If(Directory.Exists(destination), destination, folder)
     End Function
-    Private Async Function RunResourceSaveAsync(release As ModpackRelease, destination As String) As Task
+    Private Async Function RunResourceSaveAsync(release As ModpackRelease, destination As String, Optional installation As ResourceInstallationPlan = Nothing) As Task
         Dim cache = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PclDownloadBridge", "ResourceCache")
         Dim policySnapshot = Policy(), connections = ConnectionCount(), limit As Double
         If Not TryGetSpeedLimit(limit) Then Return
@@ -289,23 +289,32 @@ Partial Public Class MainWindow
         _taskInstallTarget = Nothing : SetBusy(True)
         ResetTaskView(Path.GetFileName(destination), False, cache, hasArchive:=True)
         _taskResourceTransfer = True
-        TaskTitle.Text = "下载 " & Path.GetFileName(destination)
+        TaskTitle.Text = If(installation Is Nothing, "下载 ", "安装 ") & Path.GetFileName(destination)
         For Each key In {"metadata", "files"}
             DirectCast(_taskRows(key).Label.Parent, UIElement).Visibility = Visibility.Collapsed
         Next
         _taskMinecraft = String.Join("、", release.GameVersions) : _taskComponents = CommunityResources.Name(release.Kind) & " · " & release.Platform.ToString()
         _taskRows("archive").Label.Text = "下载并校验文件"
-        _taskRows("commit").Label.Text = "保存文件"
+        _taskRows("commit").Label.Text = If(installation Is Nothing, "保存文件", "安装到 " & installation.InstanceName)
         ShowProgress(Nothing, Nothing)
         Try
-            If _resourceSaveRunner IsNot Nothing Then
+            If installation IsNot Nothing Then
+                If _resourceInstallRunner IsNot Nothing Then
+                    Await _resourceInstallRunner(installation, cache, policySnapshot, CreateTaskProgress(), request.Token)
+                ElseIf _preview Then
+                    Throw New InvalidOperationException("界面预览不会执行实际安装。")
+                Else
+                    Await installation.InstallAsync(cache, policySnapshot, CreateTaskProgress(), request.Token, connections, CLng(limit * 1024 * 1024))
+                End If
+                InvalidateResourceManagement(installation)
+            ElseIf _resourceSaveRunner IsNot Nothing Then
                 Await _resourceSaveRunner(release, destination, CreateTaskProgress(), request.Token)
             ElseIf _preview Then
                 Throw New InvalidOperationException("界面预览不会保存实际文件。")
             Else
                 Await CommunityResourceDownload.SaveAsync(release, destination, cache, policySnapshot, CreateTaskProgress(), request.Token, connections, CLng(limit * 1024 * 1024), instance)
             End If
-            TaskTitle.Text = "下载完成 · " & Path.GetFileName(destination) : StatusText.Text = "已保存到：" & destination
+            TaskTitle.Text = If(installation Is Nothing, "下载完成 · ", "安装完成 · ") & Path.GetFileName(destination) : StatusText.Text = "已保存到：" & destination
             _taskResourceFile = destination
             FinishTaskView(True, StatusText.Text)
         Catch ex As OperationCanceledException
@@ -315,6 +324,7 @@ Partial Public Class MainWindow
             TaskTitle.Text = "下载未完成，可重试" : StatusText.Text = ex.GetBaseException().Message
             FinishTaskView(False, StatusText.Text, cancelled:=request.IsCancellationRequested)
         Finally
+            If installation IsNot Nothing Then InvalidateResourceManagement(installation)
             _busy = False : _cancellation = Nothing : request.Dispose() : SetBusy(False)
         End Try
     End Function

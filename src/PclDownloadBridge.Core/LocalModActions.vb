@@ -64,6 +64,11 @@ Public NotInheritable Class LocalModActions
         Return ImportCore(instance, sourcePaths, token, Nothing)
     End Function
 
+    Friend Shared Function ImportResource(instance As InstalledInstance, source As String, release As ModpackRelease, token As CancellationToken, Optional validate As Action = Nothing) As LocalModActionResult
+        If release.Kind <> CommunityResourceKind.Mod OrElse IO.Path.GetFileName(source) <> release.FileName Then Throw New InvalidDataException("下载文件与所选 Mod 不符。")
+        Return ImportCore(instance, {source}, token, Nothing, release.Copy(), validate)
+    End Function
+
     Friend Shared Function ImportFilesForChecks(instance As InstalledInstance, sourcePaths As IEnumerable(Of String), token As CancellationToken, beforePublish As Action(Of Integer, String)) As LocalModActionResult
         Return ImportCore(instance, sourcePaths, token, beforePublish)
     End Function
@@ -75,13 +80,14 @@ Public NotInheritable Class LocalModActions
         Friend Staged As NativeLease
     End Class
 
-    Private Shared Function ImportCore(instance As InstalledInstance, sourcePaths As IEnumerable(Of String), token As CancellationToken, beforePublish As Action(Of Integer, String)) As LocalModActionResult
+    Private Shared Function ImportCore(instance As InstalledInstance, sourcePaths As IEnumerable(Of String), token As CancellationToken, beforePublish As Action(Of Integer, String), Optional resource As ModpackRelease = Nothing, Optional validateResource As Action = Nothing) As LocalModActionResult
         token.ThrowIfCancellationRequested()
         If sourcePaths Is Nothing Then Throw New ArgumentNullException(NameOf(sourcePaths))
         Dim paths = sourcePaths.ToList()
         If paths.Count = 0 Then Throw New ArgumentException("请选择要导入的 Mod 文件。")
         Dim directory = LocalModCatalog.ModsDirectory(instance, token)
         Using gate As New OperationGate(instance, directory, token)
+            validateResource?.Invoke()
             Dim inputs As New List(Of Input), sources As New List(Of NativeLease), retained As New List(Of NativeLease)
             Dim owned As New List(Of NativeLease), warnings As New List(Of String), seen As New Dictionary(Of String, LocalModEntry)(StringComparer.OrdinalIgnoreCase)
             Dim stage As String = Nothing, createdDirectory As Boolean = False, complete As Boolean = False, skipped As Integer = 0
@@ -99,6 +105,7 @@ Public NotInheritable Class LocalModActions
                     ValidatePath(full, False)
                     Dim held = NativeLease.Open(full, False)
                     sources.Add(held)
+                    If resource IsNot Nothing Then CommunityResourceDownload.VerifySource(held.Stream, resource, token)
                     Dim entry = LocalModCatalog.Read(full, token)
                     If Not entry.IsArchiveValid OrElse Not String.IsNullOrEmpty(entry.Problem) OrElse entry.Sha256 Is Nothing Then
                         Throw New InvalidDataException("无法导入 " & IO.Path.GetFileName(full) & "：" & If(entry.Problem, "文件不是有效的 Mod 归档。"))
@@ -151,10 +158,12 @@ Public NotInheritable Class LocalModActions
                 InstalledInstanceCatalog.EnsureUnchanged(instance, token)
                 For i = 0 To inputs.Count - 1
                     Dim item = inputs(i)
+                    If resource IsNot Nothing Then EnsureResourceIds(directory, item.Entry, item.Destination, token)
                     token.ThrowIfCancellationRequested()
                     InstalledInstanceCatalog.EnsureUnchanged(instance, token)
                     EnsureAliases(directory, item.Entry.EnabledName, Nothing)
                     beforePublish?.Invoke(i, item.Destination)
+                    validateResource?.Invoke()
                     token.ThrowIfCancellationRequested()
                     InstalledInstanceCatalog.EnsureUnchanged(instance, token)
                     ValidatePath(directory, True) : ValidatePath(stage, True)
@@ -163,12 +172,14 @@ Public NotInheritable Class LocalModActions
                     ' the source handle blocks replacement between hash and move.
                     item.Staged.Rename(item.Destination)
                     EnsureAliases(directory, item.Entry.EnabledName, item.Destination)
+                    If resource IsNot Nothing Then EnsureResourceIds(directory, item.Entry, item.Destination, token)
                 Next
                 InstalledInstanceCatalog.EnsureUnchanged(instance, token)
                 ' Recheck earlier publications and identical existing targets as
                 ' well: an unrelated process may have created a state alias while
                 ' a later file was being copied. Rollback still owns only our files.
                 EnsureBatchAliases(directory, seen.Keys, token)
+                validateResource?.Invoke()
                 token.ThrowIfCancellationRequested()
                 complete = True
                 Return New LocalModActionResult(directory, inputs.Count, skipped, warnings)
@@ -200,6 +211,16 @@ Public NotInheritable Class LocalModActions
             End Try
         End Using
     End Function
+
+    Private Shared Sub EnsureResourceIds(directory As String, entry As LocalModEntry, destination As String, token As CancellationToken)
+        If entry.ModIds.Count = 0 Then Return
+        For Each file In IO.Directory.EnumerateFiles(directory)
+            token.ThrowIfCancellationRequested()
+            If String.Equals(IO.Path.GetFullPath(file), destination, StringComparison.OrdinalIgnoreCase) OrElse Not LocalModCatalog.IsSupportedFile(file) Then Continue For
+            Dim existing = LocalModCatalog.Read(file, token)
+            If existing.ModIds.Intersect(entry.ModIds, StringComparer.Ordinal).Any() Then Throw New IOException("已存在相同 Mod ID 的文件，请先在 Mod 管理中处理：" & existing.FileName)
+        Next
+    End Sub
 
     Private Shared Sub CopyChecked(source As FileStream, destination As FileStream, entry As LocalModEntry, token As CancellationToken)
         source.Position = 0
@@ -290,14 +311,14 @@ Public NotInheritable Class LocalModActions
         Private _rootLock As FileStream
         Private _runDirectory As SafeFileHandle
         Private ReadOnly _directories As New Dictionary(Of String, SafeFileHandle)(StringComparer.OrdinalIgnoreCase)
-        Friend Sub New(instance As InstalledInstance, directory As String, token As CancellationToken)
+        Friend Sub New(instance As InstalledInstance, directory As String, token As CancellationToken, Optional suffix As String = "MODS")
             token.ThrowIfCancellationRequested()
             Dim runDirectory = If(instance?.RunDirectory, IO.Path.GetDirectoryName(directory))
             If instance Is Nothing AndAlso Not IO.Path.GetFileName(directory).Equals("mods", StringComparison.OrdinalIgnoreCase) Then Throw New IOException("共享 Mods 目录无效。")
             If Not IO.Directory.Exists(runDirectory) Then Throw New DirectoryNotFoundException("实际运行目录尚不存在，请先在启动器中确认目录。")
             Dim identity As String = Nothing
             _runDirectory = NativeLease.OpenDirectory(runDirectory, identity)
-            _identity = identity & "/MODS"
+            _identity = identity & "/" & suffix
             SyncLock Active
                 If Not Active.Add(_identity) Then
                     _runDirectory.Dispose() : _runDirectory = Nothing

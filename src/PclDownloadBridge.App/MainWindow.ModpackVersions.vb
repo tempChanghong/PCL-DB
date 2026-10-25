@@ -110,6 +110,15 @@ Partial Public Class MainWindow
                                       If selected.Kind = CommunityResourceKind.Modpack Then InstallOnlinePack(selected, title, row) Else SaveCommunityResource(selected, row)
                                   End Sub
             rows.Children.Add(row)
+            If selected.Kind <> CommunityResourceKind.Modpack Then
+                row.ColumnDefinitions(4).Width = New GridLength(35)
+                Dim install As New PclIconButton With {.Width = 25, .Height = 25, .Margin = New Thickness(0, 0, 5, 0), .HorizontalAlignment = HorizontalAlignment.Right, .VerticalAlignment = VerticalAlignment.Center,
+                    .ToolTip = "安装到指定实例", .Tag = selected, .Logo = "M12 2v12m-5-5 5 5 5-5M4 16v5h16v-5", .LogoScale = 0.8}
+                Grid.SetColumnSpan(install, 5) : Grid.SetRowSpan(install, 4)
+                Automation.AutomationProperties.SetName(install, "安装 " & title & " 到指定实例")
+                AddHandler install.Click, Sub() InstallCommunityResource(selected, install)
+                row.Children.Add(install)
+            End If
         Next
         Return rows
     End Function

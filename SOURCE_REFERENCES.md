@@ -1,5 +1,12 @@
 # PCL2 代码依据
 
+## 社区资源安装到指定实例
+
+- 主要依据仍为 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`PageDownloadCompDetail` 的实例适用性、`PathIndie` 和资源目录，`PageInstanceMod` 的 Mods 启停/导入边界，`PageInstanceOverall` 的存档/旧纹理包路径，以及 `MyMsgSelect` 的选择弹窗。保留 PCL 行、选择框、提示和已有弹窗入退场动画。
+- PCL 原数据包另存为默认导航到运行目录；这里按约定扩展为明确选择已有存档的 `saves/<世界>/datapacks`。存档显示文件夹名，不解析或写入 NBT。Mod/数据包采用明确声明的游戏版本与加载器匹配，不把上游无法确认的快照相容性猜测当成安装保证。
+- 原生目录继续使用已有只读适配器：HMCL `0d20910ea302a907d6a01fec9244ab10d2993d5e` 的 `computeRunDirectory`/实例覆盖与新建策略区别；PCL-CE `915ac29795efbdf6373417389e181e1504117048` 的 `McInstance.PathIndie`/配置层。旧 HMCL、自定义目录、多绑定、共享目录继续保留。十份原字节源码及 Git blob/SHA-256 在 `artifacts/resource-install/source/manifest.json`。
+- 下载复用第一批校验缓存；Mod 复用本地导入的原生句柄发布和共享互斥，其他资源也冻结目标、持有目录链、校验存档身份/配置并原子发布。保留已有文件与设置，不自动启用资源或前置。[范围与验证](docs/reviews/community-resource-installation.md)。
+
 ## 社区资源下载入口恢复
 
 - 固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadLeft`、`PageResource`、四个资源页、`PageDownloadCompDetail`、`ResourceSearcher`、`ResourceVersion`、`ResourceProject` 为主要依据。按原顺序、原图标和分类接入 Mod、数据包、资源包、光影包；沿用已有搜索、详情分组、标题返回、加载与页面/卡片动画，整合包保持默认路径。

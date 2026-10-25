@@ -445,10 +445,11 @@ Partial Public Class MainWindow
         BeginPromptFocus(returnTarget)
         _onlinePrompt = New TaskCompletionSource(Of String)(TaskCreationOptions.RunContinuationsAsynchronously)
         _onlinePromptRoot = root : _onlineOptionalPrompt = optionalFile
+        ResourceTargetChoices.Visibility = If(_resourceTargetPrompt, Visibility.Visible, Visibility.Collapsed)
         StopOnlinePromptMotion()
         PackNameTitle.Text = title : PackNameDescription.Text = description
         OnlinePackName.Visibility = If(optionalFile, Visibility.Collapsed, Visibility.Visible)
-        OnlinePackName.Text = If(proposed, "") : OnlinePackNameHint.Visibility = Visibility.Collapsed
+        OnlinePackName.Text = If(proposed, "") : OnlinePackNameHint.Visibility = Visibility.Collapsed : OnlinePackNameHint.Theme = PclHintTheme.Red
         OnlinePackConfirm.Text = If(optionalFile, "是", "确定") : OnlinePackCancel.Text = If(optionalFile, "否", "取消")
         PageSurface.IsEnabled = False : TopTabs.IsEnabled = False : PackNameOverlay.Visibility = Visibility.Visible
         PackNameDialog.IsHitTestVisible = True
@@ -463,6 +464,7 @@ Partial Public Class MainWindow
     End Function
     Private Sub ValidateOnlinePackName()
         If _onlinePrompt Is Nothing Then Return
+        If _resourceTargetPrompt Then ValidateResourceTarget() : Return
         Dim problem As String = Nothing
         If Not _onlineOptionalPrompt Then
             Try
@@ -476,6 +478,7 @@ Partial Public Class MainWindow
         OnlinePackConfirm.IsEnabled = problem Is Nothing
     End Sub
     Private Sub ConfirmOnlinePackName(sender As Object, e As RoutedEventArgs)
+        If _resourceTargetPrompt Then ConfirmResourceTargetAsync() : Return
         If _onlinePrompt Is Nothing OrElse Not OnlinePackConfirm.IsEnabled Then Return
         ValidateOnlinePackName()
         If OnlinePackConfirm.IsEnabled Then CompleteOnlinePrompt(If(_onlineOptionalPrompt, "yes", OnlinePackName.Text))
@@ -484,6 +487,10 @@ Partial Public Class MainWindow
         CompleteOnlinePrompt(If(_onlineOptionalPrompt, "no", Nothing))
     End Sub
     Private Sub CompleteOnlinePrompt(value As String)
+        If _resourceTargetPrompt Then
+            _resourceTargetPrompt = False
+            _resourceTargetRequest?.Cancel() : _resourceWorldRequest?.Cancel()
+        End If
         Dim prompt = _onlinePrompt : _onlinePrompt = Nothing
         If prompt Is Nothing OrElse Not AllowPageMotion() Then
             StopOnlinePromptMotion() : HideOnlinePrompt()

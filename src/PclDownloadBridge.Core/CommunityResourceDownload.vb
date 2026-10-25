@@ -30,7 +30,7 @@ Public NotInheritable Class CommunityResourceDownload
         If Path.GetFileName(full) <> Path.GetFileName(destination) OrElse Not Directory.Exists(Path.GetDirectoryName(full)) Then Throw New DirectoryNotFoundException("保存文件夹不存在。")
         If File.Exists(full) OrElse Directory.Exists(full) Then Throw New IOException("目标已存在，请选择其他文件名；已有文件已保留。")
     End Sub
-    Friend Shared Sub Publish(release As ModpackRelease, source As String, destination As String, token As CancellationToken, Optional instance As InstalledInstance = Nothing, Optional beforePublish As Action = Nothing)
+    Friend Shared Sub Publish(release As ModpackRelease, source As String, destination As String, token As CancellationToken, Optional instance As InstalledInstance = Nothing, Optional beforePublish As Action = Nothing, Optional afterPublish As Action = Nothing)
         token.ThrowIfCancellationRequested()
         ValidateDestination(release, destination)
         destination = Path.GetFullPath(destination)
@@ -64,6 +64,8 @@ Public NotInheritable Class CommunityResourceDownload
                 If instance IsNot Nothing Then InstalledInstanceCatalog.EnsureUnchanged(instance, token)
                 token.ThrowIfCancellationRequested()
                 stage.Rename(destination)
+                afterPublish?.Invoke()
+                token.ThrowIfCancellationRequested()
                 published = True
             End Using
         Finally
@@ -80,7 +82,7 @@ Public NotInheritable Class CommunityResourceDownload
             End Try
         End Try
     End Sub
-    Private Shared Sub VerifySource(input As Stream, release As ModpackRelease, token As CancellationToken)
+    Friend Shared Sub VerifySource(input As Stream, release As ModpackRelease, token As CancellationToken)
         If input.Length <> release.Size Then Throw New InvalidDataException("下载缓存已改变，请重新下载。")
         Dim hashes As New List(Of Tuple(Of HashAlgorithm, String))
         Try

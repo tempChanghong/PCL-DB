@@ -70,6 +70,8 @@ Module Program
                     run = LocalModChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "community-resources" Then
                     run = CommunityResourceChecks.RunAsync(TestRoot)
+                ElseIf args(1) = "resource-installation" Then
+                    run = ResourceInstallationChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "local-mod-actions-followup" Then
                     run = LocalModActionFollowupChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "local-mod-catalog-followup" Then
@@ -170,6 +172,9 @@ Module Program
                 Return
             End If
             For Each label In CommunityResourceChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
+                Check(True, label)
+            Next
+            For Each label In ResourceInstallationChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
                 Check(True, label)
             Next
             For Each label In ModpackCatalogChecks.RunAsync(TestRoot).GetAwaiter().GetResult()

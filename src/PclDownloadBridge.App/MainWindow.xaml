@@ -687,6 +687,17 @@
                 <TextBlock x:Name="PackNameDescription" TextWrapping="Wrap" FontSize="15" LineHeight="18" Foreground="{DynamicResource ColorBrushGray3}"/>
               </p:PclScrollViewer>
               <p:PclTextBox x:Name="OnlinePackName" Grid.Row="4" Height="30" MaxLength="70" Margin="7,0,7,12"/>
+              <StackPanel x:Name="ResourceTargetChoices" Grid.Row="4" Visibility="Collapsed" Margin="7,0,7,12">
+                <TextBlock Text="游戏版本" Margin="0,0,0,6"/>
+                <p:PclComboBox x:Name="ResourceTargetInstance" Height="30" SelectionChanged="ResourceTargetInstanceChanged" AutomationProperties.Name="安装目标版本"/>
+                <StackPanel x:Name="ResourceTargetWorldRow" Visibility="Collapsed" Margin="0,12,0,0">
+                  <TextBlock Text="存档文件夹" Margin="0,0,0,6"/>
+                  <p:PclComboBox x:Name="ResourceTargetWorld" Height="30" SelectionChanged="ResourceTargetWorldChanged" AutomationProperties.Name="数据包目标存档"/>
+                </StackPanel>
+                <p:PclScrollViewer MaxHeight="70" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,9,0,0">
+                  <TextBlock x:Name="ResourceTargetLocation" FontSize="12" Foreground="{DynamicResource ColorBrushGray3}" TextWrapping="Wrap"/>
+                </p:PclScrollViewer>
+              </StackPanel>
               <p:PclHint x:Name="OnlinePackNameHint" Grid.Row="5" Visibility="Collapsed" Margin="7,0,7,12"/>
               <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right" Margin="150,0,8,0">
                 <p:PclButton x:Name="OnlinePackConfirm" Text="确定" Width="100" Height="35" Margin="12,0,0,0" Click="ConfirmOnlinePackName"/>
