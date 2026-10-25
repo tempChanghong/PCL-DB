@@ -37,6 +37,7 @@ Partial Public Class MainWindow
             host.Child = Nothing : owner.Content = content
             SynchronizationContext.SetSynchronizationContext(previous)
         End Try
+        VerifyResourceRestoreUi(directory, passed)
     End Sub
     Private Async Function VerifyPackSearchAsync(directory As String, host As Border, check As Action(Of Boolean, String)) As Task
         Dim layout As Action = Sub()

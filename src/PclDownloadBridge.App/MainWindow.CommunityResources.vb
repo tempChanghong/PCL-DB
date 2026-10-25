@@ -122,9 +122,10 @@ Partial Public Class MainWindow
         EnsurePackSearch()
     End Sub
     Private Async Sub RestoreResourceSearchAsync(page As Integer)
-        Dim kind = _resourceKind, session = _packSearchSession
-        Await LoadPackSearchPageAsync(page)
-        If _resourceKind = kind AndAlso _packSearchSession Is session AndAlso _packMode = PackBrowserMode.Search Then ModpackPage.ScrollToVerticalOffset(_packSearchScroll)
+        ' Restore inside the accepted request, after its rows have a real extent.
+        ' A cancelled page can otherwise return after a newer navigation and
+        ' overwrite that page's reading position despite sharing the same session.
+        Await LoadPackSearchPageAsync(page, _packSearchScroll)
     End Sub
     Private Async Sub RestoreResourceDetail(state As ResourceDetailState)
         ResetResourceNames()
@@ -132,7 +133,8 @@ Partial Public Class MainWindow
         _packReleases = state.Releases : _packDetailScroll = state.Scroll : _packTargetGame = state.Game : _resourceTargetLoader = state.Loader
         _packVersionCache.Clear() : RenderPackProject(ActivePackProject())
         InitializePackVersions()
-        If Not String.IsNullOrEmpty(state.Filter) Then _packGameFilter = state.Filter : RenderPackVersions()
+        ' Empty is PCL's explicit All choice, not an absent saved selection.
+        _packGameFilter = If(state.Filter, "") : RenderPackVersions()
         ModpackPage.UpdateLayout() : ModpackPage.ScrollToVerticalOffset(state.Scroll)
         If state.Completed IsNot state.Project Then Await LoadPackDetailsAsync(state.Project)
     End Sub

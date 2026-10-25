@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 资源详情筛选与搜索视口恢复（2026-10-26）
+
+- 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`PageDownloadCompDetail.xaml.vb` 将“全部”明确映射为无版本约束；`PageResource.xaml.vb` 依照加载器已接受的输入、结果和页码呈现内容，新翻页返回顶部。原始 Git 对象及摘要在 `artifacts/resource-restore/source/manifest.json`。
+- 本工具自行重建分类与前置返回页面，需要把空字符串对应的“全部”当作完整选择恢复，不能重新套用搜索默认 MC 版本。分类恢复视口也交由当前请求在结果布局后应用；取消或被替代的请求不再通过外层回调写回滚动位置。
+- 保留初次进入的版本默认选择、普通翻页回顶、混合来源预览和现有动画控制器。详见[修复与验证](docs/reviews/resource-restore-2026-10-26.md)。不修改下载、安装、隔离、外部配置或已发布 Beta 5.0 工件。
+
 ## 管理扫描与本地筛选的状态关系（2026-10-26）
 
 - 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`PageSelectRight.xaml.vb` 使用 PageLoaderInit 关联版本扫描，失败时强制重试，成功后单独判断空列表；`ModLoader.vb` 由当前加载器的 State 驱动 Loading/Error/Stop，并阻止被替代线程发布最终状态。

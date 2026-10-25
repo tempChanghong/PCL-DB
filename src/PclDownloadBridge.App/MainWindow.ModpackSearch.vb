@@ -221,7 +221,7 @@ Partial Public Class MainWindow
     Private Shared Function PackSearchPageLimitText() As String
         Return "搜索最多支持前 " & (ModpackSearchSession.MaxPage + 1).ToString() & " 页，请缩小搜索范围或更改条件。"
     End Function
-    Private Async Function LoadPackSearchPageAsync(page As Integer) As Task
+    Private Async Function LoadPackSearchPageAsync(page As Integer, Optional restoreScroll As Double? = Nothing) As Task
         Dim session = _packSearchSession
         If session Is Nothing OrElse _busy OrElse _closing OrElse _choosingOnline Then Return
         ' Reject stale/programmatic navigation before canceling the accepted
@@ -308,7 +308,14 @@ Partial Public Class MainWindow
                                   PackFirstPage.IsEnabled = page > 0 : PackPreviousPage.IsEnabled = page > 0 : PackNextPage.IsEnabled = session.HasNext(page)
                                   PackNextPage.Text = If(session.Count < (page + 1) * ModpackCatalogClient.PageSize AndAlso session.HasMore, "继续加载", "下一页")
                               End Sub)
-            If Not previewShown AndAlso _packMode = PackBrowserMode.Search AndAlso _downloadView = DownloadView.Modpacks Then ModpackPage.ScrollToHome()
+            If CurrentPackSearch(session, request) AndAlso _packMode = PackBrowserMode.Search AndAlso _downloadView = DownloadView.Modpacks Then
+                If restoreScroll.HasValue Then
+                    ModpackPage.UpdateLayout()
+                    ModpackPage.ScrollToVerticalOffset(restoreScroll.Value)
+                ElseIf Not previewShown Then
+                    ModpackPage.ScrollToHome()
+                End If
+            End If
             PackSearchInputsChanged(False)
         Catch ex As Exception
             ' Intentional cancellation has already revoked ownership. An unexpected
