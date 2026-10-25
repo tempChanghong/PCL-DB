@@ -45,6 +45,7 @@ Public NotInheritable Class LocalModActions
                 lease.Rename(destination)
                 Try
                     InstalledInstanceCatalog.EnsureUnchanged(instance, token)
+                    EnsureAliases(directory, entry.EnabledName, destination)
                     token.ThrowIfCancellationRequested()
                 Catch ex As Exception
                     Try
@@ -128,6 +129,7 @@ Public NotInheritable Class LocalModActions
                 InstalledInstanceCatalog.EnsureUnchanged(instance, token)
                 token.ThrowIfCancellationRequested()
                 If inputs.Count = 0 Then
+                    EnsureBatchAliases(directory, seen.Keys, token)
                     complete = True
                     Return New LocalModActionResult(directory, 0, skipped, warnings)
                 End If
@@ -156,11 +158,17 @@ Public NotInheritable Class LocalModActions
                     token.ThrowIfCancellationRequested()
                     InstalledInstanceCatalog.EnsureUnchanged(instance, token)
                     ValidatePath(directory, True) : ValidatePath(stage, True)
+                    EnsureAliases(directory, item.Entry.EnabledName, Nothing)
                     ' Native rename refuses an already-created destination, and
                     ' the source handle blocks replacement between hash and move.
                     item.Staged.Rename(item.Destination)
+                    EnsureAliases(directory, item.Entry.EnabledName, item.Destination)
                 Next
                 InstalledInstanceCatalog.EnsureUnchanged(instance, token)
+                ' Recheck earlier publications and identical existing targets as
+                ' well: an unrelated process may have created a state alias while
+                ' a later file was being copied. Rollback still owns only our files.
+                EnsureBatchAliases(directory, seen.Keys, token)
                 token.ThrowIfCancellationRequested()
                 complete = True
                 Return New LocalModActionResult(directory, inputs.Count, skipped, warnings)
@@ -237,6 +245,12 @@ Public NotInheritable Class LocalModActions
             Dim candidate = Child(directory, name)
             If exceptPath IsNot Nothing AndAlso Same(candidate, exceptPath) Then Continue For
             If File.Exists(candidate) OrElse IO.Directory.Exists(candidate) Then Throw Conflict(candidate)
+        Next
+    End Sub
+    Private Shared Sub EnsureBatchAliases(directory As String, enabledNames As IEnumerable(Of String), token As CancellationToken)
+        For Each name In enabledNames
+            token.ThrowIfCancellationRequested()
+            EnsureAliases(directory, name, Child(directory, name))
         Next
     End Sub
     Private Shared Function Conflict(path As String) As IOException

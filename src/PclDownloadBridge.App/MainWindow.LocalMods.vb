@@ -21,15 +21,21 @@ Partial Public Class MainWindow
     Private ReadOnly _localModRowViews As New Dictionary(Of LocalModEntry, Grid)
     Private _localModProvider As Func(Of InstalledInstance, CancellationToken, Task(Of List(Of LocalModEntry))) =
         Function(instance, token) Task.Run(Function() LocalModCatalog.Scan(instance, token), token)
+    Private _localModInstanceReader As Func(Of InstalledInstance, CancellationToken, Task(Of InstalledInstance)) =
+        Function(instance, token) Task.Run(Function() InstalledInstanceCatalog.Read(instance.Target, instance.Name, token), token)
     Private _localModImporter As Func(Of InstalledInstance, String(), CancellationToken, Task(Of LocalModActionResult)) =
         Function(instance, files, token) Task.Run(Function() LocalModActions.ImportFiles(instance, files, token), token)
     Private _localModToggle As Func(Of InstalledInstance, LocalModEntry, Boolean, CancellationToken, Task(Of LocalModActionResult)) =
         Function(instance, entry, enabled, token) Task.Run(Function() LocalModActions.SetEnabled(instance, entry, enabled, token), token)
 
     Private Function SameLocalModContext(instance As InstalledInstance) As Boolean
-        Return instance IsNot Nothing AndAlso _managedInstance IsNot Nothing AndAlso instance.Name = _managedInstance.Name AndAlso
+        Return SameLocalModIdentity(instance) AndAlso
             Not String.IsNullOrEmpty(instance.RunDirectory) AndAlso Not String.IsNullOrEmpty(_managedInstance.RunDirectory) AndAlso
-            SameManagementTarget(instance.Target, _managedInstance.Target) AndAlso SameGameRoot(instance.RunDirectory, _managedInstance.RunDirectory)
+            SameGameRoot(instance.RunDirectory, _managedInstance.RunDirectory)
+    End Function
+    Private Function SameLocalModIdentity(instance As InstalledInstance) As Boolean
+        Return instance IsNot Nothing AndAlso _managedInstance IsNot Nothing AndAlso _selectedFolder IsNot Nothing AndAlso instance.Name = _managedInstance.Name AndAlso
+            SameManagementTarget(instance.Target, _managedInstance.Target) AndAlso SameManagementTarget(instance.Target, CurrentInstallTarget())
     End Function
     Private Function LocalModInputAllowed() As Boolean
         Return Not _closing AndAlso Not _restoringSettings AndAlso Not _restoringLaunchers AndAlso ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible AndAlso
@@ -64,22 +70,40 @@ Partial Public Class MainWindow
     End Sub
     Private Async Sub RefreshLocalMods(sender As Object, e As RoutedEventArgs)
         If Not LocalModInputAllowed() OrElse _localModWriting Then Return
-        Await LoadLocalModsAsync(True)
+        Await LoadLocalModsAsync(True, refreshInstance:=True)
     End Sub
-    Private Async Function LoadLocalModsAsync(force As Boolean) As Task
+    Private Async Function LoadLocalModsAsync(force As Boolean, Optional refreshInstance As Boolean = False) As Task
         If _closing OrElse ManagementPage.Visibility <> Visibility.Visible OrElse LocalModsPage.Visibility <> Visibility.Visible OrElse
             _managedInstance Is Nothing OrElse _managedInstance.RunDirectory Is Nothing OrElse _managedInstance.Problem IsNot Nothing OrElse
             (_localModScanning AndAlso Not force) Then Return
+        If refreshInstance Then CancelManagementRequest()
         CancelLocalModRequest()
         Dim instance = _managedInstance, request As New CancellationTokenSource(), generation = _localModGeneration
         _localModInstance = instance : _localModRequest = request : _localModScanning = True
         LocalModStatus.Text = "正在读取 Mod 列表…"
         RefreshLocalModAvailability()
         Try
+            If refreshInstance Then
+                Dim previous = instance
+                instance = Await _localModInstanceReader(previous, request.Token)
+                If request.IsCancellationRequested OrElse generation <> _localModGeneration OrElse _closing OrElse Not SameLocalModIdentity(previous) OrElse
+                    ManagementPage.Visibility <> Visibility.Visible OrElse LocalModsPage.Visibility <> Visibility.Visible Then Return
+                If instance Is Nothing OrElse instance.Name <> previous.Name OrElse Not SameManagementTarget(instance.Target, previous.Target) Then Throw New InvalidDataException("实例读取来源已变化，请重新选择实例。")
+                If instance.Problem IsNot Nothing Then Throw New InvalidDataException(instance.Problem)
+                If String.IsNullOrEmpty(instance.RunDirectory) Then Throw New InvalidDataException("无法确定实例的实际运行目录。")
+            End If
             Dim entries = Await _localModProvider(instance, request.Token)
-            If request.IsCancellationRequested OrElse generation <> _localModGeneration OrElse _closing OrElse Not SameLocalModContext(instance) OrElse
+            If request.IsCancellationRequested OrElse generation <> _localModGeneration OrElse _closing OrElse Not SameLocalModIdentity(instance) OrElse
+                (Not refreshInstance AndAlso Not SameLocalModContext(instance)) OrElse
                 ManagementPage.Visibility <> Visibility.Visible OrElse LocalModsPage.Visibility <> Visibility.Visible Then Return
             ChangeManagementContent(Sub()
+                                        If refreshInstance Then
+                                            Dim index = _managementInstances.FindIndex(Function(current) current.Name = instance.Name AndAlso SameManagementTarget(current.Target, instance.Target))
+                                            If index >= 0 Then _managementInstances(index) = instance
+                                            _managedInstance = instance
+                                            RenderManagementRows()
+                                        End If
+                                        _localModInstance = instance
                                         _localMods = entries
                                         _localModReadSucceeded = True
                                         RenderLocalMods()

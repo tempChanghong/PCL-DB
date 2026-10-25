@@ -20,6 +20,7 @@ Partial Public Class MainWindow
         VerifyDownloadFocusOwnership(check)
         VerifyManagementUi(artifactDirectory, check)
         VerifyLocalModUi(artifactDirectory, check)
+        VerifyLocalModFollowupUi(artifactDirectory, check)
         Return checks
     End Function
 

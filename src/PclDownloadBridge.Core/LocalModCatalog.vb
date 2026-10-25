@@ -342,8 +342,17 @@ Public NotInheritable Class LocalModCatalog
                     ElseIf quote = """"c AndAlso ch = "\"c Then
                         buffer.Append(ch) : escaped = True
                     ElseIf ch = quote AndAlso (Not triple OrElse (i + 2 < text.Length AndAlso text(i + 1) = quote AndAlso text(i + 2) = quote)) Then
-                        buffer.Append(ch)
-                        If triple Then buffer.Append(ch).Append(ch) : i += 2
+                        Dim quoteCount = 1
+                        If triple Then
+                            quoteCount = 3
+                            While i + quoteCount < text.Length AndAlso text(i + quoteCount) = quote
+                                quoteCount += 1
+                            End While
+                            ' TOML permits one or two literal quotes immediately
+                            ' before a multiline string's three closing quotes.
+                            If quoteCount > 5 Then Throw New InvalidDataException("TOML 多行字符串引号无效。")
+                        End If
+                        buffer.Append(ch, quoteCount) : i += quoteCount - 1
                         quote = ChrW(0) : triple = False
                     Else
                         If Not triple AndAlso (ch = ChrW(10) OrElse ch = ChrW(13)) Then Throw New InvalidDataException("TOML 单行字符串未结束。")
@@ -405,11 +414,16 @@ Public NotInheritable Class LocalModCatalog
                             If Not Integer.TryParse(inner.Substring(i + 1, count), Globalization.NumberStyles.HexNumber, Globalization.CultureInfo.InvariantCulture, point) Then Throw New InvalidDataException("TOML Unicode 转义无效。")
                             If point < 0 OrElse point > &H10FFFF OrElse (point >= &HD800 AndAlso point <= &HDFFF) Then Throw New InvalidDataException("TOML Unicode 码点无效。")
                             result.Append(Char.ConvertFromUtf32(point)) : i += count
-                        Case ChrW(10), ChrW(13)
+                        Case ChrW(10), ChrW(13), " "c, ChrW(9)
                             If Not triple Then Throw New InvalidDataException("TOML 单行字符串包含换行。")
-                            While i + 1 < inner.Length AndAlso Char.IsWhiteSpace(inner(i + 1))
+                            ' A continuation backslash may be followed by spaces
+                            ' or tabs, but must reach a newline before other text.
+                            Dim hasNewline = inner(i) = ChrW(10) OrElse inner(i) = ChrW(13)
+                            While i + 1 < inner.Length AndAlso (inner(i + 1) = " "c OrElse inner(i + 1) = ChrW(9) OrElse inner(i + 1) = ChrW(10) OrElse inner(i + 1) = ChrW(13))
                                 i += 1
+                                hasNewline = hasNewline OrElse inner(i) = ChrW(10) OrElse inner(i) = ChrW(13)
                             End While
+                            If Not hasNewline Then Throw New InvalidDataException("TOML 字符串转义无效。")
                         Case Else : Throw New InvalidDataException("TOML 字符串转义无效。")
                     End Select
                 End If

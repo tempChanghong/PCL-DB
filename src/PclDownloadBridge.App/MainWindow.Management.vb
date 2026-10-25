@@ -111,7 +111,11 @@ Partial Public Class MainWindow
     End Sub
     Private Async Sub RefreshManagement(sender As Object, e As RoutedEventArgs)
         If ManagementPage.Visibility <> Visibility.Visible OrElse Not PageSurface.IsHitTestVisible OrElse _managementPreparing Then Return
-        Await ScanManagementAsync(True)
+        If _selectedFolder Is Nothing Then Return
+        Dim target = CurrentInstallTarget(), scan = ScanManagementAsync(True), generation = _managementGeneration
+        Await scan
+        If _closing OrElse generation <> _managementGeneration OrElse _selectedFolder Is Nothing OrElse _managementDirty OrElse
+            Not SameManagementTarget(target, CurrentInstallTarget()) OrElse _localModWriting Then Return
         If ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible Then Await LoadLocalModsAsync(True)
     End Sub
     Private Async Function ScanManagementAsync(force As Boolean) As Task

@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 本地 Mod 的刷新交接与状态别名复核
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.Refresh/LoaderRun/InstallMods/EDMods`：刷新实际 `PathIndie/mods`、启用名称与末尾状态后缀保持同一资源关系。沿用既有 44 DIP 行、筛选、入退场和共享目录提示；独立增加只读实例快照刷新、过期请求门控与发布后别名复核，保留本工具的非覆盖及自有文件回收机制。
+- 元数据补充参考仍为 PCL-CE `915ac29795efbdf6373417389e181e1504117048` 的 `ModLocalComp`；多行字符串的修正依据 [TOML 1.0 字符串规则](https://toml.io/en/v1.0.0#string)，用独立 `tomllib` 对合法/非法样例交叉验证。范围、固定来源与证据见[本轮记录](docs/reviews/local-mod-followup.md)。
+
 ## 本地 Mod 识别、启停和导入
 
 - 核心依据为 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `LocalResourceFile`、`LocalResourceLoaders`、`PageInstanceMod`、`MyLocalModItem`：实际隔离目录、启停后缀、导入启用名称、44 DIP 行、搜索/筛选、右侧启停图标及既有页面动画。后缀只移除末尾一次，不沿用中间字符串替换或导入前删除目标的行为。

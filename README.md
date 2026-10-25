@@ -6,6 +6,8 @@ VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载与本地实例管理
 
 当前源码继续接入「管理 → 实例详情 → Mod 管理」：识别本地 Mod 名称、版本、ID 与加载器，支持搜索、启用/禁用筛选、逐项启停和从文件安装。按所选启动器的实际运行目录定位 Mods，共享目录会说明影响范围；同名不同内容、启停别名或路径冲突不覆盖，取消/异常回收本次新增内容，已有配置保持。新导入支持 JAR、LiteMod 及其单个 `.disabled/.old` 后缀，并按 PCL 恢复启用；既有 ZIP Mod 可识别和启停，ZIP 整合包继续使用整合包入口。本批尚未打包发版，详见[本地 Mod 管理](docs/reviews/local-mod-management.md)。
 
+Mod 页“刷新列表”会重新只读读取当前实例的隔离设置，外部启动器更改运行目录后可在原页恢复。导入提交前复查新增、已发布及同内容跳过文件的状态别名；Forge/NeoForge 多行 TOML 描述兼容性与过期刷新交接也已修正。[后续检查与验证](docs/reviews/local-mod-followup.md)。
+
 界面布局、控件与动画以 PCL2 限制前源码为核心，PCL-CE 仅作补充参考。读取 PCL、HMCL、PCL-CE 使用的游戏目录，按所选启动器的原生隔离与实例配置安装。原五个启动器仓库不需要修改。
 
 当前源码的「设置 → 外部启动器」支持 PCL、HMCL、PCL-CE 多份位置及目录配置的只读绑定，安装任务冻结来源、配置位置与目标路径。HMCL / PCL-CE 已接入原生隔离、组件、CurseForge / Modrinth 整合包及同版本原版补全；已有实例配置保持不变。[接入范围与验证](docs/reviews/external-launcher-native-isolation.md)。
