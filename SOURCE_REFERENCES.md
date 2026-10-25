@@ -2,6 +2,9 @@
 
 ## 社区资源安装到指定实例
 
+- 完整联动检查继续采用固定 PCL `MyMsgSelect` 的滚动正文、固定按钮和原动画；对照 `MyScrollViewer` 的焦点滚动保护与 `PageInstanceMod.ReloadModList` 的强制重读机制。目录迟到读取复用现有 `FocusPromptTarget` 设置逻辑焦点并保留视口，已有用户焦点不被覆盖；弹窗刷新重新读取绑定目标和存档，清空陈旧的存档选择。
+- 三启动器的原生隔离、文件校验、共享互斥和原子发布内核不改。新增真实回环文件获取 → UI 取消 → 缓存重试 → 原生 Mod 发布 → 本地列表重扫，搜索元数据为夹具，网络/文件安装为真实临时操作。[范围与验证](docs/reviews/community-resource-installation-linkage.md)。
+
 - 后续检查继续读取同一固定 PCL 的 `MyMsgSelect.xaml/.vb`：标题/分割线、占剩余空间的滚动正文、独立底部按钮；正文不再全部使用 Auto 行，以防最小窗口下长说明和错误挤出按钮。弹窗入退场、焦点和主题沿用原实现，重开清理旧正文滚动状态。
 - 同一固定 PCL `Modules/Base/ModNet.vb` 的 `CheckExistingFile` 先校验目标再决定下载。指定实例安装据此增加原生锁内的目标预检：相同摘要直接完成，不创建下载缓存；冲突与禁用别名提前停止，下载后的发布仍重新检查。三启动器隔离适配和只读外部配置保持。[修复依据与验证](docs/reviews/community-resource-installation-followup.md)。
 

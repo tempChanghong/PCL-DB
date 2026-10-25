@@ -688,7 +688,10 @@
                   <TextBlock x:Name="PackNameDescription" TextWrapping="Wrap" FontSize="15" LineHeight="18" Foreground="{DynamicResource ColorBrushGray3}" Margin="7,0,15,7"/>
                   <p:PclTextBox x:Name="OnlinePackName" Height="30" MaxLength="70" Margin="7,0,7,12"/>
                   <StackPanel x:Name="ResourceTargetChoices" Visibility="Collapsed" Margin="7,0,7,12">
-                    <TextBlock Text="游戏版本" Margin="0,0,0,6"/>
+                    <Grid Margin="0,0,0,6">
+                      <TextBlock Text="游戏版本" VerticalAlignment="Center"/>
+                      <p:PclButton x:Name="ResourceTargetRefresh" Text="刷新" Width="60" Height="24" HorizontalAlignment="Right" ToolTip="重新读取版本与存档" Click="RefreshResourceTargets"/>
+                    </Grid>
                     <p:PclComboBox x:Name="ResourceTargetInstance" Height="30" SelectionChanged="ResourceTargetInstanceChanged" AutomationProperties.Name="安装目标版本"/>
                     <StackPanel x:Name="ResourceTargetWorldRow" Visibility="Collapsed" Margin="0,12,0,0">
                       <TextBlock Text="存档文件夹" Margin="0,0,0,6"/>

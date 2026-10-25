@@ -62,9 +62,18 @@ Partial Public Class MainWindow
                                                  saves += 1 : Return Nothing
                                              End Function
         Dim peer = UIElementAutomationPeer.CreatePeerForElement(icon), invoke = DirectCast(peer.GetPattern(PatternInterface.Invoke), IInvokeProvider)
+        Dim retainedLimit = SpeedLimitBox.Text, invalidGeneration = _taskGeneration
+        SpeedLimitBox.Text = "invalid"
+        InstallCommunityResource(_packReleases.Single(), icon) : layout()
+        Dim openedInvalid = _resourceTargetPrompt
+        If openedInvalid Then CompleteOnlinePrompt("no") : Await WaitPackUiAsync(Function() Not _choosingOnline)
+        check(Not openedInvalid AndAlso SettingsPage.IsVisible AndAlso _taskGeneration = invalidGeneration, "invalid download limits navigate to their setting before opening an instance picker or creating a task")
+        SpeedLimitBox.Text = retainedLimit : ShowDownload(Nothing, Nothing) : _surfaceMotion.Finish() : _categoryMotion.Finish() : layout()
+        Await Task.Delay(1) : layout()
         invoke.Invoke() : Await WaitPackUiAsync(Function() _resourceTargetPrompt AndAlso Not _resourceTargetLoading) : layout()
         check(saves = 0 AndAlso Not _busy AndAlso PackNameOverlay.IsVisible AndAlso ResourceTargetChoices.IsVisible AndAlso Not OnlinePackName.IsVisible, "version-row install action opens a target picker without activating parent Save As")
         check(Not PageSurface.IsEnabled AndAlso Not TopTabs.IsEnabled AndAlso ResourceTargetInstance.Items.Count = 3 AndAlso ResourceTargetWorldRow.Visibility = Visibility.Collapsed, "instance picker retains PCL modal background input gates and hides world choices for shaders")
+        File.WriteAllText(Path.Combine(directory, "resource-initial-focus.json"), New JObject From {{"Focus", TryCast(FocusManager.GetFocusedElement(host), FrameworkElement)?.Name}, {"Confirm", OnlinePackConfirm.IsEnabled}, {"Problem", _resourceTargetProblem}, {"Loading", _resourceTargetLoading}, {"WorldLoading", _resourceWorldLoading}, {"Kind", _resourceTargetRelease.Kind.ToString()}, {"Limit", SpeedLimitBox.Text}}.ToString())
         check(FocusManager.GetFocusedElement(host) Is ResourceTargetInstance AndAlso OnlinePackConfirm.IsEnabled, "loaded instance choices receive logical focus and enable only a valid target")
         check(PackNameDialog.TranslatePoint(New Point(0, PackNameDialog.ActualHeight), host).Y <= host.ActualHeight AndAlso PackNameDialog.TranslatePoint(New Point(0, 0), host).Y >= 0, "target dialog and confirmation fit the minimum 810 by 470 surface")
         ResourceTargetInstance.SelectedItem = ResourceTargetInstance.Items.OfType(Of ComboBoxItem)().Single(Function(value) value.Tag Is sharedInstance) : layout()
@@ -171,5 +180,43 @@ Partial Public Class MainWindow
         Dim ordinary = PromptOnlinePackAsync("版本名称", "原有整合包命名", target.Root, "untouched", False, CancellationToken.None, icon) : layout()
         check(OnlinePackName.IsVisible AndAlso ResourceTargetChoices.Visibility = Visibility.Collapsed AndAlso OnlinePackName.Text = "untouched", "resource target mode does not leak into existing modpack name dialogs")
         CompleteOnlinePrompt(Nothing) : Await ordinary
+        Dim delayed As New TaskCompletionSource(Of List(Of InstalledInstance))()
+        _managementProvider = Function(binding, token) delayed.Task
+        Dim focusPrompt = PromptResourceTargetAsync(_packReleases.Single(), target, icon)
+        PackNameDescription.Text = String.Concat(Enumerable.Repeat("读取目录期间可以继续查看说明 ", 45)) : layout()
+        OnlinePromptBody.ScrollToVerticalOffset(100) : layout()
+        FocusManager.SetFocusedElement(host, OnlinePackCancel)
+        Dim retainedOffset = OnlinePromptBody.VerticalOffset
+        delayed.SetResult(instances)
+        Await WaitPackUiAsync(Function() Not _resourceTargetLoading) : layout()
+        check(FocusManager.GetFocusedElement(host) Is OnlinePackCancel AndAlso Math.Abs(OnlinePromptBody.VerticalOffset - retainedOffset) < 0.5, "late target scans preserve the user's Cancel focus and body reading position")
+        CompleteOnlinePrompt("no") : Await focusPrompt
+        _managementProvider = Function(binding, token) Task.FromResult(InstalledInstanceCatalog.Scan(binding, token))
+        Dim refreshPrompt = PromptResourceTargetAsync(data, target, icon)
+        Await WaitPackUiAsync(Function() Not _resourceTargetLoading AndAlso Not _resourceWorldLoading)
+        ResourceTargetInstance.SelectedItem = ResourceTargetInstance.Items.OfType(Of ComboBoxItem)().Single(Function(value) DirectCast(value.Tag, InstalledInstance).Name = "Isolated")
+        Await WaitPackUiAsync(Function() Not _resourceWorldLoading)
+        ResourceTargetWorld.SelectedIndex = 0
+        Dim staleWorld = DirectCast(DirectCast(ResourceTargetWorld.SelectedItem, ComboBoxItem).Tag, InstalledWorld), taskBeforeRefresh = _taskGeneration
+        File.WriteAllText(Path.Combine(staleWorld.Folder, "level.dat"), "changed while picker stayed open")
+        ConfirmOnlinePackName(Nothing, Nothing) : Await WaitPackUiAsync(Function() Not _resourceTargetValidating) : layout()
+        check(_resourceTargetPrompt AndAlso _confirmedResourcePlan Is Nothing AndAlso OnlinePackNameHint.IsVisible AndAlso ResourceTargetRefresh.IsEnabled AndAlso _taskGeneration = taskBeforeRefresh, "changed world confirmation remains in the picker with an actionable refresh and no installation task")
+        RefreshResourceTargets(Nothing, Nothing) : Await WaitPackUiAsync(Function() Not _resourceTargetLoading AndAlso Not _resourceWorldLoading) : layout()
+        check(DirectCast(DirectCast(ResourceTargetInstance.SelectedItem, ComboBoxItem).Tag, InstalledInstance).Name = "Isolated" AndAlso ResourceTargetWorld.SelectedIndex = -1 AndAlso Not OnlinePackConfirm.IsEnabled, "refresh retains the explicit instance while requiring a new world selection")
+        ResourceTargetWorld.SelectedIndex = 0 : ConfirmOnlinePackName(Nothing, Nothing)
+        Dim refreshed = Await refreshPrompt
+        check(refreshed IsNot Nothing AndAlso refreshed.InstanceName = "Isolated" AndAlso refreshed.WorldName = staleWorld.Name AndAlso File.ReadAllText(Path.Combine(staleWorld.Folder, "level.dat")) = "changed while picker stayed open", "refreshed world confirmation binds the new marker without modifying its contents")
+        Dim otherWork = Path.Combine(fixture, "other-hmcl"), otherConfig = Path.Combine(otherWork, "hmcl.json")
+        IO.Directory.CreateDirectory(otherWork)
+        File.WriteAllText(otherConfig, New JObject From {{"configurations", New JObject From {{"same-root", New JObject From {{"gameDir", target.Root}, {"global", New JObject From {{"gameDirType", 0}, {"unknown", "keep"}}}}}}}}.ToString())
+        Dim otherTarget As New LauncherInstallTarget(New GameFolder With {.Location = target.Root, .LauncherKind = ExternalLauncherKind.Hmcl, .LauncherBindingId = "other-hmcl", .LauncherWorkspace = otherWork, .LauncherConfigPath = otherConfig, .LauncherSharedConfigPath = Path.Combine(otherWork, "absent.json")}, otherWork)
+        Dim otherInstance = InstalledInstanceCatalog.Read(otherTarget, "Shared", CancellationToken.None), otherBytes = File.ReadAllBytes(otherConfig)
+        _managementProvider = Function(binding, token) Task.FromResult(New List(Of InstalledInstance) From {otherInstance, sharedInstance})
+        Dim bindingPrompt = PromptResourceTargetAsync(_packReleases.Single(), target, icon)
+        Await WaitPackUiAsync(Function() Not _resourceTargetLoading) : layout()
+        check(ResourceTargetInstance.Items.Count = 1 AndAlso DirectCast(DirectCast(ResourceTargetInstance.SelectedItem, ComboBoxItem).Tag, InstalledInstance).Target.Kind = ExternalLauncherKind.Pcl AndAlso File.ReadAllBytes(otherConfig).SequenceEqual(otherBytes), "a same-root HMCL response cannot enter a PCL-bound instance picker or change external configuration")
+        CompleteOnlinePrompt("no") : Await bindingPrompt
+        _managementProvider = Function(binding, token) Task.FromResult(InstalledInstanceCatalog.Scan(binding, token))
+        Await CheckResourceWorkflowAsync(directory, fixture, target, configPath, config, host, layout, check)
     End Function
 End Class

@@ -2,6 +2,7 @@ Imports System.IO
 Imports System.Threading
 Imports System.Windows
 Imports System.Windows.Controls
+Imports System.Windows.Input
 Imports PclDownloadBridge.Controls
 Imports PclDownloadBridge.Core
 
@@ -10,6 +11,7 @@ Partial Public Class MainWindow
     Private _resourceTargetRequest As CancellationTokenSource, _resourceWorldRequest As CancellationTokenSource
     Private _resourceTargetRelease As ModpackRelease, _confirmedResourcePlan As ResourceInstallationPlan
     Private _resourceTargetProblem As String
+    Private _resourceTargetLauncher As LauncherInstallTarget
     Private _resourceInstallRunner As Func(Of ResourceInstallationPlan, String, SourcePolicy, IProgress(Of TransferProgress), CancellationToken, Task)
 
     Private Async Sub InstallCommunityResource(release As ModpackRelease, owner As FrameworkElement)
@@ -17,6 +19,8 @@ Partial Public Class MainWindow
         Dim project = ActivePackProject()
         If project Is Nothing OrElse project.Id <> release.ProjectId OrElse project.Platform <> release.Platform OrElse project.Kind <> release.Kind Then Return
         If _selectedFolder Is Nothing Then ChooseInstallFolder(Nothing, Nothing) : Return
+        Dim limit As Double
+        If Not TryGetSpeedLimit(limit) Then NavigateToSetting(SpeedLimitBox, True) : Return
         Dim target = CurrentInstallTarget(), snapshot = release.Copy()
         _choosingOnline = True
         Try
@@ -32,6 +36,7 @@ Partial Public Class MainWindow
     End Sub
     Private Async Function PromptResourceTargetAsync(release As ModpackRelease, target As LauncherInstallTarget, owner As FrameworkElement) As Task(Of ResourceInstallationPlan)
         _resourceTargetPrompt = True : _resourceTargetRelease = release.Copy() : _confirmedResourcePlan = Nothing
+        _resourceTargetLauncher = target
         _resourceTargetLoading = True : _resourceWorldLoading = False : _resourceTargetValidating = False : _resourceTargetProblem = Nothing
         _resourceTargetRequest = New CancellationTokenSource()
         Dim request = _resourceTargetRequest
@@ -51,26 +56,39 @@ Partial Public Class MainWindow
             request.Dispose()
         End Try
     End Function
-    Private Async Sub LoadResourceTargetsAsync(target As LauncherInstallTarget, request As CancellationTokenSource)
+    Private Async Sub LoadResourceTargetsAsync(target As LauncherInstallTarget, request As CancellationTokenSource, Optional preferredName As String = Nothing)
         Try
             Dim instances = Await _managementProvider(target, request.Token)
             If request.IsCancellationRequested OrElse _resourceTargetRequest IsNot request OrElse Not _resourceTargetPrompt Then Return
             Dim preferred = ResourceSaveContext(), selected As PclComboBoxItem = Nothing
+            If preferredName Is Nothing AndAlso preferred IsNot Nothing AndAlso SameManagementTarget(preferred.Target, target) Then preferredName = preferred.Name
             For Each instance In instances
+                If Not SameManagementTarget(instance.Target, target) Then Continue For
                 Dim problem = CommunityResourceInstallation.CompatibilityProblem(_resourceTargetRelease, instance)
                 Dim item As New PclComboBoxItem With {.Content = instance.Name & " · " & instance.MinecraftVersion & " · " & instance.LoaderSummary, .Tag = instance, .IsEnabled = problem Is Nothing, .ToolTip = If(problem, instance.RunDirectory)}
                 ResourceTargetInstance.Items.Add(item)
-                If problem Is Nothing AndAlso (selected Is Nothing OrElse (preferred IsNot Nothing AndAlso preferred.Name = instance.Name AndAlso SameManagementTarget(preferred.Target, instance.Target))) Then selected = item
+                If problem Is Nothing AndAlso (selected Is Nothing OrElse preferredName = instance.Name) Then selected = item
             Next
             _resourceTargetLoading = False : ResourceTargetInstance.IsEnabled = True
             ResourceTargetInstance.SelectedItem = selected
             If selected Is Nothing Then _resourceTargetProblem = "没有兼容的已安装版本，请更换资源版本或使用另存为。"
             ValidateResourceTarget()
-            ResourceTargetInstance.Focus()
+            Dim current = TryCast(FocusManager.GetFocusedElement(FocusManager.GetFocusScope(PackNameDialog)), FrameworkElement)
+            If Not IsPromptFocusTarget(current, PackNameDialog) Then FocusPromptTarget(ResourceTargetInstance, OnlinePromptBody)
         Catch ex As OperationCanceledException
         Catch ex As Exception
             If _resourceTargetRequest Is request AndAlso _resourceTargetPrompt Then _resourceTargetLoading = False : _resourceTargetProblem = ex.GetBaseException().Message : ValidateResourceTarget()
         End Try
+    End Sub
+    Private Sub RefreshResourceTargets(sender As Object, e As RoutedEventArgs)
+        If Not _resourceTargetPrompt OrElse _resourceTargetLoading OrElse _resourceTargetValidating OrElse _resourceTargetRequest Is Nothing OrElse _resourceTargetRequest.IsCancellationRequested Then Return
+        Dim preferred = TryCast(TryCast(ResourceTargetInstance.SelectedItem, ComboBoxItem)?.Tag, InstalledInstance)?.Name
+        _resourceWorldRequest?.Cancel() : _resourceWorldRequest = Nothing
+        _resourceTargetLoading = True : _resourceWorldLoading = False : _resourceTargetProblem = Nothing
+        ResourceTargetInstance.IsEnabled = False : ResourceTargetWorld.IsEnabled = False
+        ResourceTargetInstance.Items.Clear() : ResourceTargetWorld.Items.Clear()
+        ValidateResourceTarget()
+        LoadResourceTargetsAsync(_resourceTargetLauncher, _resourceTargetRequest, preferred)
     End Sub
     Private Async Sub ResourceTargetInstanceChanged(sender As Object, e As SelectionChangedEventArgs)
         If Not _resourceTargetPrompt Then Return
@@ -116,6 +134,7 @@ Partial Public Class MainWindow
             End If
         End If
         OnlinePackConfirm.IsEnabled = problem Is Nothing AndAlso Not _resourceTargetValidating
+        ResourceTargetRefresh.IsEnabled = Not _resourceTargetLoading AndAlso Not _resourceTargetValidating
         OnlinePackNameHint.Text = If(problem, "") : OnlinePackNameHint.Visibility = If(problem Is Nothing, Visibility.Collapsed, Visibility.Visible)
         OnlinePackNameHint.Theme = If(_resourceTargetLoading OrElse _resourceWorldLoading, PclHintTheme.Blue, PclHintTheme.Red)
         If instance IsNot Nothing Then
