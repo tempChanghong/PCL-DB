@@ -24,6 +24,37 @@ Public NotInheritable Class LocalModEntry
     Public ReadOnly Property Warnings As New List(Of String)
     Private ReadOnly _ids As New List(Of String)
     Private ReadOnly _idSet As New HashSet(Of String)(StringComparer.Ordinal)
+    Private _iconData As Byte()
+    Private _iconWidth As Integer, _iconHeight As Integer
+    Public ReadOnly Property IconWidth As Integer
+        Get
+            Return _iconWidth
+        End Get
+    End Property
+    Public ReadOnly Property IconHeight As Integer
+        Get
+            Return _iconHeight
+        End Get
+    End Property
+    Public ReadOnly Property IconData As Byte()
+        Get
+            Return If(_iconData Is Nothing, Nothing, DirectCast(_iconData.Clone(), Byte()))
+        End Get
+    End Property
+    Friend ReadOnly Property IconLength As Integer
+        Get
+            Return If(_iconData Is Nothing, 0, _iconData.Length)
+        End Get
+    End Property
+    Friend Sub SetIcon(data As Byte())
+        _iconData = data
+        Dim width As Long, height As Long
+        If data IsNot Nothing AndAlso LocalModCatalog.TryIconDimensions(data, width, height) Then
+            _iconWidth = CInt(width) : _iconHeight = CInt(height)
+        Else
+            _iconWidth = 0 : _iconHeight = 0
+        End If
+    End Sub
     Public ReadOnly Property ModIds As IReadOnlyList(Of String)
         Get
             Return _ids.AsReadOnly()
@@ -74,11 +105,15 @@ Public NotInheritable Class LocalModCatalog
     End Function
     Public Shared Function Scan(instance As InstalledInstance, token As CancellationToken) As List(Of LocalModEntry)
         token.ThrowIfCancellationRequested()
-        Dim full = ModsDirectory(instance, token), result As New List(Of LocalModEntry)
+        Dim full = ModsDirectory(instance, token), result As New List(Of LocalModEntry), iconBudget = 32 * 1024 * 1024
         If Directory.Exists(full) Then
             For Each filePath In Directory.EnumerateFiles(full)
                 token.ThrowIfCancellationRequested()
-                If IsSupportedFile(filePath) Then result.Add(Read(filePath, token))
+                If IsSupportedFile(filePath) Then
+                    Dim item = Read(filePath, token)
+                    If item.IconLength > iconBudget Then item.SetIcon(Nothing) Else iconBudget -= item.IconLength
+                    result.Add(item)
+                End If
             Next
         End If
         InstalledInstanceCatalog.EnsureUnchanged(instance, token)
@@ -148,6 +183,7 @@ Public NotInheritable Class LocalModCatalog
         Friend Version As String
         Friend Description As String
         Friend Loader As String
+        Friend Icon As String
     End Class
     Private Shared Sub ReadMetadata(archive As ZipArchive, result As LocalModEntry, token As CancellationToken)
         ' PCL-CE 915ac297 ModLocalComp documents these local metadata formats;
@@ -207,10 +243,73 @@ Public NotInheritable Class LocalModCatalog
         End If
         If Not result.Recognized Then result.Warnings.Add("未识别本地 Mod 元数据，兼容性未知。")
         If problems.Count > 0 Then result.Problem = DisplayText(String.Join("；", problems), 1024, False)
+        For Each identity In identities
+            Dim icon = ReadIcon(archive, identity.Icon, token)
+            If icon IsNot Nothing Then result.SetIcon(icon) : Exit For
+        Next
         If Not String.IsNullOrEmpty(result.Version) AndAlso result.Version.Contains("${") Then
             result.Version = Nothing : result.Warnings.Add("版本包含未解析的构建占位符。")
         End If
     End Sub
+    Private Shared Function IconPath(value As JToken) As String
+        If value?.Type = JTokenType.String Then Return CStr(value)
+        Dim sizes = TryCast(value, JObject)
+        If sizes Is Nothing Then Return Nothing
+        Dim candidates As New List(Of KeyValuePair(Of Integer, String))
+        For Each item In sizes.Properties()
+            Dim size As Integer
+            If Integer.TryParse(item.Name, size) AndAlso size > 0 AndAlso item.Value.Type = JTokenType.String Then candidates.Add(New KeyValuePair(Of Integer, String)(size, CStr(item.Value)))
+        Next
+        Return candidates.OrderBy(Function(item) If(item.Key >= 64, 0, 1)).ThenBy(Function(item) Math.Abs(CLng(item.Key) - 64)).Select(Function(item) item.Value).FirstOrDefault()
+    End Function
+    Private Shared Function ReadIcon(archive As ZipArchive, name As String, token As CancellationToken) As Byte()
+        If String.IsNullOrWhiteSpace(name) OrElse name.Length > 1024 OrElse name.Any(Function(ch) Char.IsControl(ch)) Then Return Nothing
+        name = name.Replace("\", "/")
+        If name.StartsWith("/", StringComparison.Ordinal) OrElse name.Contains(":") OrElse name.Split("/"c).Any(Function(part) part = ".." OrElse part = "." OrElse part = "") Then Return Nothing
+        Try
+            Dim matches = archive.Entries.Where(Function(entry) entry.FullName = name).Take(2).ToArray()
+            If matches.Length <> 1 OrElse matches(0).Length > 1024 * 1024 Then Return Nothing
+            Dim bytes = ReadBytes(matches(0), token)
+            If Not SafeIconDimensions(bytes) Then Return Nothing
+            Return bytes
+        Catch ex As Exception When TypeOf ex Is IOException OrElse TypeOf ex Is InvalidDataException OrElse TypeOf ex Is ArgumentException
+            Return Nothing
+        End Try
+    End Function
+    Friend Shared Function SafeIconDimensions(bytes As Byte()) As Boolean
+        Dim width As Long, height As Long
+        Return TryIconDimensions(bytes, width, height)
+    End Function
+    Friend Shared Function TryIconDimensions(bytes As Byte(), ByRef width As Long, ByRef height As Long) As Boolean
+        width = 0 : height = 0
+        If bytes.Length < 24 OrElse bytes.Length > 1024 * 1024 Then Return False
+        If bytes.Take(8).SequenceEqual(New Byte() {137, 80, 78, 71, 13, 10, 26, 10}) Then
+            width = CLng(bytes(16)) * 16777216 + CLng(bytes(17)) * 65536 + CLng(bytes(18)) * 256 + bytes(19)
+            height = CLng(bytes(20)) * 16777216 + CLng(bytes(21)) * 65536 + CLng(bytes(22)) * 256 + bytes(23)
+        ElseIf bytes(0) = 255 AndAlso bytes(1) = 216 Then
+            ' Several real Mod archives store JPEG bytes under an .png name.
+            Dim offset = 2
+            While offset + 3 < bytes.Length
+                If bytes(offset) <> 255 Then Return False
+                While offset < bytes.Length AndAlso bytes(offset) = 255 : offset += 1 : End While
+                If offset >= bytes.Length Then Return False
+                Dim marker = CInt(bytes(offset)) : offset += 1
+                If marker = 217 OrElse marker = 218 Then Return False
+                If marker = 1 OrElse (marker >= 208 AndAlso marker <= 215) Then Continue While
+                If offset + 1 >= bytes.Length Then Return False
+                Dim size = CInt(bytes(offset)) * 256 + bytes(offset + 1)
+                If size < 2 OrElse offset + size > bytes.Length Then Return False
+                If marker >= 192 AndAlso marker <= 207 AndAlso Not {196, 200, 204}.Contains(marker) Then
+                    If size < 8 Then Return False
+                    height = CInt(bytes(offset + 3)) * 256 + bytes(offset + 4)
+                    width = CInt(bytes(offset + 5)) * 256 + bytes(offset + 6)
+                    Exit While
+                End If
+                offset += size
+            End While
+        End If
+        Return width >= 1 AndAlso height >= 1 AndAlso width <= 4096 AndAlso height <= 4096
+    End Function
     Private Shared Function DisplayText(value As String, maximum As Integer, singleLine As Boolean) As String
         If value Is Nothing Then Return Nothing
         If singleLine Then value = value.Replace(vbCr, " ").Replace(vbLf, " ").Replace(ChrW(9), " "c).Trim()
@@ -252,23 +351,23 @@ Public NotInheritable Class LocalModCatalog
         Return text
     End Function
     Private Shared Function ReadFabric(json As JObject) As Identity
-        Return New Identity With {.Id = Scalar(json("id"), True), .Name = Scalar(json("name")), .Version = Scalar(json("version")), .Description = Scalar(json("description")), .Loader = "Fabric"}
+        Return New Identity With {.Id = Scalar(json("id"), True), .Name = Scalar(json("name")), .Version = Scalar(json("version")), .Description = Scalar(json("description")), .Loader = "Fabric", .Icon = IconPath(json("icon"))}
     End Function
     Private Shared Function ReadQuilt(json As JObject) As Identity
         Dim loader = TryCast(json("quilt_loader"), JObject)
         If loader Is Nothing Then Throw New InvalidDataException("缺少 Quilt 加载器信息。")
         Dim metadata = TryCast(loader("metadata"), JObject)
-        Return New Identity With {.Id = Scalar(loader("id"), True), .Name = Scalar(metadata?("name")), .Version = Scalar(loader("version")), .Description = Scalar(metadata?("description")), .Loader = "Quilt"}
+        Return New Identity With {.Id = Scalar(loader("id"), True), .Name = Scalar(metadata?("name")), .Version = Scalar(loader("version")), .Description = Scalar(metadata?("description")), .Loader = "Quilt", .Icon = IconPath(metadata?("icon"))}
     End Function
     Private Shared Function ReadLite(json As JObject) As Identity
-        Return New Identity With {.Id = Scalar(json("name"), True), .Name = If(Scalar(json("displayName")), Scalar(json("name"))), .Version = Scalar(json("version")), .Description = Scalar(json("description")), .Loader = "LiteLoader"}
+        Return New Identity With {.Id = Scalar(json("name"), True), .Name = If(Scalar(json("displayName")), Scalar(json("name"))), .Version = Scalar(json("version")), .Description = Scalar(json("description")), .Loader = "LiteLoader", .Icon = IconPath(json("logoFile"))}
     End Function
     Private Shared Function ReadLegacy(text As String) As IEnumerable(Of Identity)
         Dim json = JToken.Parse(text, New JsonLoadSettings With {.DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error})
         Dim items = TryCast(json, JArray)
         If items Is Nothing AndAlso TypeOf json Is JObject Then items = TryCast(json("modList"), JArray)
         If items Is Nothing OrElse items.Count = 0 OrElse items.Any(Function(item) Not TypeOf item Is JObject) Then Throw New InvalidDataException("旧版 Mod 信息列表无效。")
-        Return items.OfType(Of JObject)().Select(Function(item) New Identity With {.Id = Scalar(item("modid"), True), .Name = Scalar(item("name")), .Version = Scalar(item("version")), .Description = Scalar(item("description")), .Loader = "Forge"}).ToList()
+        Return items.OfType(Of JObject)().Select(Function(item) New Identity With {.Id = Scalar(item("modid"), True), .Name = Scalar(item("name")), .Version = Scalar(item("version")), .Description = Scalar(item("description")), .Loader = "Forge", .Icon = IconPath(item("logoFile"))}).ToList()
     End Function
     Private Shared Function ResolveVersion(value As String, manifest As Dictionary(Of String, String)) As String
         If value = "${file.jarVersion}" Then
@@ -343,7 +442,15 @@ Public NotInheritable Class LocalModCatalog
                     If equals < 1 Then Throw New InvalidDataException("Mod TOML 字段无效。")
                     Dim key = line.Substring(0, equals).Trim()
                     If key.StartsWith("""", StringComparison.Ordinal) OrElse key.StartsWith("'", StringComparison.Ordinal) Then key = StringValue(key)
-                    If Not {"modId", "displayName", "version", "description"}.Contains(key, StringComparer.Ordinal) Then Continue For
+                    If Not {"modId", "displayName", "version", "description", "logoFile"}.Contains(key, StringComparer.Ordinal) Then Continue For
+                    If key = "logoFile" Then
+                        Try
+                            If current.ContainsKey(key) Then current(key) = Nothing Else current.Add(key, StringValue(line.Substring(equals + 1).Trim()))
+                        Catch ex As InvalidDataException
+                            current(key) = Nothing
+                        End Try
+                        Continue For
+                    End If
                     If current.ContainsKey(key) Then Throw New InvalidDataException("Mod TOML 字段重复：" & key)
                     current.Add(key, StringValue(line.Substring(equals + 1).Trim()))
                 End If
@@ -353,10 +460,11 @@ Public NotInheritable Class LocalModCatalog
             Return result
         End Function
         Private Shared Function ToIdentity(values As Dictionary(Of String, String), loader As String) As Identity
-            Dim id As String = Nothing, name As String = Nothing, version As String = Nothing, description As String = Nothing
+            Dim id As String = Nothing, name As String = Nothing, version As String = Nothing, description As String = Nothing, icon As String = Nothing
             If Not values.TryGetValue("modId", id) OrElse String.IsNullOrWhiteSpace(id) Then Throw New InvalidDataException("TOML 中缺少 Mod ID。")
             values.TryGetValue("displayName", name) : values.TryGetValue("version", version) : values.TryGetValue("description", description)
-            Return New Identity With {.Id = id, .Name = name, .Version = version, .Description = description, .Loader = loader}
+            values.TryGetValue("logoFile", icon)
+            Return New Identity With {.Id = id, .Name = name, .Version = version, .Description = description, .Loader = loader, .Icon = icon}
         End Function
         Private Shared Function Statements(text As String) As List(Of String)
             Dim result As New List(Of String), buffer As New StringBuilder(), quote As Char = ChrW(0), triple As Boolean = False, comment As Boolean = False, escaped As Boolean = False

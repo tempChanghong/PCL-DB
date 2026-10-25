@@ -1,5 +1,13 @@
 Imports System.Threading
 
+Public NotInheritable Class ModpackSearchPreview
+    Public ReadOnly Property Projects As IReadOnlyList(Of ModpackProject)
+    Public ReadOnly Property Pending As ModpackPlatform()
+    Friend Sub New(items As IEnumerable(Of ModpackProject), pendingSources As IEnumerable(Of ModpackPlatform))
+        Projects = items.ToList().AsReadOnly() : Pending = pendingSources.ToArray()
+    End Sub
+End Class
+
 ' PCL ResourceSearcher.SearchResult: one cursor per source, append-only results,
 ' partial failure, and a stable 40-item presentation page. No fuzzy identity merge.
 Public NotInheritable Class ModpackSearchSession
@@ -47,6 +55,11 @@ Public NotInheritable Class ModpackSearchSession
             Return String.Join(vbCrLf, _errors.Select(Function(pair) pair.Key.ToString() & "：" & pair.Value))
         End Get
     End Property
+    Public ReadOnly Property FailedPlatforms As ModpackPlatform()
+        Get
+            Return _errors.Keys.ToArray()
+        End Get
+    End Property
     Public Function HasNext(page As Integer) As Boolean
         If page < 0 OrElse page > MaxPage Then Return False
         If page = MaxPage Then Return _results.Count < (page + 1) * ModpackCatalogClient.PageSize AndAlso HasMore
@@ -64,7 +77,7 @@ Public NotInheritable Class ModpackSearchSession
             Return New FetchResult With {.Platform = platform, .Failure = ex.GetBaseException().Message}
         End Try
     End Function
-    Public Async Function GetPageAsync(page As Integer, client As ModpackCatalogClient, token As CancellationToken) As Task(Of List(Of ModpackProject))
+    Public Async Function GetPageAsync(page As Integer, client As ModpackCatalogClient, token As CancellationToken, Optional progress As IProgress(Of ModpackSearchPreview) = Nothing) As Task(Of List(Of ModpackProject))
         If page < 0 OrElse page > MaxPage Then Throw New ArgumentOutOfRangeException(NameOf(page))
         Await _gate.WaitAsync(token).ConfigureAwait(False)
         Try
@@ -72,7 +85,35 @@ Public NotInheritable Class ModpackSearchSession
             For round = 1 To 4
                 If _results.Count >= target OrElse Not HasMore Then Exit For
                 Dim active = _offsets.Keys.Where(Function(platform) Not _ended.Contains(platform) AndAlso Not _errors.ContainsKey(platform)).ToArray()
-                Dim batches = Await Task.WhenAll(active.Select(Function(platform) FetchAsync(client, platform, _query, _offsets(platform), token))).ConfigureAwait(False)
+                Dim pending = active.Select(Function(platform) New With {.Platform = platform, .Work = FetchAsync(client, platform, _query, _offsets(platform), token)}).ToList()
+                Dim batches As FetchResult()
+                If progress IsNot Nothing AndAlso pending.Count > 1 Then
+                    Dim completed As New List(Of FetchResult)
+                    Try
+                        While pending.Count > 0
+                            Dim work = Await Task.WhenAny(pending.Select(Function(item) item.Work)).ConfigureAwait(False)
+                            Dim batch = Await work.ConfigureAwait(False)
+                            pending.RemoveAll(Function(item) item.Work Is work) : completed.Add(batch)
+                            token.ThrowIfCancellationRequested()
+                            If pending.Count > 0 Then
+                                Dim freshPreview = completed.Where(Function(item) item.Page IsNot Nothing).SelectMany(Function(item) item.Page.Projects).
+                                    GroupBy(Function(item) item.Key, StringComparer.Ordinal).Select(Function(group) group.First()).Where(Function(item) Not _seen.Contains(item.Key)).
+                                    OrderByDescending(Function(item) Relevance(item.Name)).ThenByDescending(Function(item) item.Downloads).ThenBy(Function(item) item.Key, StringComparer.Ordinal)
+                                Dim preview = _results.Concat(freshPreview).Skip(page * ModpackCatalogClient.PageSize).Take(ModpackCatalogClient.PageSize)
+                                progress.Report(New ModpackSearchPreview(preview, pending.Select(Function(item) item.Platform)))
+                            End If
+                        End While
+                    Finally
+                        ' Pending requests own their response/stream cleanup. On
+                        ' cancellation observe their eventual faults before disposal.
+                        For Each item In pending
+                            Dim observer = item.Work.ContinueWith(Function(task) task.Exception, TaskContinuationOptions.OnlyOnFaulted Or TaskContinuationOptions.ExecuteSynchronously)
+                        Next
+                    End Try
+                    batches = completed.ToArray()
+                Else
+                    batches = Await Task.WhenAll(pending.Select(Function(item) item.Work)).ConfigureAwait(False)
+                End If
                 token.ThrowIfCancellationRequested()
                 Dim fresh As New List(Of ModpackProject)
                 For Each batch In batches

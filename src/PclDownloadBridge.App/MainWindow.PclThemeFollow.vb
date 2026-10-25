@@ -7,15 +7,41 @@ Partial Public Class MainWindow
     Private _pclThemeSnapshot As PclThemeSnapshot
     Private _followPreview As Boolean
     Private _appliedPaletteKey As String
+    Private _pclThemeBoundPath As String
 
     Private Sub InitializePclThemeFollow()
         _pclThemeMonitor = New PclThemeMonitor(Dispatcher, AddressOf ReceivePclTheme)
         AddHandler Closed, Sub() _pclThemeMonitor.Dispose()
     End Sub
     Private Sub ConfigurePclThemeFollow()
-        _pclThemeSnapshot = Nothing
         Dim enabled = _appearance.FollowPclTheme AndAlso (Not _preview OrElse _followPreview) AndAlso Not _closing
-        _pclThemeMonitor.Bind(If(enabled, _appearance.PclThemeFile, Nothing))
+        Dim path = If(enabled, CurrentPclThemeFile(), Nothing)
+        If String.Equals(path, _pclThemeBoundPath, StringComparison.OrdinalIgnoreCase) Then Return
+        _pclThemeBoundPath = path : _pclThemeSnapshot = Nothing
+        _pclThemeMonitor.Bind(path)
+    End Sub
+    Private Function CurrentPclThemeFile() As String
+        Dim id As String = Nothing
+        If _launcherState IsNot Nothing AndAlso _launcherState.SelectedRows.TryGetValue(Core.ExternalLauncherKind.Pcl, id) Then
+            Dim binding = _launcherState.Bindings.FirstOrDefault(Function(item) item.Kind = Core.ExternalLauncherKind.Pcl AndAlso item.Id = id)
+            If binding IsNot Nothing Then
+                Try
+                    binding.ValidatePclConfiguration()
+                    Return PclThemeSnapshot.NormalizePath(If(binding.ConfigPath, IO.Path.Combine(binding.Workspace, "PCL", "Setup.ini")))
+                Catch ex As Exception When TypeOf ex Is ArgumentException OrElse TypeOf ex Is IO.IOException OrElse TypeOf ex Is IO.InvalidDataException OrElse TypeOf ex Is NotSupportedException
+                    Return ""
+                End Try
+            End If
+            Return ""
+        End If
+        If _launcherState IsNot Nothing AndAlso _launcherState.Bindings.Any(Function(item) item.Kind = Core.ExternalLauncherKind.Pcl) Then Return ""
+        ' Preserve explicit sources saved before the launcher-card integration.
+        Return _appearance.PclThemeFile
+    End Function
+    Private Sub RefreshFollowedLauncherTheme()
+        If _pclThemeMonitor Is Nothing OrElse Not _appearance.FollowPclTheme OrElse _closing Then Return
+        ConfigurePclThemeFollow()
+        ApplyAppearance(externalRefresh:=True)
     End Sub
     Private Sub ReceivePclTheme(snapshot As PclThemeSnapshot)
         If _closing OrElse Not _appearance.FollowPclTheme OrElse (_preview AndAlso Not _followPreview) Then Return
@@ -25,7 +51,9 @@ Partial Public Class MainWindow
         ApplyAppearance(externalRefresh:=True)
     End Sub
     Private Function FollowedAppearance(local As AppearancePreferences) As AppearancePreferences
-        PclThemePathBox.Text = _appearance.PclThemeFile
+        Dim source = CurrentPclThemeFile()
+        PclThemePathBox.Text = source
+        PclThemeStatus.ToolTip = source
         PclThemeSourcePanel.Visibility = If(_appearance.FollowPclTheme, Visibility.Visible, Visibility.Collapsed)
         AppearanceThemes.IsEnabled = Not _appearance.FollowPclTheme
         CustomThemeGrid.IsEnabled = Not _appearance.FollowPclTheme
@@ -35,8 +63,8 @@ Partial Public Class MainWindow
             Return local
         End If
         Dim reason As String
-        If String.IsNullOrWhiteSpace(_appearance.PclThemeFile) Then
-            reason = "请先选择要跟随的 PCL。"
+        If String.IsNullOrWhiteSpace(source) Then
+            reason = "请先选择外部启动器中的 PCL 位置。"
         ElseIf _pclThemeSnapshot Is Nothing Then
             reason = "正在读取所选 PCL 的主题。"
         ElseIf Not _pclThemeSnapshot.Success Then

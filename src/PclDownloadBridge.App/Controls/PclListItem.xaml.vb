@@ -41,6 +41,16 @@ Namespace Controls
         Private _infoTag As Border
         Private _infoTagText As TextBlock
         Private _logo As FrameworkElement
+        Private _logoStretch As Stretch = Stretch.Fill
+        Public Property LogoStretch As Stretch
+            Get
+                Return _logoStretch
+            End Get
+            Set(value As Stretch)
+                _logoStretch = value
+                If TypeOf _logo Is Image Then DirectCast(_logo, Image).Stretch = value
+            End Set
+        End Property
         Private _selected As Boolean
         Private _down As Boolean
         Private _outlineLogo As Boolean
@@ -140,7 +150,7 @@ Namespace Controls
                     Return
                 End If
                 If value.EndsWith(".png", StringComparison.OrdinalIgnoreCase) Then
-                    _logo = New Image With {.Source = New BitmapImage(New Uri(value, UriKind.RelativeOrAbsolute)), .Margin = New Thickness(4, 5, 3, 5), .Stretch = Stretch.Fill}
+                    _logo = New Image With {.Source = New BitmapImage(New Uri(value, UriKind.RelativeOrAbsolute)), .Margin = New Thickness(4, 5, 3, 5), .Stretch = _logoStretch}
                     RenderOptions.SetBitmapScalingMode(_logo, BitmapScalingMode.Linear)
                 Else
                     _logo = New Shapes.Path With {.Data = Geometry.Parse(value), .Fill = Foreground, .Stretch = Stretch.Uniform, .Margin = New Thickness(If(Height < 40, 6, 8), 8, If(Height < 40, 4, 6), 8), .HorizontalAlignment = HorizontalAlignment.Center, .VerticalAlignment = VerticalAlignment.Center}

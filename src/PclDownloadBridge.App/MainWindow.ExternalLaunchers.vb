@@ -40,6 +40,7 @@ Partial Public Class MainWindow
         Finally
             _restoringLaunchers = False
         End Try
+        RefreshFollowedLauncherTheme()
     End Sub
 
     Private Async Function RestoreLauncherBindingsAsync(settings As JObject) As Task
@@ -108,6 +109,7 @@ Partial Public Class MainWindow
         If binding Is Nothing Then Return
         _launcherReadGeneration += 1
         _launcherState.SelectedRows(binding.Kind) = binding.Id
+        If binding.Kind = ExternalLauncherKind.Pcl Then RefreshFollowedLauncherTheme()
         LauncherReadStatus.Text = "已选择 " & binding.DisplayName & "，请点击「读取目录」。"
         PersistSettings()
     End Sub

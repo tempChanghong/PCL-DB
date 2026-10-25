@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 资源浏览、图标与主题来源联动
+
+- 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`ResourceSearcher.vb` 的来源游标/结果排序、`ModDownload.DlModRequest` 的两次十秒 MCIM 请求、`MyPageRight.vb` 的加载/入场状态与强制停留、`MyLocalModItem.xaml.vb` 的项目图标和缺省图，以及 `MyListItem.xaml.vb` 的图片布局。首次进入按用户要求直接显示加载；仍等待实际父级入场后计算停留时间，手动搜索沿用原等待策略。新增非提交的来源预览，最终混合排序、游标、分页与安装路径保持。
+- PCL2 本地 Mod 行使用已识别项目的在线图标；本轮另参考 PCL-CE 固定 `915ac29795efbdf6373417389e181e1504117048` 的 `ModLocalComp.cs`（Fabric/Quilt/TOML/旧 Forge 图标声明）补入归档内图片读取，以保持不依赖下载来源。内存读取、大小/像素上限及本地管理取消属于本工具适配，未移植 CE 的落盘图片缓存。没有可用内置图片时仍用缺省图；本轮没有新增批量联网项目识别。
+- 主题仍按既有 PCL `UiLauncherTheme` 配置读取器与只读监测工作，来源改为已有外部启动器卡片的明确 PCL 选择；旧独立来源只在没有任何 PCL 绑定时保留兼容。详见[范围及实测](docs/reviews/resource-browser-followup.md)。
+
 ## 本地管理后台取消边界
 
 - 读取固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `Modules/Base/ModLoader.vb`：在线程委托内捕获取消，并区分已重启的旧线程和当前线程的手动取消；正常结果仅在仍属当前线程时发布，失败单独进入 Failed。本工具继续采用现有 CancellationToken 和代次检查，在 Task.Run 的工作委托内将本请求取消转换为 Canceled 任务；其他异常保留 Faulted，不修改 Core 文件/隔离操作。[本轮取消处理与验证](docs/reviews/management-cancellation.md)。

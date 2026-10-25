@@ -30,6 +30,7 @@ Namespace Controls
         Private _motion As PclSurfaceMotion
         Private _settled As EventHandler
         Private _finished As Boolean
+        Private _immediate As Boolean
         Private _due As Double
         Friend Property NowForChecks As Func(Of Double)
         Private _phase As Phases = Phases.Idle
@@ -61,9 +62,10 @@ Namespace Controls
             AddHandler host.IsVisibleChanged, AddressOf VisibilityChanged
         End Sub
 
-        Friend Sub Start(owner As Object, token As CancellationToken, prepare As Action, show As Action)
+        Friend Sub Start(owner As Object, token As CancellationToken, prepare As Action, show As Action, Optional immediate As Boolean = False)
             Reset()
             _owner = owner : _prepare = prepare : _show = show
+            _immediate = immediate
             _ready = New TaskCompletionSource(Of Boolean)(TaskCreationOptions.RunContinuationsAsynchronously)
             _registration = token.Register(Sub() _host.Dispatcher.BeginInvoke(New Action(Sub()
                                                                                            If _owner Is owner Then Reset()
@@ -71,7 +73,7 @@ Namespace Controls
             If token.IsCancellationRequested Then Reset() : Return
             If _enabled() Then
                 If _host.IsVisible AndAlso _host.IsLoaded Then
-                    BeginWait()
+                    If immediate Then EnterLoading(True) Else BeginWait()
                 Else
                     Phase = Phases.Hidden : prepare()
                 End If
@@ -97,7 +99,7 @@ Namespace Controls
             _registration.Dispose() : _registration = Nothing
             Dim pending = _ready
             _owner = Nothing : _ready = Nothing : _prepare = Nothing : _show = Nothing
-            _finished = False : Phase = Phases.Idle
+            _finished = False : _immediate = False : Phase = Phases.Idle
             pending?.TrySetResult(True)
         End Sub
 
@@ -127,6 +129,27 @@ Namespace Controls
                 Phase = Phases.MinimumStay : Arm(MinimumMilliseconds)
             End If
         End Sub
+        Private Sub EnterLoading(deferObservation As Boolean)
+            Dim owner = _owner
+            Phase = Phases.Entering : _show()
+            If deferObservation Then
+                ' The initial category's parent clock is created after its content
+                ' callback. Observe that clock after the transaction has returned.
+                _host.Dispatcher.BeginInvoke(New Action(Sub() ObserveEntry(owner)))
+            Else
+                ObserveEntry(owner)
+            End If
+        End Sub
+        Private Sub ObserveEntry(owner As Object)
+            If _owner IsNot owner OrElse Phase <> Phases.Entering Then Return
+            _motion = _entry()
+            If _motion Is Nothing OrElse _motion.Transition Is Nothing Then
+                Entered(owner)
+            Else
+                _settled = Sub() Entered(owner)
+                AddHandler _motion.Settled, _settled
+            End If
+        End Sub
 
         Friend Sub Pulse()
             If _owner Is Nothing Then Return
@@ -145,18 +168,7 @@ Namespace Controls
             If Now() < _due Then Return
             _timer.Stop()
             If Phase = Phases.Waiting Then
-                Dim owner = _owner
-                Phase = Phases.Entering : _show()
-                ' ChangePackContent may hand this entry to the existing root or
-                ' category controller. Follow that controller rather than a guessed duration.
-                If _owner IsNot owner OrElse Phase <> Phases.Entering Then Return
-                _motion = _entry()
-                If _motion Is Nothing OrElse _motion.Transition Is Nothing Then
-                    Entered(owner)
-                Else
-                    _settled = Sub() Entered(owner)
-                    AddHandler _motion.Settled, _settled
-                End If
+                EnterLoading(False)
             ElseIf Phase = Phases.MinimumStay Then
                 If _finished Then
                     Reset()
@@ -189,7 +201,7 @@ Namespace Controls
             _host.Dispatcher.BeginInvoke(New Action(Sub()
                                                        If _owner IsNot owner OrElse Not _host.IsVisible OrElse Not _host.IsLoaded OrElse Phase <> Phases.Hidden Then Return
                                                        If _enabled() Then
-                                                           BeginWait()
+                                                           If _immediate Then EnterLoading(True) Else BeginWait()
                                                        Else
                                                            Phase = Phases.Loading : _show()
                                                        End If

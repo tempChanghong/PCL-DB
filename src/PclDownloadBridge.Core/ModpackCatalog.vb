@@ -382,32 +382,54 @@ Public NotInheritable Class ModpackCatalogClient
         End If
         Dim failures As New List(Of String)
         For Each address In urls
-            token.ThrowIfCancellationRequested()
-            Try
-                Using deadline = CancellationTokenSource.CreateLinkedTokenSource(token), request As New HttpRequestMessage(HttpMethod.Get, address)
-                    deadline.CancelAfter(TimeSpan.FromSeconds(15))
-                    If New Uri(address).Host = "api.curseforge.com" AndAlso Not String.IsNullOrWhiteSpace(_key) Then request.Headers.TryAddWithoutValidation("x-api-key", _key)
-                    Using response = Await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(False)
-                        response.EnsureSuccessStatusCode()
-                        Using registration = deadline.Token.Register(Sub() response.Dispose()), input = Await response.Content.ReadAsStreamAsync().ConfigureAwait(False), buffer As New MemoryStream()
-                            Dim block(8191) As Byte
-                            Do
-                                Dim read = Await input.ReadAsync(block, 0, block.Length, deadline.Token).ConfigureAwait(False)
-                                If read = 0 Then Exit Do
-                                If buffer.Length + read > 16L * 1024 * 1024 Then Throw New InvalidDataException("平台响应超过大小限制。")
-                                buffer.Write(block, 0, read)
-                            Loop
-                            token.ThrowIfCancellationRequested()
-                            Return JToken.Parse(System.Text.Encoding.UTF8.GetString(buffer.ToArray()), New JsonLoadSettings With {.DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error})
-                        End Using
-                    End Using
-                End Using
-            Catch ex As Exception When Not token.IsCancellationRequested
-                failures.Add(New Uri(address).Host & "：" & If(TypeOf ex Is OperationCanceledException, "请求超时", ex.GetBaseException().Message))
-            End Try
+            Dim mirror = New Uri(address).Host = "mod.mcimirror.top" AndAlso address.Contains("/curseforge/")
+            For attempt = 1 To If(mirror, 2, 1)
+                token.ThrowIfCancellationRequested()
+                Dim retry = False
+                Try
+                    Return Await FetchTokenAsync(address, If(mirror, 10, 15), token).ConfigureAwait(False)
+                Catch ex As Exception When Not token.IsCancellationRequested
+                    failures.Add(New Uri(address).Host & "：" & If(TypeOf ex Is OperationCanceledException, "请求超时", ex.GetBaseException().Message))
+                    Dim http = TryCast(ex, CatalogueHttpException)
+                    retry = If(http IsNot Nothing, http.Transient, TypeOf ex Is HttpRequestException OrElse TypeOf ex Is OperationCanceledException OrElse
+                        (TypeOf ex Is IOException AndAlso Not TypeOf ex Is InvalidDataException))
+                End Try
+                If Not retry OrElse Not mirror OrElse attempt = 2 Then Exit For
+                ' Fixed PCL DlModRequest repeats its ten-second MCIM request.
+                ' Keep retries bounded and cancellable, never retry bad metadata.
+                Await Task.Delay(200, token).ConfigureAwait(False)
+            Next
         Next
         token.ThrowIfCancellationRequested()
-        Throw New IOException(String.Join("；", failures))
+        Throw New IOException(String.Join("；", failures.Distinct()))
+    End Function
+    Private Class CatalogueHttpException
+        Inherits HttpRequestException
+        Friend ReadOnly Transient As Boolean
+        Friend Sub New(code As Integer, reason As String)
+            MyBase.New("HTTP " & code.ToString(Globalization.CultureInfo.InvariantCulture) & If(String.IsNullOrWhiteSpace(reason), "", " (" & reason.Substring(0, Math.Min(reason.Length, 256)) & ")"))
+            Transient = code = 408 OrElse code = 429 OrElse code >= 500
+        End Sub
+    End Class
+    Private Async Function FetchTokenAsync(address As String, seconds As Integer, token As CancellationToken) As Task(Of JToken)
+        Using deadline = CancellationTokenSource.CreateLinkedTokenSource(token), request As New HttpRequestMessage(HttpMethod.Get, address)
+            deadline.CancelAfter(TimeSpan.FromSeconds(seconds))
+            If New Uri(address).Host = "api.curseforge.com" AndAlso Not String.IsNullOrWhiteSpace(_key) Then request.Headers.TryAddWithoutValidation("x-api-key", _key)
+            Using response = Await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(False)
+                If Not response.IsSuccessStatusCode Then Throw New CatalogueHttpException(CInt(response.StatusCode), response.ReasonPhrase)
+                Using registration = deadline.Token.Register(Sub() response.Dispose()), input = Await response.Content.ReadAsStreamAsync().ConfigureAwait(False), buffer As New MemoryStream()
+                    Dim block(8191) As Byte
+                    Do
+                        Dim read = Await input.ReadAsync(block, 0, block.Length, deadline.Token).ConfigureAwait(False)
+                        If read = 0 Then Exit Do
+                        If buffer.Length + read > 16L * 1024 * 1024 Then Throw New InvalidDataException("平台响应超过大小限制。")
+                        buffer.Write(block, 0, read)
+                    Loop
+                    token.ThrowIfCancellationRequested()
+                    Return JToken.Parse(System.Text.Encoding.UTF8.GetString(buffer.ToArray()), New JsonLoadSettings With {.DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error})
+                End Using
+            End Using
+        End Using
     End Function
     Private Shared Sub ValidateId(platform As ModpackPlatform, id As String)
         If platform <> ModpackPlatform.Modrinth AndAlso platform <> ModpackPlatform.CurseForge Then Throw New ArgumentException("平台无效。")

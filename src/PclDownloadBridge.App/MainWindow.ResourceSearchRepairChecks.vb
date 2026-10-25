@@ -80,6 +80,7 @@ Partial Public Class MainWindow
         check(_resourceKind = CommunityResourceKind.Modpack AndAlso _packSearchLoading.Phase = PclLoadingPresentation.Phases.Idle AndAlso PackResultsCard.IsVisible AndAlso PackProjectRows.Children.OfType(Of PclResourceItem)().Count() = 1 AndAlso CanUsePackSearchInput(PackSearchButton),
             "switching during the loading entry retires old callbacks and a button retry displays only the new category")
         SaveControlVisual(host, Path.Combine(directory, "search-category-return.png"))
+        _packSearchLoading.NowForChecks = Nothing
         _resourceBrowsers.Clear() : _packAutoSearchForChecks = True
         SelectResourceKind(CommunityResourceKind.Mod)
         Await Task.Delay(1700) : layout()

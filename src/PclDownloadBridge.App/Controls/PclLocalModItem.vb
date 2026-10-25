@@ -71,8 +71,8 @@ Namespace Controls
                 .BorderBrush = Brush("ColorBrush6"), .Opacity = 0, .RenderTransform = New ScaleTransform(0.8, 0.8), .RenderTransformOrigin = New Point(0.5, 0.5), .IsHitTestVisible = False}
             SetColumnSpan(_back, 6) : SetRowSpan(_back, 4) : Children.Add(_back)
             _hover = New PclResourceHoverMotion(_back)
-            Icon = New Image With {.Width = 34, .Height = 34, .Stretch = Stretch.UniformToFill, .IsHitTestVisible = False,
-                .Source = New BitmapImage(New Uri("pack://application:,,,/Images/Blocks/NoIcon.png"))}
+            Icon = New Image With {.Width = 34, .Height = 34, .Stretch = Stretch.Uniform, .IsHitTestVisible = False,
+                .Source = ModIcon(entry)}
             RenderOptions.SetBitmapScalingMode(Icon, BitmapScalingMode.HighQuality)
             Dim iconFrame As New Border With {.Width = 34, .Height = 34, .Child = Icon, .IsHitTestVisible = False,
                 .Clip = New RectangleGeometry(New Rect(0, 0, 34, 34), 6, 6), .VerticalAlignment = VerticalAlignment.Center}
@@ -151,6 +151,27 @@ Namespace Controls
                                   RefreshAppearance(False)
                               End Sub)
         End Sub
+        Private Shared Function ModIcon(entry As LocalModEntry) As ImageSource
+            Dim bytes = entry.IconData
+            If bytes IsNot Nothing Then
+                Try
+                    Using input As New MemoryStream(bytes, False)
+                        Dim bitmap As New BitmapImage()
+                        bitmap.BeginInit() : bitmap.CacheOption = BitmapCacheOption.OnLoad
+                        If entry.IconWidth >= entry.IconHeight Then
+                            bitmap.DecodePixelWidth = Math.Min(68, entry.IconWidth)
+                        Else
+                            bitmap.DecodePixelHeight = Math.Min(68, entry.IconHeight)
+                        End If
+                        bitmap.StreamSource = input : bitmap.EndInit() : bitmap.Freeze()
+                        Return bitmap
+                    End Using
+                Catch ex As Exception When TypeOf ex Is IOException OrElse TypeOf ex Is NotSupportedException OrElse TypeOf ex Is ArgumentException OrElse TypeOf ex Is FormatException
+                    ' Optional artwork never disables a valid local Mod row.
+                End Try
+            End If
+            Return New BitmapImage(New Uri("pack://application:,,,/Images/Blocks/NoIcon.png"))
+        End Function
 
         Private Sub SettleInteraction()
             If MotionPolicy IsNot Nothing AndAlso Not MotionPolicy.Interactive Then _pressed = False : _touchRevealed = False

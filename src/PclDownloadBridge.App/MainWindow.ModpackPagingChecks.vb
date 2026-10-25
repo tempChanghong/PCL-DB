@@ -254,7 +254,7 @@ Partial Public Class MainWindow
         check(_packArtworkRequest Is artwork AndAlso Not artwork.IsCancellationRequested AndAlso PackProjectRows.Children.Cast(Of UIElement)().SequenceEqual(pendingRows),
             "partial-source invalid navigation preserves the valid loading rows and artwork ownership")
         partialRelease.TrySetResult(True) : Await loading : layout()
-        check(_packSearchRequest Is Nothing AndAlso PackProjectRows.Children.Count = 40 AndAlso PackSearchHint.IsVisible AndAlso PackSearchHint.Text.Contains("部分来源") AndAlso PackSearchHint.ToolTip.ToString().Contains("fixture CF source unavailable"),
+        check(_packSearchRequest Is Nothing AndAlso PackProjectRows.Children.Count = 40 AndAlso PackSearchHint.IsVisible AndAlso PackSearchHint.Text.Contains("CurseForge") AndAlso PackSearchHint.Text.Contains("暂不可用") AndAlso PackSearchHint.ToolTip.ToString().Contains("fixture CF source unavailable"),
             "the valid partial-source request later publishes results with its original source failure warning")
     End Function
 

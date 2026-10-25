@@ -244,9 +244,9 @@ Friend Module ModpackCatalogChecks
             Catch ex As IOException
                 rejected = ex.Message.Contains("mod.mcimirror.top")
             End Try
-            Check(rejected AndAlso retryHandler.Addresses.Count = 1, "CF mirror outage produces a retryable source error without using incomplete website metadata", passed)
+            Check(rejected AndAlso retryHandler.Addresses.Count = 2, "CF mirror outage exhausts two bounded attempts without using incomplete website metadata", passed)
             failMirror = False
-            Check((Await client.GetVersionsAsync(selected, CancellationToken.None)).Count = 1 AndAlso retryHandler.Addresses.Count = 2, "CF version retry uses a fresh response after the mirror recovers", passed)
+            Check((Await client.GetVersionsAsync(selected, CancellationToken.None)).Count = 1 AndAlso retryHandler.Addresses.Count = 3, "CF version retry uses a fresh response after the mirror recovers", passed)
         End Using
         Dim cancelHandler As New Handler With {.Delay = 2000, .Route = route}
         Using client As New ModpackCatalogClient(cancelHandler, ""), cancel As New CancellationTokenSource(20)

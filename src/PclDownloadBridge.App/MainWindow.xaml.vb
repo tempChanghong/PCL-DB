@@ -714,6 +714,7 @@ Partial Public Class MainWindow
         DownloadProgress.Visibility = If(view = DownloadView.Progress, Visibility.Visible, Visibility.Collapsed)
         ModpackPage.Visibility = If(view = DownloadView.Modpacks, Visibility.Visible, Visibility.Collapsed)
         RefreshDownloadChrome()
+        If view = DownloadView.Modpacks Then EnsurePackSearch(initialEntry:=True)
     End Sub
     Private Sub RefreshDownloadChrome()
         Dim view = _downloadView

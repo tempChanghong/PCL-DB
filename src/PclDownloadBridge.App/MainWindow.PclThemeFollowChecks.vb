@@ -252,8 +252,8 @@ Partial Public Class MainWindow
                 host.Width = 810 : host.Height = 470 : layout()
                 owner.SettingsPage.ScrollToVerticalOffset(160) : layout()
                 SaveControlVisual(host, Path.Combine(directory, "follow-pcl-theme-minimum.png"))
-                check(owner.PclThemePathBox.ActualWidth > 150 AndAlso owner.PclThemePathBox.ActualHeight >= 28 AndAlso owner.PclThemeStatus.Text.Length > 0,
-                    "follow path buttons and wrapping status remain usable at the minimum window size")
+                check(DirectCast(owner.PclThemePathBox.Parent, Grid).Visibility = Visibility.Collapsed AndAlso owner.PclThemeStatus.ActualWidth > 150 AndAlso owner.PclThemeStatus.Text.Length > 0,
+                    "compact follow status remains readable at minimum size without a redundant source picker")
                 owner._pclThemeMonitor.Dispose()
                 check(Not owner._pclThemeMonitor.Active, "window shutdown can dispose the follow monitor without restarting any page animation")
             End Using

@@ -81,10 +81,17 @@ Partial Public Class MainWindow
         AddHandler OnlinePackName.KeyDown, Sub(sender, e)
                                                 If e.Key = Key.Enter AndAlso Not e.IsRepeat Then e.Handled = True : ConfirmOnlinePackName(sender, e)
                                             End Sub
-        PackProjectRows.Children.Add(New TextBlock With {.Text = "输入名称或选择条件后搜索整合包。", .Margin = New Thickness(10)})
     End Sub
-    Private Sub EnsurePackSearch()
-        If (Not _preview OrElse _packAutoSearchForChecks) AndAlso Not _busy AndAlso Not _closing AndAlso _packSearchSession Is Nothing AndAlso _downloadView = DownloadView.Modpacks AndAlso _packMode = PackBrowserMode.Search AndAlso DownloadPage.IsVisible AndAlso DownloadViewHost.IsHitTestVisible AndAlso PageSurface.IsHitTestVisible Then RunPackSearch(Nothing, Nothing)
+    Private _packImmediateSearch As Boolean
+    Private Sub EnsurePackSearch(Optional initialEntry As Boolean = False)
+        If (Not _preview OrElse _packAutoSearchForChecks) AndAlso Not _busy AndAlso Not _closing AndAlso _packSearchSession Is Nothing AndAlso _downloadView = DownloadView.Modpacks AndAlso _packMode = PackBrowserMode.Search AndAlso DownloadPage.IsVisible AndAlso DownloadViewHost.IsHitTestVisible AndAlso PageSurface.IsHitTestVisible Then
+            _packImmediateSearch = initialEntry
+            Try
+                RunPackSearch(Nothing, Nothing)
+            Finally
+                _packImmediateSearch = False
+            End Try
+        End If
     End Sub
     Private Sub PackSearchEnter(sender As Object, e As KeyEventArgs)
         If e.Key <> Key.Enter OrElse e.IsRepeat Then Return
@@ -198,6 +205,19 @@ Partial Public Class MainWindow
         _packArtworkRequest = New CancellationTokenSource()
         Dim artworkToken = _packArtworkRequest.Token
         Dim request As New CancellationTokenSource : _packSearchRequest = request
+        Dim acceptsPreviews = True, previewShown = False, previewWork As Task = Task.CompletedTask
+        Dim progress As New Progress(Of ModpackSearchPreview)(Sub(value)
+                                                                 If Dispatcher.HasShutdownStarted Then Return
+                                                                 Try
+                                                                     Dispatcher.BeginInvoke(New Action(Sub()
+                                                                                                           If Not acceptsPreviews OrElse Not CurrentPackSearch(session, request) OrElse value.Projects.Count = 0 OrElse Not previewWork.IsCompleted Then Return
+                                                                                                           previewWork = ShowPackSearchPreviewAsync(session, request, value, artworkToken,
+                                                                                                               Function() acceptsPreviews, Sub() previewShown = True)
+                                                                                                       End Sub))
+                                                                 Catch ex As InvalidOperationException
+                                                                     ' A closing dispatcher owns no presentation.
+                                                                 End Try
+                                                             End Sub)
         PackFirstPage.IsEnabled = False : PackPreviousPage.IsEnabled = False : PackNextPage.IsEnabled = False
         _packSearchLoading.Start(request, request.Token, AddressOf PreparePackSearchLoading, Sub() ChangePackResults(Sub()
                               PackSearchHint.Visibility = Visibility.Collapsed : PackPagingCard.Visibility = Visibility.Collapsed
@@ -205,12 +225,12 @@ Partial Public Class MainWindow
                               PackProjectRows.Children.Clear() : PackResultsCard.Title = "正在获取" & ResourceNameSpaced(_resourceKind) & "列表…"
                               PackResultsCard.HorizontalAlignment = HorizontalAlignment.Center
                               PackProjectRows.Children.Add(New PclLoadingView("正在获取" & ResourceNameSpaced(_resourceKind) & "列表"))
-                          End Sub))
+                          End Sub), immediate:=_packImmediateSearch)
         Try
             Dim items As List(Of ModpackProject)
             Dim retainedPage = False
             Using client = _packCatalogFactory()
-                items = Await session.GetPageAsync(page, client, request.Token)
+                items = Await session.GetPageAsync(page, client, request.Token, progress)
                 ' A source may end early or fail while fetching the next page.
                 ' Keep the last populated presentation page and its warning.
                 If items.Count = 0 AndAlso session.Count > 0 AndAlso page * ModpackCatalogClient.PageSize >= session.Count Then
@@ -219,6 +239,8 @@ Partial Public Class MainWindow
                     retainedPage = True
                 End If
             End Using
+            acceptsPreviews = False
+            Await previewWork
             If Not CurrentPackSearch(session, request) Then Return
             Await _packSearchLoading.CompleteAsync(request)
             If Not CurrentPackSearch(session, request) Then Return
@@ -237,7 +259,8 @@ Partial Public Class MainWindow
                                   If items.Count = 0 Then PackProjectRows.Children.Add(New TextBlock With {.Text = If(session.HasMore, "暂无结果，可点击「继续加载」。", If(session.ErrorMessage = "", "没有找到符合条件的" & ResourceNameSpaced(_resourceKind) & "。", "获取失败，请重试或更换来源。")), .Margin = New Thickness(10), .TextWrapping = TextWrapping.Wrap})
                                   PackSearchHint.Theme = If(items.Count > 0 OrElse session.HasMore, PclHintTheme.Yellow, PclHintTheme.Red)
                                   If items.Count > 0 Then
-                                      PackSearchHint.Text = If(retainedPage, "加载失败，已保留结果。点击搜索重试。", "部分来源暂不可用，已显示可用结果。点击搜索重试。")
+                                      Dim sources = String.Join("、", session.FailedPlatforms.Select(Function(value) value.ToString()))
+                                      PackSearchHint.Text = If(retainedPage, "加载失败，已保留结果。点击搜索重试。", If(sources = "", "部分来源", sources & " ") & "暂不可用，已显示可用结果。点击搜索重试。")
                                   ElseIf session.HasMore Then
                                       PackSearchHint.Text = "部分来源暂不可用，可继续加载其他来源。"
                                   Else
@@ -254,7 +277,7 @@ Partial Public Class MainWindow
                                   PackFirstPage.IsEnabled = page > 0 : PackPreviousPage.IsEnabled = page > 0 : PackNextPage.IsEnabled = session.HasNext(page)
                                   PackNextPage.Text = If(session.Count < (page + 1) * ModpackCatalogClient.PageSize AndAlso session.HasMore, "继续加载", "下一页")
                               End Sub)
-            If _packMode = PackBrowserMode.Search AndAlso _downloadView = DownloadView.Modpacks Then ModpackPage.ScrollToHome()
+            If Not previewShown AndAlso _packMode = PackBrowserMode.Search AndAlso _downloadView = DownloadView.Modpacks Then ModpackPage.ScrollToHome()
         Catch ex As Exception
             ' Intentional cancellation has already revoked ownership. An unexpected
             ' cancellation of the current request must still leave a terminal view.
@@ -271,10 +294,29 @@ Partial Public Class MainWindow
                                   End Sub)
             End If
         Finally
+            acceptsPreviews = False
             _packSearchLoading.Cancel(request)
             If _packSearchRequest Is request Then _packSearchRequest = Nothing
             request.Dispose()
         End Try
+    End Function
+    Private Async Function ShowPackSearchPreviewAsync(session As ModpackSearchSession, request As CancellationTokenSource, preview As ModpackSearchPreview,
+                                                       artworkToken As CancellationToken, accepted As Func(Of Boolean), shown As Action) As Task
+        Await _packSearchLoading.CompleteAsync(request)
+        If Not accepted() OrElse Not CurrentPackSearch(session, request) OrElse _packMode <> PackBrowserMode.Search OrElse _downloadView <> DownloadView.Modpacks Then Return
+        ChangePackResults(Sub()
+                              PackResultsCard.Visibility = Visibility.Visible : PackResultsCard.HorizontalAlignment = HorizontalAlignment.Stretch
+                              PackResultsCard.Title = CommunityResources.Name(_resourceKind) : PackProjectRows.Children.Clear()
+                              For Each project In preview.Projects
+                                  Dim row As New PclResourceItem(project) With {.Tag = project}
+                                  AddHandler row.Click, Sub() If _packSearchSession Is session Then OpenPackDetails(project)
+                                  PackProjectRows.Children.Add(row) : LoadPackIconAsync(row, project, artworkToken)
+                              Next
+                              PackSearchHint.Theme = PclHintTheme.Blue
+                              PackSearchHint.Text = "正在获取 " & String.Join("、", preview.Pending.Select(Function(value) value.ToString())) & " 结果…"
+                              PackSearchHint.ToolTip = Nothing : PackSearchHint.Visibility = Visibility.Visible : PackPagingCard.Visibility = Visibility.Collapsed
+                              shown()
+                          End Sub)
     End Function
     Private Function CurrentPackSearch(session As ModpackSearchSession, request As CancellationTokenSource) As Boolean
         Return Not _closing AndAlso Not request.IsCancellationRequested AndAlso _packSearchRequest Is request AndAlso _packSearchSession Is session

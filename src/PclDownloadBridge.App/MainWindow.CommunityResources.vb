@@ -115,8 +115,6 @@ Partial Public Class MainWindow
                     RestoreResourceDetail(state.Detail)
                 ElseIf state.Session IsNot Nothing Then
                     RestoreResourceSearchAsync(state.Page)
-                Else
-                    PackProjectRows.Children.Add(New TextBlock With {.Text = "输入名称或选择条件后搜索" & ResourceNameSpaced(kind) & "。", .Margin = New Thickness(10)})
                 End If
                 ModpackPage.UpdateLayout() : ModpackPage.ScrollToVerticalOffset(If(state.Mode = PackBrowserMode.Search, state.Scroll, _packDetailScroll))
             End Sub, contentRefresh:=previous = DownloadView.Modpacks, compositeExit:=HasPackContentMotion() OrElse _pageSwitch.HasMotion)
