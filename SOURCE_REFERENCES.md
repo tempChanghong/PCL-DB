@@ -2,6 +2,8 @@
 
 ## 社区资源安装到指定实例
 
+- 刷新边界继续参照固定 PCL `PageInstanceMod.ReloadModList` 的显式刷新与 `ScrollToHome`，以及 `MyMsgSelect` 的选择确认/滚动正文；显式刷新先清理旧滚动，迟到旧时钟不能改变新正文。初次打开允许合理默认实例，刷新时不把失效的明确选择替换为另一个实例；禁用项允许查看原因。原下载、隔离与原子发布内核不变。[刷新边界与验证](docs/reviews/resource-refresh-boundaries.md)。
+
 - 完整联动检查继续采用固定 PCL `MyMsgSelect` 的滚动正文、固定按钮和原动画；对照 `MyScrollViewer` 的焦点滚动保护与 `PageInstanceMod.ReloadModList` 的强制重读机制。目录迟到读取复用现有 `FocusPromptTarget` 设置逻辑焦点并保留视口，已有用户焦点不被覆盖；弹窗刷新重新读取绑定目标和存档，清空陈旧的存档选择。
 - 三启动器的原生隔离、文件校验、共享互斥和原子发布内核不改。新增真实回环文件获取 → UI 取消 → 缓存重试 → 原生 Mod 发布 → 本地列表重扫，搜索元数据为夹具，网络/文件安装为真实临时操作。[范围与验证](docs/reviews/community-resource-installation-linkage.md)。
 

@@ -56,22 +56,26 @@ Partial Public Class MainWindow
             request.Dispose()
         End Try
     End Function
-    Private Async Sub LoadResourceTargetsAsync(target As LauncherInstallTarget, request As CancellationTokenSource, Optional preferredName As String = Nothing)
+    Private Async Sub LoadResourceTargetsAsync(target As LauncherInstallTarget, request As CancellationTokenSource, Optional preferredName As String = Nothing, Optional chooseDefault As Boolean = True)
         Try
             Dim instances = Await _managementProvider(target, request.Token)
             If request.IsCancellationRequested OrElse _resourceTargetRequest IsNot request OrElse Not _resourceTargetPrompt Then Return
-            Dim preferred = ResourceSaveContext(), selected As PclComboBoxItem = Nothing
-            If preferredName Is Nothing AndAlso preferred IsNot Nothing AndAlso SameManagementTarget(preferred.Target, target) Then preferredName = preferred.Name
+            Dim preferred = ResourceSaveContext(), selected As PclComboBoxItem = Nothing, compatible As Boolean = False
+            If chooseDefault AndAlso preferredName Is Nothing AndAlso preferred IsNot Nothing AndAlso SameManagementTarget(preferred.Target, target) Then preferredName = preferred.Name
             For Each instance In instances
                 If Not SameManagementTarget(instance.Target, target) Then Continue For
                 Dim problem = CommunityResourceInstallation.CompatibilityProblem(_resourceTargetRelease, instance)
                 Dim item As New PclComboBoxItem With {.Content = instance.Name & " · " & instance.MinecraftVersion & " · " & instance.LoaderSummary, .Tag = instance, .IsEnabled = problem Is Nothing, .ToolTip = If(problem, instance.RunDirectory)}
+                ToolTipService.SetShowOnDisabled(item, True)
                 ResourceTargetInstance.Items.Add(item)
-                If problem Is Nothing AndAlso (selected Is Nothing OrElse preferredName = instance.Name) Then selected = item
+                If problem Is Nothing Then
+                    compatible = True
+                    If preferredName = instance.Name OrElse (chooseDefault AndAlso selected Is Nothing) Then selected = item
+                End If
             Next
             _resourceTargetLoading = False : ResourceTargetInstance.IsEnabled = True
             ResourceTargetInstance.SelectedItem = selected
-            If selected Is Nothing Then _resourceTargetProblem = "没有兼容的已安装版本，请更换资源版本或使用另存为。"
+            If selected Is Nothing Then _resourceTargetProblem = If(Not compatible, "没有兼容的已安装版本，请更换资源版本或使用另存为。", If(preferredName Is Nothing, "请选择安装目标版本。", "原选版本不可用，请重新选择安装目标。"))
             ValidateResourceTarget()
             Dim current = TryCast(FocusManager.GetFocusedElement(FocusManager.GetFocusScope(PackNameDialog)), FrameworkElement)
             If Not IsPromptFocusTarget(current, PackNameDialog) Then FocusPromptTarget(ResourceTargetInstance, OnlinePromptBody)
@@ -83,12 +87,13 @@ Partial Public Class MainWindow
     Private Sub RefreshResourceTargets(sender As Object, e As RoutedEventArgs)
         If Not _resourceTargetPrompt OrElse _resourceTargetLoading OrElse _resourceTargetValidating OrElse _resourceTargetRequest Is Nothing OrElse _resourceTargetRequest.IsCancellationRequested Then Return
         Dim preferred = TryCast(TryCast(ResourceTargetInstance.SelectedItem, ComboBoxItem)?.Tag, InstalledInstance)?.Name
+        OnlinePromptBody.StopScrolling() : OnlinePromptBody.ScrollToHome()
         _resourceWorldRequest?.Cancel() : _resourceWorldRequest = Nothing
         _resourceTargetLoading = True : _resourceWorldLoading = False : _resourceTargetProblem = Nothing
         ResourceTargetInstance.IsEnabled = False : ResourceTargetWorld.IsEnabled = False
         ResourceTargetInstance.Items.Clear() : ResourceTargetWorld.Items.Clear()
         ValidateResourceTarget()
-        LoadResourceTargetsAsync(_resourceTargetLauncher, _resourceTargetRequest, preferred)
+        LoadResourceTargetsAsync(_resourceTargetLauncher, _resourceTargetRequest, preferred, chooseDefault:=False)
     End Sub
     Private Async Sub ResourceTargetInstanceChanged(sender As Object, e As SelectionChangedEventArgs)
         If Not _resourceTargetPrompt Then Return

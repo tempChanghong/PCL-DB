@@ -217,6 +217,7 @@ Partial Public Class MainWindow
         check(ResourceTargetInstance.Items.Count = 1 AndAlso DirectCast(DirectCast(ResourceTargetInstance.SelectedItem, ComboBoxItem).Tag, InstalledInstance).Target.Kind = ExternalLauncherKind.Pcl AndAlso File.ReadAllBytes(otherConfig).SequenceEqual(otherBytes), "a same-root HMCL response cannot enter a PCL-bound instance picker or change external configuration")
         CompleteOnlinePrompt("no") : Await bindingPrompt
         _managementProvider = Function(binding, token) Task.FromResult(InstalledInstanceCatalog.Scan(binding, token))
+        Await CheckResourceRefreshBoundariesAsync(directory, target, icon, layout, check)
         Await CheckResourceWorkflowAsync(directory, fixture, target, configPath, config, host, layout, check)
     End Function
 End Class
