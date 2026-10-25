@@ -15,6 +15,7 @@ Partial Public Class MainWindow
     Private _managementRequest As CancellationTokenSource
     Private _managementGeneration As Long
     Private _managementScanning As Boolean
+    Private _managementProblem As String
     Private _managementDirty As Boolean = True
     Private _managementPreparing As Boolean
     Private _managementRestoringFolders As Boolean
@@ -51,6 +52,7 @@ Partial Public Class MainWindow
         _managementRequest?.Cancel()
         _managementRequest = Nothing
         _managementScanning = False : _managementPreparing = False
+        RefreshManagementStatus()
     End Sub
     Private Sub RefreshManagementFolders()
         If ManagementFolders Is Nothing Then Return
@@ -67,6 +69,7 @@ Partial Public Class MainWindow
             CancelManagementRequest()
             CancelLocalModRequest()
             _managementReturnName = Nothing
+            _managementProblem = Nothing
             _managementDirty = True
             _managementTarget = Nothing : _managedInstance = Nothing : _managementInstances.Clear()
             ChangeManagementContent(Sub()
@@ -74,7 +77,7 @@ Partial Public Class MainWindow
                                         ManagementDetailPage.Visibility = Visibility.Collapsed
                                         LocalModsPage.Visibility = Visibility.Collapsed
                                         RenderManagementRows()
-                                        ManagementStatus.Text = If(target Is Nothing, "请选择游戏目录。", "点击刷新读取已安装版本。")
+                                        RefreshManagementStatus()
                                     End Sub, ManagementListPage)
         End If
         RefreshManagementAvailability()
@@ -129,7 +132,8 @@ Partial Public Class MainWindow
         CancelManagementRequest()
         Dim generation = _managementGeneration, request As New CancellationTokenSource()
         _managementRequest = request : _managementScanning = True
-        ManagementStatus.Text = "正在读取已安装版本…"
+        _managementProblem = Nothing
+        RefreshManagementStatus()
         RefreshManagementAvailability()
         Try
             Dim instances = Await _managementProvider(target, request.Token)
@@ -148,19 +152,19 @@ Partial Public Class MainWindow
                                                 If ManagementDetailPage.Visibility = Visibility.Visible Then RenderManagedInstance()
                                             End If
                                         End If
-                                        ManagementStatus.Text = If(instances.Count = 0, "这个目录中还没有已安装版本。", "")
                                         RefreshTitleNavigation()
                                     End Sub, If((ManagementDetailPage.Visibility = Visibility.Visible OrElse LocalModsPage.Visibility = Visibility.Visible) AndAlso _managedInstance Is Nothing, DirectCast(ManagementListPage, FrameworkElement), Nothing))
         Catch ex As OperationCanceledException When request.IsCancellationRequested
         Catch ex As Exception
             If generation = _managementGeneration AndAlso ManagementPage.Visibility = Visibility.Visible AndAlso Not _closing Then
                 If Not _preview Then Log(ex)
-                ManagementStatus.Text = "无法读取版本列表：" & ex.GetBaseException().Message
+                _managementProblem = ex.GetBaseException().Message
                 _managementDirty = True
             End If
         Finally
             If generation = _managementGeneration Then
                 _managementRequest = Nothing : _managementScanning = False
+                RefreshManagementStatus()
                 RefreshManagementAvailability()
             End If
             request.Dispose()
@@ -204,10 +208,23 @@ Partial Public Class MainWindow
         Next
         ManagementSummary.Text = _managementInstances.Count & " 个版本" & If(query.Length = 0, "", " · 找到 " & matching.Count & " 个")
         ManagementListCard.Visibility = If(matching.Count > 0, Visibility.Visible, Visibility.Collapsed)
-        If query.Length > 0 Then
-            ManagementStatus.Text = If(matching.Count = 0, "没有找到匹配的版本。", "")
-        ElseIf Not _managementScanning Then
-            ManagementStatus.Text = If(_managementInstances.Count = 0, "这个目录中还没有已安装版本。", "")
+        RefreshManagementStatus()
+    End Sub
+    Private Sub RefreshManagementStatus()
+        If ManagementStatus Is Nothing Then Return
+        ' Like PCL's loader state, scan feedback belongs to the current request;
+        ' filtering cached rows cannot turn loading or failure into success.
+        If _selectedFolder Is Nothing Then
+            ManagementStatus.Text = "请选择游戏目录。"
+        ElseIf _managementScanning Then
+            ManagementStatus.Text = "正在读取已安装版本…"
+        ElseIf _managementProblem IsNot Nothing Then
+            ManagementStatus.Text = "无法读取版本列表：" & _managementProblem
+        ElseIf _managementTarget Is Nothing Then
+            ManagementStatus.Text = "点击刷新读取已安装版本。"
+        Else
+            ManagementStatus.Text = If(ManagementRows.Children.Count > 0, "", If(ManagementSearch.Text.Trim().Length > 0,
+                "没有找到匹配的版本。", "这个目录中还没有已安装版本。"))
         End If
     End Sub
     Private Shared Function ManagedSubtitle(item As InstalledInstance) As String

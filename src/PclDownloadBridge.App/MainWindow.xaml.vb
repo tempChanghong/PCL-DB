@@ -353,6 +353,7 @@ Partial Public Class MainWindow
         VerifyExternalLauncherUi(artifactDirectory, check)
         VerifyLauncherSelectionRecoveryUi(artifactDirectory, checks)
         VerifySettingsRecoveryUi(artifactDirectory, checks)
+        VerifyManagementStatusUi(artifactDirectory, checks)
         Return checks
     End Function
 

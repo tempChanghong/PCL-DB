@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 管理扫描与本地筛选的状态关系（2026-10-26）
+
+- 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`PageSelectRight.xaml.vb` 使用 PageLoaderInit 关联版本扫描，失败时强制重试，成功后单独判断空列表；`ModLoader.vb` 由当前加载器的 State 驱动 Loading/Error/Stop，并阻止被替代线程发布最终状态。
+- 本工具保留缓存行供浏览，但不让筛选结果改写扫描中或失败提示；统一按当前扫描状态、失败、已接受列表与筛选呈现说明。取消或返回详情后清除过期加载文字，成功完成时重新计算筛选空结果；同路径的不同启动器仍分别拥有状态。
+- 原始对象与摘要在 `artifacts/management-status/source/manifest.json`，详见[管理扫描状态检查](docs/reviews/management-status-2026-10-26.md)。不改变目录读取、版本隔离、文件操作与现有卡片动画实现。
+
 ## 异步设置恢复的输入与状态一致性（2026-10-26）
 
 - 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`PageSetupSystem.xaml.vb` 的 Loaded 在 AniControlEnabled 范围内同步 Reload/SliderLoad；`SettingService.vb` 的 RefreshSettings 更新控件，SaveSetting 在重载期间不保存变更。
