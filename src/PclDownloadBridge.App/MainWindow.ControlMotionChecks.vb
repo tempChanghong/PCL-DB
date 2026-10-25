@@ -35,6 +35,7 @@ Partial Public Class MainWindow
             VerifyLoadingMotionUi(directory, check)
             VerifyBasicControlInputUi(directory, passed)
             VerifyBasicControlMotionUi(directory, passed)
+            VerifyKeyboardHandoffControlUi(directory, passed)
         Finally
             RestoreAppearance(saved)
         End Try

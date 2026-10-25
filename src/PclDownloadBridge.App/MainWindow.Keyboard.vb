@@ -30,10 +30,14 @@ Partial Public Class MainWindow
 
     Private Sub ShellKeyDown(sender As Object, e As KeyEventArgs)
         If e.Key <> Key.Escape OrElse e.IsRepeat OrElse e.Handled Then Return
-        If _onlinePrompt IsNot Nothing Then
+        If _onlinePrompt IsNot Nothing OrElse PackNameOverlay.Visibility = Visibility.Visible Then
             e.Handled = True
-            If _onlineOptionalPrompt Then CancelInstall(Nothing, Nothing)
-            CompleteOnlinePrompt(Nothing)
+            ' The result completes before the 200ms shade exit. Keep Escape
+            ' owned by that overlay until it has actually left the screen.
+            If _onlinePrompt IsNot Nothing Then
+                If _onlineOptionalPrompt Then CancelInstall(Nothing, Nothing)
+                CompleteOnlinePrompt(Nothing)
+            End If
             Return
         End If
         If AboutPage.Visibility = Visibility.Visible Then

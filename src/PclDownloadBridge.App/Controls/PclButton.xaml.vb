@@ -27,6 +27,7 @@ Namespace Controls
             End Set
         End Property
         Private _down As Boolean
+        Private _spaceDown As Boolean
         Private ReadOnly _pressMotion As PclPressMotion
         Friend ReadOnly Property MotionPolicy As PclControlMotionPolicy
         Private ReadOnly Property AcceptsInput As Boolean
@@ -41,7 +42,9 @@ Namespace Controls
         End Property
         Public Sub New()
             InitializeComponent()
-            _pressMotion = New PclPressMotion(Me, DirectCast(PanFore.RenderTransform, ScaleTransform), Sub() _down = False,
+            _pressMotion = New PclPressMotion(Me, DirectCast(PanFore.RenderTransform, ScaleTransform), Sub()
+                                                                                                          _down = False : _spaceDown = False
+                                                                                                      End Sub,
                 Function() MotionPolicy.CanAnimate, Function() MotionPolicy.PauseForChecks)
             MotionPolicy = New PclControlMotionPolicy(Me, AddressOf CancelPress)
             PclTheme.Watch(Me, AddressOf CancelPress, Sub() RefreshColors(True))
@@ -52,7 +55,7 @@ Namespace Controls
             AddHandler MouseLeave, AddressOf Refresh
             AddHandler GotKeyboardFocus, AddressOf Refresh
             AddHandler LostKeyboardFocus, Sub()
-                                              If _down Then CancelPress() Else RefreshColors(False)
+                                              If _down OrElse _spaceDown Then CancelPress() Else RefreshColors(False)
                                           End Sub
         End Sub
         Private Sub Refresh(sender As Object, e As RoutedEventArgs)
@@ -78,6 +81,7 @@ Namespace Controls
         Protected Overrides Sub OnMouseLeftButtonDown(e As MouseButtonEventArgs)
             MyBase.OnMouseLeftButtonDown(e)
             If Not AcceptsInput Then Return
+            If _spaceDown Then e.Handled = True : Return
             _down = True
             Focus()
             If _down AndAlso AcceptsInput Then _pressMotion.Start(PclPressKind.ButtonDown)
@@ -95,7 +99,7 @@ Namespace Controls
         End Sub
         Protected Overrides Sub OnLostMouseCapture(e As MouseEventArgs)
             MyBase.OnLostMouseCapture(e)
-            If _down Then CancelPress()
+            If _down OrElse _spaceDown Then CancelPress()
         End Sub
         Protected Overrides Sub OnMouseLeave(e As MouseEventArgs)
             MyBase.OnMouseLeave(e)
@@ -105,10 +109,25 @@ Namespace Controls
         End Sub
         Protected Overrides Sub OnKeyDown(e As KeyEventArgs)
             MyBase.OnKeyDown(e)
-            If AcceptsInput AndAlso Not e.IsRepeat AndAlso (e.Key = Key.Enter OrElse e.Key = Key.Space) Then
-                RaiseEvent Click(Me, New RoutedEventArgs())
-                e.Handled = True
+            If e.Key <> Key.Enter AndAlso e.Key <> Key.Space Then Return
+            e.Handled = True
+            If Not AcceptsInput OrElse e.IsRepeat OrElse _down OrElse _spaceDown Then Return
+            If e.Key = Key.Space Then
+                _spaceDown = True
+                _pressMotion.Start(PclPressKind.ButtonDown)
+            Else
+                RaiseEvent Click(Me, e)
             End If
+        End Sub
+        Protected Overrides Sub OnKeyUp(e As KeyEventArgs)
+            MyBase.OnKeyUp(e)
+            If e.Key <> Key.Space Then Return
+            e.Handled = True
+            Dim click = _spaceDown AndAlso AcceptsInput
+            _spaceDown = False
+            If Not click Then Return
+            _pressMotion.Start(PclPressKind.ButtonUp)
+            RaiseEvent Click(Me, e)
         End Sub
     End Class
 End Namespace

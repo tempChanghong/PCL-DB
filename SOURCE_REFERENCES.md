@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 空格按压与弹窗退场键盘边界（2026-10-26）
+
+- 固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MyButton.xaml/.vb` 保持按钮外观、按压/松开缩放和色彩曲线。本工具的空格改为与现有其他按钮一致的松开激活；这是键盘适配，未宣称上游自定义按钮有同一键盘实现。Enter 保持原先按下激活。
+- 对照 `FormMain.xaml.vb`：存在 `PanMsg.Children` 时，回车/Escape 先由弹窗处理；鼠标侧键也阻止背后页面返回。`Controls/MyMsg/MyMsgText.xaml.vb` 的 Close 在退场动画完成后移除弹窗，而 Result/IsExited 可以提前设置。本工具按仍显示的遮罩维持 Escape 所有权，避免仅按已清空的结果任务判断弹窗生命周期。
+- 三份 Git 原始对象保存在 `artifacts/keyboard-handoff/source/manifest.json`，记录固定提交、路径、Git 对象与 SHA-256。详见[修复与验证](docs/reviews/keyboard-handoff-2026-10-26.md)。
+
 ## 普通按钮与版本行的输入、动画交接（2026-10-26）
 
 - 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MyButton.xaml/.vb`、`MyListItem.xaml/.vb`：配色、按压/释放/离开分支、选中标记和动画增量；原始 XAML、字号与图标不变，保留普通按钮 80/700ms 按压、延迟 10ms 后 300ms 回弹和列表行 0.98 按压缩放。

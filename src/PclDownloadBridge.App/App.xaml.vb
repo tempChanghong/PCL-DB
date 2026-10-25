@@ -69,6 +69,7 @@ Partial Public Class App
                         checkWindow.VerifyCommunitySettingsUi(directory, passed)
                         checkWindow.VerifyExperienceSearchUi(directory, passed)
                         checkWindow.VerifyExperiencePaletteUi(directory, passed)
+                        checkWindow.VerifyKeyboardHandoffPromptUi(directory, passed)
                         checkWindow.VerifyResourceInstallationUi(directory, passed)
                     ElseIf scope = "all" Then
                         checkWindow.VerifyUi(directory, passed)
