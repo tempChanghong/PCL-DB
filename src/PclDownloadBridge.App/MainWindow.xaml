@@ -375,21 +375,37 @@
                   </StackPanel>
                 </p:PclScrollViewer>
                 <p:PclScrollViewer x:Name="LocalModsPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="True" IsTabStop="False">
-                  <StackPanel Margin="25,15,25,25">
-                    <p:PclCard ShowHeader="False" BodyMargin="16,12,16,12" Margin="0,0,0,15">
-                      <p:PclTextBox x:Name="LocalModSearch" Height="30" HintText="搜索 Mod 名称 / 版本 / ID" MaxLength="256" TextChanged="LocalModSearchChanged" AutomationProperties.Name="搜索本地 Mod"/>
+                  <StackPanel Margin="25,10,25,10">
+                    <p:PclCard x:Name="LocalModSearchCard" ShowHeader="False" BodyMargin="0" Height="40" Margin="0,15">
+                      <Grid Initialized="InitializeLocalModSearchClear">
+                        <p:PclTextBox x:Name="LocalModSearch" Height="40" HasBackground="False" BorderThickness="0" Padding="32,0,40,0" FontSize="13.5" VerticalContentAlignment="Center" UseLayoutRounding="False" SnapsToDevicePixels="False" HintText="搜索 Mod 名称 / 版本 / ID" MaxLength="256" TextChanged="LocalModSearchChanged" AutomationProperties.Name="搜索本地 Mod">
+                          <p:PclTextBox.Template><ControlTemplate TargetType="p:PclTextBox">
+                            <Grid Background="{DynamicResource ColorBrushTransparent}">
+                              <ScrollViewer x:Name="PART_ContentHost" Margin="32,0,40,0" VerticalAlignment="Center" Focusable="False"/>
+                              <TextBlock x:Name="Placeholder" Text="{TemplateBinding HintText}" Margin="32,0,40,0" VerticalAlignment="Center" Foreground="{DynamicResource ColorBrushGray4}" IsHitTestVisible="False" Visibility="Collapsed"/>
+                            </Grid>
+                            <ControlTemplate.Triggers><Trigger Property="Text" Value=""><Setter TargetName="Placeholder" Property="Visibility" Value="Visible"/></Trigger></ControlTemplate.Triggers>
+                          </ControlTemplate></p:PclTextBox.Template>
+                        </p:PclTextBox>
+                        <Path x:Name="LocalModSearchIcon" Width="14" Height="14" Margin="14,0,0,0" HorizontalAlignment="Left" IsHitTestVisible="False" Stretch="Uniform" Fill="{DynamicResource ColorBrush1}" Data="M675.9168 242.816C556.3008 123.2 362.4448 123.2 242.8288 242.816 123.2128 362.432 123.2128 556.288 242.8288 675.904 362.4448 795.52 556.288 795.52 675.9168 675.904 795.5328 556.288 795.5328 362.432 675.9168 242.816L675.9168 242.816ZM1000.7168 892.48C1030.6048 922.368 1030.6048 970.816 1000.7168 1000.704 970.8288 1030.656 922.3808 1030.656 892.4288 1000.704L730.0608 838.336C728.1408 836.416 727.4368 833.92 725.7728 831.872 546.3168 960.448 295.7568 945.408 134.5408 784.192-44.8512 604.8-44.8512 313.92 134.5408 134.528 313.9328-44.864 604.8128-44.864 784.2048 134.528 945.4208 295.744 960.4608 546.304 831.8848 725.76 833.9328 727.424 836.4288 728.128 838.3488 730.048L1000.7168 892.48Z"/>
+                        <p:PclIconButton x:Name="LocalModSearchClear" Width="24" Height="24" Margin="0,0,10,0" HorizontalAlignment="Right" LogoScale="0.75" IsHitTestVisible="False" Focusable="False" Opacity="0" ToolTip="清空搜索" AutomationProperties.Name="清空本地 Mod 搜索" Click="ClearLocalModSearch" Logo="F1 M2,0 L0,2 8,10 0,18 2,20 10,12 18,20 20,18 12,10 20,2 18,0 10,8 2,0Z"/>
+                      </Grid>
                     </p:PclCard>
                     <p:PclHint x:Name="LocalModSharedHint" Visibility="Collapsed" Margin="0,0,0,15"/>
-                    <p:PclCard ShowHeader="False" BodyMargin="15" Margin="0,0,0,15">
+                    <p:PclCard x:Name="LocalModActionsCard" ShowHeader="False" BodyMargin="15" Margin="0,0,0,15">
                       <StackPanel>
                         <TextBlock x:Name="LocalModDirectory" FontSize="12" Opacity="0.65" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text,RelativeSource={RelativeSource Self}}" Margin="0,0,0,12"/>
                         <WrapPanel>
-                          <p:PclButton x:Name="LocalModOpen" Text="打开文件夹" Width="110" Height="32" Margin="0,0,12,6" Click="OpenLocalModFolder"/>
-                          <p:PclButton x:Name="LocalModImport" Text="从文件安装" Width="110" Height="32" Margin="0,0,12,6" Click="ChooseLocalMods"/>
-                          <p:PclButton x:Name="LocalModRefresh" Text="刷新列表" Width="100" Height="32" Margin="0,0,12,6" Click="RefreshLocalMods"/>
-                          <p:PclButton x:Name="LocalModCancel" Text="取消操作" Width="100" Height="32" Margin="0,0,0,6" Visibility="Collapsed" Click="CancelLocalModOperation"/>
+                          <p:PclButton x:Name="LocalModOpen" Text="打开文件夹" Width="110" Height="35" Highlight="True" Margin="0,0,15,6" Click="OpenLocalModFolder"/>
+                          <p:PclButton x:Name="LocalModImport" Text="从文件安装" Width="110" Height="35" Margin="0,0,15,6" Click="ChooseLocalMods"/>
+                          <p:PclButton x:Name="LocalModRefresh" Text="刷新列表" Width="100" Height="35" Margin="0,0,15,6" Click="RefreshLocalMods"/>
+                          <p:PclButton x:Name="LocalModCancel" Text="取消操作" Width="100" Height="35" Margin="0,0,0,6" Visibility="Collapsed" Click="CancelLocalModOperation"/>
                         </WrapPanel>
-                        <TextBlock x:Name="LocalModStatus" FontSize="12" Opacity="0.65" TextWrapping="Wrap" Margin="0,5,0,0" AutomationProperties.LiveSetting="Polite"/>
+                        <TextBlock x:Name="LocalModStatus" FontSize="12" Opacity="0.65" TextWrapping="Wrap" Margin="0,5,0,0" AutomationProperties.LiveSetting="Polite">
+                          <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                            <Style.Triggers><Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed"/></Trigger></Style.Triggers>
+                          </Style></TextBlock.Style>
+                        </TextBlock>
                       </StackPanel>
                     </p:PclCard>
                     <p:PclCard x:Name="LocalModListCard" ShowHeader="False" BodyMargin="15,12,15,15">

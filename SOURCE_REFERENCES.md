@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 本地 Mod 搜索、筛选与操作栏样式
+
+- 核心为固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MySearchBox.xaml/.vb`、`PageInstanceMod.xaml` 与 `RefreshBars`：40 DIP 搜索卡片、14 DIP 图标、24 DIP 清除按钮与 90 ms 显隐、35 DIP 操作按钮、15 DIP 间距，以及按搜索候选计算筛选数量和可见性。只在当前 Mod 页适配，沿用既有字体、明暗颜色和控件按压。
+- 保留当前离线搜索、全量校验重扫、共享目录保护和输入/动画代次。诊断优先提示及同步取消反馈是本工具的修正；不添加上游在线 Mod 更新、批量删除或覆盖行为。含新搜索框来源的八份原字节、Git blob 与 SHA-256 在 `artifacts/local-mod-style/source/manifest.json`，[本轮范围与验证](docs/reviews/local-mod-pcl-style.md)。
+
 ## 本地 Mod 清单续行与操作交接
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.EDMods/RefreshUI`、`LocalResourceFile`，以实际启用名称关联启停前后的资源，保留原有隔离目录、只读识别、44 DIP 行和 PCL 卡片时序。焦点交接是本工具全量校验重扫后的适配，不引入上游同名文件覆盖行为。

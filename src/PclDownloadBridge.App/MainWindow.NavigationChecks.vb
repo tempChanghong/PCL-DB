@@ -22,6 +22,9 @@ Partial Public Class MainWindow
         VerifyLocalModUi(artifactDirectory, check)
         VerifyLocalModFollowupUi(artifactDirectory, check)
         VerifyLocalModInteractionUi(artifactDirectory, check)
+        VerifyLocalModStyleUi(artifactDirectory, check)
+        VerifyLocalModWarningUi(artifactDirectory, check)
+        VerifyLocalModCancelUi(artifactDirectory, check)
         Return checks
     End Function
 

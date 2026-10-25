@@ -3,6 +3,7 @@ Imports System.Threading
 Imports System.Windows
 Imports System.Windows.Controls
 Imports System.Windows.Input
+Imports System.Windows.Media.Animation
 Imports PclDownloadBridge.Controls
 Imports PclDownloadBridge.Core
 
@@ -22,6 +23,8 @@ Partial Public Class MainWindow
     Private _localModFocusRestore As Action
     Private _localModFilterPending As Boolean
     Private _localModInteractionFlushing As Boolean
+    Private _localModSearchClearMotion As PclMotionSlot
+    Private _localModSearchClearPolicy As PclControlMotionPolicy
     Private ReadOnly _localModRowViews As New Dictionary(Of LocalModEntry, Grid)
     Private _localModProvider As Func(Of InstalledInstance, CancellationToken, Task(Of List(Of LocalModEntry))) =
         Function(instance, token) Task.Run(Function() LocalModCatalog.Scan(instance, token), token)
@@ -134,11 +137,15 @@ Partial Public Class MainWindow
             _localModRowViews.Remove(obsolete)
         Next
         LocalModAll.Checked = _localModFilter = "all" : LocalModEnabled.Checked = _localModFilter = "enabled" : LocalModDisabled.Checked = _localModFilter = "disabled"
-        Dim enabledCount = _localMods.Where(Function(entry) entry.Enabled).Count()
-        LocalModAll.Text = "全部 (" & _localMods.Count & ")" : LocalModEnabled.Text = "启用 (" & enabledCount & ")" : LocalModDisabled.Text = "禁用 (" & (_localMods.Count - enabledCount) & ")"
         Dim query = LocalModSearch.Text.Trim()
-        Dim visible = _localMods.Where(Function(entry) (_localModFilter = "all" OrElse entry.Enabled = (_localModFilter = "enabled")) AndAlso
-            (query.Length = 0 OrElse (entry.DisplayName & " " & entry.Version & " " & entry.FileName & " " & entry.Description & " " & String.Join(" ", entry.ModIds)).IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0)).ToList()
+        Dim candidates = _localMods.Where(Function(entry) query.Length = 0 OrElse
+            (entry.DisplayName & " " & entry.Version & " " & entry.FileName & " " & entry.Description & " " & String.Join(" ", entry.ModIds)).IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0).ToList()
+        Dim enabledCount = candidates.Where(Function(entry) entry.Enabled).Count(), disabledCount = candidates.Count - enabledCount
+        LocalModAll.Text = If(query.Length = 0, "全部", "搜索结果") & " (" & candidates.Count & ")"
+        LocalModEnabled.Text = "启用 (" & enabledCount & ")" : LocalModDisabled.Text = "禁用 (" & disabledCount & ")"
+        LocalModEnabled.Visibility = If(_localModFilter = "enabled" OrElse (enabledCount > 0 AndAlso enabledCount < candidates.Count), Visibility.Visible, Visibility.Collapsed)
+        LocalModDisabled.Visibility = If(_localModFilter = "disabled" OrElse disabledCount > 0, Visibility.Visible, Visibility.Collapsed)
+        Dim visible = candidates.Where(Function(entry) _localModFilter = "all" OrElse entry.Enabled = (_localModFilter = "enabled")).ToList()
         For Each entry In visible
             Dim captured = entry
             Dim existing As Grid = Nothing
@@ -150,7 +157,8 @@ Partial Public Class MainWindow
             row.ColumnDefinitions.Add(New ColumnDefinition()) : row.ColumnDefinitions.Add(New ColumnDefinition With {.Width = New GridLength(34)})
             Dim info = If(captured.Problem, captured.LoaderSummary & If(String.IsNullOrEmpty(captured.Version), "", " · " & captured.Version) & " · " & If(captured.Enabled, "已启用", "已禁用"))
             Dim item As New PclListItem With {.Title = captured.DisplayName, .Info = info, .Height = 44,
-                .Logo = "pack://application:,,,/Images/Blocks/NoIcon.png", .ToolTip = ShortLocalModText(captured.FileName & vbCrLf & captured.Description & If(captured.Problem Is Nothing, "", vbCrLf & captured.Problem) & vbCrLf & String.Join(vbCrLf, captured.Warnings), 4096)}
+                .Logo = "pack://application:,,,/Images/Blocks/NoIcon.png", .ToolTip = ShortLocalModText(String.Join(vbCrLf,
+                    {captured.FileName, captured.Problem, String.Join(vbCrLf, captured.Warnings), captured.Description}.Where(Function(value) Not String.IsNullOrWhiteSpace(value))), 4096)}
             item.Title = ShortLocalModText(captured.DisplayName, 200) : item.Info = ShortLocalModText(info, 512)
             item.Opacity = If(captured.Enabled, 1.0, 0.65)
             Dim toggle As New PclIconButton With {.Width = 28, .Height = 28, .VerticalAlignment = VerticalAlignment.Center,
@@ -175,10 +183,14 @@ Partial Public Class MainWindow
         RefreshLocalModAvailability()
     End Sub
     Private Shared Function ShortLocalModText(value As String, maximum As Integer) As String
-        If value Is Nothing Then Return ""
-        Return If(value.Length <= maximum, value, value.Substring(0, maximum) & "…")
+        If value Is Nothing OrElse maximum <= 0 Then Return ""
+        If value.Length <= maximum Then Return value
+        Dim count = maximum - 1
+        If count > 0 AndAlso Char.IsHighSurrogate(value(count - 1)) Then count -= 1
+        Return value.Substring(0, count) & "…"
     End Function
     Private Sub LocalModSearchChanged(sender As Object, e As TextChangedEventArgs)
+        RefreshLocalModSearchClear(True)
         If LocalModRows Is Nothing OrElse _closing OrElse _restoringSettings OrElse _restoringLaunchers OrElse
             ManagementPage.Visibility <> Visibility.Visible OrElse LocalModsPage.Visibility <> Visibility.Visible OrElse Not SameLocalModContext(_localModInstance) Then Return
         If Not LocalModInputAllowed() Then
@@ -189,6 +201,32 @@ Partial Public Class MainWindow
         End If
         _surfaceMotion.Finish() : _managementMotion.Finish()
         RenderLocalMods()
+    End Sub
+    Private Sub InitializeLocalModSearchClear(sender As Object, e As EventArgs)
+        If _localModSearchClearMotion IsNot Nothing Then Return
+        Dim button = LocalModSearchClear
+        If button Is Nothing OrElse LocalModSearch Is Nothing Then Return
+        _localModSearchClearMotion = New PclMotionSlot(button, UIElement.OpacityProperty)
+        _localModSearchClearPolicy = New PclControlMotionPolicy(LocalModSearch, Sub() RefreshLocalModSearchClear(False), requiresInteraction:=False)
+    End Sub
+    Private Sub RefreshLocalModSearchClear(animate As Boolean)
+        If LocalModSearchClear Is Nothing OrElse LocalModSearch Is Nothing OrElse _localModSearchClearMotion Is Nothing Then Return
+        Dim shown = LocalModSearch.Text.Length > 0, opacity = If(shown, 1.0, 0.0)
+        LocalModSearchClear.IsHitTestVisible = shown : LocalModSearchClear.Focusable = shown
+        If animate AndAlso _localModSearchClearPolicy.CanAnimate Then
+            _localModSearchClearMotion.Animate(New DoubleAnimation(LocalModSearchClear.Opacity, opacity, TimeSpan.FromMilliseconds(90)), opacity, _localModSearchClearPolicy.PauseForChecks)
+        Else
+            _localModSearchClearMotion.SetValue(opacity)
+        End If
+    End Sub
+    Private Sub ClearLocalModSearch(sender As Object, e As RoutedEventArgs)
+        If sender IsNot LocalModSearchClear OrElse Not LocalModInputAllowed() OrElse Not LocalModSearchClear.IsHitTestVisible OrElse LocalModSearch.Text.Length = 0 Then Return
+        Dim instance = _localModInstance, generation = _localModGeneration, inputVersion = _downloadFocusInputVersion, previous = Keyboard.FocusedElement
+        LocalModSearch.Text = ""
+        If Not LocalModInputAllowed() OrElse _localModInstance IsNot instance OrElse generation <> _localModGeneration OrElse inputVersion <> _downloadFocusInputVersion Then Return
+        Dim current = Keyboard.FocusedElement, source = PresentationSource.FromVisual(LocalModsPage)
+        If current IsNot Nothing AndAlso current IsNot previous AndAlso current IsNot LocalModSearch AndAlso current IsNot Me AndAlso current IsNot source?.RootVisual Then Return
+        LocalModSearch.Focus()
     End Sub
     Private Sub FlushLocalModInteraction()
         If _localModInteractionFlushing OrElse Not LocalModInputAllowed() Then Return
@@ -332,9 +370,12 @@ Partial Public Class MainWindow
         End If
     End Function
     Private Sub CancelLocalModOperation(sender As Object, e As RoutedEventArgs)
-        _localModWriteRequest?.Cancel()
+        Dim request = _localModWriteRequest
+        If _closing OrElse Not _localModWriting OrElse request Is Nothing OrElse request.IsCancellationRequested Then Return
         LocalModStatus.Text = "正在等待文件操作退出…"
         RefreshLocalModAvailability()
+        LocalModCancel.IsEnabled = False
+        request.Cancel()
     End Sub
     Private Sub OpenLocalModFolder(sender As Object, e As RoutedEventArgs)
         If Not LocalModInputAllowed() Then Return
