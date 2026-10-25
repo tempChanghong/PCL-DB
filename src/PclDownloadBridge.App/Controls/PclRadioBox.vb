@@ -66,7 +66,7 @@ Namespace Controls
                                                              SettleGeometry()
                                                              RefreshColors(False)
                                                          End Sub)
-            PclTheme.Watch(Me, Sub() RefreshColors(False))
+            PclTheme.Watch(Me, Sub() RefreshColors(False), Sub() RefreshColors(False))
             AddHandler MouseEnter, Sub() RefreshColors(True)
             AddHandler MouseLeave, Sub() RefreshColors(True)
             AddHandler IsKeyboardFocusWithinChanged, Sub() RefreshColors(True)

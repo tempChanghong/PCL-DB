@@ -67,6 +67,8 @@ Partial Public Class App
                         checkWindow.VerifyResourceBrowserFollowupUi(directory, passed)
                         checkWindow.VerifyCataloguePresentationUi(directory, passed)
                         checkWindow.VerifyCommunitySettingsUi(directory, passed)
+                        checkWindow.VerifyExperienceSearchUi(directory, passed)
+                        checkWindow.VerifyExperiencePaletteUi(directory, passed)
                         checkWindow.VerifyResourceInstallationUi(directory, passed)
                     ElseIf scope = "all" Then
                         checkWindow.VerifyUi(directory, passed)

@@ -26,6 +26,12 @@ Namespace Controls
                 Return _clock
             End Get
         End Property
+        Friend Sub RefreshPalette(color As Color)
+            _color = color
+            If _fill Is Nothing Then Return
+            _fill.ApplyAnimationClock(SolidColorBrush.ColorProperty, Nothing)
+            _fill.Color = color
+        End Sub
 
         Friend Sub Update(active As Boolean, pressed As Boolean, sidebar As Boolean, color As Color, animate As Boolean)
             If animate AndAlso _hasState AndAlso active = _active AndAlso pressed = _pressed AndAlso sidebar = _sidebar AndAlso color = _color Then Return
@@ -60,7 +66,7 @@ Namespace Controls
             _clock = clock
             AddHandler clock.Completed, Sub()
                                             If _clock IsNot clock Then Return
-                                            Detach() : SetValues(targetBack, targetWhole, targetOpacity, color)
+                                            Detach() : SetValues(targetBack, targetWhole, targetOpacity, _color)
                                         End Sub
             _background.ApplyAnimationClock(UIElement.OpacityProperty, DirectCast(clock.Children(0), AnimationClock))
             _backScale.ApplyAnimationClock(ScaleTransform.ScaleXProperty, DirectCast(clock.Children(1), AnimationClock))

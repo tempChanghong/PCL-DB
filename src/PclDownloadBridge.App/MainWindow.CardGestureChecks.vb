@@ -10,7 +10,7 @@ Partial Public Class MainWindow
     Private Sub VerifyCardGestureOwnership(directory As String, check As Action(Of Boolean, String))
         Dim saved = _appearance.ToJson(), observations As New JArray
         Dim body As New Border With {.Height = 600}
-        Dim card As New PclCard With {.Title = "版本列表", .Collapsible = True, .Collapsed = True, .Body = body}
+        Dim card As New PclCard With {.Title = "版本列表", .Collapsible = True, .Collapsed = True, .Body = body, .PauseArrowForChecks = True}
         Dim header = card.Children.OfType(Of Grid)().Single(), peer As New Button With {.Content = "焦点目标"}
         Dim offset As New TranslateTransform() : card.RenderTransform = offset
         Dim panel As New StackPanel() : panel.Children.Add(peer) : panel.Children.Add(card)

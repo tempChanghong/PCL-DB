@@ -150,7 +150,10 @@ Namespace Controls
             PclTheme.Watch(Me, Sub()
                                   _back.BorderBrush = Brush("ColorBrush6")
                                   RefreshAppearance(False)
-                              End Sub)
+                              End Sub, Sub()
+                                           _back.SetResourceReference(Border.BorderBrushProperty, "ColorBrush6")
+                                           RefreshAppearance(False, True)
+                                       End Sub)
         End Sub
         Private Shared Function ModIcon(entry As LocalModEntry) As ImageSource
             Dim bytes = entry.IconData
@@ -178,10 +181,14 @@ Namespace Controls
             If MotionPolicy IsNot Nothing AndAlso Not MotionPolicy.Interactive Then _pressed = False : _touchRevealed = False
             RefreshAppearance(False)
         End Sub
-        Private Sub RefreshAppearance(animate As Boolean)
+        Private Sub RefreshAppearance(animate As Boolean, Optional paletteOnly As Boolean = False)
             If MotionPolicy Is Nothing Then Return
             Dim interactive = MotionPolicy.Interactive, active = interactive AndAlso (IsMouseOver OrElse IsKeyboardFocusWithin OrElse _touchRevealed)
             Dim moving = animate AndAlso MotionPolicy.CanAnimate AndAlso Not PclTheme.Changing
+            If paletteOnly Then
+                _hover.RefreshPalette(Brush(If(_pressed AndAlso interactive, "ColorBrush6", If(active, "ColorBrushBg1", "ColorBrush7"))).Color)
+                Return
+            End If
             _hover.Update(active, interactive AndAlso _pressed, Brush(If(_pressed AndAlso interactive, "ColorBrush6", If(active, "ColorBrushBg1", "ColorBrush7"))).Color, moving, MotionPolicy.PauseForChecks)
             If moving AndAlso _lastActive.HasValue AndAlso _lastActive.Value = active Then Return
             _lastActive = active

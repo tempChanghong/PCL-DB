@@ -79,7 +79,7 @@ Namespace Controls
             Focusable = True
             AddHandler GotKeyboardFocus, Sub() Refresh()
             AddHandler LostKeyboardFocus, Sub() CancelPress()
-            PclTheme.Watch(Me, AddressOf CancelPress)
+            PclTheme.Watch(Me, AddressOf CancelPress, Sub() Refresh(True))
             AddHandler Loaded, Sub() Refresh()
             AddHandler MouseEnter, Sub() Refresh()
             AddHandler Unloaded, Sub()

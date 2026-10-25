@@ -25,7 +25,6 @@ Partial Public Class MainWindow
     Private Sub CommunitySettingsChanged(sender As Object, e As SelectionChangedEventArgs)
         If _restoringCommunityPreferences OrElse _restoringSettings OrElse _closing OrElse CommunityLocalModStyleBox Is Nothing Then Return
         _communityPreferences = CommunityResourcePreferences.Read(New JObject From {{"source", CommunitySourceBox.SelectedIndex}, {"fileNameStyle", CommunityFileNameBox.SelectedIndex}, {"localModStyle", CommunityLocalModStyleBox.SelectedIndex}})
-        _packLastQuery = Nothing
         If SettingsSaveFeedback IsNot Nothing Then ClearSettingsFeedback(sender, Nothing)
         If _preview OrElse _restoringSettings OrElse _settingsLoadFailed OrElse _preferenceBaseline Is Nothing Then Return
         Try

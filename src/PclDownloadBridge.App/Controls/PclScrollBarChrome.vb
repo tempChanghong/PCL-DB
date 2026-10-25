@@ -36,7 +36,7 @@ Namespace Controls
                                      Detach()
                                      Refresh(False)
                                  End Sub
-            PclTheme.Watch(Me, Sub() Refresh(False))
+            PclTheme.Watch(Me, Sub() Refresh(False), Sub() Refresh(False, True))
         End Sub
 
         Private Sub Attach(sender As Object, args As RoutedEventArgs)
@@ -66,7 +66,13 @@ Namespace Controls
             Refresh(True)
         End Sub
 
-        Friend Sub Refresh(animate As Boolean)
+        Friend Sub Refresh(animate As Boolean, Optional paletteOnly As Boolean = False)
+            If paletteOnly Then
+                Dim current = ResolveState(_bar IsNot Nothing AndAlso IsLoaded AndAlso IsVisible,
+                    MotionPolicy.Interactive AndAlso _bar IsNot Nothing AndAlso _bar.IsMouseCaptureWithin,
+                    MotionPolicy.Interactive AndAlso _bar IsNot Nothing AndAlso _bar.IsMouseOver)
+                _colorMotion.SetValue(Brush(current.Item2).Color) : Return
+            End If
             If Not MotionPolicy.Interactive AndAlso IsMouseCaptureWithin Then Mouse.Capture(Nothing)
             Dim active = MotionPolicy.Interactive AndAlso _bar IsNot Nothing
             Dim state = ResolveState(_bar IsNot Nothing AndAlso IsLoaded AndAlso IsVisible,

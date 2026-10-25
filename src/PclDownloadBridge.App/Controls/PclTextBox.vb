@@ -43,7 +43,7 @@ Namespace Controls
         End Property
 
         Public Sub New()
-            PclTheme.Watch(Me, AddressOf RefreshColor)
+            PclTheme.Watch(Me, AddressOf RefreshColor, AddressOf RefreshColor)
             AddHandler Loaded, Sub() RefreshColor()
             AddHandler IsEnabledChanged, Sub() RefreshColor()
             AddHandler MouseEnter, Sub() RefreshColor()

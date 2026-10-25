@@ -48,6 +48,12 @@ Namespace Controls
         Private Function InkKey(selected As Boolean) As String
             Return If(selected, If(_owner.Height < 40, "ColorBrush3", "ColorBrush2"), "ColorBrush1")
         End Function
+        Friend Sub RefreshPalette()
+            _targetColor = PclAnimation.Brush(InkKey(_selected)).Color
+            If _clock Is Nothing OrElse _ink Is Nothing Then Return
+            _ink.ApplyAnimationClock(SolidColorBrush.ColorProperty, Nothing)
+            _ink.Color = _targetColor
+        End Sub
         Friend Sub Update(selected As Boolean, animate As Boolean)
             Dim height = If(selected, Math.Max(0, _owner.ActualHeight - 12), 0)
             Dim color = PclAnimation.Brush(InkKey(selected)).Color

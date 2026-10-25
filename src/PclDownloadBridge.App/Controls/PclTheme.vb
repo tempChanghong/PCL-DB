@@ -5,6 +5,7 @@ Namespace Controls
     ' Port of PCL ModBase.MyColor.FromHSL2 and ModSecret.ThemeRefreshMain.
     Friend Module PclTheme
         Private Event PaletteChanged As EventHandler
+        Private Event PaletteFrameChanged As EventHandler
         Friend Property Changing As Boolean
         Private _darkMode As Boolean
         Friend ReadOnly Property IsDarkMode As Boolean
@@ -12,12 +13,18 @@ Namespace Controls
                 Return _darkMode
             End Get
         End Property
-        Friend Sub Watch(control As FrameworkElement, refresh As Action)
+        Friend Sub Watch(control As FrameworkElement, refresh As Action, Optional refreshFrame As Action = Nothing)
             Dim watching = False
             Dim handler As EventHandler = Sub() refresh()
+            ' A moving hue is not a full appearance/input reset. Frame callbacks
+            ' may recolor, but must retain presses and geometry/opacity clocks.
+            Dim frameHandler As EventHandler = Sub()
+                                                   If control.IsVisible Then refreshFrame?.Invoke()
+                                               End Sub
             AddHandler control.Loaded, Sub()
                                           If Not watching Then
                                               AddHandler PaletteChanged, handler
+                                              If refreshFrame IsNot Nothing Then AddHandler PaletteFrameChanged, frameHandler
                                               watching = True
                                           End If
                                           Dim previous = Changing
@@ -30,6 +37,7 @@ Namespace Controls
                                       End Sub
             AddHandler control.Unloaded, Sub()
                                             If watching Then RemoveHandler PaletteChanged, handler
+                                            If watching AndAlso refreshFrame IsNot Nothing Then RemoveHandler PaletteFrameChanged, frameHandler
                                             watching = False
                                         End Sub
         End Sub
@@ -70,8 +78,12 @@ Namespace Controls
             If Not appearance.DarkMode AndAlso appearance.ColorfulBackground AndAlso background IsNot Nothing AndAlso Not background.IsFrozen AndAlso background.GradientStops.Count = 3 Then
                 For i = 0 To 2 : background.GradientStops(i).Color = Hsl2(hue + (i - 1) * 15, sat * 0.8, 91) : Next
             End If
-            ' Update live brushes only. No palette broadcast, row rebuild,
-            ' component refresh or animation-clock cancellation on each frame.
+            Dim previous = Changing : Changing = True
+            Try
+                RaiseEvent PaletteFrameChanged(Nothing, EventArgs.Empty)
+            Finally
+                Changing = previous
+            End Try
         End Sub
         Friend Sub Apply(title As System.Windows.Controls.Grid, shell As System.Windows.Controls.Grid, Optional appearance As AppearancePreferences = Nothing)
             appearance = If(appearance, New AppearancePreferences)

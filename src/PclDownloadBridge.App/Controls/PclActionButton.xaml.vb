@@ -76,7 +76,7 @@ Namespace Controls
             PclTheme.Watch(Me, Sub()
                                    CancelGesture()
                                    RefreshColors(False)
-                               End Sub)
+                               End Sub, Sub() RefreshColors(False))
             AddHandler MouseEnter, Sub() RefreshColors(True)
             AddHandler GotKeyboardFocus, Sub() RefreshColors(True)
             AddHandler LostKeyboardFocus, Sub()

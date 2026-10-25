@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 搜索缓存与动态配色联动检查（2026-10-26）
+
+- 仍以 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 为主：`ResourceSearcher.GetLoader/Run` 的 60 秒缓存和请求存储绑定；`PageResource.StartNewSearch` 的显式提交流程。缓存键补入本工具的社区传输来源策略，不将文件名格式或本地 Mod 名称样式当成搜索请求变化；分类切回保留原结果，重新提交时使用新策略。
+- `MyRadioButton.RefreshColor` 的稳定态使用主题资源引用，`MyRadioBox` 保留选择几何动画，`MyCard` 的高度/箭头与标题色分属不同动画。修复本工具私有画刷与动画颜色副本未跟随动态资源的问题：增加独立颜色帧通知，只更新颜色，不执行完整外观重置，不重建行或取消按压、捕获及几何时钟。旧悬停动画完成也使用当前颜色。
+- 对照 `ModMain` 的 ThemeNow=12/250ms 与公开 `ModSecret`；保留上一批的动态近似及实验外观权限，不宣称恢复上游隐藏配方或相位。本轮不引入 PCL-CE 的配色或布局。另固定本地测试的箭头时钟，消除布局耗时导致的断言竞速。详见[检查记录](docs/reviews/experience-audit-2026-10-26.md)。
+
 ## 社区资源设置、滑稽彩与窗口默认值
 
 - 固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`PageSetupSystem.xaml` 的社区资源卡片及三组选择，`Settings.vb` 的 ToolDownloadMod/ToolDownloadTranslateV2/ToolModLocalNameStyle 与 900×550 窗口默认值；`PageDownloadCompDetail.xaml.vb` 的中文建议文件名和 Mod 波浪号规避，`MyLocalModItem.Refresh` 的两种本地名称样式。

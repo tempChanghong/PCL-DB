@@ -24,6 +24,11 @@ Namespace Controls
                 Return _clock
             End Get
         End Property
+        Friend Sub RefreshPalette(color As Color)
+            _color = color
+            _fill.ApplyAnimationClock(SolidColorBrush.ColorProperty, Nothing)
+            _fill.Color = color
+        End Sub
         Friend Sub Update(active As Boolean, pressed As Boolean, color As Color, animate As Boolean, pauseForChecks As Boolean)
             If animate AndAlso _hasState AndAlso active = _active AndAlso pressed = _pressed AndAlso color = _color Then Return
             _hasState = True : _active = active : _pressed = pressed : _color = color
@@ -52,7 +57,7 @@ Namespace Controls
             _clock = current
             AddHandler current.Completed, Sub()
                                               If _clock IsNot current Then Return
-                                              Detach() : SetValues(targetScale, targetOpacity, color)
+                                              Detach() : SetValues(targetScale, targetOpacity, _color)
                                           End Sub
             _back.ApplyAnimationClock(UIElement.OpacityProperty, DirectCast(current.Children(0), AnimationClock))
             _scale.ApplyAnimationClock(ScaleTransform.ScaleXProperty, DirectCast(current.Children(1), AnimationClock))

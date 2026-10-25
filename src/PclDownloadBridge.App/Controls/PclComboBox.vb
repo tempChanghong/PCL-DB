@@ -9,7 +9,7 @@ Namespace Controls
         Inherits ComboBox
 
         Public Sub New()
-            PclTheme.Watch(Me, AddressOf RefreshColor)
+            PclTheme.Watch(Me, AddressOf RefreshColor, AddressOf RefreshColor)
             AddHandler Loaded, Sub() RefreshColor()
             AddHandler IsEnabledChanged, Sub() RefreshColor()
             AddHandler MouseEnter, Sub() RefreshColor()
@@ -57,7 +57,7 @@ Namespace Controls
         Inherits ComboBoxItem
 
         Public Sub New()
-            PclTheme.Watch(Me, AddressOf RefreshColor)
+            PclTheme.Watch(Me, AddressOf RefreshColor, AddressOf RefreshColor)
             AddHandler Loaded, Sub() RefreshColor()
             AddHandler IsEnabledChanged, Sub() RefreshColor()
             AddHandler Selected, Sub() RefreshColor()

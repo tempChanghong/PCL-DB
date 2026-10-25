@@ -238,7 +238,7 @@ Namespace Controls
             PclTheme.Watch(Me, Sub()
                                   _headerPressed = False
                                   Hover(IsMouseOver, False)
-                              End Sub)
+                              End Sub, Sub() Hover(IsMouseOver, False, True))
             AddHandler MouseEnter, Sub() Hover(True)
             AddHandler MouseLeave, Sub() Hover(False)
             AddHandler Loaded, Sub() UpdateShadowOffset(VisualTreeHelper.GetDpi(Me))
@@ -331,7 +331,7 @@ Namespace Controls
         Private Sub UpdateShadowOffset(dpi As DpiScale)
             If _shadow IsNot Nothing Then _shadow.Margin = New Thickness(-3, -3, -3, -3 - 1 / dpi.DpiScaleY)
         End Sub
-        Private Sub Hover(inside As Boolean, Optional animate As Boolean = True)
+        Private Sub Hover(inside As Boolean, Optional animate As Boolean = True, Optional paletteOnly As Boolean = False)
             If _hoverSlots Is Nothing Then Return
             inside = HoverMotionPolicy.Interactive AndAlso (inside OrElse _header.IsKeyboardFocused)
             animate = animate AndAlso HoverMotionPolicy.CanAnimate AndAlso Not PclTheme.Changing
@@ -341,6 +341,7 @@ Namespace Controls
             ' PCL MyCard uses ColorObject1/4 for shadows. ColorBrush1 is a
             ' separate readable text color in dark mode, not the idle shadow.
             ChangeHoverColor(2, _shadow.Color, DirectCast(FindResource(If(inside, "ColorObject4", "ColorObject1")), Color), animate)
+            If paletteOnly Then Return
             Dim opacity = If(inside, 0.4, 0.07), slot = _hoverSlots(3)
             Dim running = TryCast(slot.Clock?.Timeline, DoubleAnimation)
             If Not animate Then

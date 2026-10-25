@@ -9,7 +9,7 @@ Namespace Controls
         Inherits CheckBox
 
         Public Sub New()
-            PclTheme.Watch(Me, Sub() RefreshAppearance())
+            PclTheme.Watch(Me, Sub() RefreshAppearance(), Sub() RefreshAppearance(IsPressed, True))
             AddHandler Loaded, Sub() RefreshAppearance()
             AddHandler Checked, Sub() RefreshAppearance()
             AddHandler Unchecked, Sub() RefreshAppearance()
@@ -26,13 +26,19 @@ Namespace Controls
             RefreshAppearance()
         End Sub
 
-        Private Sub RefreshAppearance(Optional pressed As Boolean = False)
+        Private Sub RefreshAppearance(Optional pressed As Boolean = False, Optional paletteOnly As Boolean = False)
             Dim outline = TryCast(Template?.FindName("ShapeBorder", Me), Border)
             Dim mark = TryCast(Template?.FindName("ShapeCheck", Me), Shapes.Path)
             If outline Is Nothing OrElse mark Is Nothing Then Return
             Dim ink = If(Not IsEnabled, "ColorBrushGray5", If(IsMouseOver OrElse IsKeyboardFocusWithin, "ColorBrush3", If(IsChecked = True, "ColorBrush2", "ColorBrush1")))
             Dim textInk = If(Not IsEnabled, "ColorBrushGray5", If(IsMouseOver OrElse IsKeyboardFocusWithin, "ColorBrush3", "ColorBrush1"))
             Dim fill = If(pressed AndAlso IsEnabled, "ColorBrushBg1", "ColorBrushHalfWhite")
+            If paletteOnly Then
+                ColorTo(outline, Border.BorderBrushProperty, Brush(ink).Color, 0)
+                ColorTo(outline, Border.BackgroundProperty, Brush(fill).Color, 0)
+                ColorTo(Me, ForegroundProperty, Brush(textInk).Color, 0)
+                Return
+            End If
             Dim scale = DirectCast(mark.RenderTransform, ScaleTransform)
             If scale.IsFrozen Then
                 scale = scale.Clone()

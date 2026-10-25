@@ -151,11 +151,16 @@ Partial Public Class MainWindow
     End Function
     Private _packFiltersPending As Boolean
     Private _packSearchValidation As Boolean
+    Private Function PackQueryKey(query As ModpackQuery) As String
+        ' PCL's 60-second cache belongs to an accepted request. Transport policy
+        ' is part of that identity, including when restoring another category.
+        Return JsonConvert.SerializeObject(New With {.Query = query, .Source = _communityPreferences.Source})
+    End Function
     Private Sub PackSearchInputsChanged(Optional userEdit As Boolean = True)
         If _closing OrElse _packSearchSession Is Nothing OrElse _packMode <> PackBrowserMode.Search OrElse Not PackSearchSurface.IsVisible Then Return
         If Not userEdit AndAlso _packSearchValidation Then Return
         If userEdit Then _packSearchValidation = False
-        Dim pending = JsonConvert.SerializeObject(CurrentPackQuery()) <> _packLastQuery
+        Dim pending = PackQueryKey(CurrentPackQuery()) <> _packLastQuery
         If pending Then
             PackSearchInputHint.Theme = PclHintTheme.Blue
             PackSearchInputHint.Text = "筛选已更改，点击「搜索」应用。" : PackSearchInputHint.Visibility = Visibility.Visible
@@ -168,7 +173,7 @@ Partial Public Class MainWindow
         If _busy OrElse _choosingOnline OrElse _closing OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible Then Return
         Dim query = CurrentPackQuery()
         ' Structured identity keeps literal separators in different fields distinct.
-        Dim key = JsonConvert.SerializeObject(query), candidate As ModpackSearchSession
+        Dim key = PackQueryKey(query), candidate As ModpackSearchSession
         Try
             candidate = New ModpackSearchSession(query)
         Catch ex As ArgumentException

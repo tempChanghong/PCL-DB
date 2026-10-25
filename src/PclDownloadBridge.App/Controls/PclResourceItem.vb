@@ -143,7 +143,10 @@ Namespace Controls
                                         End Sub
             PclTheme.Watch(Me, Sub()
                                    _back.BorderBrush = PclAnimation.Brush("ColorBrush6") : ResetPressed(False)
-                               End Sub)
+                               End Sub, Sub()
+                                            _back.SetResourceReference(Border.BorderBrushProperty, "ColorBrush6")
+                                            Refresh(False, True)
+                                        End Sub)
             Refresh(False)
         End Sub
         Private Sub ResetPressed(Optional animate As Boolean = True)
@@ -152,10 +155,11 @@ Namespace Controls
         Private Sub ReleaseOwnCapture()
             If IsMouseCaptured Then ReleaseMouseCapture()
         End Sub
-        Private Sub Refresh(Optional animate As Boolean = True)
+        Private Sub Refresh(Optional animate As Boolean = True, Optional paletteOnly As Boolean = False)
             Dim active = CanInteract AndAlso MotionPolicy.Interactive AndAlso (IsMouseOver OrElse IsKeyboardFocusWithin)
             Dim pressed = active AndAlso (_mouseDown OrElse _keyDown <> Key.None)
             Dim color = PclAnimation.Brush(If(active, If(pressed, "ColorBrush6", "ColorBrushBg1"), "ColorBrush7")).Color
+            If paletteOnly Then _motion.RefreshPalette(color) : Return
             _motion.Update(active, pressed, color, animate AndAlso MotionPolicy.CanAnimate AndAlso Not PclTheme.Changing, MotionPolicy.PauseForChecks)
         End Sub
         Protected Overrides Sub OnMouseLeftButtonDown(e As MouseButtonEventArgs)

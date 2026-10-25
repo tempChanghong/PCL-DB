@@ -36,7 +36,7 @@ Namespace Controls
         Public Sub New()
             InitializeComponent()
             _pressMotion = New PclPressMotion(Me, DirectCast(PanFore.RenderTransform, ScaleTransform), Sub() _down = False)
-            PclTheme.Watch(Me, Sub() Refresh(Nothing, Nothing))
+            PclTheme.Watch(Me, Sub() Refresh(Nothing, Nothing), Sub() Refresh(Nothing, Nothing))
             Cursor = Cursors.Hand
             Focusable = True
             AddHandler Loaded, AddressOf Refresh

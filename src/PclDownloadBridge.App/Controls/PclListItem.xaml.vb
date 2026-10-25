@@ -228,7 +228,12 @@ Namespace Controls
                                   _check.Background = Brush("ColorBrush3")
                                   RefreshHover()
                                   _selectionMotion.Update(_selected, False)
-                              End Sub)
+                              End Sub, Sub()
+                                           _background.SetResourceReference(Border.BorderBrushProperty, "ColorBrush6")
+                                           _check.SetResourceReference(Border.BackgroundProperty, "ColorBrush3")
+                                           RefreshHover(True, paletteOnly:=True)
+                                           _selectionMotion.RefreshPalette()
+                                       End Sub)
             AddHandler SizeChanged, Sub(sender, args)
                                         RefreshMetrics()
                                         If args.HeightChanged Then _selectionMotion.Update(_selected, AllowSelectionMotion())
@@ -253,13 +258,14 @@ Namespace Controls
         Private Function AllowSelectionMotion() As Boolean
             Return IsLoaded AndAlso IsVisible AndAlso IsEnabled AndAlso IsHitTestVisible AndAlso ActualHeight > 0 AndAlso Not PclTheme.Changing
         End Function
-        Private Sub RefreshHover(Optional immediate As Boolean = False, Optional inactive As Boolean = False)
+        Private Sub RefreshHover(Optional immediate As Boolean = False, Optional inactive As Boolean = False, Optional paletteOnly As Boolean = False)
             If _hoverMotion Is Nothing Then Return
             _background.CornerRadius = New CornerRadius(If(IsSidebar, 0, 6))
             Dim interactive = Not inactive AndAlso IsEnabled AndAlso IsHitTestVisible AndAlso (Not IsLoaded OrElse IsVisible)
             Dim pressed = interactive AndAlso _down
             Dim active = interactive AndAlso (IsMouseOver OrElse pressed OrElse IsKeyboardFocused)
             Dim fill = Brush(If(pressed, "ColorBrush6", If(active, "ColorBrushBg1", "ColorBrush7"))).Color
+            If paletteOnly Then _hoverMotion.RefreshPalette(fill) : Return
             _hoverMotion.Update(active, pressed, IsSidebar, fill,
                 Not immediate AndAlso IsLoaded AndAlso IsVisible AndAlso interactive AndAlso Not PclTheme.Changing)
         End Sub
