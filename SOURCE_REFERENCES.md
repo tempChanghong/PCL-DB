@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 已安装实例列表、概览与只读目录解析
+
+- 以固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `McInstance/PathIndie/JsonObject`、`PageSelectRight` 和 `PageInstanceOverall` 为核心，复用现有 PCL 列表行、卡片、标题返回与逐项动画。独立适配读取规则，省去上游缓存、配置初始化以及快捷目录的自动创建。
+- PCL-CE `915ac29795efbdf6373417389e181e1504117048` 仅补充搜索区与信息分层；CE/HMCL 的目录与隔离沿用已有只读原生适配。保留同一目录的不同启动器身份、外部设置和实例文件。
+- 管理页原版补全接入既有安装器，最终仍须通过原版元数据对照；本地候选识别不等于完整校验。新增页面原字节快照与 Git blob 记录在 `artifacts/installed-management/source/manifest.json`，范围与证据见[本地实例管理第一批](docs/reviews/installed-instance-management.md)。
+
 ## 大整合包的读取与覆盖内容提取
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 ModModpack：两格式读取清单后通过 ExtractModpackFiles / CopyOverrideDirectory 处理覆盖内容，该层没有本工具误加的 128 MiB / 2 GiB 容量筛除。

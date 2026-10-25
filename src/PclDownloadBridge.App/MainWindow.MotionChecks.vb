@@ -53,6 +53,7 @@ Partial Public Class MainWindow
         VerifyVanillaCardMotion(directory, check)
         VerifyControlMotionUi(directory, passed)
         VerifyTitleNavigation(check, directory, True)
+        VerifyManagementMotion(directory, check)
         Return passed
     End Function
 

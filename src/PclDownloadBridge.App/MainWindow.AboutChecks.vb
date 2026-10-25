@@ -32,7 +32,7 @@ Partial Public Class MainWindow
             SettingsPage.BeginAnimation(OpacityProperty, Nothing) : SettingsPage.Opacity = 1
             layout()
             click(AboutEntry) : layout()
-            check(AboutPage.Visibility = Visibility.Visible AndAlso SettingsPage.Visibility = Visibility.Collapsed AndAlso DownloadPage.Visibility = Visibility.Collapsed AndAlso SettingsTab.Checked AndAlso Not DownloadTab.Checked AndAlso TopTabs.Children.Count = 2, "the settings about button opens a dedicated page while retaining the two primary tabs")
+            check(AboutPage.Visibility = Visibility.Visible AndAlso SettingsPage.Visibility = Visibility.Collapsed AndAlso DownloadPage.Visibility = Visibility.Collapsed AndAlso SettingsTab.Checked AndAlso Not DownloadTab.Checked AndAlso TopTabs.Children.Count = 3, "the settings about button opens a dedicated page while retaining the three primary tabs")
             check(Title = ProductInfo.DisplayName AndAlso ProductTitle.Text = ProductInfo.DisplayName AndAlso AboutMonogram.Text = "DB" AndAlso AboutProductItem.Title = ProductInfo.FullName, "window title and titlebar identify PCL-DB while the about page shows its full name")
             Dim assembly = Reflection.Assembly.GetExecutingAssembly()
             Dim version = assembly.GetName().Version.ToString(3)

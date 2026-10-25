@@ -36,16 +36,18 @@ Partial Public Class MainWindow
     End Sub
 
     Private Function MotionViewers() As PclScrollViewer()
-        Return {VersionScroll, InstallScroll, ModpackPage, DownloadProgress, SettingsPage, AboutPage}
+        Return {VersionScroll, InstallScroll, ModpackPage, DownloadProgress, SettingsPage, AboutPage, ManagementListPage, ManagementDetailPage}
     End Function
     Private Function ActiveSurface() As FrameworkElement
         Return If(AboutPage.Visibility = Visibility.Visible, DirectCast(AboutPage, FrameworkElement),
-            If(SettingsPage.Visibility = Visibility.Visible, DirectCast(SettingsPage, FrameworkElement), DownloadPage))
+            If(SettingsPage.Visibility = Visibility.Visible, DirectCast(SettingsPage, FrameworkElement),
+            If(ManagementPage.Visibility = Visibility.Visible, DirectCast(ManagementPage, FrameworkElement), DownloadPage)))
     End Function
     Private Function SurfaceUnits(surface As FrameworkElement) As IEnumerable(Of FrameworkElement)
         If surface Is DownloadPage Then
             Return PclSurfaceMotion.Units(DownloadContent(_downloadView))
         End If
+        If surface Is ManagementPage Then Return PclSurfaceMotion.Units(ManagementContent())
         Return PclSurfaceMotion.Units(surface)
     End Function
     Private Sub SelectSurface(target As FrameworkElement, Optional prepare As Action = Nothing)
@@ -66,15 +68,23 @@ Partial Public Class MainWindow
                 If previous IsNot target Then
                     _categoryMotion.Finish()
                     FinishPackContentMotion()
+                    _managementMotion?.Finish()
+                    If previous Is ManagementPage Then
+                        CancelManagementRequest()
+                        _managementReturnName = Nothing
+                    End If
+                    If target IsNot DownloadPage AndAlso _pageSwitch.HasMotion Then _pageSwitch.Finish()
                 End If
                 DownloadPage.Visibility = If(target Is DownloadPage, Visibility.Visible, Visibility.Collapsed)
                 SettingsPage.Visibility = If(target Is SettingsPage, Visibility.Visible, Visibility.Collapsed)
                 AboutPage.Visibility = If(target Is AboutPage, Visibility.Visible, Visibility.Collapsed)
+                ManagementPage.Visibility = If(target Is ManagementPage, Visibility.Visible, Visibility.Collapsed)
                 DownloadTab.Checked = target Is DownloadPage
-                SettingsTab.Checked = target IsNot DownloadPage
+                SettingsTab.Checked = target Is SettingsPage OrElse target Is AboutPage
+                ManagementTab.Checked = target Is ManagementPage
                 prepare?.Invoke()
                 RefreshTitleNavigation()
-            End Sub, compositeExit:=previous IsNot target AndAlso (_pageSwitch.HasMotion OrElse _categoryMotion.Transition IsNot Nothing OrElse HasPackContentMotion()))
+            End Sub, compositeExit:=previous IsNot target AndAlso (_pageSwitch.HasMotion OrElse _categoryMotion.Transition IsNot Nothing OrElse HasPackContentMotion() OrElse (_managementMotion IsNot Nothing AndAlso _managementMotion.Transition IsNot Nothing)))
         If _surfaceMotion.Transition Is Nothing Then ReleaseInstallActionEntry(_surfaceMotion, False)
     End Sub
 End Class

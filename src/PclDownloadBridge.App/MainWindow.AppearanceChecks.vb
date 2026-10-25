@@ -48,7 +48,7 @@ Partial Public Class MainWindow
             OpenExperimentalPreview()
             RestoreAppearance(Nothing)
             check(_appearance.Theme = "blue" AndAlso OpacitySlider.Maximum = 600 AndAlso Opacity = 1 AndAlso OpacityValue.Text = "100%", "appearance defaults preserve PCL blue and the original 600-to-100-percent opacity mapping")
-            check(AppearanceThemes.Children.Count = 10 AndAlso TopTabs.Children.Count = 2, "unlocked personalization contains ten choices while retaining only two main tabs")
+            check(AppearanceThemes.Children.Count = 10 AndAlso TopTabs.Children.Count = 3, "unlocked personalization contains ten choices while retaining three main tabs")
             OpacitySlider.Value = 0
             check(Opacity = 0.4 AndAlso OpacityValue.Text = "40%", "the lowest opacity uses PCL's readable forty-percent floor")
             OpacitySlider.Value = 300

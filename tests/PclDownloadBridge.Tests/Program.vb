@@ -62,7 +62,9 @@ Module Program
             Directory.CreateDirectory(TestRoot)
             If args.Length = 2 AndAlso args(0) = "--regression" Then
                 Dim run As Task(Of List(Of String))
-                If args(1) = "large-modpacks" Then
+                If args(1) = "installed-instances" Then
+                    run = InstalledInstanceChecks.RunAsync(TestRoot)
+                ElseIf args(1) = "large-modpacks" Then
                     run = LargeModpackChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "native-isolation" Then
                     run = NativeIsolationChecks.RunAsync(TestRoot)
@@ -182,6 +184,9 @@ Module Program
             Next
             FolderTests()
             For Each label In ExternalLauncherChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
+                Check(True, label)
+            Next
+            For Each label In InstalledInstanceChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
                 Check(True, label)
             Next
             For Each label In ForgeChecksumChecks.RunAsync(TestRoot).GetAwaiter().GetResult()

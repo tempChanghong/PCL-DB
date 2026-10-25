@@ -18,6 +18,7 @@ Partial Public Class MainWindow
         fixture.VerifyPageNavigation(check, artifactDirectory)
         VerifyTitleNavigation(check, artifactDirectory, False)
         VerifyDownloadFocusOwnership(check)
+        VerifyManagementUi(artifactDirectory, check)
         Return checks
     End Function
 

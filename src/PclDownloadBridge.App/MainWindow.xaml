@@ -29,6 +29,7 @@
           <Grid x:Name="TitleMain">
           <TextBlock x:Name="ProductTitle" Text="PCL-DB" Foreground="White" FontSize="15" Margin="20,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Left" IsHitTestVisible="False" />
           <StackPanel x:Name="TopTabs" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Height="27">
+            <p:PclRadioButton x:Name="ManagementTab" Text="管理" Margin="5,0" Logo="M0 2Q0 0 2 0H8Q10 0 10 2V8Q10 10 8 10H2Q0 10 0 8ZM14 2Q14 0 16 0H22Q24 0 24 2V8Q24 10 22 10H16Q14 10 14 8ZM0 16Q0 14 2 14H8Q10 14 10 16V22Q10 24 8 24H2Q0 24 0 22ZM14 16Q14 14 16 14H22Q24 14 24 16V22Q24 24 22 24H16Q14 24 14 22Z" Click="ShowManagement" />
             <p:PclRadioButton x:Name="DownloadTab" Text="下载" Checked="True" Margin="5,0" Logo="{StaticResource IconTitle下载}" Click="ShowDownload" />
             <p:PclRadioButton x:Name="SettingsTab" Text="设置" Margin="5,0" Logo="{StaticResource IconTitle设置}" Click="ShowSettings" />
           </StackPanel>
@@ -311,6 +312,67 @@
             <Rectangle x:Name="DownloadSidebarShadow" Grid.Column="1" Width="4" HorizontalAlignment="Left" IsHitTestVisible="False" Visibility="{Binding Visibility, ElementName=DownloadSidebar}">
               <Rectangle.Fill><LinearGradientBrush StartPoint="0,0" EndPoint="1,0" Opacity="0.04"><GradientStop Color="#000000" Offset="0"/><GradientStop Color="#00000000" Offset="1"/></LinearGradientBrush></Rectangle.Fill>
             </Rectangle>
+            </Grid>
+            <Grid x:Name="ManagementPage" Visibility="Collapsed">
+              <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/></Grid.RowDefinitions>
+              <Grid x:Name="ManagementToolbar" Margin="25,15,25,0">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                <p:PclComboBox x:Name="ManagementFolders" MinHeight="49" HorizontalContentAlignment="Stretch" SelectionChanged="ManagementFolderSelected" AutomationProperties.Name="管理的游戏目录">
+                  <p:PclComboBox.ItemTemplate><DataTemplate><StackPanel Margin="0,3"><TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis"/><TextBlock Text="{Binding Location}" TextTrimming="CharacterEllipsis" FontSize="11" Opacity="0.6" Margin="0,2,0,0"/></StackPanel></DataTemplate></p:PclComboBox.ItemTemplate>
+                </p:PclComboBox>
+                <p:PclButton x:Name="ManagementChooseFolder" Grid.Column="1" Text="更改目录" Width="86" Height="28" Margin="12,0,0,0" Click="ChooseInstallFolder"/>
+              </Grid>
+              <Grid x:Name="ManagementViewHost" Grid.Row="1" ClipToBounds="True">
+                <p:PclScrollViewer x:Name="ManagementListPage" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="True" IsTabStop="False">
+                  <StackPanel Margin="25,15,25,25">
+                    <p:PclCard ShowHeader="False" BodyMargin="16,12,16,12" Margin="0,0,0,15">
+                      <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <p:PclTextBox x:Name="ManagementSearch" Height="30" MaxLength="256" HintText="搜索已安装版本" TextChanged="ManagementSearchChanged" ToolTip="搜索版本名称、Minecraft 版本或加载器" AutomationProperties.Name="搜索已安装版本"/>
+                        <p:PclButton x:Name="ManagementRefresh" Grid.Column="1" Text="刷新列表" Width="86" Height="28" Margin="12,0,0,0" Click="RefreshManagement"/>
+                      </Grid>
+                    </p:PclCard>
+                    <TextBlock x:Name="ManagementSummary" FontSize="12" Opacity="0.65" Margin="0,0,0,12" TextWrapping="Wrap"/>
+                    <p:PclCard x:Name="ManagementListCard" Title="已安装版本" BodyMargin="12,36,12,12">
+                      <StackPanel x:Name="ManagementRows"/>
+                    </p:PclCard>
+                    <TextBlock x:Name="ManagementStatus" Text="请选择游戏目录。" FontSize="12" Opacity="0.65" TextWrapping="Wrap" Margin="0,12,0,0" AutomationProperties.LiveSetting="Polite"/>
+                  </StackPanel>
+                </p:PclScrollViewer>
+                <p:PclScrollViewer x:Name="ManagementDetailPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="True" IsTabStop="False">
+                  <StackPanel Margin="25,25,25,25">
+                    <p:PclCard ShowHeader="False" BodyMargin="18,14,18,14" Margin="0,0,0,15">
+                      <p:PclListItem x:Name="ManagedIntro" Height="64" IsHitTestVisible="False"/>
+                    </p:PclCard>
+                    <p:PclHint x:Name="ManagedProblem" Visibility="Collapsed" Margin="0,0,0,15"/>
+                    <p:PclCard Title="版本信息" BodyMargin="25,40,25,18" Margin="0,0,0,15">
+                      <StackPanel>
+                        <TextBlock x:Name="ManagedVersion" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                        <TextBlock x:Name="ManagedIsolation" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                        <TextBlock Text="版本文件夹" FontSize="12" Opacity="0.6"/>
+                        <TextBlock x:Name="ManagedInstancePath" TextWrapping="Wrap" Margin="0,3,0,12"/>
+                        <TextBlock Text="实际运行目录" FontSize="12" Opacity="0.6"/>
+                        <TextBlock x:Name="ManagedRunPath" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                      </StackPanel>
+                    </p:PclCard>
+                    <p:PclCard Title="快捷方式" BodyMargin="25,35,15,15" Margin="0,0,0,15">
+                      <WrapPanel x:Name="ManagedFolderActions">
+                        <p:PclButton Text="版本文件夹" Tag="instance" Width="130" Height="32" Margin="0,8,12,0" Click="OpenManagedFolder"/>
+                        <p:PclButton Text="Mod 文件夹" Tag="mods" Width="130" Height="32" Margin="0,8,12,0" Click="OpenManagedFolder"/>
+                        <p:PclButton Text="存档文件夹" Tag="saves" Width="130" Height="32" Margin="0,8,12,0" Click="OpenManagedFolder"/>
+                        <p:PclButton Text="资源包文件夹" Tag="resourcepacks" Width="130" Height="32" Margin="0,8,12,0" Click="OpenManagedFolder"/>
+                        <p:PclButton Text="截图文件夹" Tag="screenshots" Width="130" Height="32" Margin="0,8,12,0" Click="OpenManagedFolder"/>
+                      </WrapPanel>
+                    </p:PclCard>
+                    <p:PclCard Title="文件检查" BodyMargin="25,40,25,18">
+                      <StackPanel>
+                        <p:PclButton x:Name="ManagedRepair" Text="校验与补全" Width="130" Height="32" HorizontalAlignment="Left" Click="RepairManagedInstance"/>
+                        <TextBlock x:Name="ManagedRepairStatus" FontSize="12" Opacity="0.65" TextWrapping="Wrap" Margin="0,10,0,0" AutomationProperties.LiveSetting="Polite"/>
+                      </StackPanel>
+                    </p:PclCard>
+                  </StackPanel>
+                </p:PclScrollViewer>
+                <Canvas x:Name="ManagementGhost" IsHitTestVisible="False" ClipToBounds="True"/>
+              </Grid>
             </Grid>
             <p:PclScrollViewer x:Name="SettingsPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
               <StackPanel x:Name="SettingsContent" Margin="25" Grid.IsSharedSizeScope="True">

@@ -9,6 +9,7 @@ Partial Public Class MainWindow
     Private Sub RefreshTitleNavigation()
         If _titleNavigation Is Nothing Then Return
         Dim title As String = Nothing
+        If ManagementPage.Visibility = Visibility.Visible AndAlso ManagementDetailPage.Visibility = Visibility.Visible Then title = _managedInstance?.Name
         If DownloadPage.Visibility = Visibility.Visible Then
             If _downloadView = DownloadView.Progress Then
                 title = "任务管理"
@@ -27,7 +28,13 @@ Partial Public Class MainWindow
     ' The existing page owners are the return stack: task -> selected options or
     ' detail -> accepted search snapshot. Back never cancels an installation.
     Private Function NavigateTitleBack() As Boolean
-        If _closing OrElse _choosingOnline OrElse _onlinePrompt IsNot Nothing OrElse DownloadPage.Visibility <> Visibility.Visible Then Return False
+        If _closing OrElse _choosingOnline OrElse _onlinePrompt IsNot Nothing Then Return False
+        If ManagementPage.Visibility = Visibility.Visible Then
+            If ManagementDetailPage.Visibility <> Visibility.Visible Then Return False
+            BackFromManagement(Me, New RoutedEventArgs())
+            Return True
+        End If
+        If DownloadPage.Visibility <> Visibility.Visible Then Return False
         If _downloadView = DownloadView.Progress Then
             ResumeInstallation(Me, New RoutedEventArgs())
             Return True

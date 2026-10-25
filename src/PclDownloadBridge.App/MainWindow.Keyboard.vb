@@ -41,8 +41,14 @@ Partial Public Class MainWindow
             BackFromAbout(Me, e)
         ElseIf SettingsPage.Visibility = Visibility.Visible Then
             e.Handled = True
-            ShowDownload(Me, e)
-            FocusDownloadPage()
+            If _settingsReturnManagement Then
+                ShowManagement(Me, e)
+            Else
+                ShowDownload(Me, e)
+                FocusDownloadPage()
+            End If
+        ElseIf ManagementPage.Visibility = Visibility.Visible Then
+            e.Handled = NavigateTitleBack()
         ElseIf _downloadView = DownloadView.Progress Then
             e.Handled = NavigateTitleBack()
         ElseIf _downloadView = DownloadView.Modpacks AndAlso _packMode <> PackBrowserMode.Search Then

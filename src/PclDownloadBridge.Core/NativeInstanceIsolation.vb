@@ -10,7 +10,7 @@ Friend NotInheritable Class NativeInstanceIsolation
     Implements IInstanceIsolationPlan
     Private ReadOnly _target As LauncherInstallTarget
     Private ReadOnly _root As String, _name As String, _instance As String
-    Private ReadOnly _inputs As New InstanceConfigurationInputs()
+    Private ReadOnly _inputs As InstanceConfigurationInputs
     Private ReadOnly _written As New Dictionary(Of String, Byte())(StringComparer.OrdinalIgnoreCase)
     Private _folderSignal As Boolean?
     Private _hmclModern As Boolean
@@ -22,7 +22,8 @@ Friend NotInheritable Class NativeInstanceIsolation
             Return _written.Keys
         End Get
     End Property
-    Private Sub New(target As LauncherInstallTarget, name As String, entry As VersionEntry, metadata As JObject, repair As Boolean, components As Boolean, mode As InstanceIsolationMode, modable As Boolean, strategy As Integer?)
+    Private Sub New(target As LauncherInstallTarget, name As String, entry As VersionEntry, metadata As JObject, repair As Boolean, components As Boolean, mode As InstanceIsolationMode, modable As Boolean, strategy As Integer?, Optional inputs As InstanceConfigurationInputs = Nothing)
+        _inputs = If(inputs, New InstanceConfigurationInputs())
         _target = target : _root = target.Root : _name = name
         _instance = SafeFiles.UnderRoot(_root, "versions/" & name)
         If strategy.HasValue AndAlso (strategy.Value < 0 OrElse strategy.Value > 4) Then Throw New ArgumentOutOfRangeException(NameOf(strategy))
@@ -31,6 +32,10 @@ Friend NotInheritable Class NativeInstanceIsolation
             Dim local = CeReader(If(target.ConfigPath, Path.Combine(target.Workspace, "PCL/config.v1.yml")))
             If repair Then
                 Dim read = CeReader(Path.Combine(_instance, "PCL/config.v1.yml")), value = read("VersionArgumentIndieV2")
+                ' CE counts API-classified instances as modable when inspecting
+                ' an undecided existing instance. Installation Resolve keeps its
+                ' established input semantics; this addition is read-only Inspect.
+                If inputs IsNot Nothing Then modable = modable OrElse ParseInt(read("DisplayType"), 0, -1, 6) = 2
                 If value IsNot Nothing Then
                     choice = ParseBool(value)
                 Else
@@ -175,6 +180,10 @@ Friend NotInheritable Class NativeInstanceIsolation
 
     Friend Shared Function Resolve(target As LauncherInstallTarget, name As String, entry As VersionEntry, metadata As JObject, repair As Boolean, components As Boolean, mode As InstanceIsolationMode, modable As Boolean, strategy As Integer?) As NativeInstanceIsolation
         Return New NativeInstanceIsolation(target, name, entry, metadata, repair, components, mode, modable, strategy)
+    End Function
+    ' Inspection shares the repair-time read rules and never calls WriteNewSettings.
+    Friend Shared Function Inspect(target As LauncherInstallTarget, name As String, entry As VersionEntry, metadata As JObject, components As Boolean, modable As Boolean, inputs As InstanceConfigurationInputs) As NativeInstanceIsolation
+        Return New NativeInstanceIsolation(target, name, entry, metadata, True, components, InstanceIsolationMode.FollowPcl, modable, Nothing, inputs)
     End Function
     Friend Sub ValidateDataLocation(needsRunFiles As Boolean)
         If needsRunFiles AndAlso Not Same(RunDirectory, _root) AndAlso Not Same(RunDirectory, _instance) Then Throw New NotSupportedException("此实例使用自定义运行目录；为保留原设置，暂不向该目录自动写入 Mods 或旧资源。")

@@ -42,6 +42,7 @@ Partial Public Class MainWindow
         NameHint.Text = If(nameIssue, "")
         NameHint.Visibility = If(nameIssue Is Nothing, Visibility.Collapsed, Visibility.Visible)
         Dim issue = If(nameIssue, ComponentInstallProblem())
+        If issue Is Nothing Then issue = ManagedRepairProblem()
         If issue Is Nothing Then issue = ExternalInstallProblem()
         If issue Is Nothing AndAlso RepairBox.IsChecked.GetValueOrDefault() AndAlso _componentSelection.Entries.Count > 0 Then issue = "请为组件安装使用新名称；原版校验仅支持未添加加载器的实例。"
         Dim active = If(busy, _busy)

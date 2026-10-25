@@ -78,6 +78,7 @@ Partial Public Class MainWindow
         AddHandler ModrinthInstanceName.TextChanged, Sub() RefreshModrinthAvailability()
         AddHandler ModrinthInstanceName.KeyDown, AddressOf ModrinthNameKeyDown
         InitializeMotion()
+        InitializeManagement()
         InitializeVersionLoading()
         InitializePackSearch()
         InitializeAppearance()
@@ -247,7 +248,7 @@ Partial Public Class MainWindow
         If artifactDirectory IsNot Nothing Then UiCheckRunnerChecks.Verify(artifactDirectory, check)
         VerifyVersionRowOwnership(artifactDirectory, check)
         check(Shell.RowDefinitions(0).Height.Value = 48, "PCL title bar is 48 DIP")
-        check(TopTabs.Children.Count = 2 AndAlso DownloadTab.Text = "下载" AndAlso SettingsTab.Text = "设置", "only Download and Settings remain in main navigation")
+        check(TopTabs.Children.Count = 3 AndAlso ManagementTab.Text = "管理" AndAlso DownloadTab.Text = "下载" AndAlso SettingsTab.Text = "设置", "Management, Download and Settings are the main navigation")
         check(FindName("FoldersPage") Is Nothing AndAlso FindName("TasksPage") Is Nothing AndAlso DownloadNav.Children.Count = 2, "download navigation contains only vanilla and modpacks without standalone folder or task pages")
         check(Not _hasTask AndAlso ProgressShortcut.Visibility = Visibility.Collapsed, "fresh download page has no empty task entry")
         check(VersionCards.Children.Count = 5, "latest plus four PCL categories")
@@ -259,7 +260,7 @@ Partial Public Class MainWindow
         rows(0).Activate()
         check(InstallPage.Visibility = Visibility.Visible AndAlso VersionPage.Visibility = Visibility.Collapsed, "version row click opens install options inside Download")
         check(InstanceName.Text = "1.21.1" AndAlso _selectedEntry.Id = "1.21.1", "selected version and instance name are carried into installer")
-        check(TopTabs.Visibility = Visibility.Visible AndAlso DownloadTab.Checked, "two main tabs remain available during component selection")
+        check(TopTabs.Visibility = Visibility.Visible AndAlso DownloadTab.Checked, "main tabs remain available during component selection")
         ShowSettings(Nothing, Nothing)
         check(SettingsPage.Visibility = Visibility.Visible AndAlso SettingsTab.Checked AndAlso GameFolderCard.Parent IsNot Nothing, "Settings contains the game folder selection")
         ShowDownload(Nothing, Nothing)
@@ -578,6 +579,7 @@ Partial Public Class MainWindow
 
     Private Sub SelectVersion(entry As VersionEntry)
         If _busy Then Return
+        _managedRepairContext = Nothing
         ' Component cards are about to be replaced. Release only the old local
         ' decorations; horizontal reversal still samples its current page frame.
         _pageSwitch.CardMotion.Finish()
@@ -626,6 +628,7 @@ Partial Public Class MainWindow
             SelectedPath.Text = "请选择 .minecraft 游戏目录"
             FolderSummary.Text = "安装前请选择游戏文件夹"
             RefreshInstallAvailability()
+            RefreshManagementFolders()
             Return
         End If
         _selectedFolder = folder
@@ -634,10 +637,13 @@ Partial Public Class MainWindow
         StatusText.Text = "已选择游戏目录：" & folder.Location
         RefreshIsolation(_busy)
         RefreshInstallAvailability()
+        RefreshManagementFolders()
         PersistSettings()
     End Sub
 
+    Private _settingsReturnManagement As Boolean
     Private Sub SwitchMainPage(settings As Boolean, Optional prepare As Action = Nothing)
+        If settings AndAlso SettingsPage.Visibility <> Visibility.Visible AndAlso AboutPage.Visibility <> Visibility.Visible Then _settingsReturnManagement = ManagementPage.Visibility = Visibility.Visible
         If settings Then
             ClearDownloadFocus()
         End If
@@ -751,6 +757,12 @@ Partial Public Class MainWindow
     End Sub
     Private Async Sub ResumeInstallation(sender As Object, e As RoutedEventArgs)
         If _downloadView <> DownloadView.Progress Then Return
+        If _managementTaskOrigin IsNot Nothing AndAlso _selectedFolder IsNot Nothing AndAlso SameManagementTarget(_managementTaskOrigin.Target, CurrentInstallTarget()) Then
+            _managementReturnName = _managementTaskOrigin.Name
+            SetDownloadView(If(_selectedEntry Is Nothing, DownloadView.Versions, DownloadView.Install))
+            ShowManagement(Me, New RoutedEventArgs())
+            Return
+        End If
         Dim target = _progressReturnView
         If target = DownloadView.Progress OrElse (target = DownloadView.Install AndAlso _selectedEntry Is Nothing) Then target = DownloadView.Versions
         If target = DownloadView.Modpacks Then _restorePackViewportFocus = True
@@ -775,7 +787,7 @@ Partial Public Class MainWindow
     End Sub
 
     Private Async Sub StartInstall(sender As Object, e As RoutedEventArgs)
-        If _busy OrElse _closing OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible Then Return
+        If _busy OrElse _closing OrElse DownloadPage.Visibility <> Visibility.Visible OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible Then Return
         If _downloadView <> DownloadView.Install AndAlso _downloadView <> DownloadView.Modpacks Then Return
         If sender Is InstallButton AndAlso (Not InstallActionHost.IsVisible OrElse Not InstallActionHost.IsHitTestVisible) Then Return
         If sender Is ModrinthInstallButton OrElse sender Is ModrinthInstanceName Then _activeModrinth = True
@@ -815,6 +827,7 @@ Partial Public Class MainWindow
         Dim selection = If(isPack, New ComponentSelection(), _componentSelection.Copy())
         selection.JavaPath = JavaPathBox.Text.Trim()
         Try
+            If repair AndAlso _managedRepairContext IsNot Nothing Then InstalledInstanceCatalog.EnsureUnchanged(_managedRepairContext, CancellationToken.None)
             target.ValidateDestination(root)
             InstallPreflight.ValidateDestination(root, name, repair)
             selection.Validate(entry.Id)
@@ -837,6 +850,7 @@ Partial Public Class MainWindow
         PersistSettings()
         TaskPanel.Visibility = Visibility.Visible
         ResetTaskView(name, If(modrinth IsNot Nothing, modrinth.LoaderKind.HasValue, If(pack IsNot Nothing, pack.LoaderKind.HasValue, selection.Entries.Count > 0)), root)
+        _managementTaskOrigin = If(repair AndAlso Not isPack, _managedRepairContext, Nothing)
         _taskMinecraft = entry.Id
         If pack IsNot Nothing Then
             _taskComponents = "CurseForge " & pack.Name & " " & pack.Version & If(pack.LoaderKind.HasValue, " · " & pack.LoaderKind.ToString() & " " & pack.LoaderVersion, "")
@@ -917,6 +931,11 @@ Partial Public Class MainWindow
         ChangeFolderButton.IsEnabled = Not value
         RefreshButton.IsEnabled = Not value
         CancelButton.IsEnabled = value
+        If Not value AndAlso _hasTask AndAlso _taskFinished Then
+            _managementDirty = True
+            If ManagementPage.Visibility = Visibility.Visible Then RefreshManagement(Me, New RoutedEventArgs())
+        End If
+        RefreshManagementAvailability()
     End Sub
 
     Private Function CreateTaskProgress() As IProgress(Of TransferProgress)
@@ -960,6 +979,8 @@ Partial Public Class MainWindow
             End If
         End If
         _closing = True
+        CancelManagementRequest()
+        _managementMotion?.Finish()
         _pclThemeMonitor.Dispose()
         RefreshInstallAction()
         _versionLoading.Reset()

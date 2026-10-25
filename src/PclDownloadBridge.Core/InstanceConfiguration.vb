@@ -17,6 +17,19 @@ End Interface
 ' absence) through the short filesystem commit. No migration or initialization.
 Friend NotInheritable Class InstanceConfigurationInputs
     Private ReadOnly _files As New Dictionary(Of String, Byte())(StringComparer.OrdinalIgnoreCase)
+    Friend Function Fingerprint() As String
+        Using buffer As New MemoryStream(), writer As New BinaryWriter(buffer, Encoding.UTF8, True)
+            For Each pair In _files.OrderBy(Function(item) item.Key, StringComparer.OrdinalIgnoreCase)
+                writer.Write(pair.Key.ToUpperInvariant())
+                writer.Write(If(pair.Value Is Nothing, -1, pair.Value.Length))
+                If pair.Value IsNot Nothing Then writer.Write(pair.Value)
+            Next
+            writer.Flush()
+            Using hash = System.Security.Cryptography.SHA256.Create()
+                Return BitConverter.ToString(hash.ComputeHash(buffer.ToArray())).Replace("-", "")
+            End Using
+        End Using
+    End Function
     Friend Function Read(filePath As String) As Byte()
         Dim full = Path.GetFullPath(filePath)
         If _files.ContainsKey(full) Then Return _files(full)

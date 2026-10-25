@@ -35,6 +35,7 @@ Partial Public Class MainWindow
     Private _archiveSplits As Integer
     Private _archiveRetries As Integer
     Private Sub ResetTaskView(name As String, hasComponents As Boolean, Optional root As String = Nothing, Optional hasArchive As Boolean = False)
+        _managementTaskOrigin = Nothing
         _taskHasArchive = hasArchive : _archiveNetwork = 0 : _archiveReused = 0 : _archiveSplits = 0 : _archiveRetries = 0
         _taskGeneration += 1
         _taskFinished = False : _taskCancelling = False
