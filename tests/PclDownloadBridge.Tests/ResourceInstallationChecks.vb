@@ -61,6 +61,7 @@ Friend Module ResourceInstallationChecks
     End Function
     Friend Async Function RunAsync(root As String) As Task(Of List(Of String))
         Dim passed As New List(Of String), bytes = Encoding.UTF8.GetBytes("verified resource fixture"), modData = ModBytes()
+        Using reuseServer As New TestServer()
         For Each kind In {"PCL", "CE", "HMCL", "HMCL-legacy"}
             For Each mode In {"shared", "isolated", "custom"}
                 If mode = "custom" AndAlso (kind = "PCL" OrElse kind = "CE") Then Continue For
@@ -83,11 +84,14 @@ Friend Module ResourceInstallationChecks
                 Check(worlds.Count = 2, "world picker only offers existing direct level.dat worlds: " & label, passed)
                 For Each resourceKind In {CommunityResourceKind.Mod, CommunityResourceKind.ResourcePack, CommunityResourceKind.Shader, CommunityResourceKind.DataPack}
                     Dim data = If(resourceKind = CommunityResourceKind.Mod, modData, bytes), release = ResourceInstallationChecks.Release(resourceKind, data), source = Path.Combine(base, "source", release.FileName)
+                    release.Url = reuseServer.Url & "/" & release.FileName
                     Directory.CreateDirectory(Path.GetDirectoryName(source)) : File.WriteAllBytes(source, data)
                     Dim plan = CommunityResourceInstallation.Create(release, item, If(resourceKind = CommunityResourceKind.DataPack, world, Nothing), CancellationToken.None)
                     Dim suffix = If(resourceKind = CommunityResourceKind.Mod, "mods", If(resourceKind = CommunityResourceKind.ResourcePack, "resourcepacks", If(resourceKind = CommunityResourceKind.Shader, "shaderpacks", "saves/Chosen/datapacks")))
                     Check(plan.Destination = Path.GetFullPath(Path.Combine(expected, suffix, release.FileName)) AndAlso plan.Publish(source, CancellationToken.None) AndAlso File.ReadAllBytes(plan.Destination).SequenceEqual(data), "resource publishes to exact native run directory: " & label & "/" & resourceKind.ToString(), passed)
                     Check(Not plan.Publish(source, CancellationToken.None), "identical selected resource is reused without overwrite: " & label & "/" & resourceKind.ToString(), passed)
+                    Dim coldCache = Path.Combine(base, "unused-cache")
+                    Check(Not Await plan.InstallAsync(coldCache, New ModrinthChecks.Policy(reuseServer.Url), Nothing, CancellationToken.None) AndAlso Not Directory.Exists(coldCache), "verified installed content avoids network and cold-cache creation: " & label & "/" & resourceKind.ToString(), passed)
                     If resourceKind = CommunityResourceKind.Mod Then
                         Dim alternate = ResourceInstallationChecks.Release(resourceKind, data, "another-name.jar"), alternateSource = Path.Combine(base, "source/another-name.jar")
                         File.WriteAllBytes(alternateSource, data)
@@ -98,8 +102,78 @@ Friend Module ResourceInstallationChecks
                 Check(original.All(Function(pair) File.ReadAllBytes(pair.Key).SequenceEqual(pair.Value)) AndAlso File.ReadAllText(Path.Combine(expected, "options.txt")) = "retain options" AndAlso Not Directory.Exists(Path.Combine(expected, "saves/Other/datapacks")), "existing settings, manifests, options and other worlds remain unchanged: " & label, passed)
             Next
         Next
+        Check(reuseServer.Requests.Values.Sum() = 0, "all native isolation and resource types reuse checked destinations without any HTTP requests", passed)
+        End Using
         Await EdgeAsync(root, passed)
+        Await PreflightAsync(root, passed)
         Return passed
+    End Function
+    Private Async Function PreflightAsync(root As String, passed As List(Of String)) As Task
+        Dim base = Path.Combine(root, "resource-preflight"), target = ResourceInstallationChecks.Target(base, "PCL", False), instance = ResourceInstallationChecks.Instance(target, "selected")
+        Using server As New TestServer()
+            Dim bytes = Encoding.UTF8.GetBytes("selected file bytes"), release = ResourceInstallationChecks.Release(CommunityResourceKind.ResourcePack, bytes)
+            server.Files("/resource.zip") = bytes : release.Url = server.Url & "/resource.zip"
+            Dim plan = CommunityResourceInstallation.Create(release, instance, Nothing, CancellationToken.None), cache = Path.Combine(base, "cache")
+            Directory.CreateDirectory(Path.GetDirectoryName(plan.Destination)) : File.WriteAllText(plan.Destination, "existing owner's different bytes")
+            Dim problem As Exception = Nothing
+            Try
+                Await plan.InstallAsync(cache, New ModrinthChecks.Policy(server.Url), Nothing, CancellationToken.None)
+            Catch ex As Exception
+                problem = ex
+            End Try
+            Check(TypeOf problem Is IOException AndAlso problem.Message.Contains("resource.zip") AndAlso problem.Message.Contains("保留"), "an occupied instance filename is reported as a preserved target conflict rather than poisoned download cache", passed)
+            Check(server.Requests.Values.Sum() = 0 AndAlso File.ReadAllText(plan.Destination) = "existing owner's different bytes", "known target conflicts abort before network acquisition without touching existing bytes", passed)
+            release.FileName = "occupied.zip" : plan = CommunityResourceInstallation.Create(release, instance, Nothing, CancellationToken.None)
+            Directory.CreateDirectory(plan.Destination)
+            Check(Await FailsInstallAsync(plan, cache, server) AndAlso server.Requests.Values.Sum() = 0 AndAlso Directory.Exists(plan.Destination), "a directory occupying the resource filename is retained and rejected before acquisition", passed)
+            Dim modData = ModBytes(), modRelease = ResourceInstallationChecks.Release(CommunityResourceKind.Mod, modData)
+            modRelease.Url = server.Url & "/resource.jar" : server.Files("/resource.jar") = modData
+            plan = CommunityResourceInstallation.Create(modRelease, instance, Nothing, CancellationToken.None)
+            Directory.CreateDirectory(Path.GetDirectoryName(plan.Destination)) : File.WriteAllText(plan.Destination & ".disabled", "keep disabled")
+            Check(Await FailsInstallAsync(plan, cache, server) AndAlso server.Requests.Values.Sum() = 0 AndAlso Not File.Exists(plan.Destination), "disabled Mod aliases fail before network without silently enabling them", passed)
+            release.FileName = "cancelled.zip" : plan = CommunityResourceInstallation.Create(release, instance, Nothing, CancellationToken.None)
+            Using cancel As New CancellationTokenSource()
+                Dim cancelled = False
+                Try
+                    Await plan.InstallAsync(cache, New ModrinthChecks.Policy(server.Url), New ModrinthChecks.Progress(Sub(value)
+                        If value.Stage = "检查已有文件" Then cancel.Cancel()
+                    End Sub), cancel.Token)
+                Catch ex As OperationCanceledException
+                    cancelled = True
+                End Try
+                Check(cancelled AndAlso Not File.Exists(plan.Destination) AndAlso server.Requests.Values.Sum() = 0, "cancellation at target preflight starts no network or publication", passed)
+            End Using
+            Check(Await plan.InstallAsync(cache, New ModrinthChecks.Policy(server.Url), Nothing, CancellationToken.None), "cancelled target preflight can retry the same resource and release all locks", passed)
+            Dim requests = server.Requests.Values.Sum(), observations As New List(Of TransferProgress)
+            Check(Not Await plan.InstallAsync(Path.Combine(base, "cold-cache"), New ModrinthChecks.Policy(server.Url), New ModrinthChecks.Progress(Sub(value) observations.Add(value)), CancellationToken.None) AndAlso server.Requests.Values.Sum() = requests AndAlso observations.Last().Phase = "commit" AndAlso observations.Last().StageFraction = 1, "existing-file reuse completes task progress without network or a downloader cache", passed)
+            Using gate As New LocalModActions.OperationGate(instance, Path.GetDirectoryName(plan.Destination), CancellationToken.None, "RESOURCES")
+                ' Keep the owning thread until this native mutex is disposed.
+                Check(FailsInstallAsync(plan, cache, server).GetAwaiter().GetResult() AndAlso server.Requests.Values.Sum() = requests, "even an identical resource cannot bypass an active shared-directory operation gate", passed)
+            End Using
+            Put(Path.Combine(instance.RunDirectory, "saves/World/level.dat"), "initial")
+            Dim world = CommunityResourceInstallation.Worlds(instance, CancellationToken.None).Single(), dataRelease = ResourceInstallationChecks.Release(CommunityResourceKind.DataPack, bytes, "world.zip")
+            dataRelease.Url = server.Url & "/resource.zip"
+            plan = CommunityResourceInstallation.Create(dataRelease, instance, world, CancellationToken.None)
+            Dim changed = 0, rejected = False
+            Try
+                Await plan.InstallAsync(cache, New ModrinthChecks.Policy(server.Url), New ModrinthChecks.Progress(Sub(value)
+                    If value.Stage = "下载并校验文件" AndAlso Interlocked.CompareExchange(changed, 1, 0) = 0 Then File.WriteAllText(Path.Combine(world.Folder, "level.dat"), "game saved while downloading")
+                End Sub), CancellationToken.None)
+            Catch ex As InvalidDataException
+                rejected = True
+            End Try
+            Check(rejected AndAlso changed = 1 AndAlso Not File.Exists(plan.Destination) AndAlso File.ReadAllText(Path.Combine(world.Folder, "level.dat")) = "game saved while downloading", "world changes during real acquisition abort datapack publication and preserve the updated world", passed)
+            requests = server.Requests.Values.Sum()
+            world = CommunityResourceInstallation.Worlds(instance, CancellationToken.None).Single() : plan = CommunityResourceInstallation.Create(dataRelease, instance, world, CancellationToken.None)
+            Check(Await plan.InstallAsync(cache, New ModrinthChecks.Policy(server.Url), Nothing, CancellationToken.None) AndAlso server.Requests.Values.Sum() = requests, "reselecting the updated world retries with the verified cache and no additional transfer", passed)
+        End Using
+    End Function
+    Private Async Function FailsInstallAsync(plan As ResourceInstallationPlan, cache As String, server As TestServer) As Task(Of Boolean)
+        Try
+            Await plan.InstallAsync(cache, New ModrinthChecks.Policy(server.Url), Nothing, CancellationToken.None) : Return False
+        Catch ex As IOException
+            Return True
+        End Try
     End Function
     Private Async Function EdgeAsync(root As String, passed As List(Of String)) As Task
         Dim base = Path.Combine(root, "resource-install/edges"), target = ResourceInstallationChecks.Target(base, "PCL", False), item = Instance(target, "a"), bytes = Encoding.UTF8.GetBytes(New String("x"c, 65536))

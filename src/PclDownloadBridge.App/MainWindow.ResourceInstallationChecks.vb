@@ -103,6 +103,15 @@ Partial Public Class MainWindow
         ShowManagement(Nothing, Nothing) : _surfaceMotion.Finish() : _categoryMotion.Finish()
         Await WaitPackUiAsync(Function() Not _managementDirty AndAlso Not _managementScanning AndAlso _localModReadSucceeded AndAlso Not _localModScanning) : layout()
         check(_localMods.Single().ModIds.Contains("new_resource") AndAlso _localModInstance.Name = "Shared" AndAlso SameManagementTarget(_localModInstance.Target, target), "returning to local management rescans the real shared Mods directory and shows the newly added file")
+        Dim oldMods As New TaskCompletionSource(Of List(Of LocalModEntry))()
+        _localModProvider = Function(instance, token) oldMods.Task
+        Dim retiredRead = LoadLocalModsAsync(True)
+        InvalidateResourceManagement(frozen) : oldMods.SetResult(New List(Of LocalModEntry)()) : Await retiredRead : layout()
+        check(_managementDirty AndAlso Not _localModReadSucceeded AndAlso Not _localModScanning AndAlso _localMods.Count = 1, "a late local Mod read cannot restore stale success or replace rows after a resource invalidates its shared directory")
+        _localModProvider = Function(instance, token) Task.FromResult(LocalModCatalog.Scan(instance, token))
+        ShowManagement(Nothing, Nothing) : _surfaceMotion.Finish() : _categoryMotion.Finish()
+        Await WaitPackUiAsync(Function() Not _managementDirty AndAlso Not _managementScanning AndAlso _localModReadSucceeded AndAlso Not _localModScanning) : layout()
+        check(_localMods.Single().ModIds.Contains("new_resource") AndAlso File.ReadAllBytes(configPath).SequenceEqual(config), "management retries its invalidated shared Mod read without changing external configuration")
         ShowDownload(Nothing, Nothing) : _surfaceMotion.Finish() : _categoryMotion.Finish() : layout()
         _managementProvider = Function(binding, token) Task.FromResult(instances)
         Dim data As New ModpackRelease With {.Kind = CommunityResourceKind.DataPack, .Name = "数据包", .FileName = "data.zip", .GameVersions = {"1.20.1"}, .Loaders = {"datapack"}, .Size = 100, .Sha1 = New String("a"c, 40)}
@@ -128,6 +137,18 @@ Partial Public Class MainWindow
             check(PackNameDialog.ActualHeight <= host.ActualHeight - 40 AndAlso OnlinePackConfirm.IsVisible AndAlso ResourceTargetWorld.ActualHeight = 30, "datapack target selector remains fully visible in minimum surface light/dark mode: " & dark)
             SaveControlVisual(host, Path.Combine(directory, "resource-target-" & If(dark, "dark", "light") & ".png"))
         Next
+        Dim description = PackNameDescription.Text
+        PackNameDescription.Text = String.Concat(Enumerable.Repeat("较长的资源发布版本名称 ", 18))
+        _resourceTargetProblem = "无法读取实例配置：" & String.Concat(Enumerable.Repeat("较长目录\\", 25)) & "PCL\\Setup.ini"
+        ValidateResourceTarget() : ResourceTargetLocation.Text = String.Concat(Enumerable.Repeat("D:\\较长资源目录\\", 30)) : layout()
+        Dim buttonBottom = OnlinePackConfirm.TranslatePoint(New Point(0, OnlinePackConfirm.ActualHeight), host).Y
+        File.WriteAllText(Path.Combine(directory, "resource-target-overflow.json"), New JObject From {{"HostHeight", host.ActualHeight}, {"DialogHeight", PackNameDialog.ActualHeight}, {"ConfirmBottom", buttonBottom}}.ToString())
+        SaveControlVisual(host, Path.Combine(directory, "resource-target-long.png"))
+        check(buttonBottom <= host.ActualHeight - 20 AndAlso PackNameDialog.TranslatePoint(New Point(0, 0), host).Y >= 20, "long resource names, target paths and read errors keep dialog actions inside the minimum window")
+        check(OnlinePromptBody.ScrollableHeight > 100 AndAlso Not OnlinePackConfirm.IsEnabled, "long target errors remain scrollable while installation stays blocked")
+        OnlinePromptBody.ScrollToEnd() : layout()
+        check(OnlinePromptBody.VerticalOffset > 0 AndAlso OnlinePackCancel.TranslatePoint(New Point(0, OnlinePackCancel.ActualHeight), host).Y <= host.ActualHeight - 20, "scrolling target details and errors never moves the cancel action out of view")
+        PackNameDescription.Text = description : _resourceTargetProblem = Nothing : ValidateResourceTarget() : layout()
         CompleteOnlinePrompt("no") : check(Await prompt Is Nothing, "cancel target selection returns no installation plan")
         Dim late As New TaskCompletionSource(Of List(Of InstalledInstance))()
         _managementProvider = Function(binding, token) late.Task
@@ -135,6 +156,7 @@ Partial Public Class MainWindow
         _managementProvider = Function(binding, token) Task.FromResult(New List(Of InstalledInstance) From {isolated})
         Dim replacement = PromptResourceTargetAsync(data, target, icon)
         late.SetResult(instances) : Await WaitPackUiAsync(Function() Not _resourceTargetLoading AndAlso Not _resourceWorldLoading) : layout()
+        check(OnlinePromptBody.VerticalOffset = 0 AndAlso OnlinePromptBody.MotionClock Is Nothing, "replacement target dialogs reset body scrolling and discard previous scroll animations")
         check(ResourceTargetInstance.Items.Count = 1 AndAlso DirectCast(DirectCast(ResourceTargetInstance.Items(0), ComboBoxItem).Tag, InstalledInstance) Is isolated, "a cancelled target scan completing late cannot replace a newer picker")
         CompleteOnlinePrompt("no") : Await replacement
         _motionPreview = True

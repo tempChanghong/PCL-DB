@@ -77,6 +77,14 @@ Public NotInheritable Class ResourceInstallationPlan
     End Sub
     Public Async Function InstallAsync(cache As String, policy As SourcePolicy, progress As IProgress(Of TransferProgress), token As CancellationToken, Optional connections As Integer = 16, Optional limit As Long = 0) As Task(Of Boolean)
         token.ThrowIfCancellationRequested() : Validate(token)
+        progress?.Report(New TransferProgress With {.Phase = "archive", .Stage = "检查已有文件", .StageFraction = 0})
+        ' PCL ModNet.CheckExistingFile checks the target before transferring it.
+        ' Keep native locks on one worker thread; never hold a mutex across Await.
+        If Await Task.Run(Function() ReuseExisting(token), token).ConfigureAwait(False) Then
+            progress?.Report(New TransferProgress With {.Phase = "archive", .Stage = "已有文件校验通过", .StageFraction = 1, .Completed = 1, .Total = 1})
+            progress?.Report(New TransferProgress With {.Phase = "commit", .Stage = "已存在相同文件", .StageFraction = 1})
+            Return False
+        End If
         Dim acquisition As New InlineProgress(Sub(value)
             value.Phase = "archive" : value.Stage = "下载并校验文件"
             value.StageFraction = If(value.Completed >= value.Total AndAlso value.Total > 0, 1, Math.Min(0.99, value.NetworkBytes / CDbl(_release.Size)))
@@ -87,6 +95,39 @@ Public NotInheritable Class ResourceInstallationPlan
         Dim changed = Await Task.Run(Function() Publish(source, token), token).ConfigureAwait(False)
         progress?.Report(New TransferProgress With {.Phase = "commit", .Stage = If(changed, "资源已安装", "已存在相同文件"), .StageFraction = 1})
         Return changed
+    End Function
+    Private Function ReuseExisting(token As CancellationToken) As Boolean
+        Dim directory = Path.GetDirectoryName(Destination)
+        Using gate As New LocalModActions.OperationGate(_instance, directory, token, If(_release.Kind = CommunityResourceKind.Mod, "MODS", "RESOURCES"))
+            Validate(token)
+            If _world IsNot Nothing Then gate.HoldModsDirectory(_world.Folder)
+            Using marker = If(_world Is Nothing, Nothing, LocalModActions.NativeLease.Open(Path.Combine(_world.Folder, "level.dat"), False))
+                Validate(token)
+                Return CheckExisting(token)
+            End Using
+        End Using
+    End Function
+    Private Function CheckExisting(token As CancellationToken) As Boolean
+        token.ThrowIfCancellationRequested()
+        If _release.Kind = CommunityResourceKind.Mod Then LocalModActions.EnsureAliases(Path.GetDirectoryName(Destination), _release.FileName, Destination)
+        If Directory.Exists(Destination) Then Throw DestinationConflict()
+        If Not File.Exists(Destination) Then Return False
+        Using existing = LocalModActions.NativeLease.Open(Destination, False)
+            Try
+                CommunityResourceDownload.VerifySource(existing.Stream, _release, token)
+            Catch ex As InvalidDataException
+                ' This is the existing target, not a corrupt download cache.
+                Throw DestinationConflict()
+            End Try
+            If _release.Kind = CommunityResourceKind.Mod Then
+                Dim entry = LocalModCatalog.Read(Destination, token)
+                If Not entry.IsArchiveValid OrElse Not String.IsNullOrEmpty(entry.Problem) Then Throw New InvalidDataException("已有 Mod 无法读取，文件已保留：" & _release.FileName)
+            End If
+            Validate(token) : Return True
+        End Using
+    End Function
+    Private Function DestinationConflict() As IOException
+        Return New IOException("目标已被不同内容的文件或文件夹占用，已有内容已保留：" & _release.FileName)
     End Function
     Friend Function Publish(source As String, token As CancellationToken, Optional beforePublish As Action = Nothing) As Boolean
         Validate(token)
@@ -108,12 +149,7 @@ Public NotInheritable Class ResourceInstallationPlan
                     marker = LocalModActions.NativeLease.Open(Path.Combine(_world.Folder, "level.dat"), False)
                     Validate(token)
                 End If
-                If File.Exists(Destination) Then
-                    Using existing = LocalModActions.NativeLease.Open(Destination, False)
-                        CommunityResourceDownload.VerifySource(existing.Stream, _release, token)
-                        Validate(token) : Return False
-                    End Using
-                End If
+                If CheckExisting(token) Then Return False
                 CommunityResourceDownload.Publish(_release, source, Destination, token, _instance,
                     Sub()
                         beforePublish?.Invoke() : Validate(token)

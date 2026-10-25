@@ -448,6 +448,7 @@ Partial Public Class MainWindow
         ResourceTargetChoices.Visibility = If(_resourceTargetPrompt, Visibility.Visible, Visibility.Collapsed)
         StopOnlinePromptMotion()
         PackNameTitle.Text = title : PackNameDescription.Text = description
+        OnlinePromptBody.StopScrolling() : OnlinePromptBody.ScrollToHome()
         OnlinePackName.Visibility = If(optionalFile, Visibility.Collapsed, Visibility.Visible)
         OnlinePackName.Text = If(proposed, "") : OnlinePackNameHint.Visibility = Visibility.Collapsed : OnlinePackNameHint.Theme = PclHintTheme.Red
         OnlinePackConfirm.Text = If(optionalFile, "是", "确定") : OnlinePackCancel.Text = If(optionalFile, "否", "取消")

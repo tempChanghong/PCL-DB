@@ -2,6 +2,9 @@
 
 ## 社区资源安装到指定实例
 
+- 后续检查继续读取同一固定 PCL 的 `MyMsgSelect.xaml/.vb`：标题/分割线、占剩余空间的滚动正文、独立底部按钮；正文不再全部使用 Auto 行，以防最小窗口下长说明和错误挤出按钮。弹窗入退场、焦点和主题沿用原实现，重开清理旧正文滚动状态。
+- 同一固定 PCL `Modules/Base/ModNet.vb` 的 `CheckExistingFile` 先校验目标再决定下载。指定实例安装据此增加原生锁内的目标预检：相同摘要直接完成，不创建下载缓存；冲突与禁用别名提前停止，下载后的发布仍重新检查。三启动器隔离适配和只读外部配置保持。[修复依据与验证](docs/reviews/community-resource-installation-followup.md)。
+
 - 主要依据仍为 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`PageDownloadCompDetail` 的实例适用性、`PathIndie` 和资源目录，`PageInstanceMod` 的 Mods 启停/导入边界，`PageInstanceOverall` 的存档/旧纹理包路径，以及 `MyMsgSelect` 的选择弹窗。保留 PCL 行、选择框、提示和已有弹窗入退场动画。
 - PCL 原数据包另存为默认导航到运行目录；这里按约定扩展为明确选择已有存档的 `saves/<世界>/datapacks`。存档显示文件夹名，不解析或写入 NBT。Mod/数据包采用明确声明的游戏版本与加载器匹配，不把上游无法确认的快照相容性猜测当成安装保证。
 - 原生目录继续使用已有只读适配器：HMCL `0d20910ea302a907d6a01fec9244ab10d2993d5e` 的 `computeRunDirectory`/实例覆盖与新建策略区别；PCL-CE `915ac29795efbdf6373417389e181e1504117048` 的 `McInstance.PathIndie`/配置层。旧 HMCL、自定义目录、多绑定、共享目录继续保留。十份原字节源码及 Git blob/SHA-256 在 `artifacts/resource-install/source/manifest.json`。

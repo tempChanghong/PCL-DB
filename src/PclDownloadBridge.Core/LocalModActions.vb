@@ -313,6 +313,7 @@ Public NotInheritable Class LocalModActions
         Private ReadOnly _directories As New Dictionary(Of String, SafeFileHandle)(StringComparer.OrdinalIgnoreCase)
         Friend Sub New(instance As InstalledInstance, directory As String, token As CancellationToken, Optional suffix As String = "MODS")
             token.ThrowIfCancellationRequested()
+            Dim folderKind = If(suffix = "MODS", "Mods", "资源")
             Dim runDirectory = If(instance?.RunDirectory, IO.Path.GetDirectoryName(directory))
             If instance Is Nothing AndAlso Not IO.Path.GetFileName(directory).Equals("mods", StringComparison.OrdinalIgnoreCase) Then Throw New IOException("共享 Mods 目录无效。")
             If Not IO.Directory.Exists(runDirectory) Then Throw New DirectoryNotFoundException("实际运行目录尚不存在，请先在启动器中确认目录。")
@@ -322,7 +323,7 @@ Public NotInheritable Class LocalModActions
             SyncLock Active
                 If Not Active.Add(_identity) Then
                     _runDirectory.Dispose() : _runDirectory = Nothing
-                    Throw New IOException("另一个任务正在修改这个 Mods 文件夹，请稍后重试。")
+                    Throw New IOException("另一个任务正在修改这个 " & folderKind & " 文件夹，请稍后重试。")
                 End If
             End SyncLock
             Try
@@ -336,7 +337,7 @@ Public NotInheritable Class LocalModActions
                 Catch ex As AbandonedMutexException
                     _ownsMutex = True
                 End Try
-                If Not _ownsMutex Then Throw New IOException("另一个进程正在修改这个 Mods 文件夹，请稍后重试。")
+                If Not _ownsMutex Then Throw New IOException("另一个进程正在修改这个 " & folderKind & " 文件夹，请稍后重试。")
                 token.ThrowIfCancellationRequested()
                 If instance IsNot Nothing Then InstalledInstanceCatalog.EnsureUnchanged(instance, token)
                 _directories.Add(IO.Path.GetFullPath(runDirectory), _runDirectory)
@@ -349,7 +350,7 @@ Public NotInheritable Class LocalModActions
                     Try
                         _rootLock = New FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None)
                     Catch ex As IOException
-                        Throw New IOException("这个游戏目录正在安装或被其他任务占用，请稍后修改 Mod。", ex)
+                        Throw New IOException("这个游戏目录正在安装或被其他任务占用，请稍后重试。", ex)
                     End Try
                 End If
                 token.ThrowIfCancellationRequested()
