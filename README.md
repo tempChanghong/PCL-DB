@@ -1,80 +1,28 @@
 # PCL-DB · PCL Download Bridge
 
-VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载与本地实例管理工具，简称 PCL-DB。最新发布为 **Beta 4.1**（`4.1.0-beta.1`），修复大整合包的容量误拦截，保留 Beta 4.0 的外部启动器支持、主题跟随及下载/详情动画。[Beta 4.1 发布说明](docs/releases/4.1.0-beta.1.md)。
+VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载与本地实例管理工具，简称 PCL-DB。最新发布为 **Beta 5.0**（`5.0.0-beta.1`）。[发布说明](docs/releases/5.0.0-beta.1.md)。
 
-当前源码恢复 PCL 式社区资源设置（来源、另存为文件名格式、Mod 管理样式）；搜索页明确区分“搜索”与“重置条件”，标明未应用的筛选。增加滑稽彩的动态近似跟随，保留实验外观权限；默认窗口对齐 PCL 的 900×550。[录屏与设置修复记录](docs/reviews/community-settings.md)。尚未打包发行。
+界面、控件与动画以 PCL2 限制前源码为核心，PCL-CE 仅作补充参考。独立读取 PCL、HMCL、PCL-CE 的游戏目录与原生隔离配置；外部配置只读，已有实例设置保留。安装后的游戏继续使用所选启动器启动。
 
-主动检查进一步修复分类缓存误用旧下载源、外观选项误取消搜索，以及动态配色时按钮停留旧颜色的问题；变色保留点击与列表、卡片动画。[检查范围和修复记录](docs/reviews/experience-audit-2026-10-26.md)。仅本地验证、提交，尚未打包发行。
+## 当前功能
 
-继续修复普通按钮、版本列表行在失焦、捕获丢失和主题切换后的旧按压误触发，补齐减少动画与实时清理；正常释放后的回弹仍保留 PCL 曲线。[基础控件交接检查](docs/reviews/basic-control-audit-2026-10-26.md)。尚未打包发行。
+- **原版与组件安装**：版本列表、官方/BMCLAPI 自动选源、并行下载、摘要校验、缓存复用、取消重试及受支持原版的已有实例补全；统一在设置中选择默认隔离策略。
+- **整合包**：CurseForge / Modrinth 搜索、详情、版本选择、下载安装，以及本地 ZIP / MRPACK 导入；大型覆盖文件流式读取，不设原先的固定容量上限。
+- **社区资源**：Mod、数据包、资源包、光影包的搜索、详情、版本筛选、必需前置链接、另存为及安装到指定实例。数据包明确选择存档，资源包与光影包采用实例的实际运行目录，安装后联动刷新管理页。
+- **已安装版本管理**：实例列表、名称/游戏版本/加载器搜索、详情和目录快捷方式；同路径的三种启动器绑定分别处理。愚人节、远古和快照按分类显示图标。
+- **本地 Mod 管理**：读取名称、版本、ID、加载器和内置图标；搜索、筛选、逐项启停及从文件安装。共享目录提示影响范围，文件与身份冲突不覆盖。
+- **PCL 风格交互**：搜索分层、灰色标签、紧凑详情按钮、标题导航、逐卡片入场/返回、按压回弹和减少动画适配；快速操作退役旧动画和请求。
+- **外观与设置**：三种启动器的多份目录绑定、下载及社区资源设置；主题跟随采用外部启动器卡片中的 PCL，未知或读取失败时回退，滑稽彩动态近似沿用实验性外观权限。
 
-修复普通按钮空格过早执行和弹窗退场时 Escape 穿透；旧按键释放不会确认重开的弹窗，交叉鼠标/键盘按压保持单次执行。[键盘与弹窗交接](docs/reviews/keyboard-handoff-2026-10-26.md)。尚未打包发行。
+Beta 5.0 同时修复资源弹窗失败恢复、启动目录恢复被切页中断、手动路径误换启动器身份、恢复中设置显示/模型不一致，以及管理筛选覆盖扫描状态等问题。[管理与下载边界记录](docs/reviews/management-status-2026-10-26.md)、[输入与动画记录](docs/reviews/keyboard-handoff-2026-10-26.md)。
 
-资源安装弹窗补齐扫描异常的错误提示和刷新重试，校验目标时显示加载状态，取消后重开保留新的请求所有权。[资源安装恢复检查](docs/reviews/resource-recovery-2026-10-26.md)。尚未打包发行。
-
-修复启动目录恢复被页面切换打断、手动重选共享路径误换启动器身份的问题；偏好恢复和安装期间不接收新的手动目录修改。[目录恢复与身份检查](docs/reviews/launcher-recovery-2026-10-26.md)。尚未打包发行。
-
-启动恢复设置期间显示加载提示，并暂时锁定设置输入，避免控件显示与实际偏好不一致；完成和失败后均释放恢复锁，下载任务仍保留自己的限制。[设置恢复检查](docs/reviews/settings-recovery-2026-10-26.md)。尚未打包发行。
-
-修复管理页筛选覆盖扫描中或失败提示、成功刷新漏显示无匹配结果、取消扫描返回后遗留加载文字的问题；保留已读取列表及启动器目标身份。[管理扫描状态检查](docs/reviews/management-status-2026-10-26.md)。尚未打包发行。
-
-当前源码补齐管理列表的愚人节、远古与快照分类及图标；资源搜索和详情使用 PCL 内置 MC 百科名称库，保留英文副标题，扩展各类中文标签，并按已知正式版清单缩写版本范围。[分类与资源呈现验证](docs/reviews/catalogue-presentation.md)。尚未打包发行。
-
-当前源码继续修复资源浏览：首次进入直接加载；混合搜索先显示已返回的来源，CurseForge 临时失败会重试。新增读取本地 Mod 内置 PNG/JPEG 图标，修正实例详情图标拉伸；跟随主题直接使用外部启动器卡片选定的 PCL。[录屏问题与验证](docs/reviews/resource-browser-followup.md)。尚未打包发行。
-
-当前源码修复社区资源页切回缓存分类后结果透明、搜索图标与文字过近、Mod 文案缺少空格，以及 CurseForge 资源版本信息缺失、公开文件下载链接为空时被略过的问题。Fresh Animations 已实际下载并校验；此轮只本地提交，尚未打包发行。[修复与验证](docs/reviews/resource-search-repair.md)。
-
-当前源码恢复「下载 → Mod／数据包／资源包／光影包」：支持 CurseForge、Modrinth 搜索、详情、版本筛选、必需前置链接与另存为下载。混合项目按发布版本及文件类型区分，下载先校验再保存，已有文件不覆盖；数据包保存为文件，由用户选择位置。此批尚未发行，详见[社区资源第一批抢修](docs/reviews/community-resource-rescue.md)。
-
-资源版本行右侧增加「安装到指定实例」：选择已安装版本，沿用 PCL、HMCL 或 PCL-CE 的实际隔离目录；Mod 放入 Mods，资源包与光影放入对应目录，数据包必须再选择存档。共享目录会明确提示；相同文件跳过，不同文件、禁用别名及已知重复 Mod ID 会阻止安装。安装后返回本地管理会重新读取。另存为入口保留；不自动安装前置、启用光影或修改外部配置。[第二批范围与验证](docs/reviews/community-resource-installation.md)。暂未打包发版。
-
-后续修复：安装前先校验已有目标，一致时直接复用，明确冲突时在传输前停止；正式发布仍复查。长资源名、路径和错误改在弹窗正文内滚动，保留底部操作与原有动画。[后续检查记录](docs/reviews/community-resource-installation-followup.md)。
-
-安装弹窗内可刷新版本与存档，刷新保留所选实例，但需要重新选择存档；读取迟到不会抢走当前弹窗焦点或阅读位置。无效下载设置会先定位到设置项。[完整联动检查](docs/reviews/community-resource-installation-linkage.md)。
-
-刷新后原选实例若已不可用，不再自动替换为其他实例，需明确重选；刷新也会清理旧滚动并回到顶部。[刷新边界检查](docs/reviews/resource-refresh-boundaries.md)。
-
-当前源码新增「管理」主入口：读取所选游戏目录的已安装版本，支持名称、游戏版本和加载器搜索；详情显示实际运行目录、隔离/共享状态、识别问题及目录快捷方式。PCL、HMCL、PCL-CE 即使使用同一个游戏目录，也保留各自的配置解释。浏览、扫描和打开目录不修改外部配置，不创建缺失目录。支持的独立原版可从详情进入既有校验补全流程，保留实例名称与设置；加载器、继承版本、整合包及身份不明的实例暂不提供此入口。此功能尚未打包发版，范围和验证见[本地实例管理第一批](docs/reviews/installed-instance-management.md)。
-
-当前源码继续接入「管理 → 实例详情 → Mod 管理」：识别本地 Mod 名称、版本、ID 与加载器，支持搜索、启用/禁用筛选、逐项启停和从文件安装。按所选启动器的实际运行目录定位 Mods，共享目录会说明影响范围；同名不同内容、启停别名或路径冲突不覆盖，取消/异常回收本次新增内容，已有配置保持。新导入支持 JAR、LiteMod 及其单个 `.disabled/.old` 后缀，并按 PCL 恢复启用；既有 ZIP Mod 可识别和启停，ZIP 整合包继续使用整合包入口。本批尚未打包发版，详见[本地 Mod 管理](docs/reviews/local-mod-management.md)。
-
-Mod 页“刷新列表”会重新只读读取当前实例的隔离设置，外部启动器更改运行目录后可在原页恢复。导入提交前复查新增、已发布及同内容跳过文件的状态别名；Forge/NeoForge 多行 TOML 描述兼容性与过期刷新交接也已修正。[后续检查与验证](docs/reviews/local-mod-followup.md)。
-
-本地识别兼容 JDK 清单按字节拆分 UTF-8 字符的续行形式，避免合法 Mod 的名称或版本丢失；启停后的键盘焦点和搜索交接继续完善。[清单与交互检查](docs/reviews/local-mod-manifest-interaction.md)。
-
-Mod 页进一步按 PCL2 对齐 40 DIP 搜索卡片、清空按钮、操作栏与搜索筛选计数。长描述不再挤掉文件冲突警告，取消操作的同步反馈也已修正。[本轮界面与联动检查](docs/reviews/local-mod-pcl-style.md)。
-
-本地 Mod 列表使用 PCL2 专用行的布局与文字层级：名称和版本分层、下行显示文件名与描述，禁用行使用删除线与角标。整行悬停、键盘焦点和启停按钮共享反馈，错误行也保留已读取的信息。[列表样式与交互检查](docs/reviews/local-mod-pcl-rows.md)。
-
-界面布局、控件与动画以 PCL2 限制前源码为核心，PCL-CE 仅作补充参考。读取 PCL、HMCL、PCL-CE 使用的游戏目录，按所选启动器的原生隔离与实例配置安装。原五个启动器仓库不需要修改。
-
-当前源码的「设置 → 外部启动器」支持 PCL、HMCL、PCL-CE 多份位置及目录配置的只读绑定，安装任务冻结来源、配置位置与目标路径。HMCL / PCL-CE 已接入原生隔离、组件、CurseForge / Modrinth 整合包及同版本原版补全；已有实例配置保持不变。[接入范围与验证](docs/reviews/external-launcher-native-isolation.md)。
-
-当前源码已按固定 PCL2 代码补齐标题栏图标的按压回弹、滚动条悬停/拖动变色和个性化单选框的环/点动画。蓝色与深色模式即时换色；快速切换、隐藏及卸载会清理旧动画，Windows 关闭客户端动画时这三类控件直接呈现终态。单选框只重绘固定大小的图形，不逐帧重排设置页。
-
-原版安装页保留 PCL 的横向切换，“开始下载”按钮按 MyExtraTextButton 源码独立弹出、回弹与收起；快速返回和切到设置、整合包、任务页时清理所属动画，名称、组件选择和进行中的元数据请求继续保留。[修改与验证说明](docs/reviews/version-entry-action-motion-2026-10-23.md)。
-
-当前源码修复 Beta 3.0 中原版安装与任务页之间缺失的切换动画：点击下载、查看已有任务及任务完成后返回，均使用 PCL 的逐卡片退场、110 + 30 ms 交接和错峰回弹入场。安装与取消继续独立运行，返回保留组件、实例名称和滚动位置；快速反向、设置交接、缩放和卸载会清理旧时钟及输入门控。[任务页动画修复与验证](docs/reviews/task-page-motion.md)。该修复已包含在 Beta 4.0。
-
-任务返回的后续焦点交接也保留安装视口：动画结束时聚焦滚动容器，避免自动聚焦屏幕外名称框；用户在入场期间主动选择编辑框时优先保留该选择。进行中任务返回采用同样规则，新选版本仍从顶部开始。[焦点与视口验证](docs/reviews/task-return-focus.md)。
-
-浮动下载按钮也已接入页面交接：从任务、设置或整合包返回安装页时，先保持隐藏，正文入场后再运行 PCL 原有的独立缩放/淡入，避免按钮提前覆盖退出画面。快速切走会取消待显示状态；静态模式和中途调整窗口大小直接呈现终态。[按钮交接与验证](docs/reviews/install-action-handoff.md)。
-
-浮动按钮内部另补齐 PCL MyExtraTextButton 的按压反馈：长按缩至 0.8，释放时回弹，移出时恢复。内部按压与外部入场缩放互不覆盖；切页、禁用、失焦、主题变化及模板替换会取消旧手势，避免释放后误触发下载。[按压反馈与验证](docs/reviews/install-button-press.md)。
-
-整合包详情的超长版本筛选栏已修复滚轮冲突：横向溢出时滚动筛选栏，普通长度仍滚动整页；卡片和页面入场期间保持相同规则。[滚轮路由验证](docs/reviews/filter-wheel-routing.md)。
-
-整合包详情的“复制名称”现按 PCL 的四次限次策略异步重试；浏览器无法打开时尝试复制项目网址，并给出实际操作结果。切页、更换项目和后续操作会使旧重试失效。[项目操作与验证](docs/reviews/project-action-recovery.md)。
-
-Beta 4.0 提供「设置 → 个性化 · 基础 → 跟随 PCL 当前主题」。开启后点击「选择 PCL」，明确绑定一份 PCL EXE 旁的 `PCL/Setup.ini`，也可直接选择该文件；与游戏目录独立，多份 PCL 不会相互串用。每 500 ms 在后台只读采样，连续两次配置一致后更新；关闭跟随后恢复原有本机外观。读取失败、文件被占用或删除时回退本机外观，恢复后自动继续跟随，路径保留。
-
-目前跟随龙猫蓝，以及本程序已有的甜柠青、小草绿、菠萝黄、橡木棕、玄素黑近似预设；后五项仍受原有实验性外观开关限制。隐藏配色、动态主题、自定义配色及未知 ID 会说明原因并回退，不推测上游未公开的调色参数。只同步已保存的主题 ID，不读取解锁记录，不修改 PCL 配置；本机深色模式、透明度及背景选项继续生效。[实现与验证范围](docs/reviews/follow-pcl-theme.md)。
+功能边界：受支持的独立原版可校验补全；加载器、继承版本和整合包不从管理详情直接补全。社区资源前置提供链接，尚不自动批量安装或启用光影。下载冲突、摘要不符或缺失必需文件时停止并保留诊断。
 
 ## 使用
 
-从 [Beta 4.1](https://github.com/tempChanghong/PCL-DB/releases/tag/v4.1.0-beta.1) 下载 `PCL-DB-4.1.0-beta.1.exe` 直接运行，或下载 ZIP 解压后运行其中的 `PCL-DB.exe`。源码构建方法见下文。
+从 [Beta 5.0](https://github.com/tempChanghong/PCL-DB/releases/tag/v5.0.0-beta.1) 下载 `PCL-DB-5.0.0-beta.1.exe` 直接运行，或下载 ZIP 解压后运行其中的 `PCL-DB.exe`。源码构建方法见下文。
 
-Beta 4.1 的两个下载入口使用相同的单 EXE，仍需系统安装 .NET Framework 4.8。ZIP 另外附带许可、使用说明和构建清单。已有多文件预览版运行时仍须保留自己的 DLL 和配置文件。源码默认构建入口为 `src/PclDownloadBridge.App/bin/Release/net48/PclDownloadBridge.exe`，显式打包后的便携目录入口为 `dist/PclDownloadBridge/PCL-DB.exe`。
+Beta 5.0 的两个下载入口使用相同的单 EXE，仍需系统安装 .NET Framework 4.8。ZIP 另外附带许可、使用说明和构建清单。已有多文件预览版运行时仍须保留自己的 DLL 和配置文件。源码默认构建入口为 `src/PclDownloadBridge.App/bin/Release/net48/PclDownloadBridge.exe`，显式打包后的便携目录入口为 `dist/PclDownloadBridge/PCL-DB.exe`。
 
 1. 打开「设置 → 外部启动器」，选择 PCL、HMCL 或 PCL-CE 的工作目录，点击「读取目录」，然后在「游戏」卡片选择安装目标；多份启动器可分别绑定，也可指定目录配置文件或手动选择 `.minecraft`。同页可分别设置「文件下载源」和「版本列表源」：BMCLAPI 优先、自动、官方优先；自动为默认值。切换版本列表源后，返回下载页会按新设置刷新当前列表；安装选项页也可点击「刷新列表」，保留版本、名称与组件选择。
 2. 回到「下载」，顶部显示安装目标；点击版本，填写实例名称。展开卡片选择 Forge、NeoForge、Fabric、Fabric API、OptiFine、OptiFabric 或 LiteLoader，点击「开始下载」。按 PCL 规则显示适用选项及互斥关系，Fabric API 和 OptiFabric 随父组件显示。默认拒绝覆盖同名实例。
@@ -311,7 +259,7 @@ OptiFine/OptiFabric 的跨版本兼容性沿用 PCL 检查和上游声明，不�
 
 Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / Any CPU**，将 **PCL-DB** 设为启动项目，选择同名启动配置后按 **F5**。已提供主程序、界面自检、组件页渲染及本地下载回归的启动配置；具体输出、断点建议和复查命令见 [VS2026_DEBUG.md](VS2026_DEBUG.md)。
 
-主应用的 **Appearance Checks** 配置可独立执行 191 项主题/任务状态检查，**Card Checks** 执行 134 项卡片、摘要动画、安装视口与版本格式检查；**Navigation Checks** 执行 68 项页面切换与状态保留检查；**Settings Compatibility** 执行 49 项更名与设置兼容检查；全量界面检查为 1059 项，包含以上各组。检查在离线示例模式运行，失败保留已通过项、失败名称、异常堆栈与诊断，并返回失败退出码。
+主应用的 **Appearance Checks** 配置可独立执行 191 项主题/任务状态检查，**Card Checks** 执行 134 项卡片、摘要动画、安装视口与版本格式检查；**Navigation Checks** 执行 239 项页面切换与状态保留检查；**Settings Compatibility** 执行 49 项更名与设置兼容检查；全量界面检查为 1273 项，包含以上各组。检查在离线示例模式运行，失败保留已通过项、失败名称、异常堆栈与诊断，并返回失败退出码。
 
 需要 .NET SDK 10.0.4xx 与 .NET Framework 4.8 Developer Pack；完整处理器样本检查还需要本机 Java 8 或更高版本。应用运行本身需要 .NET Framework 4.8。两个 Java 桥接/样本 class 已随源码保留，重编译命令为 `javac --release 8`，对应源文件在 `tools/java/`。
 
@@ -329,7 +277,7 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 .\build.ps1 -Package
 ```
 
-此模式独立构建单 EXE，并执行 25 项单文件、1059 项界面、1230 项动画和 508 项搜索候选检查；完整模式另运行临时目录中的打包回归，再生成便携目录、ZIP、可单独分发的版本号 EXE 与独立构建清单。不会读取旧 bin 作为打包候选。
+此模式独立构建单 EXE，并执行 25 项单文件、1273 项界面、1457 项动画和 710 项搜索候选检查；完整模式另运行临时目录中的打包回归，再生成便携目录、ZIP、可单独分发的版本号 EXE 与独立构建清单。不会读取旧 bin 作为打包候选。
 
 新 ZIP 内固定为 `PclDownloadBridge/` 下的 `PCL-DB.exe`、7 份文档（包含 `LICENCE`）和 `build-manifest.json`，共 9 个文件，无相邻 DLL、config 或 PDB。独立资产使用完整发布版本。v3 清单记录数字程序集版本、发布版本、完整提交、分支、工作区是否有改动、源码清单 SHA-256、SDK、运行时、两份内嵌依赖及每个载荷文件的 SHA-256。四组验收各自保留 Scope、Succeeded、Count、Passed、实际 EXE 摘要和单文件模式标识；当前要求由 `tools/VerificationTools.psm1` 集中维护。EXE ProductVersion 必须包含发布版本和提交；源码、文档或候选改变后需重新验证。下一次发行另定新版本，不能以新增功能覆盖既有 Beta 身份。
 
@@ -338,14 +286,14 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 结果打印 ZIP、单 EXE、清单及本次 `result.json` 的完整路径，报告记录全部摘要。明确指定候选包可独立检查包内一致性及所有分发资产：
 
 ```powershell
-.\tools\verify-package.ps1 -PackagePath .\dist\PCL-DB-4.1.0-beta.1.zip -DistributionPath .\dist\PclDownloadBridge -StandalonePath .\dist\PCL-DB-4.1.0-beta.1.exe -ManifestPath .\dist\PCL-DB-4.1.0-beta.1.build-manifest.json
+.\tools\verify-package.ps1 -PackagePath .\dist\PCL-DB-5.0.0-beta.1.zip -DistributionPath .\dist\PclDownloadBridge -StandalonePath .\dist\PCL-DB-5.0.0-beta.1.exe -ManifestPath .\dist\PCL-DB-5.0.0-beta.1.build-manifest.json
 ```
 
 上面的命令执行归档完整性检查，返回 `VerificationLevel=ArchiveIntegrity`、`CandidateVerified=false`。Beta 1.0 的 v2 清单保留当时的 25/658/328 记录，仅校验其结构、非零整数计数及实际文件摘要；不套用当前套件数量。Beta 2.0 的 v3 清单还核对四组完整回执及其 EXE 摘要。两种归档检查都不证明源码来源、签名或通过当前验收，v1/未知格式仍拒绝；旧 ZIP 不会被重写。检查旧 Beta 时请同时指定它对应的资产，不要混用当前便携目录。
 
 以后验证新发行候选时，使用该次四项资产的实际路径，并追加 `-CandidateResultPath <该次单EXE验证打印的result.json完整路径>`。只有当前 v3 候选通过全部套件、源码、载荷及清单证据一致性核对，才返回 `VerificationLevel=CurrentCandidate`、`CandidateVerified=true`。历史回执或普通多文件 EXE 的回执不能用来通过当前候选验收。
 
-`-SkipTests -Package` 跳过核心、常规构建回归及打包回归，仍强制独立构建并在同一个单 EXE 上执行 25/1059/1230/508 四组候选验收，以及源码和全部分发资产校验；不能据此声称通过完整回归。单独执行 `tools/verify-packaging.ps1` 会创建全新候选，仅在随机临时目录生成测试 ZIP，不更新项目 `dist`。可用 `-CandidateResultPath` 显式复用当前源码对应的候选，避免重复构建。
+`-SkipTests -Package` 跳过核心、常规构建回归及打包回归，仍强制独立构建并在同一个单 EXE 上执行 25/1273/1457/710 四组候选验收，以及源码和全部分发资产校验；不能据此声称通过完整回归。单独执行 `tools/verify-packaging.ps1` 会创建全新候选，仅在随机临时目录生成测试 ZIP，不更新项目 `dist`。可用 `-CandidateResultPath` 显式复用当前源码对应的候选，避免重复构建。
 
 单 EXE 功能可用以下命令独立验证；该命令构建开发候选，不生成 ZIP、不更新 `dist`，不创建 Release：
 
@@ -359,7 +307,7 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 
 普通构建、F5 和单 EXE 验证均不会生成正式分发包。只有显式执行 `build.ps1 -Package` 才更新 `dist`；创建 Git 标签、上传资产与 GitHub Release 仍需另行明确要求。
 
-页面、滚动与按钮动画另设 1230 项 `--motion-checks <报告路径>`，普通默认构建和单 EXE 验证均会执行，报告与上述 1059 项界面检查分别记录。VS 可直接选择 Motion Checks；该入口使用隔离预览数据，检查曲线、快速导航、关于页的焦点/返回交接、高频滚轮、展开时滚动、缩放换行的高度衔接、裁剪区域中的延迟行及按钮按压/回弹和中断清理，并输出采样帧，不是桌面帧率测试。
+页面、滚动与按钮动画另设 1457 项 `--motion-checks <报告路径>`，普通默认构建和单 EXE 验证均会执行，报告与上述 1273 项界面检查分别记录。VS 可直接选择 Motion Checks；该入口使用隔离预览数据，检查曲线、快速导航、关于页的焦点/返回交接、高频滚轮、展开时滚动、缩放换行的高度衔接、裁剪区域中的延迟行及按钮按压/回弹和中断清理，并输出采样帧，不是桌面帧率测试。
 
 维护固定 PCL 参考时，先执行以下检查（需要本地 PCL Git 对象，可用 `-SourceRoot` 指向没有检出文件的仓库）：
 
