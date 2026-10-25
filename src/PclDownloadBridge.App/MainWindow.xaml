@@ -439,6 +439,7 @@
               <StackPanel x:Name="SettingsContent" Margin="25" Grid.IsSharedSizeScope="True">
                 <StackPanel.Resources><Style x:Key="SettingLabel" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}"><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="HorizontalAlignment" Value="Left"/><Setter Property="Margin" Value="0,0,25,0"/></Style></StackPanel.Resources>
                 <p:PclButton x:Name="AboutEntry" Text="关于 PCL-DB" Width="140" Height="28" HorizontalAlignment="Right" Margin="0,0,0,15" Click="ShowAbout" />
+                <p:PclHint x:Name="SettingsRestoreHint" Theme="Blue" Text="正在读取设置与游戏目录……" Visibility="Collapsed" Margin="0,0,0,15"/>
                 <p:PclCard x:Name="AppearanceCard" Title="个性化 · 基础" BodyMargin="25,40,25,17">
                   <Grid x:Name="AppearanceGrid">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" SharedSizeGroup="Name"/><ColumnDefinition/></Grid.ColumnDefinitions>

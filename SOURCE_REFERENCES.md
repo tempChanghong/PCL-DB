@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 异步设置恢复的输入与状态一致性（2026-10-26）
+
+- 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`PageSetupSystem.xaml.vb` 的 Loaded 在 AniControlEnabled 范围内同步 Reload/SliderLoad；`SettingService.vb` 的 RefreshSettings 更新控件，SaveSetting 在重载期间不保存变更。
+- 本工具的目录恢复包含异步等待，不能直接照搬同步刷新期间仅忽略事件的方式。恢复期间暂时禁用六张设置卡片，保留导航和只读入口，使用已有 PCL 样式蓝色提示条显示加载；排队的保存和外观重置不接受中间状态。恢复结束依照任务状态释放设置，避免两个锁相互覆盖。
+- 原始 Git 对象、摘要和修复前复现见 `artifacts/settings-recovery/`；详见[设置恢复检查](docs/reviews/settings-recovery-2026-10-26.md)。不改动外部配置、下载安装机制与既有动画策略。
+
 ## 启动目录恢复与手动路径身份（2026-10-26）
 
 - 主参照 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`FormMain.xaml.vb` 在启动阶段尽早启动 McFolderListLoader；`PageSelectLeft.xaml.vb` 以 McFolderSelected 为当前目录，显式目录选择后重载版本列表；`ModMinecraft.vb` 保存并恢复 LaunchFolderSelect。

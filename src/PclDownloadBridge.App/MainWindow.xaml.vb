@@ -352,6 +352,7 @@ Partial Public Class MainWindow
         VerifySummaryLayout(artifactDirectory, check)
         VerifyExternalLauncherUi(artifactDirectory, check)
         VerifyLauncherSelectionRecoveryUi(artifactDirectory, checks)
+        VerifySettingsRecoveryUi(artifactDirectory, checks)
         Return checks
     End Function
 
@@ -944,9 +945,7 @@ Partial Public Class MainWindow
         ComponentCards.IsEnabled = Not value
         RefreshPackAvailability(value)
         DownloadNav.IsEnabled = Not value
-        GameFolderCard.IsEnabled = Not value
-        ExternalLauncherCard.IsEnabled = Not value
-        DownloadSettingsCard.IsEnabled = Not value
+        RefreshTransferSettingsAvailability(value)
         ChangeFolderButton.IsEnabled = Not value
         RefreshButton.IsEnabled = Not value
         CancelButton.IsEnabled = value
@@ -1063,6 +1062,7 @@ Partial Public Class MainWindow
     End Function
 
     Private Sub SaveSettings(sender As Object, e As RoutedEventArgs)
+        If _restoringSettings OrElse _closing Then Return
         Dim wasBlocked = _settingsLoadFailed
         _settingsLoadFailed = False
         If PersistSettings(True) Then

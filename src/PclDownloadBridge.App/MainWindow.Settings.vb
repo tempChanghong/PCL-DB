@@ -6,7 +6,31 @@ Imports PclDownloadBridge.Core
 Imports Newtonsoft.Json.Linq
 
 Partial Public Class MainWindow
-    Private _restoringSettings As Boolean
+    Private _settingsRestoring As Boolean
+    Private Property _restoringSettings As Boolean
+        Get
+            Return _settingsRestoring
+        End Get
+        Set(value As Boolean)
+            If _settingsRestoring = value Then Return
+            _settingsRestoring = value
+            If AppearanceCard Is Nothing Then Return
+            ' PCL reloads settings synchronously under AniControlEnabled. Our
+            ' external directory discovery awaits I/O, so its reload gate must
+            ' also cover user input until models and their baseline are ready.
+            For Each card In {AppearanceCard, CommunitySettingsCard, DeveloperCard}
+                card.IsEnabled = Not value
+            Next
+            RefreshTransferSettingsAvailability(_busy)
+            SettingsRestoreHint.Visibility = If(value, Visibility.Visible, Visibility.Collapsed)
+        End Set
+    End Property
+
+    Private Sub RefreshTransferSettingsAvailability(busy As Boolean)
+        For Each card In {GameFolderCard, ExternalLauncherCard, DownloadSettingsCard}
+            card.IsEnabled = Not busy AndAlso Not _restoringSettings
+        Next
+    End Sub
     Private _preferenceBaseline As JObject
     Private _preferenceBaselinePath As String
     Private _communityPreferences As New CommunityResourcePreferences

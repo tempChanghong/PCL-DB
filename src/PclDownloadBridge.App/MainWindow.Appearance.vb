@@ -116,6 +116,7 @@ Partial Public Class MainWindow
     End Sub
 
     Private Sub ResetAppearance(sender As Object, e As RoutedEventArgs)
+        If _restoringSettings OrElse _closing Then Return
         RestoreAppearance(Nothing)
         SaveAppearance(True)
     End Sub
