@@ -38,6 +38,7 @@ Module CommunityResourceChecks
         Dim passed As New List(Of String), folder = Path.Combine(root, "community-" & Guid.NewGuid().ToString("N"))
         Await ResourceCatalogueRepairChecks.VerifyAsync(passed)
         Await ResourceBrowserFollowupChecks.VerifyAsync(root, passed)
+        CataloguePresentationChecks.Verify(root, passed)
         Directory.CreateDirectory(folder)
         For Each kind In {CommunityResourceKind.Mod, CommunityResourceKind.DataPack, CommunityResourceKind.ResourcePack, CommunityResourceKind.Shader}
             Dim query As New ModpackQuery With {.Kind = kind, .Text = "a & 中", .Minecraft = "1.20.1"}

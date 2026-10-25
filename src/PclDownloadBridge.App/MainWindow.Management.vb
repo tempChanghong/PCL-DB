@@ -192,7 +192,7 @@ Partial Public Class MainWindow
         ManagementRows.Children.Clear()
         Dim query = ManagementSearch.Text.Trim()
         Dim matching = _managementInstances.Where(Function(item) query.Length = 0 OrElse
-            (item.Name & " " & item.MinecraftVersion & " " & item.LoaderSummary).IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0).ToList()
+            (item.Name & " " & item.MinecraftVersion & " " & item.LoaderSummary & " " & MinecraftVersionCategory.Label(item.MinecraftKind)).IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0).ToList()
         For Each item In matching
             Dim captured = item
             ManagementRows.Children.Add(New PclLazyRow(Function()
@@ -213,7 +213,7 @@ Partial Public Class MainWindow
     Private Shared Function ManagedSubtitle(item As InstalledInstance) As String
         If Not String.IsNullOrEmpty(item.Problem) Then Return "无法识别 · " & item.Problem
         Return If(String.IsNullOrEmpty(item.MinecraftVersion), "游戏版本未知", item.MinecraftVersion) & " · " &
-            If(String.IsNullOrEmpty(item.LoaderSummary), "未知组件", item.LoaderSummary) & " · " & item.IsolationSummary & If(item.IsModpack, " · 整合包", "")
+            If(item.LoaderSummary = "原版", MinecraftVersionCategory.Label(item.MinecraftKind), If(String.IsNullOrEmpty(item.LoaderSummary), "未知组件", item.LoaderSummary)) & " · " & item.IsolationSummary & If(item.IsModpack, " · 整合包", "")
     End Function
     Private Shared Function ManagedIcon(item As InstalledInstance) As String
         Dim name = "Grass"
@@ -225,6 +225,12 @@ Partial Public Class MainWindow
             name = "Fabric"
         ElseIf Not String.IsNullOrEmpty(item.LoaderSummary) AndAlso item.LoaderSummary <> "原版" AndAlso item.LoaderSummary <> "未知" Then
             name = "Anvil"
+        Else
+            Select Case item.MinecraftKind
+                Case "special" : name = "GoldBlock"
+                Case "old_alpha", "old_beta" : name = "CobbleStone"
+                Case "snapshot" : name = "CommandBlock"
+            End Select
         End If
         Return "pack://application:,,,/Images/Blocks/" & name & ".png"
     End Function

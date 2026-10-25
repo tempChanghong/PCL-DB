@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 本地版本分类与资源中文呈现
+
+- 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`PCLCS/Minecraft/McVersion.cs` 的特殊名称、JSON 类型和 UTC+2 愚人节日期规则，`ModMinecraft.vb` 的实例图标优先级；本工具只读继承链与 HMCL 原版分支，不移植 PCL 的 State/Info/Logo 缓存写入。
+- `PCLCS/Resource/WikiEntry.cs`、`WikiEntries.txt` 与 `ResourceProject.GetControlTitle/ToResourceItem`：按平台 Slug 关联内置 MC 百科名称、分级中英文标题、各资源分类标签和连续版本段。名称库原始字节保存在 `src/PclDownloadBridge.Core/Resources/PclWikiEntries.txt`，SHA-256 为 `D1DC2A3807F2B39235F7D0E62E6650B09334826B0E66B35C98D5C79B5D2C0BFE`。名称仅用于显示，不改变平台 ID、项目原名或安装身份；无译名时沿用原名。
+- 版本范围仅根据本次成功加载的非补充正式版清单判断相邻族；未取得清单时保留逐项显示，不增加网络请求。保留原统计列权重，兼容文字在空间允许时优先取得自然宽度；超长内容仍省略并保留完整提示。详见[分类与呈现记录](docs/reviews/catalogue-presentation.md)。
+
 ## 资源浏览、图标与主题来源联动
 
 - 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`ResourceSearcher.vb` 的来源游标/结果排序、`ModDownload.DlModRequest` 的两次十秒 MCIM 请求、`MyPageRight.vb` 的加载/入场状态与强制停留、`MyLocalModItem.xaml.vb` 的项目图标和缺省图，以及 `MyListItem.xaml.vb` 的图片布局。首次进入按用户要求直接显示加载；仍等待实际父级入场后计算停留时间，手动搜索沿用原等待策略。新增非提交的来源预览，最终混合排序、游标、分页与安装路径保持。

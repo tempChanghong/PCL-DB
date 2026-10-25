@@ -16,7 +16,7 @@ Partial Public Class MainWindow
             If _downloadView = DownloadView.Progress Then
                 title = "任务管理"
             ElseIf _downloadView = DownloadView.Modpacks AndAlso _packMode = PackBrowserMode.Detail Then
-                title = If(ActivePackProject()?.Name, CommunityResources.Name(_resourceKind) & "详情")
+                title = If(ActivePackProject() Is Nothing, CommunityResources.Name(_resourceKind) & "详情", ResourceProjectNames.GetTitle(ActivePackProject()).Title)
             End If
         End If
         _titleNavigation.SelectTitle(title)

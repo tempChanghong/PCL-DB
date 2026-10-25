@@ -32,6 +32,7 @@ Public NotInheritable Class ModpackProject
     Public Property Platform As ModpackPlatform
     Public Property Id As String
     Public Property Name As String
+    Public Property Slug As String
     Public Property Summary As String
     Public Property IconUrl As String
     Public Property Website As String
@@ -359,8 +360,9 @@ Public NotInheritable Class ModpackCatalogClient
             result.Downloads = Number(data, "downloadCount") : result.Updated = DateValue(data, "dateModified")
         End If
         ValidateId(platform, result.Id)
+        result.Slug = Text(data, "slug")
         If platform = ModpackPlatform.CurseForge Then result.GameVersions = ModpackProjectMetadata.ReadVersions(result, data)
-        result.Tags = ModpackProjectMetadata.ReadTags(platform, data("categories"))
+        result.Tags = ModpackProjectMetadata.ReadTags(platform, data("categories"), result.Kind)
         result.Loaders = ModpackProjectMetadata.ReadLoaders(result, data)
         Return result
     End Function

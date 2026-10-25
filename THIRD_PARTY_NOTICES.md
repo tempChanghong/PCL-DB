@@ -3,6 +3,7 @@
 Plain Craft Launcher - Download Bridge（简称 PCL-DB）是第三方独立下载补全项目。关于页中的原作者与贡献者信息用于来源致谢，不表示上游参与、维护或认可本项目。
 
 - PCL2（Meloong-Git/PCL）：目录读取、版本安装、下载与视觉设计的主要代码参照，原作者及贡献者保留相应权利。具体基线和适配关系见 `SOURCE_REFERENCES.md`。本应用是独立的第三方下载补全项目，当前版本为 Beta 2.0。它不是 PCL 官方发行版。
+- 资源中文名称库原样取自 PCL 固定提交 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PCLCS/Resource/WikiEntries.txt`，数据来源为 MC 百科。该文件的原有权利与上游要求保持，不作重新许可；本工具只按平台 Slug 用于中文名称显示，未抓取或机器翻译项目简介。具体路径及摘要见 `SOURCE_REFERENCES.md`。
 - 0.26 的标题纹理直接使用 PCL `Images/Themes/12.png`，保留原始图片字节和透明度；配色预设除默认蓝色参数外为本项目独立设置，未搬运主题解锁、赞助或账号数据。
 - 0.27 的关于页参照同一固定基线的 `PageOtherAbout.xaml(.vb)`，采用信息行、圆形图标和操作区布局；项目圆标及文字缩写为本项目制作。BMCLAPI 由 bangbang93 维护，源码链接为 https://github.com/bangbang93/openbmclapi。PCL-CE、HMCL 与 PrismLauncher 的补充参照范围见 `SOURCE_REFERENCES.md`。
 - 0.57 关于页进一步使用同一固定提交的 `Images/Heads/LTCat.jpg`、`HerobrineXia.png`、`bangbang93.png` 原始字节作为对应来源人物的头像；其来源与 SHA-256 列于 `reference/pcl-assets.json`。本项目的 DB 圆标及线条图标独立制作，不将上游人物头像作为本项目维护者或产品标志。

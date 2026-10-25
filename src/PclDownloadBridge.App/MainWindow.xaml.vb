@@ -15,6 +15,7 @@ Partial Public Class MainWindow
     Private ReadOnly _preview As Boolean
     Private _folders As New List(Of GameFolder)
     Private _versions As New List(Of VersionEntry)
+    Private _resourceVersionFamilies As String()
     Private _selectedFolder As GameFolder
     Private _cancellation As CancellationTokenSource
     Private _loading As Boolean
@@ -433,6 +434,7 @@ Partial Public Class MainWindow
                 Return
             End If
             _versions = versions
+            _resourceVersionFamilies = versions.Where(Function(entry) Not entry.IsSupplemental AndAlso entry.Kind = "release").Select(Function(entry) entry.Id).ToArray()
             _versionsDirty = False
             UpdateVersions()
             StatusText.Text = "已读取 " & _versions.Count & " 个版本，选择版本后可开始安装。"

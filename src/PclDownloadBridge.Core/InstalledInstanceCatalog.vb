@@ -10,6 +10,7 @@ Public NotInheritable Class InstalledInstance
     Public ReadOnly Property InstancePath As String
     Public ReadOnly Property Target As LauncherInstallTarget
     Public Property MinecraftVersion As String
+    Public Property MinecraftKind As String = "unknown"
     Public Property LoaderSummary As String = "未知"
     Public Property RunDirectory As String
     Public Property IsolationSummary As String = "无法确定"
@@ -58,11 +59,12 @@ Public NotInheritable Class InstalledInstanceCatalog
             target.ValidateDestination(target.Root)
             ValidateDirectory(item.InstancePath)
             Dim inputs As New InstanceConfigurationInputs(), visited As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
-            Dim raw As JObject = Nothing, components As Boolean = False, modable As Boolean = False
-            Dim metadata = ReadProfile(target.Root, name, inputs, visited, token, raw)
+            Dim raw As JObject = Nothing, vanilla As JObject = Nothing, components As Boolean = False, modable As Boolean = False
+            Dim metadata = ReadProfile(target.Root, name, inputs, visited, token, raw, vanilla)
             Dim version = If(raw.Property("inheritsFrom") IsNot Nothing, GameVersion(metadata), GameVersion(raw))
             If version Is Nothing Then version = GameVersion(metadata)
             item.MinecraftVersion = version
+            item.MinecraftKind = MinecraftVersionCategory.Classify(version, vanilla)
             If version Is Nothing Then item.Warnings.Add("无法确定 Minecraft 版本。")
             Dim loaders = DetectLoaders(metadata, raw)
             item.LoaderSummary = If(loaders.Count = 0, "原版", String.Join(" + ", loaders))
@@ -125,13 +127,14 @@ Public NotInheritable Class InstalledInstanceCatalog
         End If
     End Sub
 
-    Private Shared Function ReadProfile(root As String, name As String, inputs As InstanceConfigurationInputs, visited As HashSet(Of String), token As CancellationToken, ByRef raw As JObject) As JObject
+    Private Shared Function ReadProfile(root As String, name As String, inputs As InstanceConfigurationInputs, visited As HashSet(Of String), token As CancellationToken, ByRef raw As JObject, ByRef vanilla As JObject) As JObject
         token.ThrowIfCancellationRequested()
         SafeFiles.ValidateInstanceName(name)
         If visited.Count >= 32 OrElse Not visited.Add(name) Then Throw New InvalidDataException("版本继承循环或层级过多。")
         Dim bytes = inputs.Read(SafeFiles.UnderRoot(root, "versions/" & name & "/" & name & ".json"))
         If bytes Is Nothing Then Throw New InvalidDataException("缺少版本配置：" & name & ".json")
         raw = JObject.Parse(InstanceConfigurationInputs.Text(bytes), New JsonLoadSettings With {.DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error})
+        vanilla = Nothing
         Dim own = DirectCast(raw.DeepClone(), JObject), patchesToken = own("patches")
         If patchesToken IsNot Nothing Then
             Dim patches = TryCast(patchesToken, JArray)
@@ -139,6 +142,7 @@ Public NotInheritable Class InstalledInstanceCatalog
             Dim games = patches.OfType(Of JObject)().Where(Function(patch) Scalar(patch("id")) = "game").ToList()
             If games.Count <> 1 Then Throw New InvalidDataException("HMCL 原版分支不唯一。")
             own = DirectCast(games(0).DeepClone(), JObject)
+            vanilla = DirectCast(own.DeepClone(), JObject)
             For Each patch In patches.OfType(Of JObject)().Where(Function(value) value IsNot games(0))
                 own.Merge(patch, New JsonMergeSettings With {.MergeArrayHandling = MergeArrayHandling.Concat})
             Next
@@ -147,11 +151,13 @@ Public NotInheritable Class InstalledInstanceCatalog
         Dim parent = Scalar(own("inheritsFrom"))
         If parent IsNot Nothing Then
             Dim parentRaw As JObject = Nothing
-            Dim parentJson = ReadProfile(root, parent, inputs, visited, token, parentRaw)
+            Dim parentJson = ReadProfile(root, parent, inputs, visited, token, parentRaw, vanilla)
             Dim parentVersion = GameVersion(parentJson)
             parentJson.Merge(own, New JsonMergeSettings With {.MergeArrayHandling = MergeArrayHandling.Concat})
             If Scalar(raw("clientVersion")) Is Nothing AndAlso parentVersion IsNot Nothing Then parentJson("clientVersion") = parentVersion
             own = parentJson
+        ElseIf vanilla Is Nothing Then
+            vanilla = DirectCast(own.DeepClone(), JObject)
         End If
         visited.Remove(name)
         token.ThrowIfCancellationRequested()
@@ -173,7 +179,7 @@ Public NotInheritable Class InstalledInstanceCatalog
         Return If(IsVersionId(id), id, Nothing)
     End Function
     Private Shared Function IsVersionId(value As String) As Boolean
-        Return value IsNot Nothing AndAlso Regex.IsMatch(value, "\A(?:\d+\.\d+(?:\.\d+)?(?:(?:-pre|-rc)\d+| Pre-Release \d+| Release Candidate \d+|_(?:blue|red|purple))?|\d{2}w\d{2}[a-z].*|(?:rd-|inf-|c0\.|a\d|b\d).*)\z", RegexOptions.IgnoreCase)
+        Return value IsNot Nothing AndAlso (MinecraftVersionCategory.IsAprilFools(value) OrElse Regex.IsMatch(value, "\A(?:\d+\.\d+(?:\.\d+)?(?:(?:-pre|-rc)\d+| Pre-Release \d+| Release Candidate \d+|_(?:blue|red|purple))?|\d{2}w\d{2}[a-z].*|(?:rd-|in-|inf-|c0\.|a\d|b\d).*)\z", RegexOptions.IgnoreCase))
     End Function
     Private Shared Function DetectLoaders(metadata As JObject, raw As JObject) As List(Of String)
         Dim found As New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)

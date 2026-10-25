@@ -16,4 +16,5 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
   <ItemGroup><EmbeddedResource Include="Resources/OptiFineBridge.class" LogicalName="OptiFineBridge.class" /></ItemGroup>
+  <ItemGroup><EmbeddedResource Include="Resources/PclWikiEntries.txt" LogicalName="PclWikiEntries.txt" /></ItemGroup>
 </Project>

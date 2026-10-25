@@ -251,7 +251,7 @@ Partial Public Class MainWindow
                                   PackProjectRows.Children.Clear() : PackResultsCard.Title = CommunityResources.Name(_resourceKind) : PackResultsCard.Visibility = Visibility.Visible
                                   PackResultsCard.HorizontalAlignment = HorizontalAlignment.Stretch
                                   For Each project In items
-                                      Dim row As New PclResourceItem(project) With {.Tag = project}
+                                      Dim row As New PclResourceItem(project, _resourceVersionFamilies) With {.Tag = project}
                                       AddHandler row.Click, Sub() OpenPackDetails(project)
                                       PackProjectRows.Children.Add(row)
                                       LoadPackIconAsync(row, project, artworkToken)
@@ -308,7 +308,7 @@ Partial Public Class MainWindow
                               PackResultsCard.Visibility = Visibility.Visible : PackResultsCard.HorizontalAlignment = HorizontalAlignment.Stretch
                               PackResultsCard.Title = CommunityResources.Name(_resourceKind) : PackProjectRows.Children.Clear()
                               For Each project In preview.Projects
-                                  Dim row As New PclResourceItem(project) With {.Tag = project}
+                                  Dim row As New PclResourceItem(project, _resourceVersionFamilies) With {.Tag = project}
                                   AddHandler row.Click, Sub() If _packSearchSession Is session Then OpenPackDetails(project)
                                   PackProjectRows.Children.Add(row) : LoadPackIconAsync(row, project, artworkToken)
                               Next

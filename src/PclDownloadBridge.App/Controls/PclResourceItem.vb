@@ -43,6 +43,8 @@ Namespace Controls
         Friend ReadOnly Property SourceLabel As TextBlock
         Friend ReadOnly Property StatisticsGrid As Grid
         Friend ReadOnly Property SummaryLabel As TextBlock
+        Friend ReadOnly Property TitleLabel As TextBlock
+        Friend ReadOnly Property SubtitleRun As Run
         Friend ReadOnly Property MotionPolicy As PclControlMotionPolicy
         Friend ReadOnly Property HoverTransition As Animation.ClockGroup
             Get
@@ -50,7 +52,7 @@ Namespace Controls
             End Get
         End Property
         Public ReadOnly Property Icon As Image
-        Public Sub New(project As ModpackProject)
+        Public Sub New(project As ModpackProject, Optional knownVersions As IEnumerable(Of String) = Nothing)
             Height = 64 : Background = Brushes.Transparent : Cursor = Cursors.Hand : Focusable = True
             RenderTransformOrigin = New Point(0.5, 0.5) : RenderTransform = New ScaleTransform(1, 1)
             _back = New Border With {.CornerRadius = New CornerRadius(3), .BorderThickness = New Thickness(1), .SnapsToDevicePixels = True, .Background = PclAnimation.Brush("ColorBrush7"), .BorderBrush = PclAnimation.Brush("ColorBrush6"), .Opacity = 0, .RenderTransform = New ScaleTransform(0.8, 0.8), .RenderTransformOrigin = New Point(0.5, 0.5), .IsHitTestVisible = False}
@@ -66,7 +68,14 @@ Namespace Controls
             body.Children.Add(Icon)
             Dim text As New Grid With {.VerticalAlignment = VerticalAlignment.Center}
             For Each rowHeight In {17, 18, 16} : text.RowDefinitions.Add(New RowDefinition With {.Height = New GridLength(rowHeight)}) : Next
-            Dim title As New TextBlock With {.Text = project.Name, .FontSize = 14, .TextTrimming = TextTrimming.CharacterEllipsis}
+            Dim names = ResourceProjectNames.GetTitle(project)
+            Dim title As New TextBlock With {.Text = names.Title, .FontSize = 14, .TextTrimming = TextTrimming.CharacterEllipsis}
+            TitleLabel = title
+            SubtitleRun = New Run(If(names.Subtitle = "", "", " | " & names.Subtitle)) With {.FontSize = 12}
+            SubtitleRun.SetResourceReference(TextElement.ForegroundProperty, "ColorBrushGray4")
+            If names.Subtitle <> "" Then
+                title.Inlines.Add(SubtitleRun)
+            End If
             title.SetResourceReference(TextBlock.ForegroundProperty, "ColorBrush1") : text.Children.Add(title)
             Dim summary As New TextBlock With {.Text = If(project.Summary, "").Replace(vbCr, "").Replace(vbLf, ""), .FontSize = 12, .TextTrimming = TextTrimming.CharacterEllipsis, .ClipToBounds = True}
             SummaryLabel = summary
@@ -93,7 +102,8 @@ Namespace Controls
             Next
             Dim now = DateTimeOffset.UtcNow
             Dim loaderText = ModpackProjectMetadata.LoaderText(project.Loaders)
-            Dim values = {If(loaderText = "", "", loaderText & " ") & ModpackProjectStatistics.VersionText(project.GameVersions), ModpackProjectStatistics.DownloadText(project.Downloads),
+            Dim shortLoaders = ModpackProjectMetadata.CompactLoaderText(project.Loaders, project.GameVersions)
+            Dim values = {If(shortLoaders = "", "", shortLoaders & " ") & ModpackProjectStatistics.VersionText(project.GameVersions, knownVersions), ModpackProjectStatistics.DownloadText(project.Downloads),
                 ModpackReleaseStatistics.ShortRelativeTime(project.Updated, now), project.Platform.ToString()}
             Dim heights = {11.0, 10.5, 11.5, 11.5}
             Dim labels As New List(Of TextBlock)
@@ -105,14 +115,23 @@ Namespace Controls
                 label.SetResourceReference(TextBlock.ForegroundProperty, resource) : SetColumn(label, i * 3 + 1) : details.Children.Add(label) : labels.Add(label)
             Next
             VersionLabel = labels(0) : DownloadLabel = labels(1) : UpdatedLabel = labels(2) : SourceLabel = labels(3)
+            ' Retain PCL's weighted gaps, but give the compact compatibility text
+            ' its natural width when space permits instead of clipping it first.
+            AddHandler details.SizeChanged, Sub()
+                                                Dim natural = New FormattedText(VersionLabel.Text, Globalization.CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
+                                                    New Typeface(VersionLabel.FontFamily, VersionLabel.FontStyle, VersionLabel.FontWeight, VersionLabel.FontStretch),
+                                                    VersionLabel.FontSize, Brushes.Black, VisualTreeHelper.GetDpi(VersionLabel).PixelsPerDip).WidthIncludingTrailingWhitespace + 6
+                                                Dim minimum = Math.Min(natural, details.ActualWidth * 0.42)
+                                                If Math.Abs(details.ColumnDefinitions(1).MinWidth - minimum) > 0.1 Then details.ColumnDefinitions(1).MinWidth = minimum
+                                            End Sub
             SetRow(details, 2) : text.Children.Add(details) : SetColumn(text, 2) : body.Children.Add(text) : Children.Add(body)
-            ToolTip = project.Name & vbCrLf & project.Summary & vbCrLf &
+            ToolTip = names.Title & If(names.Subtitle = "", "", " | " & names.Subtitle) & vbCrLf & project.Name & vbCrLf & project.Summary & vbCrLf &
                 "Minecraft：" & If(project.GameVersions Is Nothing OrElse project.GameVersions.Length = 0, "未知", String.Join("、", project.GameVersions)) & vbCrLf &
                 If(tags.Length = 0, "", "分类：" & String.Join("、", tags) & vbCrLf) &
                 If(loaderText = "", "", "项目加载器标签：" & loaderText & "（各文件的支持情况以版本列表和包内清单为准）" & vbCrLf) &
                 project.Platform.ToString() & " · 下载 " & project.Downloads.ToString("N0", Globalization.CultureInfo.InvariantCulture) & " 次" & vbCrLf &
                 "更新于 " & project.Updated.ToLocalTime().ToString("yyyy/MM/dd HH:mm:ss", Globalization.CultureInfo.InvariantCulture)
-            Automation.AutomationProperties.SetName(Me, project.Name & "，" & project.Platform.ToString())
+            Automation.AutomationProperties.SetName(Me, names.Title & "，" & project.Name & "，" & project.Platform.ToString())
             AddHandler MouseEnter, Sub() Refresh()
             AddHandler MouseLeave, Sub()
                                        _mouseDown = False : ReleaseOwnCapture() : Refresh()
