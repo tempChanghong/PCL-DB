@@ -181,21 +181,25 @@ Partial Public Class MainWindow
             For index = 1 To 12
                 body.Children.Add(New TextBlock With {.Text = "组件版本 " & index, .Height = 25})
             Next
-            Dim summary As New PclComponentSummary()
+            Dim summary As New PclComponentSummary With {.PauseForChecks = True}
             Dim independent As New PclCard With {.Width = 550, .Title = "独立展开动画", .Body = body, .HeaderContent = summary,
                 .Collapsible = True, .Collapsed = True, .BodyMargin = New Thickness(0, 40, 0, 0)}
             Canvas.SetLeft(independent, 20) : Canvas.SetTop(independent, 10)
             incoming.Children.Add(independent) : incomingUnits = {independent} : layout()
             independent.Collapsed = False : summary.SetShown(False)
             Dim fold = independent.HeightTransition, header = summary.Transition
-            PauseSelectionClock(header)
             fold.Controller.Pause()
+            PauseSelectionClock(header)
             If Not PumpMotionUntil(Function() fold.IsPaused, 1000) Then Throw New InvalidOperationException("Independent fold clock did not acknowledge Pause.")
             layout()
             fold.Controller.SeekAlignedToLastTick(TimeSpan.FromMilliseconds(75), TimeSeekOrigin.BeginTime) : layout()
             Dim height = independent.Height
             motion.PauseForChecks = True : motion.Change(outgoing, incoming)
             entry = motion.Transition : seek(entry, 140)
+            IO.File.WriteAllText(IO.Path.Combine(directory, "vanilla-concurrent-clocks.json"), JsonConvert.SerializeObject(New With {
+                .HeightClockPreserved = independent.HeightTransition Is fold, .SummaryClockPreserved = summary.Transition Is header,
+                .BodyPreserved = independent.Body Is body, .HeightBefore = height, .HeightAfter = independent.Height,
+                .Clipped = independent.ClipToBounds, .FoldPaused = fold.IsPaused, .SummaryPaused = header.IsPaused}, Formatting.Indented))
             check(independent.HeightTransition Is fold AndAlso summary.Transition Is header AndAlso independent.Body Is body AndAlso
                 Math.Abs(independent.Height - height) < 0.01 AndAlso independent.ClipToBounds,
                 "card entrance leaves a concurrent PclCard height clock component summary clock body and clipping untouched")

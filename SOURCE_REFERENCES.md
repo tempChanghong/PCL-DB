@@ -1,5 +1,9 @@
 # PCL2 代码依据
 
+## 本地 Mod 多选与更新（2026-10-26）
+
+以固定 PCL 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 PageInstanceMod、MyLocalModItem、LocalResourceLoaders、LocalResourceFile、ResourceVersion 为依据，实现筛选、多选操作栏、哈希识别、加载器／游戏约束、更新与文件名保留。原始七份 Git 对象及摘要位于 artifacts/mod-management/source/manifest.json；官方接口和差异见[专项报告](docs/reviews/local-mod-updates-2026-10-26.md)。上游代码未修改。
+
 ## 存档读取的取消退役与父弹窗归属（2026-10-26）
 
 - 固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModLoader` 在通知令牌前改变取消状态，失败处理排除已取消/结束的加载器；当前页面呈现及资源详情参数继续参照 `MyPageRight`、`PageDownloadCompDetail`。

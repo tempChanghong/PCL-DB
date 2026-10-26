@@ -49,7 +49,7 @@ Partial Public Class MainWindow
     End Function
     Private Function LocalModInputAllowed() As Boolean
         Return Not _closing AndAlso Not _restoringSettings AndAlso Not _restoringLaunchers AndAlso ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible AndAlso
-            PageSurface.IsHitTestVisible AndAlso ManagementViewHost.IsHitTestVisible AndAlso SameLocalModContext(_localModInstance)
+            PageSurface.IsEnabled AndAlso PageSurface.IsHitTestVisible AndAlso ManagementViewHost.IsHitTestVisible AndAlso SameLocalModContext(_localModInstance)
     End Function
     Private Function LocalModRefreshAllowed() As Boolean
         ' Refresh repairs a stale/broken snapshot by rereading its native
@@ -70,6 +70,7 @@ Partial Public Class MainWindow
         RefreshLocalModAvailability()
     End Sub
     Private Sub CancelLocalModRequest()
+        RetireLocalModUpdates()
         Dim folderRequest = _localModFolderRequest
         _localModFolderRequest = Nothing
         folderRequest?.Cancel()
@@ -104,6 +105,7 @@ Partial Public Class MainWindow
     End Sub
     Private Async Sub RefreshLocalMods(sender As Object, e As RoutedEventArgs)
         If Not LocalModRefreshAllowed() OrElse _localModWriting Then Return
+        _localModUpdateCacheKey = Nothing
         Await LoadLocalModsAsync(True, refreshInstance:=True)
     End Sub
     Private Async Function LoadLocalModsAsync(force As Boolean, Optional refreshInstance As Boolean = False) As Task
@@ -145,6 +147,9 @@ Partial Public Class MainWindow
                                         _localModReadSucceeded = True
                                         RenderLocalMods()
                                         LocalModStatus.Text = If(entries.Count = 0, "可从文件安装 Mod，或将文件拖入此页。", "")
+                                        If Not _preview OrElse _localModAutoCheckForChecks Then Dispatcher.BeginInvoke(New Action(Sub()
+                                                                                                  If generation = _localModGeneration AndAlso _localModReadSucceeded AndAlso Not _closing Then StartLocalModUpdates()
+                                                                                              End Sub))
                                     End Sub)
         Catch ex As OperationCanceledException When request.IsCancellationRequested
         Catch ex As Exception
@@ -169,28 +174,38 @@ Partial Public Class MainWindow
         For Each obsolete In _localModRowViews.Keys.Where(Function(entry) Not current.Contains(entry)).ToList()
             _localModRowViews.Remove(obsolete)
         Next
-        LocalModAll.Checked = _localModFilter = "all" : LocalModEnabled.Checked = _localModFilter = "enabled" : LocalModDisabled.Checked = _localModFilter = "disabled"
+        LocalModAll.Checked = _localModFilter = "all" : LocalModEnabled.Checked = _localModFilter = "enabled" : LocalModDisabled.Checked = _localModFilter = "disabled" : LocalModUpdatable.Checked = _localModFilter = "updates"
         Dim query = LocalModSearch.Text.Trim()
         Dim candidates = _localMods.Where(Function(entry) query.Length = 0 OrElse
             (entry.DisplayName & " " & entry.Version & " " & entry.FileName & " " & entry.Description & " " & String.Join(" ", entry.ModIds)).IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0).ToList()
         Dim enabledCount = candidates.Where(Function(entry) entry.Enabled).Count(), disabledCount = candidates.Count - enabledCount
         LocalModAll.Text = If(query.Length = 0, "全部", "搜索结果") & " (" & candidates.Count & ")"
         LocalModEnabled.Text = "启用 (" & enabledCount & ")" : LocalModDisabled.Text = "禁用 (" & disabledCount & ")"
+        Dim updateCount = candidates.Where(Function(entry) HasLocalModUpdate(entry)).Count()
+        LocalModUpdatable.Text = "可更新 (" & updateCount & ")"
+        LocalModUpdatable.Visibility = If(updateCount > 0 OrElse _localModFilter = "updates", Visibility.Visible, Visibility.Collapsed)
         LocalModEnabled.Visibility = If(_localModFilter = "enabled" OrElse (enabledCount > 0 AndAlso enabledCount < candidates.Count), Visibility.Visible, Visibility.Collapsed)
         LocalModDisabled.Visibility = If(_localModFilter = "disabled" OrElse disabledCount > 0, Visibility.Visible, Visibility.Collapsed)
-        Dim visible = candidates.Where(Function(entry) _localModFilter = "all" OrElse entry.Enabled = (_localModFilter = "enabled")).ToList()
+        Dim visible = candidates.Where(Function(entry) _localModFilter = "all" OrElse (_localModFilter = "updates" AndAlso HasLocalModUpdate(entry)) OrElse
+            (_localModFilter = "enabled" AndAlso entry.Enabled) OrElse (_localModFilter = "disabled" AndAlso Not entry.Enabled)).ToList()
+        _localModSelection.IntersectWith(visible.Select(Function(entry) entry.FilePath))
+        _localModRenderingSelection = True
         For Each entry In visible
             Dim captured = entry
             Dim existing As Grid = Nothing
             If _localModRowViews.TryGetValue(captured, existing) Then
+                ConfigureLocalModSelection(DirectCast(existing, PclLocalModItem), captured)
                 LocalModRows.Children.Add(existing)
                 Continue For
             End If
             Dim row As New PclLocalModItem(captured, _communityPreferences.LocalModStyle = 1)
             AddHandler row.ToggleButton.Click, Async Sub() Await ToggleLocalModAsync(captured)
+            AddHandler row.CheckedChanged, Sub() LocalModChecked(row, captured)
+            ConfigureLocalModSelection(row, captured)
             _localModRowViews.Add(captured, row)
             LocalModRows.Children.Add(row)
         Next
+        _localModRenderingSelection = False
         LocalModSummary.Text = visible.Count & " / " & _localMods.Count & " 个 Mod"
         LocalModEmpty.Visibility = If(visible.Count = 0, Visibility.Visible, Visibility.Collapsed)
         LocalModEmpty.Text = If(_localMods.Count = 0, "尚未安装 Mod。", "没有找到匹配的 Mod。")
@@ -201,6 +216,7 @@ Partial Public Class MainWindow
             LocalModSharedHint.Visibility = If(sharedDirectory, Visibility.Visible, Visibility.Collapsed)
         End If
         RefreshLocalModAvailability()
+        RefreshLocalModSelection(True)
     End Sub
     Private Shared Function ShortLocalModText(value As String, maximum As Integer) As String
         If value Is Nothing OrElse maximum <= 0 Then Return ""
@@ -315,10 +331,14 @@ Partial Public Class MainWindow
         If LocalModRows Is Nothing Then Return
         Dim canBrowse = SameLocalModContext(_localModInstance)
         LocalModSearch.IsEnabled = canBrowse : LocalModSearchClear.IsEnabled = canBrowse
-        For Each filterTab As FrameworkElement In {LocalModAll, LocalModEnabled, LocalModDisabled} : filterTab.IsEnabled = canBrowse : Next
+        For Each filterTab As FrameworkElement In {LocalModAll, LocalModEnabled, LocalModDisabled, LocalModUpdatable} : filterTab.IsEnabled = canBrowse : Next
         Dim canWrite = _localModReadSucceeded AndAlso Not _busy AndAlso Not _choosingOnline AndAlso Not _restoringSettings AndAlso Not _restoringLaunchers AndAlso Not _localModWriting AndAlso Not _localModScanning AndAlso SameLocalModContext(_localModInstance)
         LocalModRows.IsEnabled = canWrite
         LocalModImport.IsEnabled = canWrite : LocalModRefresh.IsEnabled = Not _localModWriting
+        LocalModSelectAll.IsEnabled = canWrite AndAlso LocalModRows.Children.Count > 0
+        LocalModDownload.IsEnabled = canWrite
+        LocalModOpen.ToolTip = LocalModDirectory.Text
+        RefreshLocalModSelectionAvailability(canWrite)
         LocalModOpen.IsEnabled = Not _localModScanning AndAlso Not _localModWriting AndAlso SameLocalModContext(_localModInstance) AndAlso Directory.Exists(Path.Combine(_localModInstance.RunDirectory, "mods"))
         LocalModCancel.Visibility = If(_localModWriting, Visibility.Visible, Visibility.Collapsed)
         LocalModCancel.IsEnabled = _localModWriteRequest IsNot Nothing AndAlso Not _localModWriteRequest.IsCancellationRequested
@@ -377,7 +397,7 @@ Partial Public Class MainWindow
         Try
             Dim result = Await operation(owner, request.Token)
             outcome = "完成：更改 " & result.ChangedCount & " 个，跳过 " & result.SkippedCount & " 个。" &
-                If(result.Warnings.Count = 0, "", " " & ShortLocalModText(String.Join("；", result.Warnings), 1024))
+                If(result.Warnings.Count = 0, "", " " & ShortLocalModText(String.Join("；", result.Warnings), 1024)) & If(result.BackupDirectory Is Nothing, "", " 原文件备份：" & result.BackupDirectory)
         Catch ex As OperationCanceledException When request.IsCancellationRequested
             outcome = "操作已取消，可重新尝试。"
         Catch ex As Exception

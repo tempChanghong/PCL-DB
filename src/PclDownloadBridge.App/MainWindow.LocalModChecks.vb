@@ -226,7 +226,7 @@ Partial Public Class MainWindow
         For Each dark In {False, True}
             RestoreAppearance(New JObject From {{"theme", "blue"}, {"darkMode", dark}})
             host.Width = 810 : host.Height = 470 : layout()
-            check(LocalModDirectory.ActualWidth > 300 AndAlso LocalModListCard.ActualWidth > 600 AndAlso LocalModsPage.ScrollableHeight > 0, "local Mod controls fit the minimum window in dark mode " & dark)
+            check(LocalModDirectory.Visibility = Visibility.Collapsed AndAlso LocalModActionsCard.ActualWidth > 600 AndAlso LocalModListCard.ActualWidth > 600 AndAlso LocalModsPage.ScrollableHeight > 0, "local Mod controls fit the minimum window in dark mode " & dark)
             SaveControlVisual(host, Path.Combine(directory, "local-mods-" & If(dark, "dark", "light") & ".png"))
         Next
         check(protectedBytes.All(Function(pair) File.ReadAllBytes(pair.Key).SequenceEqual(pair.Value)), "UI local scanning import state changes and navigation preserve all original non-Mod configuration bytes")

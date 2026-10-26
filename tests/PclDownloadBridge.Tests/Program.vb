@@ -68,6 +68,8 @@ Module Program
                 Dim run As Task(Of List(Of String))
                 If args(1) = "local-mods" Then
                     run = LocalModChecks.RunAsync(TestRoot)
+                ElseIf args(1) = "local-mod-updates" Then
+                    run = LocalModUpdateChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "community-resources" Then
                     run = CommunityResourceChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "resource-installation" Then
@@ -212,6 +214,9 @@ Module Program
                 Check(True, label)
             Next
             For Each label In LocalModChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
+                Check(True, label)
+            Next
+            For Each label In LocalModUpdateChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
                 Check(True, label)
             Next
             For Each label In LocalModActionFollowupChecks.RunAsync(TestRoot).GetAwaiter().GetResult()

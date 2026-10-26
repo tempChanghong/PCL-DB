@@ -10,7 +10,7 @@ Imports PclDownloadBridge.Core
 
 Partial Public Class MainWindow
     Private Shared Function LocalModRowBackForChecks(row As PclLocalModItem) As Border
-        Return row.Children.OfType(Of Border)().Single(Function(border) Grid.GetColumnSpan(border) = 6 AndAlso Not TypeOf border Is PclIconButton)
+        Return row.Children.OfType(Of Border)().Single(Function(border) Grid.GetColumnSpan(border) = 6 AndAlso TypeOf border.RenderTransform Is ScaleTransform)
     End Function
     Private Shared Sub SeekLocalModActionForChecks(clock As AnimationClock, milliseconds As Double, layout As Action)
         clock.Controller.Pause()
@@ -43,10 +43,10 @@ Partial Public Class MainWindow
                     DirectCast(disabled.TitleLabel.Foreground, SolidColorBrush).Color = PclAnimation.Brush("ColorBrushGray4").Color AndAlso disabled.DisabledBadge.IsVisible AndAlso
                     disabled.DisabledBadge.Width = 20 AndAlso disabled.DisabledBadge.Height = 20 AndAlso disabled.DisabledBadge.Margin = New Thickness(0, 0, -5, -3) AndAlso disabled.InfoLabel.Opacity = 1,
                     "disabled local files use a gray struck title and original twenty-DIP corner badge without dimming every information layer")
-                check(Not row.Focusable AndAlso row.Cursor IsNot Cursors.Hand AndAlso row.Children.OfType(Of PclIconButton)().Single() Is row.ToggleButton AndAlso
+                check(row.Focusable AndAlso row.Cursor IsNot Cursors.Hand AndAlso row.Children.OfType(Of PclIconButton)().Single() Is row.ToggleButton AndAlso
                     row.Tag Is entry AndAlso row.ToggleButton.Tag Is entry AndAlso row.ToggleButton.Width = 25 AndAlso row.ToggleButton.Height = 25 AndAlso
                     row.ToggleButton.IsHitTestVisible AndAlso row.ToggleButton.Focusable AndAlso row.ToggleButton.Opacity = 0,
-                    "the passive local row has no dead hand-cursor tab stop and keeps one directly reachable tagged twenty-five-DIP action")
+                    "the selectable local row is keyboard reachable and keeps one independently tagged twenty-five-DIP enable action")
                 row.MotionPolicy.EnabledForChecks = False
                 owner.FocusLocalModButtonForChecks(entry) : layout()
                 check(Keyboard.FocusedElement Is row.ToggleButton AndAlso row.ToggleButton.Opacity = 1 AndAlso row.ActionInset = 30 AndAlso

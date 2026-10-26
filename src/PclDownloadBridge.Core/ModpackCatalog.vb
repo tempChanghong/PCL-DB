@@ -89,7 +89,7 @@ Public NotInheritable Class ModpackCatalogPage
     Public Property Total As Long
 End Class
 
-Public NotInheritable Class ModpackCatalogClient
+Partial Public NotInheritable Class ModpackCatalogClient
     Implements IDisposable
     Public Const PageSize As Integer = 40
     Private ReadOnly _client As HttpClient
@@ -375,7 +375,7 @@ Public NotInheritable Class ModpackCatalogClient
         If result Is Nothing Then Throw New InvalidDataException("平台返回的 JSON 对象无效。")
         Return result
     End Function
-    Private Async Function TokenAsync(url As String, token As CancellationToken) As Task(Of JToken)
+    Private Async Function TokenAsync(url As String, token As CancellationToken, Optional body As JObject = Nothing) As Task(Of JToken)
         Dim urls As New List(Of String) From {url}
         If url.StartsWith("https://api.curseforge.com/", StringComparison.Ordinal) Then
             urls.Clear()
@@ -394,7 +394,7 @@ Public NotInheritable Class ModpackCatalogClient
                 token.ThrowIfCancellationRequested()
                 Dim retry = False
                 Try
-                    Return Await FetchTokenAsync(address, If(mirror OrElse _communitySource = 1, 10, If(_communitySource = 2, 30, 15)), token).ConfigureAwait(False)
+                    Return Await FetchTokenAsync(address, If(mirror OrElse _communitySource = 1, 10, If(_communitySource = 2, 30, 15)), token, body).ConfigureAwait(False)
                 Catch ex As Exception When Not token.IsCancellationRequested
                     failures.Add(New Uri(address).Host & "：" & If(TypeOf ex Is OperationCanceledException, "请求超时", ex.GetBaseException().Message))
                     Dim http = TryCast(ex, CatalogueHttpException)
@@ -418,8 +418,9 @@ Public NotInheritable Class ModpackCatalogClient
             Transient = code = 408 OrElse code = 429 OrElse code >= 500
         End Sub
     End Class
-    Private Async Function FetchTokenAsync(address As String, seconds As Integer, token As CancellationToken) As Task(Of JToken)
-        Using deadline = CancellationTokenSource.CreateLinkedTokenSource(token), request As New HttpRequestMessage(HttpMethod.Get, address)
+    Private Async Function FetchTokenAsync(address As String, seconds As Integer, token As CancellationToken, Optional body As JObject = Nothing) As Task(Of JToken)
+        Using deadline = CancellationTokenSource.CreateLinkedTokenSource(token), request As New HttpRequestMessage(If(body Is Nothing, HttpMethod.Get, HttpMethod.Post), address)
+            If body IsNot Nothing Then request.Content = New StringContent(body.ToString(Newtonsoft.Json.Formatting.None), System.Text.Encoding.UTF8, "application/json")
             deadline.CancelAfter(TimeSpan.FromSeconds(seconds))
             If New Uri(address).Host = "api.curseforge.com" AndAlso Not String.IsNullOrWhiteSpace(_key) Then request.Headers.TryAddWithoutValidation("x-api-key", _key)
             Using response = Await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(False)

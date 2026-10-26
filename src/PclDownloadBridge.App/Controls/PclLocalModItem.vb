@@ -24,6 +24,28 @@ Namespace Controls
         Private ReadOnly _hover As PclResourceHoverMotion, _actionOpacity As PclMotionSlot, _actionInset As PclMotionSlot
         Private ReadOnly _titleGrid As Grid, _titleColumn As ColumnDefinition, _versionColumn As ColumnDefinition, _extendColumn As ColumnDefinition
         Private _lastActive As Boolean?, _pressed As Boolean, _touchRevealed As Boolean, _titleCompression As Integer
+        Private _checked As Boolean, _hasUpdate As Boolean, _rowPress As Point?
+        Private ReadOnly _selectionMark As Border
+        Public Event CheckedChanged As EventHandler
+        Public Property Checked As Boolean
+            Get
+                Return _checked
+            End Get
+            Set(value As Boolean)
+                If value = _checked Then Return
+                _checked = value : _selectionMark.Visibility = If(value, Visibility.Visible, Visibility.Collapsed)
+                AutomationProperties.SetItemStatus(Me, If(value, "已选择", "未选择"))
+                RefreshAppearance(True) : RaiseEvent CheckedChanged(Me, EventArgs.Empty)
+            End Set
+        End Property
+        Public Property HasUpdate As Boolean
+            Get
+                Return _hasUpdate
+            End Get
+            Set(value As Boolean)
+                _hasUpdate = value : RefreshAppearance(False)
+            End Set
+        End Property
         Friend ReadOnly Property TitleLabel As TextBlock
         Friend ReadOnly Property VersionLabel As TextBlock
         Friend ReadOnly Property InfoLabel As TextBlock
@@ -59,11 +81,16 @@ Namespace Controls
 
         Public Sub New(entry As LocalModEntry, Optional fileNameFirst As Boolean = False)
             If entry Is Nothing Then Throw New ArgumentNullException(NameOf(entry))
-            Tag = entry : Height = 44 : Background = Brushes.Transparent : SnapsToDevicePixels = True : Focusable = False
+            Tag = entry : Height = 44 : Background = Brushes.Transparent : SnapsToDevicePixels = True : Focusable = True
+            AutomationProperties.SetName(Me, entry.DisplayName)
+            AutomationProperties.SetHelpText(Me, "按空格选择或取消选择；右侧按钮控制启用状态。")
             For Each columnSize As GridLength In {New GridLength(6), New GridLength(34), New GridLength(7), GridLength.Auto, New GridLength(1, GridUnitType.Star), New GridLength(4)}
                 ColumnDefinitions.Add(New ColumnDefinition With {.Width = columnSize})
             Next
             _padding = ColumnDefinitions(5)
+            _selectionMark = New Border With {.Width = 5, .CornerRadius = New CornerRadius(2), .Margin = New Thickness(0, 5, 0, 5), .HorizontalAlignment = HorizontalAlignment.Left, .Visibility = Visibility.Collapsed, .IsHitTestVisible = False}
+            _selectionMark.SetResourceReference(Border.BackgroundProperty, "ColorBrush3")
+            SetRowSpan(_selectionMark, 4) : SetColumnSpan(_selectionMark, 6) : Panel.SetZIndex(_selectionMark, 2) : Children.Add(_selectionMark)
             For Each rowSize As GridLength In {New GridLength(1, GridUnitType.Star), New GridLength(17), New GridLength(18), New GridLength(1, GridUnitType.Star)}
                 RowDefinitions.Add(New RowDefinition With {.Height = rowSize})
             Next
@@ -121,7 +148,7 @@ Namespace Controls
             AddHandler Loaded, Sub() CompressTitle()
             AddHandler MouseEnter, Sub() RefreshAppearance(True)
             AddHandler MouseLeave, Sub()
-                                      _pressed = False : _touchRevealed = False
+                                      _pressed = False : _touchRevealed = False : _rowPress = Nothing
                                       RefreshAppearance(True)
                                   End Sub
             AddHandler IsKeyboardFocusWithinChanged, Sub()
@@ -130,9 +157,15 @@ Namespace Controls
                                                      End Sub
             AddHandler PreviewMouseLeftButtonDown, Sub(sender, args)
                                                        If MotionPolicy.Interactive AndAlso ToggleButton.IsMouseOver Then _pressed = True : RefreshAppearance(True)
+                                                       If MotionPolicy.Interactive AndAlso Not ToggleButton.IsMouseOver Then _rowPress = args.GetPosition(Me)
                                                    End Sub
-            AddHandler PreviewMouseLeftButtonUp, Sub()
+            AddHandler PreviewMouseLeftButtonUp, Sub(sender, args)
                                                      _pressed = False : RefreshAppearance(True)
+                                                     Dim start = _rowPress : _rowPress = Nothing
+                                                     If start.HasValue AndAlso MotionPolicy.Interactive AndAlso Not ToggleButton.IsMouseOver AndAlso
+                                                         (args.GetPosition(Me) - start.Value).Length <= 5 Then
+                                                         Focus() : Checked = Not Checked : args.Handled = True
+                                                     End If
                                                  End Sub
             AddHandler PreviewKeyDown, Sub(sender, args)
                                            If ToggleButton.IsKeyboardFocusWithin AndAlso MotionPolicy.Interactive AndAlso (args.Key = Key.Space OrElse args.Key = Key.Enter) Then _pressed = True : RefreshAppearance(True)
@@ -140,6 +173,11 @@ Namespace Controls
             AddHandler PreviewKeyUp, Sub()
                                          _pressed = False : RefreshAppearance(True)
                                      End Sub
+            AddHandler KeyDown, Sub(sender, args)
+                                    If IsKeyboardFocused AndAlso MotionPolicy.Interactive AndAlso Not args.IsRepeat AndAlso (args.Key = Key.Space OrElse args.Key = Key.Enter) Then
+                                        Checked = Not Checked : args.Handled = True
+                                    End If
+                                End Sub
             AddHandler PreviewTouchDown, Sub(sender, args)
                                             If Not MotionPolicy.Interactive OrElse _touchRevealed Then Return
                                             _touchRevealed = True : RefreshAppearance(False)
@@ -178,18 +216,20 @@ Namespace Controls
         End Function
 
         Private Sub SettleInteraction()
-            If MotionPolicy IsNot Nothing AndAlso Not MotionPolicy.Interactive Then _pressed = False : _touchRevealed = False
+            If MotionPolicy IsNot Nothing AndAlso Not MotionPolicy.Interactive Then _pressed = False : _touchRevealed = False : _rowPress = Nothing
             RefreshAppearance(False)
         End Sub
         Private Sub RefreshAppearance(animate As Boolean, Optional paletteOnly As Boolean = False)
             If MotionPolicy Is Nothing Then Return
             Dim interactive = MotionPolicy.Interactive, active = interactive AndAlso (IsMouseOver OrElse IsKeyboardFocusWithin OrElse _touchRevealed)
+            TitleLabel.SetResourceReference(TextBlock.ForegroundProperty, If(_checked OrElse _hasUpdate, "ColorBrush3", If(DirectCast(Tag, LocalModEntry).Enabled, "ColorBrush1", "ColorBrushGray4")))
+            Dim plate = _checked OrElse active
             Dim moving = animate AndAlso MotionPolicy.CanAnimate AndAlso Not PclTheme.Changing
             If paletteOnly Then
-                _hover.RefreshPalette(Brush(If(_pressed AndAlso interactive, "ColorBrush6", If(active, "ColorBrushBg1", "ColorBrush7"))).Color)
+                _hover.RefreshPalette(Brush(If(_pressed AndAlso interactive, "ColorBrush6", If(plate, "ColorBrushBg1", "ColorBrush7"))).Color)
                 Return
             End If
-            _hover.Update(active, interactive AndAlso _pressed, Brush(If(_pressed AndAlso interactive, "ColorBrush6", If(active, "ColorBrushBg1", "ColorBrush7"))).Color, moving, MotionPolicy.PauseForChecks)
+            _hover.Update(plate, interactive AndAlso _pressed, Brush(If(_pressed AndAlso interactive, "ColorBrush6", If(plate, "ColorBrushBg1", "ColorBrush7"))).Color, moving, MotionPolicy.PauseForChecks)
             If moving AndAlso _lastActive.HasValue AndAlso _lastActive.Value = active Then Return
             _lastActive = active
             Dim opacity = If(active, 1.0, 0.0), inset = If(active, 30.0, 4.0)

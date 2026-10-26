@@ -11,16 +11,18 @@ Public NotInheritable Class LocalModActionResult
     Public ReadOnly Property ChangedCount As Integer
     Public ReadOnly Property SkippedCount As Integer
     Public ReadOnly Property Warnings As IReadOnlyList(Of String)
-    Public Sub New(directory As String, changed As Integer, skipped As Integer, Optional messages As IEnumerable(Of String) = Nothing)
+    Public ReadOnly Property BackupDirectory As String
+    Public Sub New(directory As String, changed As Integer, skipped As Integer, Optional messages As IEnumerable(Of String) = Nothing, Optional backup As String = Nothing)
         ModsDirectory = directory : ChangedCount = changed : SkippedCount = skipped
+        BackupDirectory = backup
         Warnings = If(messages, Enumerable.Empty(Of String)()).Distinct(StringComparer.Ordinal).ToList().AsReadOnly()
     End Sub
 End Class
 
 ' PCL 5ef81e4 PageInstanceMod.EDMods / InstallMods: PathIndie/mods, terminal
-' .disabled/.old and import-to-enabled names. Publication remains create-only;
-' existing files and launcher configuration are never replaced or normalized.
-Public NotInheritable Class LocalModActions
+' .disabled/.old and import-to-enabled names. Imports remain create-only;
+' explicit updates verify and back up originals; launcher settings are read-only.
+Partial Public NotInheritable Class LocalModActions
     Private Sub New()
     End Sub
 

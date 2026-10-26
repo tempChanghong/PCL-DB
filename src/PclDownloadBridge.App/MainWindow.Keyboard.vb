@@ -18,6 +18,7 @@ Partial Public Class MainWindow
     End Function
     Private Sub ShellPreviewKeyDown(sender As Object, e As KeyEventArgs)
         If e.Handled Then Return
+        If Not e.IsRepeat AndAlso LocalModSelectionKey(e) Then e.Handled = True : Return
         If Not GatedKeyboardSource(e.OriginalSource) Then
             _downloadFocusInputVersion += 1
             Return

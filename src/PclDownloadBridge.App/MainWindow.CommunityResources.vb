@@ -81,9 +81,10 @@ Partial Public Class MainWindow
         If Not [Enum].TryParse(CStr(item.Tag), kind) OrElse kind = CommunityResourceKind.Any Then Return
         SelectResourceKind(kind)
     End Sub
-    Private Sub SelectResourceKind(kind As CommunityResourceKind)
+    Private Sub SelectResourceKind(kind As CommunityResourceKind, Optional configure As Action = Nothing)
         If _busy OrElse _choosingOnline OrElse _closing Then Return
         If kind = _resourceKind Then
+            configure?.Invoke()
             SetDownloadView(DownloadView.Modpacks) : EnsurePackSearch() : Return
         End If
         RetirePromptFocus() : ClearDownloadFocus() : _surfaceMotion.Finish()
@@ -124,6 +125,7 @@ Partial Public Class MainWindow
                     RestoreResourceSearchAsync(state.Page)
                 End If
                 ModpackPage.UpdateLayout() : ModpackPage.ScrollToVerticalOffset(If(state.Mode = PackBrowserMode.Search, state.Scroll, _packDetailScroll))
+                configure?.Invoke()
             End Sub, contentRefresh:=previous = DownloadView.Modpacks, compositeExit:=HasPackContentMotion() OrElse _pageSwitch.HasMotion)
         EnsurePackSearch()
     End Sub

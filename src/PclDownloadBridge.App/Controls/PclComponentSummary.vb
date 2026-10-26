@@ -12,6 +12,9 @@ Namespace Controls
         Private _shown As Boolean = True
         Private ReadOnly _offset As New TranslateTransform
         Private _transition As ClockGroup
+        ' Clock sampling can pause before attachment, avoiding a short 60-ms
+        ' fade completing while the test builds its dispatcher pause frame.
+        Friend Property PauseForChecks As Boolean
 
         Public Sub New()
             Height = 18
@@ -57,6 +60,7 @@ Namespace Controls
             StopTransition()
             Me.Opacity = opacity : _offset.Y = offset
             Dim clock = DirectCast(TransitionPlan(opacity, offset, value).CreateClock(True), ClockGroup)
+            If PauseForChecks Then clock.Controller.Pause()
             _transition = clock
             AddHandler clock.Completed, Sub()
                                             If _transition Is clock Then Settle()

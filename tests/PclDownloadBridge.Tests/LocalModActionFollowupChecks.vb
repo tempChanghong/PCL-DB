@@ -56,7 +56,7 @@ Friend Module LocalModActionFollowupChecks
         Return full
     End Function
 
-    Private Class Fixture
+    Friend Class Fixture
         Friend ReadOnly Root As String, Instance As InstalledInstance, Mods As String
         Friend ReadOnly Originals As Dictionary(Of String, Byte())
         Friend Sub New(parent As String, label As String, kind As String, isolated As Boolean)

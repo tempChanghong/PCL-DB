@@ -96,7 +96,7 @@ Partial Public Class MainWindow
                     Dim running = RunOnlinePackInstallationAsync(release, root, "optional-task-" & number, 0, target:=target)
                     Await enterManagement()
                     Dim viewport = DirectCast(ManagementContent(), PclScrollViewer)
-                    Dim origin As FrameworkElement = If(view = 0, DirectCast(ManagementRefresh, FrameworkElement), If(view = 1, ManagedMods, LocalModRefresh))
+                    Dim origin As FrameworkElement = If(view = 0, DirectCast(ManagementRefresh, FrameworkElement), If(view = 1, DirectCast(ManagedMods, FrameworkElement), DirectCast(LocalModRefresh, FrameworkElement)))
                     _motionPreview = animated : RestoreAppearance(New JObject From {{"darkMode", dark}})
                     origin.BringIntoView() : layout()
                     FocusManager.SetFocusedElement(host, origin)

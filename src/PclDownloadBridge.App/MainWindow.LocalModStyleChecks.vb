@@ -35,8 +35,8 @@ Partial Public Class MainWindow
                 check(owner.LocalModSearchClear.Width = 24 AndAlso owner.LocalModSearchClear.Height = 24 AndAlso owner.LocalModSearchClear.LogoScale = 0.75 AndAlso
                     owner.LocalModSearchClear.Margin.Right = 10 AndAlso owner.LocalModSearchClear.Opacity = 0 AndAlso Not owner.LocalModSearchClear.IsHitTestVisible AndAlso Not owner.LocalModSearchClear.Focusable,
                     "an empty local search keeps the original twenty-four-DIP clear icon invisible and outside keyboard or pointer input")
-                check(owner.LocalModOpen.Highlight AndAlso {owner.LocalModOpen, owner.LocalModImport, owner.LocalModRefresh, owner.LocalModCancel}.All(Function(button) button.Height = 35) AndAlso
-                    owner.LocalModOpen.Margin.Right = 15 AndAlso owner.LocalModImport.Margin.Right = 15 AndAlso owner.LocalModRefresh.Margin.Right = 15,
+                check(owner.LocalModOpen.Highlight AndAlso {owner.LocalModOpen, owner.LocalModImport, owner.LocalModDownload, owner.LocalModSelectAll, owner.LocalModCancel}.All(Function(button) button.Height = 35) AndAlso
+                    owner.LocalModOpen.Margin.Right = 15 AndAlso owner.LocalModImport.Margin.Right = 15 AndAlso owner.LocalModDownload.Margin.Right = 15 AndAlso owner.LocalModRefresh.Width = 28,
                     "local Mod actions preserve PCL's highlighted folder action thirty-five-DIP height and fifteen-DIP horizontal gaps")
                 Dim emptyStatusHeight = owner.LocalModActionsCard.ActualHeight, emptyCollapsed = owner.LocalModStatus.Visibility = Visibility.Collapsed
                 owner.LocalModStatus.Text = "正在读取 Mod 列表…" : layout()
@@ -110,9 +110,10 @@ Partial Public Class MainWindow
                     owner.RestoreAppearance(New Newtonsoft.Json.Linq.JObject From {{"theme", "blue"}, {"darkMode", dark}})
                     host.Width = 810 : host.Height = 470 : layout()
                     Dim actions = DirectCast(owner.LocalModOpen.Parent, WrapPanel)
-                    check(owner.LocalModSearchCard.ActualHeight = 40 AndAlso owner.LocalModSearch.ActualWidth > 600 AndAlso actions.ActualWidth > 400 AndAlso
-                        owner.LocalModOpen.TranslatePoint(New Point(), actions).Y = owner.LocalModRefresh.TranslatePoint(New Point(), actions).Y AndAlso
-                        owner.LocalModRefresh.TranslatePoint(New Point(), actions).X + owner.LocalModRefresh.ActualWidth <= actions.ActualWidth + 1,
+                    Dim mainActions = {owner.LocalModOpen, owner.LocalModImport, owner.LocalModDownload, owner.LocalModSelectAll}
+                    check(owner.LocalModSearchCard.ActualHeight = 40 AndAlso owner.LocalModSearch.ActualWidth > 600 AndAlso actions.ActualWidth > 500 AndAlso
+                        mainActions.All(Function(button) button.TranslatePoint(New Point(), actions).Y = 0 AndAlso button.TranslatePoint(New Point(), actions).X + button.ActualWidth <= actions.ActualWidth + 1) AndAlso
+                        owner.LocalModRefresh.TranslatePoint(New Point(), owner.LocalModActionsCard).X + owner.LocalModRefresh.ActualWidth <= owner.LocalModActionsCard.ActualWidth - 14,
                         "compact local search and wrapping actions fit the minimum window in dark mode " & dark)
                     SaveControlVisual(host, Path.Combine(directory, "local-mod-style-" & If(dark, "dark", "light") & ".png"))
                 Next

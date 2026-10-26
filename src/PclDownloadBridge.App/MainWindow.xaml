@@ -392,7 +392,7 @@
                   </StackPanel>
                 </p:PclScrollViewer>
                 <p:PclScrollViewer x:Name="LocalModsPage" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="True" IsTabStop="False">
-                  <StackPanel Margin="25,10,25,10">
+                  <StackPanel x:Name="LocalModContent" Margin="25,10,25,10">
                     <p:PclCard x:Name="LocalModSearchCard" ShowHeader="False" BodyMargin="0" Height="40" Margin="0,15">
                       <Grid Initialized="InitializeLocalModSearchClear">
                         <p:PclTextBox x:Name="LocalModSearch" Height="40" HasBackground="False" BorderThickness="0" Padding="32,0,40,0" FontSize="13.5" VerticalContentAlignment="Center" UseLayoutRounding="False" SnapsToDevicePixels="False" HintText="搜索 Mod 名称 / 版本 / ID" MaxLength="256" TextChanged="LocalModSearchChanged" AutomationProperties.Name="搜索本地 Mod">
@@ -411,17 +411,24 @@
                     <p:PclHint x:Name="LocalModSharedHint" Visibility="Collapsed" Margin="0,0,0,15"/>
                     <p:PclCard x:Name="LocalModActionsCard" ShowHeader="False" BodyMargin="15" Margin="0,0,0,15">
                       <StackPanel>
-                        <TextBlock x:Name="LocalModDirectory" FontSize="12" Opacity="0.65" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text,RelativeSource={RelativeSource Self}}" Margin="0,0,0,12"/>
+                        <TextBlock x:Name="LocalModDirectory" Visibility="Collapsed" FontSize="12" Opacity="0.65" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text,RelativeSource={RelativeSource Self}}"/>
+                        <DockPanel>
+                          <p:PclIconButton x:Name="LocalModRefresh" DockPanel.Dock="Right" Width="28" Height="28" VerticalAlignment="Center" Margin="8,0,0,6" ToolTip="刷新列表和更新信息" AutomationProperties.Name="刷新 Mod 列表和更新信息" Click="RefreshLocalMods" Logo="M512 128a384 384 0 1 0 384 384h-80a304 304 0 1 1-89-215L608 416h288V128L784 240A382 382 0 0 0 512 128Z"/>
                         <WrapPanel>
                           <p:PclButton x:Name="LocalModOpen" Text="打开文件夹" Width="110" Height="35" Highlight="True" Margin="0,0,15,6" Click="OpenLocalModFolder"/>
                           <p:PclButton x:Name="LocalModImport" Text="从文件安装" Width="110" Height="35" Margin="0,0,15,6" Click="ChooseLocalMods"/>
-                          <p:PclButton x:Name="LocalModRefresh" Text="刷新列表" Width="100" Height="35" Margin="0,0,15,6" Click="RefreshLocalMods"/>
+                          <p:PclButton x:Name="LocalModDownload" Text="下载新 Mod" Width="110" Height="35" Margin="0,0,15,6" Click="DownloadNewLocalMod"/>
+                          <p:PclButton x:Name="LocalModSelectAll" Text="全选" Width="110" Height="35" Margin="0,0,0,6" Click="SelectAllLocalMods"/>
                           <p:PclButton x:Name="LocalModCancel" Text="取消操作" Width="100" Height="35" Margin="0,0,0,6" Visibility="Collapsed" Click="CancelLocalModOperation"/>
                         </WrapPanel>
+                        </DockPanel>
                         <TextBlock x:Name="LocalModStatus" FontSize="12" Opacity="0.65" TextWrapping="Wrap" Margin="0,5,0,0" AutomationProperties.LiveSetting="Polite">
                           <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
                             <Style.Triggers><Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed"/></Trigger></Style.Triggers>
                           </Style></TextBlock.Style>
+                        </TextBlock>
+                        <TextBlock x:Name="LocalModUpdateStatus" FontSize="12" Opacity="0.65" TextWrapping="Wrap" Margin="0,5,0,0" AutomationProperties.LiveSetting="Polite">
+                          <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}"><Style.Triggers><Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed"/></Trigger></Style.Triggers></Style></TextBlock.Style>
                         </TextBlock>
                       </StackPanel>
                     </p:PclCard>
@@ -429,16 +436,30 @@
                       <StackPanel>
                         <StackPanel Orientation="Horizontal" Height="28" Margin="0,0,0,10">
                           <p:PclRadioButton x:Name="LocalModAll" Text="全部" Tag="all" ColorType="Highlight" Checked="True" Margin="2,0" Click="FilterLocalMods"/>
+                          <p:PclRadioButton x:Name="LocalModUpdatable" Text="可更新 (0)" Tag="updates" ColorType="Highlight" Visibility="Collapsed" Margin="2,0" Click="FilterLocalMods"/>
                           <p:PclRadioButton x:Name="LocalModEnabled" Text="已启用" Tag="enabled" ColorType="Highlight" Margin="2,0" Click="FilterLocalMods"/>
                           <p:PclRadioButton x:Name="LocalModDisabled" Text="已禁用" Tag="disabled" ColorType="Highlight" Margin="2,0" Click="FilterLocalMods"/>
                         </StackPanel>
-                        <TextBlock x:Name="LocalModSummary" FontSize="12" Opacity="0.65" Margin="0,0,0,8"/>
+                        <TextBlock x:Name="LocalModSummary" Visibility="Collapsed" FontSize="12" Opacity="0.65"/>
                         <StackPanel x:Name="LocalModRows"/>
                         <TextBlock x:Name="LocalModEmpty" Text="尚未安装 Mod。" FontSize="13" Opacity="0.65" TextWrapping="Wrap" Margin="8,12,8,12" Visibility="Collapsed"/>
                       </StackPanel>
                     </p:PclCard>
                   </StackPanel>
                 </p:PclScrollViewer>
+                <p:PclCard x:Name="LocalModSelectionBar" ShowHeader="False" BodyMargin="10,6,10,5" HorizontalAlignment="Center" VerticalAlignment="Bottom" Panel.ZIndex="3" Visibility="Collapsed" Opacity="0" MaxWidth="580" IsHitTestVisible="False">
+                  <p:PclCard.RenderTransform><TranslateTransform x:Name="LocalModSelectionOffset" Y="-10"/></p:PclCard.RenderTransform>
+                  <StackPanel>
+                    <TextBlock x:Name="LocalModSelectionCount" Text="已选择 0 个文件" HorizontalAlignment="Center" Foreground="{DynamicResource ColorBrush3}" Margin="0,2,0,2" FontSize="13" AutomationProperties.LiveSetting="Polite"/>
+                    <WrapPanel HorizontalAlignment="Center">
+                      <p:PclActionButton x:Name="LocalModUpdateSelected" Text="更新" Highlight="True" Click="UpdateSelectedLocalMods" OutlinedLogo="True" Logo="M4,9 L10,3 16,9 13,9 13,16 7,16 7,9Z M5,19 L15,19"/>
+                      <p:PclActionButton x:Name="LocalModEnableSelected" Text="启用" Tag="True" Click="ToggleSelectedLocalMods" OutlinedLogo="True" Logo="M10,1 A9,9 0 1 0 10,19 A9,9 0 1 0 10,1 M5,10 L9,14 15,6"/>
+                      <p:PclActionButton x:Name="LocalModDisableSelected" Text="禁用" Tag="False" Click="ToggleSelectedLocalMods" OutlinedLogo="True" Logo="M10,1 A9,9 0 1 0 10,19 A9,9 0 1 0 10,1 M5,10 L15,10"/>
+                      <p:PclActionButton x:Name="LocalModDeleteSelected" Text="删除" Click="DeleteSelectedLocalMods" OutlinedLogo="True" Logo="M2,4 L18,4 M7,4 L7,1 13,1 13,4 M4,4 L5,19 15,19 16,4 M8,7 L8,16 M12,7 L12,16"/>
+                      <p:PclActionButton x:Name="LocalModClearSelection" Text="取消选择" Click="ClearLocalModSelection" OutlinedLogo="True" Logo="M2,2 L18,18 M18,2 L2,18"/>
+                    </WrapPanel>
+                  </StackPanel>
+                </p:PclCard>
                 <Canvas x:Name="ManagementGhost" IsHitTestVisible="False" ClipToBounds="True"/>
               </Grid>
             </Grid>
