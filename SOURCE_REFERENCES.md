@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 前置名称的项目查询合并与缓存归属（2026-10-26）
+
+- 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`ResourceVersion.FromProjectId` 汇总并去重前置，再交给 `ResourceProject.FromProjectIds` 的项目缓存/缺失项加载；`PageDownloadCompDetail` 的加载器取消后不交付结果，页面交接继续参考 `MyPageRight`。
+- PCL-DB 合并同平台、同项目的未完成名称查询，已知项目 ID 时只查名称所需的项目信息，保留原固定版本链接。取消和请求归属检查覆盖缓存写入及清理，失败可重试，保持四条并发上限及既有 UI/动画/下载流程。
+- 原始对象和摘要在 `artifacts/dependency-name-ownership/source/manifest.json`，详见[前置名称检查](docs/reviews/dependency-name-ownership-2026-10-26.md)。
+
 ## 校验补全入口的当前实例与后台读取（2026-10-26）
 
 - 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceOverall.BtnManageCheck_Click`：检查实例修改锁和重复任务，用当前实例构造 `DlClientFix`；`ModDownload.DlClientFix` 在 `LoaderTask` 中分析支持库与资源，页面与本地读取继续参照 `MyPageRight`、`LocalResourceLoaders`、`PageInstanceMod`。

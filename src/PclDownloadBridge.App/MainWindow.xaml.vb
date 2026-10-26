@@ -354,6 +354,7 @@ Partial Public Class MainWindow
         VerifyLauncherSelectionRecoveryUi(artifactDirectory, checks)
         VerifySettingsRecoveryUi(artifactDirectory, checks)
         VerifyManagementStatusUi(artifactDirectory, checks)
+        VerifyDependencyNamesUi(artifactDirectory, checks)
         Return checks
     End Function
 

@@ -14,6 +14,7 @@ Partial Public Class MainWindow
     Private _resourceNamesRequest As CancellationTokenSource
     Private ReadOnly _resourceNameSlots As New SemaphoreSlim(4)
     Private ReadOnly _resourceDependencyNames As New Dictionary(Of String, String)(StringComparer.Ordinal)
+    Private ReadOnly _resourceDependencyNameLoads As New Dictionary(Of String, Task(Of String))(StringComparer.Ordinal)
     Private _resourceSaveRunner As Func(Of ModpackRelease, String, IProgress(Of TransferProgress), CancellationToken, Task)
     Private _resourceSaveChooser As Func(Of ModpackRelease, String)
 
@@ -47,6 +48,7 @@ Partial Public Class MainWindow
         FinishPackContentMotion()
     End Sub
     Private Sub ResetResourceNames()
+        _resourceDependencyNameLoads.Clear()
         _resourceNamesRequest?.Cancel() : _resourceNamesRequest?.Dispose()
         If _closing Then _resourceNamesRequest = Nothing : Return
         _resourceNamesRequest = New CancellationTokenSource()
@@ -161,25 +163,59 @@ Partial Public Class MainWindow
         rows.Children.Add(links)
     End Sub
     Private Async Sub LoadDependencyNameAsync(project As ModpackProject, dependency As ResourceDependency, button As PclButton, token As CancellationToken)
-        Dim key = project.Platform.ToString() & ":" & If(String.IsNullOrEmpty(dependency.ProjectId), "version:" & dependency.VersionId, dependency.ProjectId), entered = False
         Try
-            Dim name As String = Nothing
-            If Not _resourceDependencyNames.TryGetValue(key, name) Then
-                Await _resourceNameSlots.WaitAsync(token) : entered = True
-                If Not _resourceDependencyNames.TryGetValue(key, name) Then
-                    Using client = _packCatalogFactory()
-                        Dim linked = Await client.ResolveDependencyAsync(project.Platform, dependency, token)
-                        name = linked.Name
-                    End Using
-                    If _resourceDependencyNames.Count >= 512 Then _resourceDependencyNames.Clear()
-                    _resourceDependencyNames(key) = name
-                End If
-            End If
+            Dim name = Await ResourceDependencyNameAsync(project.Platform, dependency, token)
             If Not token.IsCancellationRequested AndAlso ActivePackProject() Is project Then button.Text = name
         Catch
             ' Optional labels cannot prevent version downloads. The link retries.
+        End Try
+    End Sub
+    Private Function ResourceDependencyNameAsync(platform As ModpackPlatform, dependency As ResourceDependency, token As CancellationToken) As Task(Of String)
+        Dim key = platform.ToString() & ":" & If(String.IsNullOrEmpty(dependency.ProjectId), "version:" & dependency.VersionId, dependency.ProjectId)
+        Dim name As String = Nothing, pending As Task(Of String) = Nothing
+        If _resourceDependencyNames.TryGetValue(key, name) Then Return Task.FromResult(name)
+        If _resourceDependencyNameLoads.TryGetValue(key, pending) Then Return pending
+        ' Install ownership before starting: cached HTTP responses may finish inline.
+        ' Like PCL's project cache/batched dependency lookup, all version groups
+        ' subscribe to the same accepted project-name request.
+        Dim completion As New TaskCompletionSource(Of String)(TaskCreationOptions.RunContinuationsAsynchronously)
+        _resourceDependencyNameLoads.Add(key, completion.Task)
+        ResolveResourceDependencyNameAsync(key, platform, dependency, token, completion)
+        Return completion.Task
+    End Function
+    Private Async Sub ResolveResourceDependencyNameAsync(key As String, platform As ModpackPlatform, dependency As ResourceDependency,
+                                                        token As CancellationToken, completion As TaskCompletionSource(Of String))
+        Dim entered = False
+        Try
+            Await _resourceNameSlots.WaitAsync(token) : entered = True
+            token.ThrowIfCancellationRequested()
+            Dim name As String = Nothing
+            If Not _resourceDependencyNames.TryGetValue(key, name) Then
+                Using client = _packCatalogFactory()
+                    ' Names belong to projects. Version-pinned navigation still
+                    ' resolves and validates the original dependency on click.
+                    Dim linked = If(String.IsNullOrEmpty(dependency.ProjectId),
+                        Await client.ResolveDependencyAsync(platform, dependency, token),
+                        Await client.GetProjectAsync(platform, dependency.ProjectId, token, CommunityResourceKind.Any))
+                    name = linked.Name
+                End Using
+            End If
+            token.ThrowIfCancellationRequested()
+            Dim current As Task(Of String) = Nothing
+            If Not _resourceDependencyNameLoads.TryGetValue(key, current) OrElse current IsNot completion.Task Then
+                completion.TrySetCanceled() : Return
+            End If
+            If _resourceDependencyNames.Count >= 512 Then _resourceDependencyNames.Clear()
+            _resourceDependencyNames(key) = name
+            completion.TrySetResult(name)
+        Catch ex As OperationCanceledException When token.IsCancellationRequested
+            completion.TrySetCanceled()
+        Catch ex As Exception
+            completion.TrySetException(ex)
         Finally
             If entered Then _resourceNameSlots.Release()
+            Dim current As Task(Of String) = Nothing
+            If _resourceDependencyNameLoads.TryGetValue(key, current) AndAlso current Is completion.Task Then _resourceDependencyNameLoads.Remove(key)
         End Try
     End Sub
     Private Sub ConfigureResourceSearch()
