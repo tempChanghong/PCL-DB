@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 原生实例变化后的本地 Mod 刷新（2026-10-26）
+
+- 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`PageInstanceMod.LoaderRun` 始终以当前实例 `PathIndie` 下的 Mods 目录作为输入，显式刷新强制重载；`LocalResourceLoaders` 在枚举和读取阶段检查取消，`MyPageRight` 区分失败、重试与页面退出。
+- PCL-DB 接受新管理结果后，若当前 Mod 页的实例不可用或运行目录已不同，会取消旧读取、撤销旧列表的写入/目录操作资格并显示原因。显式刷新只按实例身份、启动器绑定和页面输入门控判断是否可重新读取；实际文件操作仍要求完整有效的当前上下文。修好原生配置后可同页恢复，读取成功前不使用旧目录作为回退。
+- 原始对象与摘要在 `artifacts/mod-context-recovery/source/manifest.json`，详见[Mod 目录恢复检查](docs/reviews/mod-context-recovery-2026-10-26.md)。未更改原生隔离规则、文件操作内核或动画曲线。
+
 ## 校验补全准备的取消、失败与重试（2026-10-26）
 
 - 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModLoader`、`MyPageRight`：Loading 对应运行，Failed 对应错误，Canceled 等终态停止加载；失败可重新启动加载器，离开页面后的后台结果不能启动页面进入。

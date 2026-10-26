@@ -20,6 +20,7 @@ Partial Public Class MainWindow
         VerifyDownloadFocusOwnership(check)
         VerifyManagementUi(artifactDirectory, check)
         VerifyRepairRecoveryUi(artifactDirectory, checks)
+        VerifyModContextRecoveryUi(artifactDirectory, checks)
         VerifyLocalModUi(artifactDirectory, check)
         Dim cancellationChecks As New List(Of String)
         VerifyManagementCancellationUi(artifactDirectory, cancellationChecks)

@@ -150,6 +150,7 @@ Partial Public Class MainWindow
                                                 ManagementDetailPage.Visibility = Visibility.Collapsed : ManagementListPage.Visibility = Visibility.Visible
                                                 LocalModsPage.Visibility = Visibility.Collapsed : CancelLocalModRequest()
                                             Else
+                                                InvalidateChangedLocalModContext()
                                                 If ManagementDetailPage.Visibility = Visibility.Visible Then RenderManagedInstance()
                                             End If
                                         End If

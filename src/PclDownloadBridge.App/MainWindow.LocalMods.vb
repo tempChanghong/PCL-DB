@@ -37,6 +37,7 @@ Partial Public Class MainWindow
 
     Private Function SameLocalModContext(instance As InstalledInstance) As Boolean
         Return SameLocalModIdentity(instance) AndAlso
+            instance.Problem Is Nothing AndAlso _managedInstance.Problem Is Nothing AndAlso
             Not String.IsNullOrEmpty(instance.RunDirectory) AndAlso Not String.IsNullOrEmpty(_managedInstance.RunDirectory) AndAlso
             SameGameRoot(instance.RunDirectory, _managedInstance.RunDirectory)
     End Function
@@ -48,6 +49,18 @@ Partial Public Class MainWindow
         Return Not _closing AndAlso Not _restoringSettings AndAlso Not _restoringLaunchers AndAlso ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible AndAlso
             PageSurface.IsHitTestVisible AndAlso ManagementViewHost.IsHitTestVisible AndAlso SameLocalModContext(_localModInstance)
     End Function
+    Private Function LocalModRefreshAllowed() As Boolean
+        ' Refresh repairs a stale/broken snapshot by rereading its native
+        ' instance. File actions still require the complete usable context.
+        Return Not _closing AndAlso Not _restoringSettings AndAlso Not _restoringLaunchers AndAlso ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible AndAlso
+            PageSurface.IsHitTestVisible AndAlso ManagementViewHost.IsHitTestVisible AndAlso SameLocalModIdentity(_localModInstance)
+    End Function
+    Private Sub InvalidateChangedLocalModContext()
+        If LocalModsPage.Visibility <> Visibility.Visible OrElse _managedInstance Is Nothing OrElse SameLocalModContext(_localModInstance) Then Return
+        CancelLocalModRequest()
+        LocalModStatus.Text = If(_managedInstance.Problem IsNot Nothing, "无法读取 Mod 列表：" & _managedInstance.Problem, "版本目录已变化，请刷新列表。")
+        RefreshLocalModAvailability()
+    End Sub
     Private Sub CancelLocalModRequest()
         _localModGeneration += 1
         _localModRequest?.Cancel() : _localModRequest = Nothing : _localModScanning = False
@@ -77,13 +90,14 @@ Partial Public Class MainWindow
         If LocalModInputAllowed() Then FocusManagementViewport()
     End Sub
     Private Async Sub RefreshLocalMods(sender As Object, e As RoutedEventArgs)
-        If Not LocalModInputAllowed() OrElse _localModWriting Then Return
+        If Not LocalModRefreshAllowed() OrElse _localModWriting Then Return
         Await LoadLocalModsAsync(True, refreshInstance:=True)
     End Sub
     Private Async Function LoadLocalModsAsync(force As Boolean, Optional refreshInstance As Boolean = False) As Task
         If _closing OrElse ManagementPage.Visibility <> Visibility.Visible OrElse LocalModsPage.Visibility <> Visibility.Visible OrElse
-            _managedInstance Is Nothing OrElse _managedInstance.RunDirectory Is Nothing OrElse _managedInstance.Problem IsNot Nothing OrElse
+            _managedInstance Is Nothing OrElse
             (_localModScanning AndAlso Not force) Then Return
+        If Not refreshInstance AndAlso (_managedInstance.RunDirectory Is Nothing OrElse _managedInstance.Problem IsNot Nothing) Then Return
         If refreshInstance Then CancelManagementRequest()
         CancelLocalModRequest()
         Dim instance = _managedInstance, request As New CancellationTokenSource(), generation = _localModGeneration
@@ -284,10 +298,13 @@ Partial Public Class MainWindow
     End Sub
     Private Sub RefreshLocalModAvailability()
         If LocalModRows Is Nothing Then Return
+        Dim canBrowse = SameLocalModContext(_localModInstance)
+        LocalModSearch.IsEnabled = canBrowse : LocalModSearchClear.IsEnabled = canBrowse
+        For Each filterTab As FrameworkElement In {LocalModAll, LocalModEnabled, LocalModDisabled} : filterTab.IsEnabled = canBrowse : Next
         Dim canWrite = _localModReadSucceeded AndAlso Not _busy AndAlso Not _choosingOnline AndAlso Not _restoringSettings AndAlso Not _restoringLaunchers AndAlso Not _localModWriting AndAlso Not _localModScanning AndAlso SameLocalModContext(_localModInstance)
         LocalModRows.IsEnabled = canWrite
         LocalModImport.IsEnabled = canWrite : LocalModRefresh.IsEnabled = Not _localModWriting
-        LocalModOpen.IsEnabled = _localModInstance IsNot Nothing AndAlso _localModInstance.RunDirectory IsNot Nothing AndAlso Directory.Exists(Path.Combine(_localModInstance.RunDirectory, "mods"))
+        LocalModOpen.IsEnabled = SameLocalModContext(_localModInstance) AndAlso Directory.Exists(Path.Combine(_localModInstance.RunDirectory, "mods"))
         LocalModCancel.Visibility = If(_localModWriting, Visibility.Visible, Visibility.Collapsed)
         LocalModCancel.IsEnabled = _localModWriteRequest IsNot Nothing AndAlso Not _localModWriteRequest.IsCancellationRequested
         If _localModWriting AndAlso _localModWriteOwner IsNot Nothing Then

@@ -14,6 +14,8 @@ Beta 5.0 后续源码修复详情“全部”筛选、取消后的滚动回写�
 
 “校验与补全”读取版本信息取消或失败后，会结束加载提示并允许重试；返回后重新准备时，旧请求不覆盖新状态。[补全准备恢复检查](docs/reviews/repair-recovery-2026-10-26.md)。
 
+管理刷新发现原生实例配置损坏或运行目录变化时，旧 Mod 列表失效并停止旧扫描；修好配置后可在同页刷新，重新读取当前共享或隔离目录。[Mod 目录恢复检查](docs/reviews/mod-context-recovery-2026-10-26.md)。
+
 界面、控件与动画以 PCL2 限制前源码为核心，PCL-CE 仅作补充参考。独立读取 PCL、HMCL、PCL-CE 的游戏目录与原生隔离配置；外部配置只读，已有实例设置保留。安装后的游戏继续使用所选启动器启动。
 
 ## 当前功能
@@ -271,7 +273,7 @@ OptiFine/OptiFabric 的跨版本兼容性沿用 PCL 检查和上游声明，不�
 
 Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / Any CPU**，将 **PCL-DB** 设为启动项目，选择同名启动配置后按 **F5**。已提供主程序、界面自检、组件页渲染及本地下载回归的启动配置；具体输出、断点建议和复查命令见 [VS2026_DEBUG.md](VS2026_DEBUG.md)。
 
-主应用的 **Appearance Checks** 配置可独立执行 191 项主题/任务状态检查，**Card Checks** 执行 134 项卡片、摘要动画、安装视口与版本格式检查；**Navigation Checks** 执行 287 项页面切换与状态保留检查；**Settings Compatibility** 执行 49 项更名与设置兼容检查；全量界面检查为 1321 项，包含以上各组。检查在离线示例模式运行，失败保留已通过项、失败名称、异常堆栈与诊断，并返回失败退出码。
+主应用的 **Appearance Checks** 配置可独立执行 191 项主题/任务状态检查，**Card Checks** 执行 134 项卡片、摘要动画、安装视口与版本格式检查；**Navigation Checks** 执行 383 项页面切换与状态保留检查；**Settings Compatibility** 执行 49 项更名与设置兼容检查；全量界面检查为 1417 项，包含以上各组。检查在离线示例模式运行，失败保留已通过项、失败名称、异常堆栈与诊断，并返回失败退出码。
 
 需要 .NET SDK 10.0.4xx 与 .NET Framework 4.8 Developer Pack；完整处理器样本检查还需要本机 Java 8 或更高版本。应用运行本身需要 .NET Framework 4.8。两个 Java 桥接/样本 class 已随源码保留，重编译命令为 `javac --release 8`，对应源文件在 `tools/java/`。
 
@@ -289,7 +291,7 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 .\build.ps1 -Package
 ```
 
-此模式独立构建单 EXE，并执行 25 项单文件、1321 项界面、1457 项动画和 1049 项搜索候选检查；完整模式另运行临时目录中的打包回归，再生成便携目录、ZIP、可单独分发的版本号 EXE 与独立构建清单。不会读取旧 bin 作为打包候选。
+此模式独立构建单 EXE，并执行 25 项单文件、1417 项界面、1457 项动画和 1049 项搜索候选检查；完整模式另运行临时目录中的打包回归，再生成便携目录、ZIP、可单独分发的版本号 EXE 与独立构建清单。不会读取旧 bin 作为打包候选。
 
 新 ZIP 内固定为 `PclDownloadBridge/` 下的 `PCL-DB.exe`、7 份文档（包含 `LICENCE`）和 `build-manifest.json`，共 9 个文件，无相邻 DLL、config 或 PDB。独立资产使用完整发布版本。v3 清单记录数字程序集版本、发布版本、完整提交、分支、工作区是否有改动、源码清单 SHA-256、SDK、运行时、两份内嵌依赖及每个载荷文件的 SHA-256。四组验收各自保留 Scope、Succeeded、Count、Passed、实际 EXE 摘要和单文件模式标识；当前要求由 `tools/VerificationTools.psm1` 集中维护。EXE ProductVersion 必须包含发布版本和提交；源码、文档或候选改变后需重新验证。下一次发行另定新版本，不能以新增功能覆盖既有 Beta 身份。
 
@@ -305,7 +307,7 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 
 以后验证新发行候选时，使用该次四项资产的实际路径，并追加 `-CandidateResultPath <该次单EXE验证打印的result.json完整路径>`。只有当前 v3 候选通过全部套件、源码、载荷及清单证据一致性核对，才返回 `VerificationLevel=CurrentCandidate`、`CandidateVerified=true`。历史回执或普通多文件 EXE 的回执不能用来通过当前候选验收。
 
-`-SkipTests -Package` 跳过核心、常规构建回归及打包回归，仍强制独立构建并在同一个单 EXE 上执行 25/1321/1457/1049 四组候选验收，以及源码和全部分发资产校验；不能据此声称通过完整回归。单独执行 `tools/verify-packaging.ps1` 会创建全新候选，仅在随机临时目录生成测试 ZIP，不更新项目 `dist`。可用 `-CandidateResultPath` 显式复用当前源码对应的候选，避免重复构建。
+`-SkipTests -Package` 跳过核心、常规构建回归及打包回归，仍强制独立构建并在同一个单 EXE 上执行 25/1417/1457/1049 四组候选验收，以及源码和全部分发资产校验；不能据此声称通过完整回归。单独执行 `tools/verify-packaging.ps1` 会创建全新候选，仅在随机临时目录生成测试 ZIP，不更新项目 `dist`。可用 `-CandidateResultPath` 显式复用当前源码对应的候选，避免重复构建。
 
 单 EXE 功能可用以下命令独立验证；该命令构建开发候选，不生成 ZIP、不更新 `dist`，不创建 Release：
 
@@ -319,7 +321,7 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 
 普通构建、F5 和单 EXE 验证均不会生成正式分发包。只有显式执行 `build.ps1 -Package` 才更新 `dist`；创建 Git 标签、上传资产与 GitHub Release 仍需另行明确要求。
 
-页面、滚动与按钮动画另设 1457 项 `--motion-checks <报告路径>`，普通默认构建和单 EXE 验证均会执行，报告与上述 1321 项界面检查分别记录。VS 可直接选择 Motion Checks；该入口使用隔离预览数据，检查曲线、快速导航、关于页的焦点/返回交接、高频滚轮、展开时滚动、缩放换行的高度衔接、裁剪区域中的延迟行及按钮按压/回弹和中断清理，并输出采样帧，不是桌面帧率测试。
+页面、滚动与按钮动画另设 1457 项 `--motion-checks <报告路径>`，普通默认构建和单 EXE 验证均会执行，报告与上述 1417 项界面检查分别记录。VS 可直接选择 Motion Checks；该入口使用隔离预览数据，检查曲线、快速导航、关于页的焦点/返回交接、高频滚轮、展开时滚动、缩放换行的高度衔接、裁剪区域中的延迟行及按钮按压/回弹和中断清理，并输出采样帧，不是桌面帧率测试。
 
 维护固定 PCL 参考时，先执行以下检查（需要本地 PCL Git 对象，可用 `-SourceRoot` 指向没有检出文件的仓库）：
 
