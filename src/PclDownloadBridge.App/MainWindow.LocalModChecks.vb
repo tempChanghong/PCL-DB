@@ -31,6 +31,9 @@ Partial Public Class MainWindow
             End Using
         End Using
         File.WriteAllText(Path.Combine(mods, "broken.jar"), "broken archive")
+        ' All stages in these deterministic row/clock fixtures complete inline.
+        ' Async native reads and navigation are exercised by dedicated fixtures.
+        _localModInstanceReader = Function(instance, token) Task.FromResult(InstalledInstanceCatalog.Read(instance.Target, instance.Name, token))
         _localModProvider = Function(instance, token) Task.FromResult(LocalModCatalog.Scan(instance, token))
         _localModImporter = Function(instance, paths, token) Task.FromResult(LocalModActions.ImportFiles(instance, paths, token))
         _localModToggle = Function(instance, entry, enabled, token) Task.FromResult(LocalModActions.SetEnabled(instance, entry, enabled, token))

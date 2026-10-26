@@ -378,13 +378,17 @@ Partial Public Class MainWindow
         End Try
         If _closing Then Return
         If SameLocalModContext(owner) AndAlso ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible Then
-            Dim refresh = LoadLocalModsAsync(True), readGeneration = _localModGeneration
+            ' Like PCL's reload input, resolve the current run directory again.
+            ' Native launcher settings can change without a management scan.
+            Dim refresh = LoadLocalModsAsync(True, refreshInstance:=True), readGeneration = _localModGeneration
             Await refresh
             If operationGeneration = _localModOperationGeneration AndAlso readGeneration = _localModGeneration Then
                 QueueLocalModWriteFocus(owner, focusedEntry, focused, inputVersion, operationGeneration, readGeneration)
             End If
             If operationGeneration = _localModOperationGeneration AndAlso readGeneration = _localModGeneration AndAlso _localModReadSucceeded AndAlso Not _localModWriting AndAlso Not _localModScanning AndAlso
                 SameLocalModContext(owner) AndAlso LocalModsPage.Visibility = Visibility.Visible AndAlso Not _closing Then LocalModStatus.Text = outcome
+            If operationGeneration = _localModOperationGeneration AndAlso readGeneration = _localModGeneration AndAlso Not _localModWriting AndAlso Not _busy AndAlso Not _closing AndAlso
+                taskGeneration = _taskGeneration AndAlso (Not _localModReadSucceeded OrElse Not SameLocalModContext(owner)) Then StatusText.Text = owner.Name & " · " & outcome
         Else
             If ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible Then Await LoadLocalModsAsync(True, refreshInstance:=True)
             If operationGeneration = _localModOperationGeneration AndAlso Not _localModWriting AndAlso Not _busy AndAlso taskGeneration = _taskGeneration Then StatusText.Text = owner.Name & " · " & outcome
