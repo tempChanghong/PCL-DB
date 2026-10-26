@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 管理刷新失败的当前页反馈（2026-10-26）
+
+- 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MyPageRight.PageLoaderState/PageLoaderInit`：加载失败在当前加载界面表现，并保留重试入口；`PageInstanceMod.Load_Click` 对失败加载强制重试，`LocalResourceLoaders` 在目录读取前协调更新和取消。
+- PCL-DB 保留现有缓存与 Mod 状态样式，将当前所属的版本列表刷新错误显示在可见 Mod 页。原生目标、读取代次和本地写入检查仍先执行，正在读取的 Mod 列表及退役请求不能被这条反馈覆盖。
+- 原始对象和摘要在 `artifacts/management-failure-feedback/source/manifest.json`，详见[刷新失败反馈检查](docs/reviews/management-failure-feedback-2026-10-26.md)。不改变安装任务结果、文件内核、配置或动画曲线。
+
 ## 任务结束与管理页入场的刷新交接（2026-10-26）
 
 - 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod` 文件安装完成分支：当前在 Mod 管理页时，按实例 `PathIndie` 强制重载目录；`LocalResourceLoaders` 协调目录更新，`MyPageRight` 处理加载与页面状态的交接。

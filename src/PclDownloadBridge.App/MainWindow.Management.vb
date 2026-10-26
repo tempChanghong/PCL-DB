@@ -130,8 +130,16 @@ Partial Public Class MainWindow
         If _closing OrElse ManagementPage.Visibility <> Visibility.Visible OrElse _managementPreparing OrElse _selectedFolder Is Nothing Then Return
         Dim target = CurrentInstallTarget(), scan = ScanManagementAsync(True), generation = _managementGeneration
         Await scan
-        If _closing OrElse generation <> _managementGeneration OrElse _selectedFolder Is Nothing OrElse _managementDirty OrElse
+        If _closing OrElse generation <> _managementGeneration OrElse _selectedFolder Is Nothing OrElse
             Not SameManagementTarget(target, CurrentInstallTarget()) OrElse _localModWriting Then Return
+        If _managementDirty Then
+            ' The root-list status is hidden on this child page. Do not replace
+            ' the feedback of an active local read or file operation.
+            If _managementProblem IsNot Nothing AndAlso ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible AndAlso Not _localModScanning Then
+                LocalModStatus.Text = ManagementStatus.Text
+            End If
+            Return
+        End If
         If ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible Then Await LoadLocalModsAsync(True)
     End Function
     Private Async Function ScanManagementAsync(force As Boolean) As Task

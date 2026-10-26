@@ -19,7 +19,7 @@ Partial Public Class MainWindow
         Try
             Using surface = PreviewSurface.Attach(host, 900, 650)
                 SynchronizationContext.SetSynchronizationContext(New DispatcherSynchronizationContext(owner.Dispatcher))
-                Dim work = owner.CheckTaskManagementRefreshAsync(directory, layout, check)
+                Dim work = owner.CheckTaskManagementRefreshAsync(directory, host, layout, check)
                 If Not PumpMotionUntil(Function() work.IsCompleted, 60000) Then Throw New TimeoutException("Task management refresh did not settle.")
                 work.GetAwaiter().GetResult()
             End Using
@@ -34,7 +34,7 @@ Partial Public Class MainWindow
         End Try
     End Sub
 
-    Private Async Function CheckTaskManagementRefreshAsync(directory As String, layout As Action, check As Action(Of Boolean, String)) As Task
+    Private Async Function CheckTaskManagementRefreshAsync(directory As String, host As Border, layout As Action, check As Action(Of Boolean, String)) As Task
         Dim settle As Action = Sub()
                                    _surfaceMotion.Finish() : _categoryMotion.Finish() : _managementMotion.Finish() : layout()
                                End Sub
@@ -128,9 +128,27 @@ Partial Public Class MainWindow
                 gate.SetResult(True) : Await saving
                 Await WaitPackUiAsync(Function() Not _managementScanning) : settle()
                 Dim failedRefresh = _managementProblem IsNot Nothing AndAlso _managementProblem.Contains("controlled task-completion scan failure") AndAlso _managementDirty
+                check(failedRefresh AndAlso LocalModsPage.IsVisible AndAlso Not ManagementStatus.IsVisible AndAlso LocalModStatus.IsVisible AndAlso
+                    LocalModStatus.Text.Contains("controlled task-completion scan failure") AndAlso _taskOutcome = TaskOutcome.Succeeded,
+                    "completion refresh errors are visible on the active Mods page without changing the successful task result" & label)
+                SaveControlVisual(host, Path.Combine(directory, "management-failure-" & target.Kind.ToString() & "-" & If(dark, "dark", "light") & ".png"))
+                RefreshLocalMods(Nothing, New RoutedEventArgs())
+                Await WaitPackUiAsync(Function() Not _localModScanning) : settle()
+                check(_localModReadSucceeded AndAlso LocalModImport.IsEnabled AndAlso Not LocalModStatus.Text.Contains("controlled task-completion scan failure") AndAlso
+                    _managementProblem.Contains("controlled task-completion scan failure") AndAlso _taskOutcome = TaskOutcome.Succeeded,
+                    "the visible Mods refresh button restores a usable local list while retaining the separate root-scan failure and task outcome" & label)
+
+                Dim realMods = _localModProvider, retainedMods = _localMods
+                Dim pendingMods As New TaskCompletionSource(Of List(Of LocalModEntry))(TaskCreationOptions.RunContinuationsAsynchronously)
+                _localModProvider = Function(current, token) pendingMods.Task
+                Dim reading = LoadLocalModsAsync(True), readRequest = _localModRequest, readingStatus = LocalModStatus.Text
+                Await RefreshManagementAsync()
+                Dim retainedRead = _localModScanning AndAlso _localModRequest Is readRequest AndAlso LocalModStatus.Text = readingStatus
+                pendingMods.SetResult(retainedMods) : Await reading : settle()
+                _localModProvider = realMods
                 _managementProvider = realProvider : RefreshManagement(Nothing, New RoutedEventArgs())
                 Await WaitPackUiAsync(Function() Not _managementScanning AndAlso Not _localModScanning) : settle()
-                check(failedRefresh AndAlso Not _managementDirty AndAlso _taskOutcome = TaskOutcome.Succeeded AndAlso _localModReadSucceeded AndAlso LocalModImport.IsEnabled,
+                check(failedRefresh AndAlso retainedRead AndAlso Not _managementDirty AndAlso _taskOutcome = TaskOutcome.Succeeded AndAlso _localModReadSucceeded AndAlso LocalModImport.IsEnabled,
                     "a failed completion refresh preserves task success and remains repairable through the ordinary refresh button" & label)
 
                 gate = New TaskCompletionSource(Of Boolean)(TaskCreationOptions.RunContinuationsAsynchronously)
@@ -139,8 +157,11 @@ Partial Public Class MainWindow
                 Dim delayed As New TaskCompletionSource(Of List(Of InstalledInstance))(TaskCreationOptions.RunContinuationsAsynchronously), called = False, returned = False, oldToken As CancellationToken
                 _managementProvider = Async Function(binding, token)
                                           called = True : oldToken = token
-                                          Dim result = Await delayed.Task
-                                          returned = True : Return result
+                                          Try
+                                              Return Await delayed.Task
+                                          Finally
+                                              returned = True
+                                          End Try
                                       End Function
                 gate.SetResult(True) : Await saving : settle()
                 Dim started = called AndAlso _managementScanning
@@ -152,12 +173,12 @@ Partial Public Class MainWindow
                 SelectManagedInstance(_managementInstances.Single(Function(item) item.Name = "我的原版")) : settle()
                 ShowLocalMods(Nothing, Nothing) : Await WaitPackUiAsync(Function() Not _localModScanning) : settle()
                 Dim accepted = _managementInstances, acceptedMod = _localMods, selected = _managedInstance, currentTarget = CurrentInstallTarget()
-                delayed.SetResult(oldItems)
+                If dark Then delayed.SetException(New IOException("retired task-completion scan failure")) Else delayed.SetResult(oldItems)
                 If called Then Await WaitPackUiAsync(Function() returned)
                 Await Task.Yield() : settle()
                 check(started AndAlso oldToken.IsCancellationRequested AndAlso _managementInstances Is accepted AndAlso _localMods Is acceptedMod AndAlso
                     _managedInstance Is selected AndAlso _managedInstance.Name = "我的原版" AndAlso SameManagementTarget(_managementTarget, currentTarget) AndAlso
-                    LocalModsPage.IsVisible AndAlso _localModReadSucceeded AndAlso LocalModImport.IsEnabled,
+                    LocalModsPage.IsVisible AndAlso _localModReadSucceeded AndAlso LocalModImport.IsEnabled AndAlso Not LocalModStatus.Text.Contains("retired task-completion scan failure"),
                     "return, settings and another launcher binding retire a delayed completion refresh even when its provider ignores cancellation" & label)
                 check(protectedFiles.All(Function(pair) File.ReadAllBytes(pair.Key).SequenceEqual(pair.Value)) AndAlso
                     File.ReadAllBytes(plan.Destination).SequenceEqual(bytes) AndAlso File.ReadAllBytes(source).SequenceEqual(bytes),
