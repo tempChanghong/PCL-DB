@@ -4,6 +4,8 @@ VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载与本地实例管理
 
 Beta 5.0 后续源码修复详情“全部”筛选、取消后的滚动回写，以及前置查询期间继续操作后返回丢失筛选/阅读位置的问题；返回与分类切换也保留已展开的版本卡片。[资源页面恢复检查](docs/reviews/resource-restore-2026-10-26.md)、[前置返回联动检查](docs/reviews/dependency-navigation-2026-10-26.md)。目前仅本地提交，尚未打包发版。
 
+详情图标现采用独立请求：分类、设置/管理和取消下载后返回会重新加载，失败可重试；已取消或失去归属的响应与缓存不再改写页面。[图标生命周期检查](docs/reviews/resource-artwork-2026-10-26.md)。
+
 界面、控件与动画以 PCL2 限制前源码为核心，PCL-CE 仅作补充参考。独立读取 PCL、HMCL、PCL-CE 的游戏目录与原生隔离配置；外部配置只读，已有实例设置保留。安装后的游戏继续使用所选启动器启动。
 
 ## 当前功能
@@ -279,7 +281,7 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 .\build.ps1 -Package
 ```
 
-此模式独立构建单 EXE，并执行 25 项单文件、1273 项界面、1457 项动画和 758 项搜索候选检查；完整模式另运行临时目录中的打包回归，再生成便携目录、ZIP、可单独分发的版本号 EXE 与独立构建清单。不会读取旧 bin 作为打包候选。
+此模式独立构建单 EXE，并执行 25 项单文件、1273 项界面、1457 项动画和 805 项搜索候选检查；完整模式另运行临时目录中的打包回归，再生成便携目录、ZIP、可单独分发的版本号 EXE 与独立构建清单。不会读取旧 bin 作为打包候选。
 
 新 ZIP 内固定为 `PclDownloadBridge/` 下的 `PCL-DB.exe`、7 份文档（包含 `LICENCE`）和 `build-manifest.json`，共 9 个文件，无相邻 DLL、config 或 PDB。独立资产使用完整发布版本。v3 清单记录数字程序集版本、发布版本、完整提交、分支、工作区是否有改动、源码清单 SHA-256、SDK、运行时、两份内嵌依赖及每个载荷文件的 SHA-256。四组验收各自保留 Scope、Succeeded、Count、Passed、实际 EXE 摘要和单文件模式标识；当前要求由 `tools/VerificationTools.psm1` 集中维护。EXE ProductVersion 必须包含发布版本和提交；源码、文档或候选改变后需重新验证。下一次发行另定新版本，不能以新增功能覆盖既有 Beta 身份。
 
@@ -295,7 +297,7 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 
 以后验证新发行候选时，使用该次四项资产的实际路径，并追加 `-CandidateResultPath <该次单EXE验证打印的result.json完整路径>`。只有当前 v3 候选通过全部套件、源码、载荷及清单证据一致性核对，才返回 `VerificationLevel=CurrentCandidate`、`CandidateVerified=true`。历史回执或普通多文件 EXE 的回执不能用来通过当前候选验收。
 
-`-SkipTests -Package` 跳过核心、常规构建回归及打包回归，仍强制独立构建并在同一个单 EXE 上执行 25/1273/1457/758 四组候选验收，以及源码和全部分发资产校验；不能据此声称通过完整回归。单独执行 `tools/verify-packaging.ps1` 会创建全新候选，仅在随机临时目录生成测试 ZIP，不更新项目 `dist`。可用 `-CandidateResultPath` 显式复用当前源码对应的候选，避免重复构建。
+`-SkipTests -Package` 跳过核心、常规构建回归及打包回归，仍强制独立构建并在同一个单 EXE 上执行 25/1273/1457/805 四组候选验收，以及源码和全部分发资产校验；不能据此声称通过完整回归。单独执行 `tools/verify-packaging.ps1` 会创建全新候选，仅在随机临时目录生成测试 ZIP，不更新项目 `dist`。可用 `-CandidateResultPath` 显式复用当前源码对应的候选，避免重复构建。
 
 单 EXE 功能可用以下命令独立验证；该命令构建开发候选，不生成 ZIP、不更新 `dist`，不创建 Release：
 

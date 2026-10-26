@@ -40,6 +40,8 @@ Partial Public Class MainWindow
         _dependencyRequest?.Cancel()
         ResetResourceNames()
         _packSearchRequest?.Cancel() : _packDetailRequest?.Cancel() : _packArtworkRequest?.Cancel()
+        _packArtworkRequest?.Dispose() : _packArtworkRequest = Nothing
+        RetirePackDetailArtwork()
         _packSearchRequest = Nothing : _packDetailRequest = Nothing
         _packSearchLoading?.Reset() : _packDetailLoading?.Reset()
         FinishPackContentMotion()

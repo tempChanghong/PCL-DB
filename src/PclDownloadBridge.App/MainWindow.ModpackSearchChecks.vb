@@ -39,6 +39,7 @@ Partial Public Class MainWindow
         End Try
         VerifyResourceRestoreUi(directory, passed)
         VerifyDependencyNavigationUi(directory, passed)
+        VerifyResourceArtworkUi(directory, passed)
     End Sub
     Private Async Function VerifyPackSearchAsync(directory As String, host As Border, check As Action(Of Boolean, String)) As Task
         Dim layout As Action = Sub()

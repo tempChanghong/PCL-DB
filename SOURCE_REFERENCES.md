@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 社区资源详情图标的加载与返回（2026-10-26）
+
+- 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`MyResourceItem.xaml` 为图标提供独立 `MyImage`、50 DIP 区域、高质量缩放与本地占位；`MyImage.Load` 按控件的 Source 读取缓存、异步加载并提供失败备用图，不依赖搜索结果加载器的取消源。
+- PCL-DB 沿用现有图标样式与备用图，分开列表和详情的请求归属。详情隐藏/替换/关闭时退役图标请求，重现或重渲染后可重试；内存缓存和网络结果统一检查取消、行项目与 URL，保留原先地址白名单、超时、体积和解码尺寸约束。
+- 原始对象与摘要保存在 `artifacts/resource-artwork/source/manifest.json`；详见[图标生命周期检查](docs/reviews/resource-artwork-2026-10-26.md)。未更改下载安装机制、外部配置或动画曲线。
+
 ## 前置查询、返回快照与展开卡片（2026-10-26）
 
 - 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`FormMain.PageChangeActual` 在实际进入更深层子页面时将 `PageCurrent` 加入返回栈；`PageDownloadCompDetail.UpdateFilterResult` 根据 `PageCurrent.Additional(1)` 中的卡片标题重建已展开内容，并保留所选版本/唯一卡片的自动展开与延迟创建规则。

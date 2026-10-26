@@ -1024,6 +1024,7 @@ Partial Public Class MainWindow
         _packArtworkRequest?.Cancel()
         _packArtworkRequest?.Dispose()
         _packArtworkRequest = Nothing
+        RetirePackDetailArtwork()
         FinishPackContentMotion()
         _packReadCancellation?.Cancel()
         _pendingSurfaceFocus = Nothing

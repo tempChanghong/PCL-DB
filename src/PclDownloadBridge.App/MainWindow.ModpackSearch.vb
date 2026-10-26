@@ -45,6 +45,7 @@ Partial Public Class MainWindow
     Private _onlineInstallRunner As Func(Of ModpackRelease, String, String, IProgress(Of TransferProgress), CancellationToken, Task(Of InstallResult))
     Private ReadOnly _packIcons As New Dictionary(Of String, BitmapSource)(StringComparer.Ordinal)
     Private ReadOnly _packIconSlots As New SemaphoreSlim(4)
+    Private _packArtworkClientFactory As Func(Of HttpClient) = Function() New HttpClient(New HttpClientHandler With {.AllowAutoRedirect = False}) With {.Timeout = TimeSpan.FromSeconds(12)}
 
     Private Sub InitializePackSearch()
         InitializeSearchPresentation()
@@ -56,7 +57,8 @@ Partial Public Class MainWindow
             Function(surface) PclSurfaceMotion.Units(surface))
         AddHandler PackDetailSurface.IsVisibleChanged, Sub()
                                                           If _closing Then Return
-                                                          If PackDetailSurface.IsVisible Then RefreshResourceDependencyLabels() : Return
+                                                          If PackDetailSurface.IsVisible Then RefreshResourceDependencyLabels() : RefreshPackDetailArtwork() : Return
+                                                          RetirePackDetailArtwork()
                                                           RetirePackProjectAction()
                                                           _dependencyRequest?.Cancel() : _resourceNamesRequest?.Cancel()
                                                       End Sub
@@ -360,42 +362,6 @@ Partial Public Class MainWindow
     Private Function CurrentPackSearch(session As ModpackSearchSession, request As CancellationTokenSource) As Boolean
         Return Not _closing AndAlso Not request.IsCancellationRequested AndAlso _packSearchRequest Is request AndAlso _packSearchSession Is session
     End Function
-    Private Async Sub LoadPackIconAsync(row As PclResourceItem, project As ModpackProject, token As CancellationToken)
-        Dim entered = False
-        Try
-            If String.IsNullOrWhiteSpace(project.IconUrl) Then Return
-            Dim cached As BitmapSource = Nothing
-            If _packIcons.TryGetValue(project.IconUrl, cached) Then row.Icon.Source = cached : Return
-            Dim address As Uri = Nothing
-            If Not Uri.TryCreate(project.IconUrl, UriKind.Absolute, address) OrElse address.Scheme <> "https" OrElse Not address.IsDefaultPort OrElse address.UserInfo <> "" OrElse Not {"cdn.modrinth.com", "media.forgecdn.net", "mediafilez.forgecdn.net"}.Contains(address.Host, StringComparer.OrdinalIgnoreCase) Then Return
-            Await _packIconSlots.WaitAsync(token) : entered = True
-            Using client As New HttpClient(New HttpClientHandler With {.AllowAutoRedirect = False}) With {.Timeout = TimeSpan.FromSeconds(12)}, response = Await client.GetAsync(address, HttpCompletionOption.ResponseHeadersRead, token)
-                response.EnsureSuccessStatusCode()
-                Using deadline = CancellationTokenSource.CreateLinkedTokenSource(token)
-                    deadline.CancelAfter(TimeSpan.FromSeconds(12))
-                    Using registration = deadline.Token.Register(Sub() response.Dispose()), input = Await response.Content.ReadAsStreamAsync(), bytes As New MemoryStream()
-                        Dim block(8191) As Byte
-                        Do
-                            Dim read = Await input.ReadAsync(block, 0, block.Length, deadline.Token)
-                            If read = 0 Then Exit Do
-                            If bytes.Length + read > 2 * 1024 * 1024 Then Return
-                            bytes.Write(block, 0, read)
-                        Loop
-                        token.ThrowIfCancellationRequested() : bytes.Position = 0
-                        Dim bitmap As New BitmapImage()
-                        bitmap.BeginInit() : bitmap.CacheOption = BitmapCacheOption.OnLoad : bitmap.DecodePixelWidth = 100 : bitmap.StreamSource = bytes : bitmap.EndInit() : bitmap.Freeze()
-                        If _packIcons.Count >= 160 Then _packIcons.Clear()
-                        _packIcons(project.IconUrl) = bitmap
-                        If Not _closing AndAlso Not token.IsCancellationRequested AndAlso row.Tag Is project Then row.Icon.Source = bitmap
-                    End Using
-                End Using
-            End Using
-        Catch
-            ' Artwork is optional and never changes the query/install state.
-        Finally
-            If entered Then _packIconSlots.Release()
-        End Try
-    End Sub
     Private Async Sub OpenPackDetails(project As ModpackProject)
         If _busy OrElse _choosingOnline OrElse _closing OrElse Not DownloadViewHost.IsHitTestVisible OrElse Not PackSearchResultsHost.IsHitTestVisible Then Return
         Dim changingProject = _packProject Is Nothing OrElse _packProject.Key <> project.Key

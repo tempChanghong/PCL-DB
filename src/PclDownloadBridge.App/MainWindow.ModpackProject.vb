@@ -19,11 +19,12 @@ Partial Public Class MainWindow
         RetirePackProjectAction()
         PackProjectTitle.Text = ResourceProjectNames.GetTitle(project).Title : PackProjectDescription.Text = project.Summary
         If PackProjectIdentity.Children.Count = 0 OrElse DirectCast(PackProjectIdentity.Children(0), PclResourceItem).Tag IsNot project Then
+            RetirePackDetailArtwork()
             PackProjectIdentity.Children.Clear()
             Dim intro As New PclResourceItem(project, _resourceVersionFamilies) With {.Tag = project, .CanInteract = False}
             PackProjectIdentity.Children.Add(intro)
-            LoadPackIconAsync(intro, project, If(_packArtworkRequest Is Nothing, CancellationToken.None, _packArtworkRequest.Token))
         End If
+        RefreshPackDetailArtwork()
         PackProjectWebsite.Text = "转到 " & project.Platform.ToString()
         RefreshTitleNavigation()
     End Sub
