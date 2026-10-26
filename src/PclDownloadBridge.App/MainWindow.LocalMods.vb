@@ -70,15 +70,17 @@ Partial Public Class MainWindow
         RefreshLocalModAvailability()
     End Sub
     Private Sub CancelLocalModRequest()
-        RetireLocalModUpdates()
-        Dim folderRequest = _localModFolderRequest
-        _localModFolderRequest = Nothing
-        folderRequest?.Cancel()
+        Dim folderRequest = _localModFolderRequest, request = _localModRequest
+        ' PCL ModLoader changes state before notifying cancellation. A token
+        ' callback may synchronously restart a read, so retire all old ownership
+        ' and input state before cancelling any of the captured requests.
         _localModGeneration += 1
-        _localModRequest?.Cancel() : _localModRequest = Nothing : _localModScanning = False
+        _localModFolderRequest = Nothing : _localModRequest = Nothing : _localModScanning = False
         _localModReadSucceeded = False
         _localModWaitingForWrite = False
         _localModFocusRestore = Nothing : _localModFilterPending = False
+        RetireLocalModUpdates()
+        folderRequest?.Cancel() : request?.Cancel()
     End Sub
     Private Async Sub ShowLocalMods(sender As Object, e As RoutedEventArgs)
         If _closing OrElse _managedInstance Is Nothing OrElse _managedInstance.Problem IsNot Nothing OrElse _managedInstance.RunDirectory Is Nothing OrElse

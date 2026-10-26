@@ -23,8 +23,8 @@ Partial Public Class MainWindow
         Return _localModUpdates.TryGetValue(entry.FilePath, update) AndAlso update.Entry.Sha256 = entry.Sha256 AndAlso update.HasUpdate
     End Function
     Private Sub ConfigureLocalModSelection(row As PclLocalModItem, entry As LocalModEntry)
-        row.Checked = _localModSelection.Contains(entry.FilePath) : row.HasUpdate = HasLocalModUpdate(entry)
-        If row.HasUpdate Then row.ToolTip = entry.FileName & vbCrLf & "可更新至 " & _localModUpdates(entry.FilePath).Release.Name & vbCrLf & "来源：" & _localModUpdates(entry.FilePath).Project.Platform.ToString()
+        row.Checked = _localModSelection.Contains(entry.FilePath)
+        row.SetUpdateInfo(If(HasLocalModUpdate(entry), _localModUpdates(entry.FilePath), Nothing))
     End Sub
     Private Sub LocalModChecked(row As PclLocalModItem, entry As LocalModEntry)
         If _localModRenderingSelection Then Return
@@ -103,27 +103,32 @@ Partial Public Class MainWindow
         RefreshLocalModSelectionAvailability(LocalModRows.IsEnabled AndAlso _localModReadSucceeded AndAlso Not _localModWriting)
     End Sub
     Private Sub RetireLocalModUpdates()
-        _localModUpdatesRequest?.Cancel() : _localModUpdatesRequest = Nothing
+        Dim previous = _localModUpdatesRequest
+        _localModUpdatesRequest = Nothing
         _localModUpdates.Clear() : _localModSelection.Clear()
-        If LocalModUpdateStatus IsNot Nothing Then LocalModUpdateStatus.Text = ""
+        If LocalModUpdateStatus IsNot Nothing Then LocalModUpdateStatus.Text = "" : LocalModUpdateStatus.ToolTip = Nothing
         RefreshLocalModSelection(False)
+        previous?.Cancel()
     End Sub
     Private Async Sub StartLocalModUpdates()
         Await CheckLocalModUpdatesAsync()
     End Sub
     Private Async Function CheckLocalModUpdatesAsync() As Task
         If Not _localModReadSucceeded OrElse _localModScanning OrElse _localModWriting OrElse Not SameLocalModContext(_localModInstance) Then Return
-        _localModUpdatesRequest?.Cancel()
         Dim owner = _localModInstance, entries = _localMods.ToList(), generation = _localModGeneration
-        Dim request As New CancellationTokenSource(TimeSpan.FromMinutes(3)) : _localModUpdatesRequest = request
+        Dim previous = _localModUpdatesRequest, request As New CancellationTokenSource(TimeSpan.FromMinutes(3))
+        _localModUpdatesRequest = request
         Dim current As Func(Of Boolean) = Function() Not _closing AndAlso _localModUpdatesRequest Is request AndAlso generation = _localModGeneration AndAlso
             SameLocalModContext(owner) AndAlso LocalModsPage.IsVisible AndAlso Not request.IsCancellationRequested
-        Dim key = owner.Target.Root & "|" & owner.RunDirectory & "|" & owner.MinecraftVersion & "|" & owner.LoaderSummary & "|" & _communityPreferences.Source & "|" &
-            String.Join("|", entries.Select(Function(entry) entry.FilePath & ":" & entry.Sha256))
-        LocalModUpdateStatus.Text = "正在检查 Mod 更新…"
         Try
+            previous?.Cancel()
+            If Not current() Then Return
+            Dim key = owner.Target.Root & "|" & owner.RunDirectory & "|" & owner.MinecraftVersion & "|" & owner.LoaderSummary & "|" & _communityPreferences.Source & "|" &
+                String.Join("|", entries.Select(Function(entry) entry.FilePath & ":" & entry.Sha256))
+            LocalModUpdateStatus.Text = "正在检查 Mod 更新…" : LocalModUpdateStatus.ToolTip = Nothing
             Dim result As LocalModUpdateCheckResult
-            If key = _localModUpdateCacheKey AndAlso DateTime.UtcNow - _localModUpdateCacheTime < TimeSpan.FromHours(6) Then
+            Dim age = DateTime.UtcNow - _localModUpdateCacheTime
+            If key = _localModUpdateCacheKey AndAlso age >= TimeSpan.Zero AndAlso age < TimeSpan.FromHours(6) Then
                 result = _localModUpdateCache
             ElseIf _localModUpdateProvider IsNot Nothing Then
                 result = Await _localModUpdateProvider(owner, entries, request.Token)

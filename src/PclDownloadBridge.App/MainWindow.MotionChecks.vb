@@ -60,6 +60,7 @@ Partial Public Class MainWindow
         VerifyLocalModStyleMotion(directory, check)
         Dim localModSelectionChecks As New List(Of String)
         VerifyLocalModSelectionUi(directory, localModSelectionChecks)
+        VerifyLocalModUpdateLifecycleUi(directory, localModSelectionChecks)
         For Each label In localModSelectionChecks : check(True, label) : Next
         VerifyLocalModRowMotion(directory, check)
         Return passed

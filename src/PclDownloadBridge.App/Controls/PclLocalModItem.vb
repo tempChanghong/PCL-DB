@@ -43,9 +43,17 @@ Namespace Controls
                 Return _hasUpdate
             End Get
             Set(value As Boolean)
-                _hasUpdate = value : RefreshAppearance(False)
+                If value = _hasUpdate Then Return
+                _hasUpdate = value : RefreshTitleColor()
             End Set
         End Property
+        Friend Sub SetUpdateInfo(update As LocalModUpdate)
+            Dim entry = DirectCast(Tag, LocalModEntry)
+            HasUpdate = update IsNot Nothing AndAlso update.HasUpdate
+            Dim text = BuildToolTip(entry)
+            If HasUpdate Then text &= vbCrLf & "可更新至 " & Bounded(Flat(update.Release.Name), 200) & vbCrLf & "来源：" & update.Project.Platform.ToString()
+            ToolTip = Bounded(text, 4608)
+        End Sub
         Friend ReadOnly Property TitleLabel As TextBlock
         Friend ReadOnly Property VersionLabel As TextBlock
         Friend ReadOnly Property InfoLabel As TextBlock
@@ -222,7 +230,7 @@ Namespace Controls
         Private Sub RefreshAppearance(animate As Boolean, Optional paletteOnly As Boolean = False)
             If MotionPolicy Is Nothing Then Return
             Dim interactive = MotionPolicy.Interactive, active = interactive AndAlso (IsMouseOver OrElse IsKeyboardFocusWithin OrElse _touchRevealed)
-            TitleLabel.SetResourceReference(TextBlock.ForegroundProperty, If(_checked OrElse _hasUpdate, "ColorBrush3", If(DirectCast(Tag, LocalModEntry).Enabled, "ColorBrush1", "ColorBrushGray4")))
+            RefreshTitleColor()
             Dim plate = _checked OrElse active
             Dim moving = animate AndAlso MotionPolicy.CanAnimate AndAlso Not PclTheme.Changing
             If paletteOnly Then
@@ -241,6 +249,9 @@ Namespace Controls
             Else
                 _actionOpacity.SetValue(opacity) : _actionInset.SetValue(inset)
             End If
+        End Sub
+        Private Sub RefreshTitleColor()
+            If TitleLabel IsNot Nothing Then TitleLabel.SetResourceReference(TextBlock.ForegroundProperty, If(_checked OrElse _hasUpdate, "ColorBrush3", If(DirectCast(Tag, LocalModEntry).Enabled, "ColorBrush1", "ColorBrushGray4")))
         End Sub
         Private Sub CompressTitle()
             If _titleGrid Is Nothing OrElse ActualWidth <= 0 Then Return
