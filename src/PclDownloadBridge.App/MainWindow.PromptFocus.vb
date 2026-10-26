@@ -5,9 +5,15 @@ Imports PclDownloadBridge.Controls
 Partial Public Class MainWindow
     Private _promptFocusReturn As Func(Of Boolean)
     Private _promptFocusEpoch As Long
+    Private _pendingManagementPromptFocus As Action
 
     Private Sub RetirePromptFocus()
-        _promptFocusEpoch += 1 : _promptFocusReturn = Nothing
+        _promptFocusEpoch += 1 : _promptFocusReturn = Nothing : _pendingManagementPromptFocus = Nothing
+    End Sub
+
+    Private Sub RestoreManagementPromptFocus()
+        Dim focus = _pendingManagementPromptFocus : _pendingManagementPromptFocus = Nothing
+        If Not _closing Then focus?.Invoke()
     End Sub
 
     Private Sub BeginPromptFocus(preferred As FrameworkElement)
@@ -20,6 +26,7 @@ Partial Public Class MainWindow
     Private Function PromptViewport(surface As FrameworkElement) As PclScrollViewer
         If surface Is SettingsPage Then Return SettingsPage
         If surface Is AboutPage Then Return AboutPage
+        If surface Is ManagementPage Then Return DirectCast(ManagementContent(), PclScrollViewer)
         Select Case _downloadView
             Case DownloadView.Modpacks : Return ModpackPage
             Case DownloadView.Install : Return InstallScroll
@@ -51,6 +58,7 @@ Partial Public Class MainWindow
         Dim weakTarget = If(target Is Nothing, Nothing, New WeakReference(Of FrameworkElement)(target))
         Return Function()
                    If ActiveSurface() IsNot surface OrElse _taskGeneration <> task Then Return False
+                   If surface Is ManagementPage AndAlso PromptViewport(surface) IsNot viewport Then Return False
                    If surface Is DownloadPage AndAlso (_downloadView <> view OrElse
                        (view = DownloadView.Modpacks AndAlso (_packMode <> mode OrElse (mode = PackBrowserMode.Detail AndAlso If(_packProject?.Key, "") <> project))) OrElse
                        (view = DownloadView.Install AndAlso _selectedEntry IsNot entry)) Then Return False
@@ -99,6 +107,10 @@ Partial Public Class MainWindow
             QueueDownloadFocus(focus)
         ElseIf _surfaceMotion.Transition IsNot Nothing Then
             _pendingSurfaceFocus = focus
+        ElseIf surface Is ManagementPage AndAlso _managementMotion.Transition IsNot Nothing Then
+            ' Like the root/category handoff, wait until entering content can
+            ' accept focus. A later surface selection retires this request.
+            _pendingManagementPromptFocus = focus
         Else
             focus()
         End If

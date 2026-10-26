@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 管理页与可选文件弹窗的焦点交接（2026-10-26）
+
+- 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MyMsgText`、`MyScrollViewer` 与 `FormMain`。弹窗进入时主动聚焦确认按钮、关闭时退出模态并完成退场后移除；滚动区域通过焦点门控避免自动滚动（#3854），返回入口在消息仍存在时停止。
+- PCL-DB 把相同交接规则扩展至管理的版本列表、实例详情、本地 Mod 页：按当前管理内容确定滚动区域，失效的原调用控件回退到当前区域，管理刷新入场结束后才恢复焦点。实例移除或切换根页面使旧恢复请求失效；窗口未占有系统键盘时仍保留有效的逻辑焦点，弹窗可见时不执行默认管理聚焦。未修改动画曲线和下载安装内核。
+- 本轮原始对象摘要保存在 `artifacts/management-prompt/source/manifest.json`，详见[管理页弹窗检查](docs/reviews/management-prompt-2026-10-26.md)。
+
 ## 安装确认、运行任务与弹窗退场（2026-10-26）
 
 - 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`PageDownloadCompDetail.Install_Click` 在启动并登记任务后进入 TaskManager；`FormMain.PageBack` 按返回栈导航，没有把下载运行状态当作页面返回锁。其鼠标返回入口在 `PanMsg.Children.Count > 0` 或 `WaitingMyMsgBox.Any` 时阻止返回，弹窗仍在时不会穿透到后面的页面。

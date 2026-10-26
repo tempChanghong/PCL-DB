@@ -31,6 +31,7 @@ Partial Public Class MainWindow
         _managementMotion = New PclSurfaceMotion(ManagementViewHost, ManagementGhost,
             Function() AllowPageMotion() AndAlso ManagementPage.IsVisible AndAlso _surfaceMotion.Transition Is Nothing,
             Function(surface) PclSurfaceMotion.Units(surface))
+        AddHandler _managementMotion.Settled, Sub() RestoreManagementPromptFocus()
         AddHandler _managementMotion.Settled, Sub() FocusManagementViewport()
         AddHandler _managementMotion.ContentRevealed, Sub() FlushLocalModInteraction()
         AddHandler _managementMotion.Settled, Sub() FlushLocalModInteraction()
@@ -298,11 +299,15 @@ Partial Public Class MainWindow
         FocusManagementViewport()
     End Sub
     Private Sub FocusManagementViewport()
-        If _closing OrElse ManagementPage.Visibility <> Visibility.Visible Then Return
+        If _closing OrElse ManagementPage.Visibility <> Visibility.Visible OrElse PackNameOverlay.Visibility = Visibility.Visible Then Return
         Dim target = ManagementContent()
         Dim focus As Action = Sub()
-                                  If _closing OrElse ManagementPage.Visibility <> Visibility.Visible OrElse ManagementContent() IsNot target Then Return
-                                  If ManagementPage.IsKeyboardFocusWithin Then Return
+                                  If _closing OrElse ManagementPage.Visibility <> Visibility.Visible OrElse ManagementContent() IsNot target OrElse PackNameOverlay.Visibility = Visibility.Visible Then Return
+                                  Dim current = TryCast(FocusManager.GetFocusedElement(FocusManager.GetFocusScope(target)), FrameworkElement)
+                                  ' An inactive window can retain valid logical focus
+                                  ' without owning the system keyboard. Do not replace
+                                  ' a dialog's restored caller with the default viewer.
+                                  If ManagementPage.IsKeyboardFocusWithin OrElse IsPromptFocusTarget(current, ManagementPage) Then Return
                                   FocusManager.SetFocusedElement(FocusManager.GetFocusScope(target), target)
                                   target.Focus()
                               End Sub
