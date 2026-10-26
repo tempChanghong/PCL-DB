@@ -370,8 +370,11 @@ Partial Public Class MainWindow
                     Await _versionProvider(policySnapshot, request.Token))
                 entry = entries.FirstOrDefault(Function(version) version.Id = instance.MinecraftVersion)
             End If
-            If request.IsCancellationRequested OrElse generation <> _managementGeneration OrElse _closing OrElse _busy OrElse
-                ManagementPage.Visibility <> Visibility.Visible OrElse _managedInstance IsNot instance OrElse Not SameManagementTarget(instance.Target, CurrentInstallTarget()) Then Return
+            If request.IsCancellationRequested Then
+                If OwnsManagedRepairPreparation(instance, generation) Then ManagedRepairStatus.Text = "读取已取消，请重试。"
+                Return
+            End If
+            If _busy OrElse Not OwnsManagedRepairPreparation(instance, generation) Then Return
             If entry Is Nothing Then Throw New NotSupportedException("当前下载清单没有这个原版，暂时无法补全。")
             InstalledInstanceCatalog.EnsureUnchanged(instance, request.Token)
             _managementRequest = Nothing : _managementPreparing = False
@@ -385,14 +388,19 @@ Partial Public Class MainWindow
             RefreshInstallAvailability()
             FocusDownloadPage()
             StatusText.Text = "已选择原版校验补全：" & instance.Name
-        Catch ex As OperationCanceledException
+        Catch ex As OperationCanceledException When request.IsCancellationRequested
+            If OwnsManagedRepairPreparation(instance, generation) Then ManagedRepairStatus.Text = "读取已取消，请重试。"
         Catch ex As Exception
-            If generation = _managementGeneration AndAlso ManagementPage.Visibility = Visibility.Visible AndAlso Not _closing Then ManagedRepairStatus.Text = ex.GetBaseException().Message
+            If OwnsManagedRepairPreparation(instance, generation) Then ManagedRepairStatus.Text = ex.GetBaseException().Message
         Finally
             If generation = _managementGeneration Then _managementRequest = Nothing : _managementPreparing = False
             request.Dispose()
             RefreshManagementAvailability()
         End Try
+    End Function
+    Private Function OwnsManagedRepairPreparation(instance As InstalledInstance, generation As Long) As Boolean
+        Return instance IsNot Nothing AndAlso Not _closing AndAlso generation = _managementGeneration AndAlso _selectedFolder IsNot Nothing AndAlso _managedInstance Is instance AndAlso
+            ManagementPage.Visibility = Visibility.Visible AndAlso ManagementDetailPage.Visibility = Visibility.Visible AndAlso SameManagementTarget(instance.Target, CurrentInstallTarget())
     End Function
     Private Function ManagedRepairProblem() As String
         If _managedRepairContext Is Nothing OrElse Not RepairBox.IsChecked.GetValueOrDefault() Then Return Nothing
