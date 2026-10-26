@@ -21,6 +21,7 @@ Partial Public Class MainWindow
         Friend Project As ModpackProject, Verified As ModpackProject, Completed As ModpackProject
         Friend Releases As List(Of ModpackRelease)
         Friend Scroll As Double, Game As String, Filter As String, Loader As String
+        Friend Expanded As String()
     End Class
     Private Class ResourceBrowserState
         Friend Text As String = "", GameText As String = "全部 (也可自行输入)"
@@ -32,7 +33,8 @@ Partial Public Class MainWindow
     End Class
     Private Function CaptureResourceDetail() As ResourceDetailState
         Return New ResourceDetailState With {.Project = _packProject, .Verified = _packVerifiedProject, .Completed = _packDetailCompletedProject,
-            .Releases = _packReleases, .Scroll = ModpackPage.VerticalOffset, .Game = _packTargetGame, .Filter = _packGameFilter, .Loader = _resourceTargetLoader}
+            .Releases = _packReleases, .Scroll = ModpackPage.VerticalOffset, .Game = _packTargetGame, .Filter = _packGameFilter, .Loader = _resourceTargetLoader,
+            .Expanded = CapturePackVersionExpansions()}
     End Function
     Private Sub CancelResourceRequests()
         _dependencyRequest?.Cancel()
@@ -132,7 +134,7 @@ Partial Public Class MainWindow
         _packProject = state.Project : _packVerifiedProject = state.Verified : _packDetailCompletedProject = state.Completed
         _packReleases = state.Releases : _packDetailScroll = state.Scroll : _packTargetGame = state.Game : _resourceTargetLoader = state.Loader
         _packVersionCache.Clear() : RenderPackProject(ActivePackProject())
-        InitializePackVersions()
+        InitializePackVersions(state.Expanded)
         ' Empty is PCL's explicit All choice, not an absent saved selection.
         _packGameFilter = If(state.Filter, "") : RenderPackVersions()
         ModpackPage.UpdateLayout() : ModpackPage.ScrollToVerticalOffset(state.Scroll)
@@ -206,13 +208,15 @@ Partial Public Class MainWindow
         If Not CanUseResourceDetail(owner) OrElse ActivePackProject() IsNot project Then Return
         _dependencyRequest?.Cancel()
         Dim request As New CancellationTokenSource : _dependencyRequest = request
-        Dim frame = CaptureResourceDetail()
         Try
             Using client = _packCatalogFactory()
                 Dim linked = Await client.ResolveDependencyAsync(project.Platform, dependency, request.Token)
                 If request.IsCancellationRequested OrElse _dependencyRequest IsNot request OrElse ActivePackProject() IsNot project OrElse Not CanUseResourceDetail(owner) Then Return
                 If _resourceBack.Count >= 32 Then Throw New InvalidOperationException("前置跳转层级过多，请返回后重试。")
-                _resourceBack.Push(frame)
+                ' PCL's page stack records PageCurrent at the actual handoff.
+                ' The parent can still be filtered, scrolled or folded while this
+                ' lookup is pending; preserve those latest accepted choices.
+                _resourceBack.Push(CaptureResourceDetail())
                 ' Same-type references can use the cached project card; a fixed
                 ' dependency version remains part of its accepted detail owner.
                 ShowDependencyProjectAsync(linked)

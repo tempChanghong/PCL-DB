@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 前置查询、返回快照与展开卡片（2026-10-26）
+
+- 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`FormMain.PageChangeActual` 在实际进入更深层子页面时将 `PageCurrent` 加入返回栈；`PageDownloadCompDetail.UpdateFilterResult` 根据 `PageCurrent.Additional(1)` 中的卡片标题重建已展开内容，并保留所选版本/唯一卡片的自动展开与延迟创建规则。
+- 本工具的前置元数据查询是异步的，返回快照因此在当前请求通过身份与输入检查后、真正跳转前取得；取消、被替代、失败均不新增返回帧。详情与分类恢复保留展开标题，已创建卡片的最新折叠状态覆盖历史记录，未显示的卡片继续按需构建，不复用旧动画。
+- 原始 Git 对象与摘要在 `artifacts/dependency-navigation/source/manifest.json`。详见[前置返回联动检查](docs/reviews/dependency-navigation-2026-10-26.md)。不修改下载内核、安装事务、外部配置或 Beta 5.0 发布工件。
+
 ## 资源详情筛选与搜索视口恢复（2026-10-26）
 
 - 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`PageDownloadCompDetail.xaml.vb` 将“全部”明确映射为无版本约束；`PageResource.xaml.vb` 依照加载器已接受的输入、结果和页码呈现内容，新翻页返回顶部。原始 Git 对象及摘要在 `artifacts/resource-restore/source/manifest.json`。

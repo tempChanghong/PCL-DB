@@ -10,11 +10,23 @@ Partial Public Class MainWindow
     Private _packGroupedOld As Boolean
     Private ReadOnly _packVersionGroups As New Dictionary(Of String, List(Of ModpackRelease))(StringComparer.OrdinalIgnoreCase)
     Private ReadOnly _packVersionCache As New Dictionary(Of String, PclCard)(StringComparer.OrdinalIgnoreCase)
+    Private _packRestoredExpandedGroups As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
+
+    Private Function CapturePackVersionExpansions() As String()
+        Dim expanded As New HashSet(Of String)(_packRestoredExpandedGroups, StringComparer.OrdinalIgnoreCase)
+        ' Include restored groups not built under the current filter yet, while
+        ' letting every materialized card's latest logical fold state win.
+        For Each pair In _packVersionCache
+            If pair.Value.Collapsed Then expanded.Remove(pair.Key) Else expanded.Add(pair.Key)
+        Next
+        Return expanded.ToArray()
+    End Function
 
     ' PCL 5ef81e4 PageDownloadCompDetail.Load_OnFinish / UpdateFilterResult:
     ' compact the filters at nine groups, but retain exact MC cards and file IDs.
-    Private Sub InitializePackVersions()
+    Private Sub InitializePackVersions(Optional expanded As IEnumerable(Of String) = Nothing)
         PackVersionFilterViewport.StopScrolling()
+        _packRestoredExpandedGroups = New HashSet(Of String)(If(expanded, Enumerable.Empty(Of String)()), StringComparer.OrdinalIgnoreCase)
         _packVersionCache.Clear() : _packVersionGroups.Clear()
         PackVersionFilters.Children.Clear()
         PackVersionFilterViewport.ScrollToHorizontalOffset(0)
@@ -77,7 +89,9 @@ Partial Public Class MainWindow
                 Dim releases = _packVersionGroups(groupName).OrderByDescending(Function(release) release.Published).ToList()
                 card = New PclCard With {.Title = groupName, .Tag = groupName, .Collapsible = True, .BodyMargin = New Thickness(20, 40, 18, 18), .Collapsed = True}
                 card.Builder = Function() BuildPackVersionRows(releases)
-                card.Collapsed = names.Count > 1 AndAlso groupName <> target
+                ' PCL PageDownloadCompDetail restores expanded card titles from
+                ' PageCurrent.Additional(1), retaining lazy content construction.
+                card.Collapsed = names.Count > 1 AndAlso groupName <> target AndAlso Not _packRestoredExpandedGroups.Contains(groupName)
                 _packVersionCache(groupName) = card
             ElseIf names.Count = 1 Then
                 card.Collapsed = False
