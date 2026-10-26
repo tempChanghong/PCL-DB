@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 校验补全入口的当前实例与后台读取（2026-10-26）
+
+- 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceOverall.BtnManageCheck_Click`：检查实例修改锁和重复任务，用当前实例构造 `DlClientFix`；`ModDownload.DlClientFix` 在 `LoaderTask` 中分析支持库与资源，页面与本地读取继续参照 `MyPageRight`、`LocalResourceLoaders`、`PageInstanceMod`。
+- PCL-DB 在补全入口后台重读原生实例并重新检查资格，交接前再后台校验快照；保留请求代次、绑定、返回取消、文件检查、原有 UI 和任务管线。只有成功交接才更新管理快照，失败保留原方案供重试，不写外部配置。
+- 原始对象和摘要在 `artifacts/repair-native-refresh/source/manifest.json`，详见[补全原生读取检查](docs/reviews/repair-native-refresh-2026-10-26.md)。
+
 ## 实例快捷文件夹的当前原生目录与取消交接（2026-10-26）
 
 - 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceOverall` 快捷方式：版本目录使用 `PathVersion`，Mods/存档/截图使用当前实例 `PathIndie`；`PageInstanceMod.BtnManageOpen_Click` 同样使用当前 Mods 路径。读取与离页交接继续参考 `LocalResourceLoaders`、`MyPageRight`。

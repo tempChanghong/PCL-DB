@@ -30,6 +30,8 @@ Partial Public Class MainWindow
         Function(instance, token) RunManagementWorkerAsync(Function() InstalledInstanceCatalog.Read(instance.Target, instance.Name, token), token)
     Private _managementFolderRequest As CancellationTokenSource
     Private _managementFolderGeneration As Long
+    Private _managementRepairReader As Func(Of InstalledInstance, CancellationToken, Task(Of InstalledInstance)) =
+        Function(instance, token) RunManagementWorkerAsync(Function() InstalledInstanceCatalog.Read(instance.Target, instance.Name, token), token)
 
     Private Sub InitializeManagement()
         _managementMotion = New PclSurfaceMotion(ManagementViewHost, ManagementGhost,
@@ -416,12 +418,19 @@ Partial Public Class MainWindow
             Not _managedInstance.IsVanillaRepairCandidate OrElse ManagementPage.Visibility <> Visibility.Visible OrElse ManagementDetailPage.Visibility <> Visibility.Visible OrElse
             Not PageSurface.IsHitTestVisible OrElse Not ManagementViewHost.IsHitTestVisible Then Return
         CancelManagementRequest()
-        Dim instance = _managedInstance, generation = _managementGeneration, request As New CancellationTokenSource(TimeSpan.FromSeconds(100))
+        Dim owner = _managedInstance, instance = owner, generation = _managementGeneration, request As New CancellationTokenSource(TimeSpan.FromSeconds(100))
         _managementRequest = request : _managementPreparing = True
         RefreshManagementAvailability()
         ManagedRepairStatus.Text = "正在核对原版下载信息…"
         Try
-            InstalledInstanceCatalog.EnsureUnchanged(instance, request.Token)
+            ' PCL's repair loader uses the current instance. External launchers
+            ' can change native isolation after our detail snapshot was cached.
+            instance = Await _managementRepairReader(owner, request.Token)
+            If Not OwnsManagedRepairPreparation(owner, generation) Then Return
+            request.Token.ThrowIfCancellationRequested()
+            If instance Is Nothing OrElse instance.Name <> owner.Name OrElse Not SameManagementTarget(instance.Target, owner.Target) Then Throw New InvalidDataException("实例读取来源已变化，请重新选择实例。")
+            If instance.Problem IsNot Nothing Then Throw New InvalidDataException(instance.Problem)
+            If Not instance.IsVanillaRepairCandidate Then Throw New NotSupportedException("此实例暂不支持原版校验补全，请刷新列表。")
             Dim entry = _versions.FirstOrDefault(Function(version) version.Id = instance.MinecraftVersion)
             If entry Is Nothing Then
                 Dim policySnapshot = Policy()
@@ -431,13 +440,22 @@ Partial Public Class MainWindow
                 entry = entries.FirstOrDefault(Function(version) version.Id = instance.MinecraftVersion)
             End If
             If request.IsCancellationRequested Then
-                If OwnsManagedRepairPreparation(instance, generation) Then ManagedRepairStatus.Text = "读取已取消，请重试。"
+                If OwnsManagedRepairPreparation(owner, generation) Then ManagedRepairStatus.Text = "读取已取消，请重试。"
                 Return
             End If
-            If _busy OrElse Not OwnsManagedRepairPreparation(instance, generation) Then Return
+            If _busy OrElse Not OwnsManagedRepairPreparation(owner, generation) Then Return
             If entry Is Nothing Then Throw New NotSupportedException("当前下载清单没有这个原版，暂时无法补全。")
-            InstalledInstanceCatalog.EnsureUnchanged(instance, request.Token)
+            Await RunManagementWorkerAsync(Function()
+                                               InstalledInstanceCatalog.EnsureUnchanged(instance, request.Token)
+                                               Return True
+                                           End Function, request.Token)
+            If _busy OrElse Not OwnsManagedRepairPreparation(owner, generation) Then Return
+            request.Token.ThrowIfCancellationRequested()
+            Dim index = _managementInstances.IndexOf(owner)
+            If index < 0 Then Throw New InvalidDataException("实例列表已变化，请刷新后重试。")
+            _managementInstances(index) = instance : _managedInstance = instance
             _managementRequest = Nothing : _managementPreparing = False
+            RenderManagementRows() : RenderManagedInstance()
             ' SelectVersion uses the existing installer UI, including validation,
             ' component gating and transitions. Preserve the installed name.
             SelectVersion(entry.Copy())
@@ -449,9 +467,9 @@ Partial Public Class MainWindow
             FocusDownloadPage()
             StatusText.Text = "已选择原版校验补全：" & instance.Name
         Catch ex As OperationCanceledException When request.IsCancellationRequested
-            If OwnsManagedRepairPreparation(instance, generation) Then ManagedRepairStatus.Text = "读取已取消，请重试。"
+            If OwnsManagedRepairPreparation(owner, generation) Then ManagedRepairStatus.Text = "读取已取消，请重试。"
         Catch ex As Exception
-            If OwnsManagedRepairPreparation(instance, generation) Then ManagedRepairStatus.Text = ex.GetBaseException().Message
+            If OwnsManagedRepairPreparation(owner, generation) Then ManagedRepairStatus.Text = ex.GetBaseException().Message
         Finally
             If generation = _managementGeneration Then _managementRequest = Nothing : _managementPreparing = False
             request.Dispose()

@@ -100,7 +100,8 @@ Partial Public Class MainWindow
                 currentGate.SetResult(New List(Of VersionEntry) From {version.Copy()})
                 Await current : settle()
                 check(Not _managementPreparing AndAlso _managementRequest Is Nothing AndAlso DownloadPage.IsVisible AndAlso _downloadView = DownloadView.Install AndAlso
-                    RepairBox.IsChecked.GetValueOrDefault() AndAlso _managedRepairContext Is instance AndAlso InstanceName.Text = instance.Name AndAlso _nameEdited AndAlso
+                    RepairBox.IsChecked.GetValueOrDefault() AndAlso _managedRepairContext Is _managedInstance AndAlso _managedRepairContext.Name = instance.Name AndAlso
+                    _managedRepairContext.MetadataSha256 = instance.MetadataSha256 AndAlso SameManagementTarget(_managedRepairContext.Target, instance.Target) AndAlso InstanceName.Text = instance.Name AndAlso _nameEdited AndAlso
                     _taskGeneration = taskGeneration AndAlso SameManagementTarget(instance.Target, CurrentInstallTarget()) AndAlso
                     protectedFiles.All(Function(pair) File.ReadAllBytes(pair.Key).SequenceEqual(pair.Value)),
                     "successful retry hands the exact existing instance to the original installer without mutating native settings or files" & label)

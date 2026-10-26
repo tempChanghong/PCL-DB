@@ -62,6 +62,9 @@ Partial Public Class MainWindow
             New GameFolder With {.Name = "CE 同一游戏目录", .Location = game, .Origin = "UI fixture", .LauncherKind = ExternalLauncherKind.PclCe, .LauncherBindingId = "ce-fixture", .LauncherWorkspace = ce},
             New GameFolder With {.Name = "尚不存在的目录", .Location = Path.Combine(fixture, "empty"), .Origin = "UI fixture", .LauncherKind = ExternalLauncherKind.Pcl, .LauncherBindingId = "empty-fixture", .LauncherWorkspace = pcl}}
         _managementProvider = Function(target, token) Task.FromResult(InstalledInstanceCatalog.Scan(target, token))
+        ' Legacy control fixtures complete their initial read inline; dedicated
+        ' native repair fixtures exercise pending reads and cancellation.
+        _managementRepairReader = Function(instance, token) Task.FromResult(InstalledInstanceCatalog.Read(instance.Target, instance.Name, token))
         _folders = result : FolderList.ItemsSource = result : FolderList.SelectedItem = result(0)
         RefreshManagementFolders()
         Return result
@@ -171,6 +174,7 @@ Partial Public Class MainWindow
         ShowManagement(Nothing, Nothing) : Await ScanManagementAsync(False) : layout()
         plain = _managementInstances.Single(Function(item) item.Name = "我的原版")
         SelectManagedInstance(plain) : layout() : Await PrepareManagedRepairAsync() : layout()
+        plain = _managedInstance
         check(DownloadPage.IsVisible AndAlso _downloadView = DownloadView.Install AndAlso RepairBox.IsChecked.GetValueOrDefault() AndAlso InstanceName.Text = plain.Name AndAlso _componentSelection.Entries.Count = 0,
             "supported vanilla repair hands off to the existing installer with the exact installed name and no loader selection")
         check(_managedRepairContext Is plain AndAlso _selectedEntry.Id = plain.MinecraftVersion AndAlso SameManagementTarget(_managedRepairContext.Target, CurrentInstallTarget()),
