@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 本地 Mod 文件夹的当前原生目录与请求退役（2026-10-26）
+
+- 固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.BtnManageOpen_Click` 与 `LoaderRun` 使用当前实例 `PathIndie/mods`；读取协调和页面退役继续参照 `LocalResourceLoaders`、`MyPageRight`。
+- PCL-DB 将本地 Mod 页目录打开改为后台原生重读、路径与快照校验；快速连点、返回、刷新和写入退役旧请求。目录变化后复用原有列表交接，目录未变时保留行与动画；继续只读配置、不自动创建缺失目录。
+- 原始对象及摘要在 `artifacts/local-mod-folder/source/manifest.json`，详见[本地 Mod 文件夹检查](docs/reviews/local-mod-folder-2026-10-26.md)。
+
 ## 本地 Mod 写入结束时的当前目录读取归属（2026-10-26）
 
 - 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `LocalResourceLoaders.LocalResourceFileLoad`：按 `Loader.Input` 查询正在更新的 Mods 目录，等待该目录的更新并检查取消；结合 `PageInstanceMod` 的 `PathIndie/mods` 与安装后重载分支，页面交接继续参考 `MyPageRight`。

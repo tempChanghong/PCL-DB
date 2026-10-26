@@ -27,6 +27,7 @@ Partial Public Class MainWindow
         VerifyModEntryRefreshUi(artifactDirectory, checks)
         VerifyTaskManagementRefreshUi(artifactDirectory, checks)
         VerifyManagementFolderUi(artifactDirectory, checks)
+        VerifyLocalModFolderUi(artifactDirectory, checks)
         VerifyRepairNativeUi(artifactDirectory, checks)
         VerifyLocalModUi(artifactDirectory, check)
         Dim cancellationChecks As New List(Of String)

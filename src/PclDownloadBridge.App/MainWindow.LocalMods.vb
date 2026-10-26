@@ -14,6 +14,7 @@ Partial Public Class MainWindow
     Private _localModGeneration As Long
     Private _localModScanning As Boolean
     Private _localModWaitingForWrite As Boolean
+    Private _localModFolderRequest As CancellationTokenSource
     Private _localModReadSucceeded As Boolean
     Private _localModWriting As Boolean
     Private _localModWriteRequest As CancellationTokenSource
@@ -69,6 +70,9 @@ Partial Public Class MainWindow
         RefreshLocalModAvailability()
     End Sub
     Private Sub CancelLocalModRequest()
+        Dim folderRequest = _localModFolderRequest
+        _localModFolderRequest = Nothing
+        folderRequest?.Cancel()
         _localModGeneration += 1
         _localModRequest?.Cancel() : _localModRequest = Nothing : _localModScanning = False
         _localModReadSucceeded = False
@@ -315,7 +319,7 @@ Partial Public Class MainWindow
         Dim canWrite = _localModReadSucceeded AndAlso Not _busy AndAlso Not _choosingOnline AndAlso Not _restoringSettings AndAlso Not _restoringLaunchers AndAlso Not _localModWriting AndAlso Not _localModScanning AndAlso SameLocalModContext(_localModInstance)
         LocalModRows.IsEnabled = canWrite
         LocalModImport.IsEnabled = canWrite : LocalModRefresh.IsEnabled = Not _localModWriting
-        LocalModOpen.IsEnabled = SameLocalModContext(_localModInstance) AndAlso Directory.Exists(Path.Combine(_localModInstance.RunDirectory, "mods"))
+        LocalModOpen.IsEnabled = Not _localModScanning AndAlso Not _localModWriting AndAlso SameLocalModContext(_localModInstance) AndAlso Directory.Exists(Path.Combine(_localModInstance.RunDirectory, "mods"))
         LocalModCancel.Visibility = If(_localModWriting, Visibility.Visible, Visibility.Collapsed)
         LocalModCancel.IsEnabled = _localModWriteRequest IsNot Nothing AndAlso Not _localModWriteRequest.IsCancellationRequested
         If _localModWriting AndAlso _localModWriteOwner IsNot Nothing Then
@@ -416,12 +420,43 @@ Partial Public Class MainWindow
         LocalModCancel.IsEnabled = False
         request.Cancel()
     End Sub
-    Private Sub OpenLocalModFolder(sender As Object, e As RoutedEventArgs)
-        If Not LocalModInputAllowed() Then Return
-        Try
-            _managementOpenFolder(InstalledInstanceCatalog.FolderPath(_localModInstance, "mods"))
-        Catch ex As Exception
-            LocalModStatus.Text = ex.Message
-        End Try
+    Private Async Sub OpenLocalModFolder(sender As Object, e As RoutedEventArgs)
+        Await OpenLocalModFolderAsync()
     End Sub
+    Private Async Function OpenLocalModFolderAsync() As Task
+        If Not LocalModInputAllowed() OrElse _localModScanning OrElse _localModWriting Then Return
+        Dim previous = _localModFolderRequest
+        _localModFolderRequest = Nothing : previous?.Cancel()
+        Dim owner = _localModInstance, generation = _localModGeneration
+        Dim request As New CancellationTokenSource(TimeSpan.FromSeconds(100))
+        _localModFolderRequest = request
+        Dim current As Func(Of Boolean) = Function() Not _closing AndAlso _localModFolderRequest Is request AndAlso generation = _localModGeneration AndAlso
+            _localModInstance Is owner AndAlso SameLocalModContext(owner) AndAlso
+            ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible
+        LocalModStatus.Text = "正在读取文件夹…"
+        Try
+            ' PCL opens the current instance's PathIndie/mods. Keep native
+            ' rereads and unchanged/link validation off the WPF input thread.
+            Dim refreshed = Await _managementFolderReader(owner, request.Token)
+            If Not current() Then Return
+            request.Token.ThrowIfCancellationRequested()
+            If refreshed Is Nothing OrElse refreshed.Name <> owner.Name OrElse Not SameManagementTarget(refreshed.Target, owner.Target) Then Throw New IOException("实例信息已改变，请刷新后重试。")
+            Dim folder = Await RunManagementWorkerAsync(Function() InstalledInstanceCatalog.FolderPath(refreshed, "mods", request.Token), request.Token)
+            If Not current() Then Return
+            request.Token.ThrowIfCancellationRequested()
+            _managementOpenFolder(folder)
+            If Not current() Then Return
+            LocalModStatus.Text = ""
+            ' Rows still describe the old directory until a full read accepts
+            ' the native change. Never relabel old rows as the new folder.
+            If Not SameGameRoot(refreshed.RunDirectory, owner.RunDirectory) Then Await LoadLocalModsAsync(True, refreshInstance:=True)
+        Catch ex As OperationCanceledException When request.IsCancellationRequested
+            If current() Then LocalModStatus.Text = "读取文件夹超时，请重试。"
+        Catch ex As Exception
+            If current() Then LocalModStatus.Text = "无法打开文件夹：" & ex.GetBaseException().Message
+        Finally
+            If _localModFolderRequest Is request Then _localModFolderRequest = Nothing
+            request.Dispose()
+        End Try
+    End Function
 End Class
