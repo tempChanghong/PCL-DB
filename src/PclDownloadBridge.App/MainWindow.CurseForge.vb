@@ -85,18 +85,18 @@ Partial Public Class MainWindow
             Dim parsed = Await Task.Run(Function() As Object
                                             Return ModpackArchiveInstaller.ReadPackage(path, request.Token)
                                         End Function)
-            If _closing OrElse request.IsCancellationRequested Then Return
+            If _closing OrElse request.IsCancellationRequested OrElse _packReadCancellation IsNot request Then Return
             If _busy Then
                 status.Text = "请在当前任务结束后重新导入。"
                 Return
             End If
             If TypeOf parsed Is ModrinthPackage Then
-                SelectModrinthPackage(DirectCast(parsed, ModrinthPackage), _downloadView = DownloadView.Modpacks AndAlso DownloadPage.Visibility = Visibility.Visible, request)
+                SelectModrinthPackage(DirectCast(parsed, ModrinthPackage), CanNavigateLocalPackRead(request), request)
                 If status IsNot ModrinthReadStatus Then status.Text = "已识别为 Modrinth。"
                 Return
             End If
             Dim package = DirectCast(parsed, CurseForgePackage)
-            SelectCurseForgePackage(package, request, _downloadView = DownloadView.Modpacks AndAlso DownloadPage.Visibility = Visibility.Visible)
+            SelectCurseForgePackage(package, request, CanNavigateLocalPackRead(request))
             If status IsNot PackReadStatus Then status.Text = "已识别为 CurseForge。"
             _readingPack = False : RefreshPackAvailability()
             If Not _preview Then
@@ -126,6 +126,14 @@ Partial Public Class MainWindow
             End If
             request.Dispose()
         End Try
+    End Function
+    Private Function CanNavigateLocalPackRead(request As CancellationTokenSource) As Boolean
+        ' PCL separates archive recognition from the install/navigation action.
+        ' Keep the parsed plan while away, but only reveal it if the user is
+        ' still in the local modpack page that accepted this read.
+        Return Not _closing AndAlso Not _busy AndAlso _packReadCancellation Is request AndAlso Not request.IsCancellationRequested AndAlso
+            _resourceKind = CommunityResourceKind.Modpack AndAlso _packMode = PackBrowserMode.Local AndAlso
+            _downloadView = DownloadView.Modpacks AndAlso DownloadPage.IsVisible
     End Function
     Private Async Function QueryPackOptionalAsync(package As CurseForgePackage, box As PclCheckBox, resolver As CurseForgeFileResolver, slots As SemaphoreSlim, request As CancellationTokenSource) As Task
         Await slots.WaitAsync(request.Token)

@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 本地导入完成与当前页面归属（2026-10-26）
+
+- 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`ModModpack.vb` 先识别整合包清单，再分别构造和启动安装任务；`MyPageRight.PageLoaderState` 的 Empty 分支明确指出离开页面后收到后台调用不应触发进入，仅在 `IsLoaded` 时进入页面。后台结果和当前导航不能混作同一状态。
+- PCL-DB 额外提供独立的本地导入预览。读取完成只在请求、资源分类、本地模式和当前可见下载页面仍匹配时展示结果；其他情况下保留方案，不切走搜索、详情或管理。没有新增动画或改变原有动画时序，避免错误导航退役当前页面的动画和输入归属。
+- 原始 Git 对象及摘要在 `artifacts/local-pack-navigation/source/manifest.json`。详见[本地导入导航检查](docs/reviews/local-pack-navigation-2026-10-26.md)。安装、隔离、共享目录与外部配置未修改。
+
 ## 社区资源详情图标的加载与返回（2026-10-26）
 
 - 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`MyResourceItem.xaml` 为图标提供独立 `MyImage`、50 DIP 区域、高质量缩放与本地占位；`MyImage.Load` 按控件的 Source 读取缓存、异步加载并提供失败备用图，不依赖搜索结果加载器的取消源。
