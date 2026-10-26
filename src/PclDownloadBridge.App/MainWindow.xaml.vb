@@ -952,7 +952,7 @@ Partial Public Class MainWindow
         CancelButton.IsEnabled = value
         If Not value AndAlso _hasTask AndAlso _taskFinished Then
             _managementDirty = True
-            If ManagementPage.Visibility = Visibility.Visible Then RefreshManagement(Me, New RoutedEventArgs())
+            If ManagementPage.Visibility = Visibility.Visible Then RefreshManagementAfterTask()
         End If
         RefreshManagementAvailability()
         RefreshLocalModAvailability()

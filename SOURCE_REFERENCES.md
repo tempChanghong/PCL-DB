@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 任务结束与管理页入场的刷新交接（2026-10-26）
+
+- 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod` 文件安装完成分支：当前在 Mod 管理页时，按实例 `PathIndie` 强制重载目录；`LocalResourceLoaders` 协调目录更新，`MyPageRight` 处理加载与页面状态的交接。
+- PCL-DB 将任务完成的后台刷新与受输入门控约束的按钮入口分开，共用同一套目录扫描、原生目标和读取代次检查。页面入场不能丢掉后台刷新；返回、切到设置或更换启动器后仍须丢弃旧结果。
+- 原始对象与摘要在 `artifacts/task-management-refresh/source/manifest.json`，详见[任务结束刷新检查](docs/reviews/task-management-refresh-2026-10-26.md)。没有改动文件下载、校验、发布内核或动画曲线。
+
 ## Mod 页面入口的原生配置重读（2026-10-26）
 
 - 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.PageOther_Loaded/LoaderRun`：进入页面使用当前实例 `PathIndie` 下的 Mods 目录；`LocalResourceLoaders` 协调目录更新与取消，`MyPageRight` 管理加载和离页状态。

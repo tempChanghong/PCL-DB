@@ -24,6 +24,7 @@ Partial Public Class MainWindow
         VerifyModWriteHandoffUi(artifactDirectory, checks)
         VerifyModWriteRefreshUi(artifactDirectory, checks)
         VerifyModEntryRefreshUi(artifactDirectory, checks)
+        VerifyTaskManagementRefreshUi(artifactDirectory, checks)
         VerifyLocalModUi(artifactDirectory, check)
         Dim cancellationChecks As New List(Of String)
         VerifyManagementCancellationUi(artifactDirectory, cancellationChecks)

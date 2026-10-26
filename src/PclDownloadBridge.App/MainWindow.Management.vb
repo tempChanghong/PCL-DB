@@ -118,14 +118,22 @@ Partial Public Class MainWindow
         If ManagementPage.Visibility = Visibility.Visible Then FocusManagementViewport()
     End Sub
     Private Async Sub RefreshManagement(sender As Object, e As RoutedEventArgs)
-        If ManagementPage.Visibility <> Visibility.Visible OrElse Not PageSurface.IsHitTestVisible OrElse _managementPreparing Then Return
-        If _selectedFolder Is Nothing Then Return
+        If Not PageSurface.IsHitTestVisible Then Return
+        Await RefreshManagementAsync()
+    End Sub
+    Private Async Sub RefreshManagementAfterTask()
+        ' Background completion is not a pointer action. PCL reloads the
+        ' current Mod folder even while its page is entering.
+        Await RefreshManagementAsync()
+    End Sub
+    Private Async Function RefreshManagementAsync() As Task
+        If _closing OrElse ManagementPage.Visibility <> Visibility.Visible OrElse _managementPreparing OrElse _selectedFolder Is Nothing Then Return
         Dim target = CurrentInstallTarget(), scan = ScanManagementAsync(True), generation = _managementGeneration
         Await scan
         If _closing OrElse generation <> _managementGeneration OrElse _selectedFolder Is Nothing OrElse _managementDirty OrElse
             Not SameManagementTarget(target, CurrentInstallTarget()) OrElse _localModWriting Then Return
         If ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible Then Await LoadLocalModsAsync(True)
-    End Sub
+    End Function
     Private Async Function ScanManagementAsync(force As Boolean) As Task
         If _closing OrElse _selectedFolder Is Nothing OrElse ManagementPage.Visibility <> Visibility.Visible Then Return
         Dim target = CurrentInstallTarget()
