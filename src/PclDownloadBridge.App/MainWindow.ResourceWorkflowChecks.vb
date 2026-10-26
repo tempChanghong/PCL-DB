@@ -113,7 +113,7 @@ Partial Public Class MainWindow
                                     End Sub
             install() : Await WaitPackUiAsync(Function() _resourceTargetPrompt AndAlso Not _resourceTargetLoading)
             ResourceTargetInstance.SelectedItem = ResourceTargetInstance.Items.OfType(Of ComboBoxItem)().Single(Function(value) DirectCast(value.Tag, InstalledInstance).Name = "Shared")
-            ConfirmOnlinePackName(Nothing, Nothing) : Await WaitPackUiAsync(Function() Not _choosingOnline) : layout()
+            ConfirmOnlinePackName(Nothing, Nothing) : Await WaitPackUiAsync(Function() Not _busy AndAlso Not _choosingOnline) : layout()
             Dim requests = server.Requests
             check(attempts = 1 AndAlso requests > 0 AndAlso _taskOutcome = TaskOutcome.Cancelled AndAlso Not File.Exists(destination) AndAlso _managementDirty, "real resource acquisition followed by UI cancellation before publication preserves the instance and invalidates management")
             Await ResumeResourceTaskForChecksAsync() : layout()
@@ -122,14 +122,14 @@ Partial Public Class MainWindow
             File.WriteAllBytes(destination, foreign)
             install() : Await WaitPackUiAsync(Function() _resourceTargetPrompt AndAlso Not _resourceTargetLoading)
             ResourceTargetInstance.SelectedItem = ResourceTargetInstance.Items.OfType(Of ComboBoxItem)().Single(Function(value) DirectCast(value.Tag, InstalledInstance).Name = "Shared")
-            ConfirmOnlinePackName(Nothing, Nothing) : Await WaitPackUiAsync(Function() Not _choosingOnline) : layout()
+            ConfirmOnlinePackName(Nothing, Nothing) : Await WaitPackUiAsync(Function() Not _busy AndAlso Not _choosingOnline) : layout()
             check(attempts = 2 AndAlso _taskOutcome = TaskOutcome.Failed AndAlso File.ReadAllBytes(destination).SequenceEqual(foreign) AndAlso StatusText.Text.Contains("保留") AndAlso server.Requests = requests, "a real picker retry reports a preserved filename conflict without downloading or replacing the foreign file")
             check(_managementDirty AndAlso Not _localModReadSucceeded AndAlso Not _busy AndAlso _taskResourceFile Is Nothing, "failed target publication also invalidates local management without exposing an uninstalled file as successful")
             Await ResumeResourceTaskForChecksAsync() : layout()
             File.Delete(destination) ' Explicit fixture correction, never an application overwrite.
             install() : Await WaitPackUiAsync(Function() _resourceTargetPrompt AndAlso Not _resourceTargetLoading)
             ResourceTargetInstance.SelectedItem = ResourceTargetInstance.Items.OfType(Of ComboBoxItem)().Single(Function(value) DirectCast(value.Tag, InstalledInstance).Name = "Shared")
-            ConfirmOnlinePackName(Nothing, Nothing) : Await WaitPackUiAsync(Function() Not _choosingOnline) : layout()
+            ConfirmOnlinePackName(Nothing, Nothing) : Await WaitPackUiAsync(Function() Not _busy AndAlso Not _choosingOnline) : layout()
             check(attempts = 3 AndAlso _taskOutcome = TaskOutcome.Succeeded AndAlso File.ReadAllBytes(destination).SequenceEqual(bytes) AndAlso server.Requests = requests, "after explicit conflict correction the real picker publishes its verified Mod cache without another HTTP request")
             check(_taskResourceFile = destination AndAlso TaskFolderPath() = Path.GetDirectoryName(destination) AndAlso Not _localModReadSucceeded AndAlso Not File.Exists(Path.Combine(target.Root, "versions/Isolated/mods/resource.jar")), "successful shared Mod installation exposes the correct folder and invalidates only the bound management context")
             Await ResumeResourceTaskForChecksAsync() : ShowManagement(Nothing, Nothing) : _surfaceMotion.Finish() : _categoryMotion.Finish()

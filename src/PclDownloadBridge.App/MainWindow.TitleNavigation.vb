@@ -31,7 +31,7 @@ Partial Public Class MainWindow
     ' The existing page owners are the return stack: task -> selected options or
     ' detail -> accepted search snapshot. Back never cancels an installation.
     Private Function NavigateTitleBack() As Boolean
-        If _closing OrElse _choosingOnline OrElse _onlinePrompt IsNot Nothing Then Return False
+        If _closing OrElse _choosingOnline OrElse _onlinePrompt IsNot Nothing OrElse PackNameOverlay.Visibility = Visibility.Visible Then Return False
         If ManagementPage.Visibility = Visibility.Visible Then
             If LocalModsPage.Visibility = Visibility.Visible Then
                 BackFromLocalMods()

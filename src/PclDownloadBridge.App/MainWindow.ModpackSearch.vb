@@ -467,16 +467,21 @@ Partial Public Class MainWindow
         End Try
         _choosingOnline = True
         Try
-            Dim proposed = If(_onlineLastRelease = projectKey & ":" & snapshot.Id, _onlineLastName, SuggestedPackName(projectName))
-            Dim name = Await PromptOnlinePackAsync("输入版本名称", projectName & " · " & PackReleaseConfirmation(snapshot, displayedTitle), root, proposed, False, CancellationToken.None, returnTarget)
+            Dim name As String
+            Try
+                Dim proposed = If(_onlineLastRelease = projectKey & ":" & snapshot.Id, _onlineLastName, SuggestedPackName(projectName))
+                name = Await PromptOnlinePackAsync("输入版本名称", projectName & " · " & PackReleaseConfirmation(snapshot, displayedTitle), root, proposed, False, CancellationToken.None, returnTarget)
+            Finally
+                ' Selection owns only the prompt. The installer owns its own busy
+                ' state/token, including returns and management inspection.
+                _choosingOnline = False
+            End Try
             If String.IsNullOrEmpty(name) OrElse _closing Then Return
             _onlineLastName = name : _onlineLastRelease = projectKey & ":" & snapshot.Id
             Await RunOnlinePackInstallationAsync(snapshot, root, name, CLng(limit * 1024 * 1024), displayedTitle, target)
         Catch ex As Exception
             If Not _closing Then StatusText.Text = ex.GetBaseException().Message
             If Not _preview Then Log(ex)
-        Finally
-            _choosingOnline = False
         End Try
     End Sub
     Private Shared Function SuggestedPackName(name As String) As String

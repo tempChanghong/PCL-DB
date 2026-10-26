@@ -102,6 +102,10 @@ Friend Module ResourceInstallationChecks
                 Check(original.All(Function(pair) File.ReadAllBytes(pair.Key).SequenceEqual(pair.Value)) AndAlso File.ReadAllText(Path.Combine(expected, "options.txt")) = "retain options" AndAlso Not Directory.Exists(Path.Combine(expected, "saves/Other/datapacks")), "existing settings, manifests, options and other worlds remain unchanged: " & label, passed)
             Next
         Next
+        If reuseServer.Requests.Values.Sum() <> 0 Then
+            Console.WriteLine("RESOURCE_REUSE_UNEXPECTED_HTTP " & New JArray(reuseServer.Requests.Select(Function(pair) New JObject From {
+                {"Path", pair.Key.Split("?"c)(0).Substring(0, Math.Min(200, pair.Key.Split("?"c)(0).Length))}, {"Count", pair.Value}})).ToString(Newtonsoft.Json.Formatting.None))
+        End If
         Check(reuseServer.Requests.Values.Sum() = 0, "all native isolation and resource types reuse checked destinations without any HTTP requests", passed)
         End Using
         Await EdgeAsync(root, passed)

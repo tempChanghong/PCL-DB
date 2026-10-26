@@ -102,7 +102,7 @@ Partial Public Class MainWindow
         ' Use the current rendered row after task return; old detached rows must not be revived.
         row = DirectCast(DirectCast(PackVersionCards.Children(0), PclCard).Body, StackPanel).Children.OfType(Of PclListItem)().Single() : icon = row.Children.OfType(Of PclIconButton)().Single()
         InstallCommunityResource(_packReleases.Single(), icon) : Await WaitPackUiAsync(Function() _resourceTargetPrompt AndAlso Not _resourceTargetLoading)
-        ConfirmOnlinePackName(Nothing, Nothing) : Await WaitPackUiAsync(Function() Not _choosingOnline) : layout()
+        ConfirmOnlinePackName(Nothing, Nothing) : Await WaitPackUiAsync(Function() Not _busy AndAlso Not _choosingOnline) : layout()
         check(starts = 2 AndAlso _taskOutcome = TaskOutcome.Succeeded AndAlso Not _localModReadSucceeded AndAlso _managementDirty AndAlso _taskInstancePath Is Nothing, "successful shared-directory install invalidates local management without inventing an instance installation")
         Await ResumeResourceTaskForChecksAsync() : layout()
         _managementProvider = Function(binding, token) Task.FromResult(InstalledInstanceCatalog.Scan(binding, token))

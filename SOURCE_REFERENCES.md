@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 安装确认、运行任务与弹窗退场（2026-10-26）
+
+- 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`PageDownloadCompDetail.Install_Click` 在启动并登记任务后进入 TaskManager；`FormMain.PageBack` 按返回栈导航，没有把下载运行状态当作页面返回锁。其鼠标返回入口在 `PanMsg.Children.Count > 0` 或 `WaitingMyMsgBox.Any` 时阻止返回，弹窗仍在时不会穿透到后面的页面。
+- PCL-DB 的选择状态现在只覆盖命名/实例确认，之后由安装任务自己的 busy 状态、令牌和目标快照负责。返回详情与只读管理不取消任务，目标及写入操作继续受任务约束。标题返回还核对实际可见遮罩，和已有 Escape 处理一致，避免确认已完成但退场动画尚在时穿透。
+- 原始对象和摘要在 `artifacts/task-choice/source/manifest.json`。详见[确认与任务交接检查](docs/reviews/task-choice-2026-10-26.md)。没有修改动画曲线、下载安装内核或外部配置。
+
 ## 本地导入完成与当前页面归属（2026-10-26）
 
 - 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`ModModpack.vb` 先识别整合包清单，再分别构造和启动安装任务；`MyPageRight.PageLoaderState` 的 Empty 分支明确指出离开页面后收到后台调用不应触发进入，仅在 `IsLoaded` 时进入页面。后台结果和当前导航不能混作同一状态。

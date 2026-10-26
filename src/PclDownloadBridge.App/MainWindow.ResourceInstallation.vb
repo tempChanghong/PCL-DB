@@ -24,14 +24,17 @@ Partial Public Class MainWindow
         Dim target = CurrentInstallTarget(), snapshot = release.Copy()
         _choosingOnline = True
         Try
-            Dim plan = Await PromptResourceTargetAsync(snapshot, target, owner)
+            Dim plan As ResourceInstallationPlan
+            Try
+                plan = Await PromptResourceTargetAsync(snapshot, target, owner)
+            Finally
+                _choosingOnline = False
+            End Try
             If plan Is Nothing OrElse _closing OrElse ActivePackProject() IsNot project OrElse Not SameManagementTarget(plan.LauncherTarget, CurrentInstallTarget()) Then Return
             Await RunResourceSaveAsync(plan.Release, plan.Destination, plan)
         Catch ex As OperationCanceledException
         Catch ex As Exception
             If Not _closing Then PackProjectActionStatus.Text = ex.GetBaseException().Message : PackProjectActionStatus.Visibility = Visibility.Visible
-        Finally
-            _choosingOnline = False
         End Try
     End Sub
     Private Async Function PromptResourceTargetAsync(release As ModpackRelease, target As LauncherInstallTarget, owner As FrameworkElement) As Task(Of ResourceInstallationPlan)
