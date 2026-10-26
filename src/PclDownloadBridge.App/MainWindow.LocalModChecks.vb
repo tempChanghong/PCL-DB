@@ -149,12 +149,14 @@ Partial Public Class MainWindow
         BackFromLocalMods() : layout() : BackFromManagement(Nothing, Nothing) : layout()
         SelectManagedInstance(_managementInstances.Single(Function(item) item.Name = "Fabric 实例")) : layout()
         ShowLocalMods(Nothing, Nothing) : Await LoadLocalModsAsync(False) : layout()
-        Dim displayedWriteOwner = LocalModStatus.Text.Contains(writeOwner.Name) AndAlso Not LocalModImport.IsEnabled
+        Dim displayedWriteOwner = CStr(LocalModCancel.ToolTip).Contains(writeOwner.Name) AndAlso Not LocalModImport.IsEnabled
+        Dim foreignInstance = _localModInstance, foreignRows = _localMods, foreignGeneration = _localModGeneration, foreignStatus = LocalModStatus.Text
         gate.TrySetResult(New LocalModActionResult(Path.Combine(writeOwner.RunDirectory, "mods"), 0, 1))
         Await writing : layout()
-        check(displayedWriteOwner AndAlso _localModInstance.Name = "Fabric 实例" AndAlso _localMods.Count = 5 AndAlso LocalModImport.IsEnabled AndAlso
-            Not LocalModStatus.Text.Contains("正在处理") AndAlso Not LocalModStatus.Text.Contains("完成"),
-            "another instance's completed write reloads the currently browsed Mods and clears its owner hint without relabeling the result")
+        check(displayedWriteOwner AndAlso _localModInstance Is foreignInstance AndAlso _localMods Is foreignRows AndAlso _localModGeneration = foreignGeneration AndAlso
+            Not SameGameRoot(writeOwner.RunDirectory, _localModInstance.RunDirectory) AndAlso _localModInstance.Name = "Fabric 实例" AndAlso _localMods.Count = 5 AndAlso LocalModImport.IsEnabled AndAlso
+            LocalModStatus.Text = foreignStatus AndAlso Not LocalModStatus.Text.Contains("正在处理") AndAlso Not LocalModStatus.Text.Contains("完成") AndAlso StatusText.Text.Contains(writeOwner.Name),
+            "another directory's completed write preserves the current Mods snapshot rows generation and feedback while reporting its own owner")
         BackFromLocalMods() : layout() : BackFromManagement(Nothing, Nothing) : layout()
         SelectManagedInstance(_managementInstances.Single(Function(item) item.Name = "我的原版")) : layout()
         ShowLocalMods(Nothing, Nothing) : Await LoadLocalModsAsync(False) : layout()

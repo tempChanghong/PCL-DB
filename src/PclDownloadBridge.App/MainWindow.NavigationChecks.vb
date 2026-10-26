@@ -22,6 +22,7 @@ Partial Public Class MainWindow
         VerifyRepairRecoveryUi(artifactDirectory, checks)
         VerifyModContextRecoveryUi(artifactDirectory, checks)
         VerifyModWriteHandoffUi(artifactDirectory, checks)
+        VerifyForeignModWriteUi(artifactDirectory, checks)
         VerifyModWriteRefreshUi(artifactDirectory, checks)
         VerifyModEntryRefreshUi(artifactDirectory, checks)
         VerifyTaskManagementRefreshUi(artifactDirectory, checks)

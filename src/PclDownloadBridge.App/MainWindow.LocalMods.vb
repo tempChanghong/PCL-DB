@@ -13,6 +13,7 @@ Partial Public Class MainWindow
     Private _localModRequest As CancellationTokenSource
     Private _localModGeneration As Long
     Private _localModScanning As Boolean
+    Private _localModWaitingForWrite As Boolean
     Private _localModReadSucceeded As Boolean
     Private _localModWriting As Boolean
     Private _localModWriteRequest As CancellationTokenSource
@@ -71,6 +72,7 @@ Partial Public Class MainWindow
         _localModGeneration += 1
         _localModRequest?.Cancel() : _localModRequest = Nothing : _localModScanning = False
         _localModReadSucceeded = False
+        _localModWaitingForWrite = False
         _localModFocusRestore = Nothing : _localModFilterPending = False
     End Sub
     Private Async Sub ShowLocalMods(sender As Object, e As RoutedEventArgs)
@@ -104,7 +106,7 @@ Partial Public Class MainWindow
         If _closing OrElse ManagementPage.Visibility <> Visibility.Visible OrElse LocalModsPage.Visibility <> Visibility.Visible OrElse
             _managedInstance Is Nothing OrElse
             (_localModScanning AndAlso Not force) Then Return
-        If LocalModReadWaitsForWrite(_managedInstance) Then RefreshLocalModAvailability() : Return
+        If LocalModReadWaitsForWrite(_managedInstance) Then _localModWaitingForWrite = True : RefreshLocalModAvailability() : Return
         If Not refreshInstance AndAlso (_managedInstance.RunDirectory Is Nothing OrElse _managedInstance.Problem IsNot Nothing) Then Return
         If refreshInstance Then CancelManagementRequest()
         CancelLocalModRequest()
@@ -122,7 +124,7 @@ Partial Public Class MainWindow
                 If instance.Problem IsNot Nothing Then Throw New InvalidDataException(instance.Problem)
                 If String.IsNullOrEmpty(instance.RunDirectory) Then Throw New InvalidDataException("无法确定实例的实际运行目录。")
             End If
-            If LocalModReadWaitsForWrite(instance) Then RefreshLocalModAvailability() : Return
+            If LocalModReadWaitsForWrite(instance) Then _localModWaitingForWrite = True : RefreshLocalModAvailability() : Return
             Dim entries = Await _localModProvider(instance, request.Token)
             If request.IsCancellationRequested OrElse generation <> _localModGeneration OrElse _closing OrElse Not SameLocalModIdentity(instance) OrElse
                 (Not refreshInstance AndAlso Not SameLocalModContext(instance)) OrElse
@@ -318,13 +320,19 @@ Partial Public Class MainWindow
         LocalModCancel.IsEnabled = _localModWriteRequest IsNot Nothing AndAlso Not _localModWriteRequest.IsCancellationRequested
         If _localModWriting AndAlso _localModWriteOwner IsNot Nothing Then
             LocalModCancel.ToolTip = "取消 " & _localModWriteOwner.Name & " 的 Mod 文件操作"
-            If _localModWriteRequest IsNot Nothing AndAlso _localModWriteRequest.IsCancellationRequested Then
-                LocalModStatus.Text = "正在等待文件操作退出…"
-            ElseIf Not SameLocalModContext(_localModWriteOwner) Then
-                LocalModStatus.Text = "正在处理 " & _localModWriteOwner.Name & " 的 Mod 文件，请等待操作结束。"
+            If LocalModWriterFeedbackOwned() Then
+                If _localModWriteRequest IsNot Nothing AndAlso _localModWriteRequest.IsCancellationRequested Then
+                    LocalModStatus.Text = "正在等待文件操作退出…"
+                ElseIf Not SameLocalModContext(_localModWriteOwner) Then
+                    LocalModStatus.Text = "正在处理 " & _localModWriteOwner.Name & " 的 Mod 文件，请等待操作结束。"
+                End If
             End If
         End If
     End Sub
+    Private Function LocalModWriterFeedbackOwned() As Boolean
+        Return _localModWriteOwner IsNot Nothing AndAlso (SameLocalModIdentity(_localModWriteOwner) OrElse _localModWaitingForWrite OrElse
+            SameGameRoot(_managedInstance?.RunDirectory, _localModWriteOwner.RunDirectory))
+    End Function
     Private Sub RefreshLocalModWriteGates()
         RefreshManagementAvailability()
         GameFolderCard.IsEnabled = Not _busy AndAlso Not _localModWriting
@@ -391,15 +399,20 @@ Partial Public Class MainWindow
             If operationGeneration = _localModOperationGeneration AndAlso readGeneration = _localModGeneration AndAlso Not _localModWriting AndAlso Not _busy AndAlso Not _closing AndAlso
                 taskGeneration = _taskGeneration AndAlso (Not _localModReadSucceeded OrElse Not SameLocalModContext(owner)) Then StatusText.Text = owner.Name & " · " & outcome
         Else
-            If ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible Then Await LoadLocalModsAsync(True, refreshInstance:=True)
-            If operationGeneration = _localModOperationGeneration AndAlso Not _localModWriting AndAlso Not _busy AndAlso taskGeneration = _taskGeneration Then StatusText.Text = owner.Name & " · " & outcome
+            ' PCL coordinates reloads by the actual Mods directory. A different
+            ' directory's accepted read/error does not belong to this writer.
+            ' The explicit wait flag also covers native rereads redirected into
+            ' the writer's directory before the cached instance was rebound.
+            If ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible AndAlso Not _localModScanning AndAlso
+                (_localModWaitingForWrite OrElse SameGameRoot(_localModInstance?.RunDirectory, owner.RunDirectory)) Then Await LoadLocalModsAsync(True, refreshInstance:=True)
+            If operationGeneration = _localModOperationGeneration AndAlso Not _localModWriting AndAlso Not _busy AndAlso Not _closing AndAlso taskGeneration = _taskGeneration Then StatusText.Text = owner.Name & " · " & outcome
         End If
     End Function
     Private Sub CancelLocalModOperation(sender As Object, e As RoutedEventArgs)
         Dim request = _localModWriteRequest
         If _closing OrElse Not _localModWriting OrElse request Is Nothing OrElse request.IsCancellationRequested Then Return
         RefreshLocalModAvailability()
-        LocalModStatus.Text = "正在等待文件操作退出…"
+        If LocalModWriterFeedbackOwned() Then LocalModStatus.Text = "正在等待文件操作退出…"
         LocalModCancel.IsEnabled = False
         request.Cancel()
     End Sub

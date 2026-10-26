@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 本地 Mod 写入结束时的当前目录读取归属（2026-10-26）
+
+- 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `LocalResourceLoaders.LocalResourceFileLoad`：按 `Loader.Input` 查询正在更新的 Mods 目录，等待该目录的更新并检查取消；结合 `PageInstanceMod` 的 `PathIndie/mods` 与安装后重载分支，页面交接继续参考 `MyPageRight`。
+- PCL-DB 保留实际等待写入的读取状态，只恢复受影响目录；无关实例的进行中读取、已接受列表和错误提示不被旧写入的结束或取消覆盖。原生重定向到共享目录仍恢复，写入冻结、文件内核、UI 和动画保留。
+- 原始对象和摘要在 `artifacts/foreign-mod-write/source/manifest.json`，详见[跨实例写入交接检查](docs/reviews/foreign-mod-write-2026-10-26.md)。
+
 ## 前置名称的项目查询合并与缓存归属（2026-10-26）
 
 - 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8`：`ResourceVersion.FromProjectId` 汇总并去重前置，再交给 `ResourceProject.FromProjectIds` 的项目缓存/缺失项加载；`PageDownloadCompDetail` 的加载器取消后不交付结果，页面交接继续参考 `MyPageRight`。
