@@ -365,6 +365,7 @@
                       </StackPanel>
                     </p:PclCard>
                     <p:PclCard Title="快捷方式" BodyMargin="25,35,15,15" Margin="0,0,0,15">
+                      <StackPanel>
                       <WrapPanel x:Name="ManagedFolderActions">
                         <p:PclButton Text="版本文件夹" Tag="instance" Width="130" Height="32" Margin="0,8,12,0" Click="OpenManagedFolder"/>
                         <p:PclButton Text="Mod 文件夹" Tag="mods" Width="130" Height="32" Margin="0,8,12,0" Click="OpenManagedFolder"/>
@@ -372,6 +373,12 @@
                         <p:PclButton Text="资源包文件夹" Tag="resourcepacks" Width="130" Height="32" Margin="0,8,12,0" Click="OpenManagedFolder"/>
                         <p:PclButton Text="截图文件夹" Tag="screenshots" Width="130" Height="32" Margin="0,8,12,0" Click="OpenManagedFolder"/>
                       </WrapPanel>
+                        <TextBlock x:Name="ManagedFolderStatus" FontSize="12" Opacity="0.65" TextWrapping="Wrap" Margin="0,10,0,0" AutomationProperties.LiveSetting="Polite">
+                          <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}"><Style.Triggers>
+                            <Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed"/></Trigger>
+                          </Style.Triggers></Style></TextBlock.Style>
+                        </TextBlock>
+                      </StackPanel>
                     </p:PclCard>
                     <p:PclCard Title="内容管理" BodyMargin="25,40,25,18" Margin="0,0,0,15">
                       <p:PclButton x:Name="ManagedMods" Text="Mod 管理" Width="130" Height="32" HorizontalAlignment="Left" Click="ShowLocalMods"/>

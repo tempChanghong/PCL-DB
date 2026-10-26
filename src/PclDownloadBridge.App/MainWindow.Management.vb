@@ -26,6 +26,10 @@ Partial Public Class MainWindow
     Private _managementProvider As Func(Of LauncherInstallTarget, CancellationToken, Task(Of List(Of InstalledInstance))) =
         Function(target, token) RunManagementWorkerAsync(Function() InstalledInstanceCatalog.Scan(target, token), token)
     Private _managementOpenFolder As Action(Of String) = Sub(folder) Process.Start(New ProcessStartInfo(folder) With {.UseShellExecute = True})
+    Private _managementFolderReader As Func(Of InstalledInstance, CancellationToken, Task(Of InstalledInstance)) =
+        Function(instance, token) RunManagementWorkerAsync(Function() InstalledInstanceCatalog.Read(instance.Target, instance.Name, token), token)
+    Private _managementFolderRequest As CancellationTokenSource
+    Private _managementFolderGeneration As Long
 
     Private Sub InitializeManagement()
         _managementMotion = New PclSurfaceMotion(ManagementViewHost, ManagementGhost,
@@ -50,6 +54,7 @@ Partial Public Class MainWindow
     End Function
     Private Sub CancelManagementRequest()
         _managementGeneration += 1
+        CancelManagementFolderRequest()
         _managementRequest?.Cancel()
         _managementRequest = Nothing
         _managementScanning = False : _managementPreparing = False
@@ -343,7 +348,7 @@ Partial Public Class MainWindow
         ManagedMods.IsEnabled = _managedInstance IsNot Nothing AndAlso _managedInstance.Problem Is Nothing AndAlso _managedInstance.RunDirectory IsNot Nothing
         For Each button In ManagedFolderActions.Children.OfType(Of PclButton)()
             Dim folder = ManagedFolderLocation(CStr(button.Tag))
-            button.IsEnabled = folder IsNot Nothing AndAlso Directory.Exists(folder)
+            button.IsEnabled = Not _managementScanning AndAlso Not _managementPreparing AndAlso folder IsNot Nothing AndAlso Directory.Exists(folder)
         Next
     End Sub
     Private Function ManagedFolderLocation(kind As String) As String
@@ -353,16 +358,54 @@ Partial Public Class MainWindow
         If Not {"mods", "saves", "resourcepacks", "screenshots"}.Contains(kind) Then Return Nothing
         Return Path.Combine(_managedInstance.RunDirectory, kind)
     End Function
-    Private Sub OpenManagedFolder(sender As Object, e As RoutedEventArgs)
-        If ManagementPage.Visibility <> Visibility.Visible OrElse ManagementDetailPage.Visibility <> Visibility.Visible OrElse
+    Private Sub CancelManagementFolderRequest()
+        _managementFolderGeneration += 1
+        Dim retired = _managementFolderRequest
+        _managementFolderRequest = Nothing
+        retired?.Cancel()
+        If ManagedFolderStatus IsNot Nothing Then ManagedFolderStatus.Text = ""
+    End Sub
+    Private Async Sub OpenManagedFolder(sender As Object, e As RoutedEventArgs)
+        If _closing OrElse _managementScanning OrElse _managementPreparing OrElse _managedInstance Is Nothing OrElse ManagementPage.Visibility <> Visibility.Visible OrElse ManagementDetailPage.Visibility <> Visibility.Visible OrElse
             Not PageSurface.IsHitTestVisible OrElse Not ManagementViewHost.IsHitTestVisible Then Return
+        Dim button = TryCast(sender, FrameworkElement), kind = TryCast(button?.Tag, String)
+        If Not {"instance", "mods", "saves", "resourcepacks", "screenshots"}.Contains(kind) Then Return
+        CancelManagementFolderRequest()
+        Dim owner = _managedInstance, generation = _managementGeneration, actionGeneration = _managementFolderGeneration
+        Dim request As New CancellationTokenSource(TimeSpan.FromSeconds(100))
+        _managementFolderRequest = request
+        Dim current As Func(Of Boolean) = Function() Not _closing AndAlso
+            _managementFolderRequest Is request AndAlso _managementFolderGeneration = actionGeneration AndAlso _managementGeneration = generation AndAlso
+            _managedInstance Is owner AndAlso _selectedFolder IsNot Nothing AndAlso SameManagementTarget(owner.Target, CurrentInstallTarget()) AndAlso
+            ManagementPage.Visibility = Visibility.Visible AndAlso ManagementDetailPage.Visibility = Visibility.Visible
+        ManagedFolderStatus.Text = "正在读取文件夹…"
         Try
-            Dim kind = CStr(DirectCast(sender, FrameworkElement).Tag)
-            If Not {"instance", "mods", "saves", "resourcepacks", "screenshots"}.Contains(kind) Then Return
-            Dim folder = InstalledInstanceCatalog.FolderPath(_managedInstance, If(kind = "instance", "", kind))
+            ' Native isolation can change while this cached detail stays open.
+            ' Resolve it read-only, then retain FolderPath's unchanged/link checks.
+            Dim refreshed = Await _managementFolderReader(owner, request.Token)
+            If Not current() Then Return
+            request.Token.ThrowIfCancellationRequested()
+            If refreshed Is Nothing OrElse refreshed.Name <> owner.Name OrElse Not SameManagementTarget(refreshed.Target, owner.Target) Then
+                Throw New IOException("实例信息已改变，请刷新后重试。")
+            End If
+            Dim folder = Await RunManagementWorkerAsync(Function() InstalledInstanceCatalog.FolderPath(refreshed, If(kind = "instance", "", kind), request.Token), request.Token)
+            If Not current() Then Return
+            request.Token.ThrowIfCancellationRequested()
+            Dim index = _managementInstances.IndexOf(owner)
+            If index < 0 Then Return
+            _managementInstances(index) = refreshed : _managedInstance = refreshed : owner = refreshed
+            Dim repairStatus = ManagedRepairStatus.Text
+            RenderManagementRows() : RenderManagedInstance() : ManagedRepairStatus.Text = repairStatus
             _managementOpenFolder(folder)
+            ManagedFolderStatus.Text = ""
+        Catch ex As OperationCanceledException When request.IsCancellationRequested
+            ' Navigation and a newer click silently retire this read-only action.
+            If current() Then ManagedFolderStatus.Text = "读取文件夹超时，请重试。"
         Catch ex As Exception
-            ManagedRepairStatus.Text = "无法打开文件夹：" & ex.GetBaseException().Message
+            If current() Then ManagedFolderStatus.Text = "无法打开文件夹：" & ex.GetBaseException().Message
+        Finally
+            If _managementFolderRequest Is request Then _managementFolderRequest = Nothing
+            request.Dispose()
         End Try
     End Sub
     Private Async Sub RepairManagedInstance(sender As Object, e As RoutedEventArgs)

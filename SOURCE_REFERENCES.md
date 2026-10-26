@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 实例快捷文件夹的当前原生目录与取消交接（2026-10-26）
+
+- 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceOverall` 快捷方式：版本目录使用 `PathVersion`，Mods/存档/截图使用当前实例 `PathIndie`；`PageInstanceMod.BtnManageOpen_Click` 同样使用当前 Mods 路径。读取与离页交接继续参考 `LocalResourceLoaders`、`MyPageRight`。
+- PCL-DB 将原生重读用于三种启动器的详情快捷操作，失败就地显示于快捷卡片。点击代次、取消与绑定校验阻止返回、快速切换后的旧结果打开目录或回写；保留既有目录校验、配置只读、缺失目录不自动创建及页面动画。
+- 原始对象和摘要在 `artifacts/management-folder-actions/source/manifest.json`，见[快捷文件夹检查](docs/reviews/management-folder-actions-2026-10-26.md)。
+
 ## 管理刷新失败的当前页反馈（2026-10-26）
 
 - 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MyPageRight.PageLoaderState/PageLoaderInit`：加载失败在当前加载界面表现，并保留重试入口；`PageInstanceMod.Load_Click` 对失败加载强制重试，`LocalResourceLoaders` 在目录读取前协调更新和取消。
