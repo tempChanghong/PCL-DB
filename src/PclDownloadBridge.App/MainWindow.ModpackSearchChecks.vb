@@ -39,6 +39,7 @@ Partial Public Class MainWindow
         End Try
         VerifyResourceRestoreUi(directory, passed)
         VerifyDependencyNavigationUi(directory, passed)
+        VerifyDependencyFeedbackUi(directory, passed)
         VerifyDependencyNamesUi(directory, passed)
         VerifyResourceArtworkUi(directory, passed)
         VerifyLocalPackNavigationUi(directory, passed)

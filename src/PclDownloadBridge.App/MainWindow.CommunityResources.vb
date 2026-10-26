@@ -261,7 +261,11 @@ Partial Public Class MainWindow
             End Using
         Catch ex As OperationCanceledException
         Catch ex As Exception
-            If Not request.IsCancellationRequested AndAlso _dependencyRequest Is request AndAlso ActivePackProject() Is project Then
+            ' Filtering/folding can remove this link without changing the project.
+            ' Keep errors with their visible link; an entry's temporary input gate
+            ' alone does not revoke feedback from an otherwise current lookup.
+            If Not request.IsCancellationRequested AndAlso _dependencyRequest Is request AndAlso ActivePackProject() Is project AndAlso
+                owner.IsLoaded AndAlso owner.IsVisible AndAlso PackDetailSurface.IsVisible Then
                 PackProjectActionStatus.Text = "无法获取前置，请重试。" : PackProjectActionStatus.ToolTip = ex.GetBaseException().Message : PackProjectActionStatus.Visibility = Visibility.Visible
             End If
         Finally

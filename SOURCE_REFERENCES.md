@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 前置解析失败与当前可见版本分组（2026-10-26）
+
+- 固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadCompDetail` 用当前页面参数构造项目、版本筛选与分组前置；页面状态和失败/取消继续参照 `MyPageRight`、`ModLoader`。
+- PCL-DB 的异步前置失败提示增加当前可见链接检查，阻止筛选或折叠后的旧失败污染详情。临时动画输入门控不撤销仍可见来源的错误反馈；请求取消、返回栈、固定版本、动画和下载管线保留。
+- 原始对象和摘要在 `artifacts/dependency-feedback/source/manifest.json`，详见[前置失败提示检查](docs/reviews/dependency-feedback-2026-10-26.md)。
+
 ## 本地 Mod 文件夹的当前原生目录与请求退役（2026-10-26）
 
 - 固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.BtnManageOpen_Click` 与 `LoaderRun` 使用当前实例 `PathIndie/mods`；读取协调和页面退役继续参照 `LocalResourceLoaders`、`MyPageRight`。
