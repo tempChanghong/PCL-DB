@@ -15,7 +15,7 @@ function Invoke-IsolatedCheck([string]$Scope, [string]$Name) {
     $path = Join-Path $operation ($Name + '.json')
     $expected = @($path)
     if ($Scope -eq 'standalone') { $expected += Join-Path $operation 'embedded-content.json' }
-    $null = Invoke-PclDbVerificationProcess -Name $Name -FilePath $candidate -Arguments ($policy.Mode + ' "' + $path + '"') -WorkingDirectory $cold -StdoutPath (Join-Path $operation ($Name + '.stdout.log')) -StderrPath (Join-Path $operation ($Name + '.stderr.log')) -ExpectedOutputPaths $expected
+    $null = Invoke-PclDbVerificationProcess -Name $Name -FilePath $candidate -Arguments ($policy.Mode + ' "' + $path + '"') -WorkingDirectory $cold -StdoutPath (Join-Path $operation ($Name + '.stdout.log')) -StderrPath (Join-Path $operation ($Name + '.stderr.log')) -ExpectedOutputPaths $expected -TimeoutSeconds $(if ($Scope -ceq 'all') { 600 } else { 180 })
     $report = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-PclDbCheckReport $report $Scope -ExecutableSHA256 $candidateHash -RequireStandalone
     return $report

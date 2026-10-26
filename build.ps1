@@ -19,7 +19,7 @@ try {
             $policy = Get-PclDbCheckPolicy $scope
             $stem = if ($scope -eq 'all') { 'ui' } else { $scope }
             $path = Join-Path $PSScriptRoot ('artifacts/' + $stem + '-checks.json')
-            $run = Invoke-PclDbVerificationProcess -Name ($scope + ' checks') -FilePath $app -Arguments ($policy.Mode + ' "' + $path + '"') -WorkingDirectory $PSScriptRoot -StdoutPath ($path + '.stdout.log') -StderrPath ($path + '.stderr.log') -ExpectedOutputPaths @($path)
+            $run = Invoke-PclDbVerificationProcess -Name ($scope + ' checks') -FilePath $app -Arguments ($policy.Mode + ' "' + $path + '"') -WorkingDirectory $PSScriptRoot -StdoutPath ($path + '.stdout.log') -StderrPath ($path + '.stderr.log') -ExpectedOutputPaths @($path) -TimeoutSeconds $(if ($scope -ceq 'all') { 600 } else { 180 })
             if ($run.ExecutableSHA256 -cne $appHash) { throw 'Application changed between verification scopes.' }
             $report = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
             Assert-PclDbCheckReport $report $scope -ExecutableSHA256 $appHash

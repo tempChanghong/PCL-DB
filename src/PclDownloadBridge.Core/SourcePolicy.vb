@@ -307,7 +307,7 @@ Public Class SourcePolicy
 
     Public Shared Function CreateClient() As HttpClient
         Dim client As New HttpClient(New HttpClientHandler With {.AutomaticDecompression = Net.DecompressionMethods.None, .MaxConnectionsPerServer = 16}) With {.Timeout = TimeSpan.FromSeconds(45)}
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("PclDownloadBridge/5.0.0-beta.1 (local Minecraft installer)")
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("PclDownloadBridge/6.0.0-beta.1 (local Minecraft installer)")
         Return client
     End Function
 End Class

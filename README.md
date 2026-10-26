@@ -2,9 +2,9 @@
 
 本地 Mod 管理现支持按 PCL2 风格多选、筛选可更新项、批量启停／删除／更新，以及按实例版本和加载器下载新 Mod。更新前校验文件并备份，保留禁用状态及外部启动器设置。[实现与验证说明](docs/reviews/local-mod-updates-2026-10-26.md)。
 
-VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载与本地实例管理工具，简称 PCL-DB。最新发布为 **Beta 5.0**（`5.0.0-beta.1`）。[发布说明](docs/releases/5.0.0-beta.1.md)。
+VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载与本地实例管理工具，简称 PCL-DB。最新发布为 **Beta 6.0**（`6.0.0-beta.1`）。[发布说明](docs/releases/6.0.0-beta.1.md)。
 
-Beta 5.0 后续源码修复详情“全部”筛选、取消后的滚动回写，以及前置查询期间继续操作后返回丢失筛选/阅读位置的问题；返回与分类切换也保留已展开的版本卡片。[资源页面恢复检查](docs/reviews/resource-restore-2026-10-26.md)、[前置返回联动检查](docs/reviews/dependency-navigation-2026-10-26.md)。目前仅本地提交，尚未打包发版。
+Beta 6.0 修复详情“全部”筛选、取消后的滚动回写，以及前置查询期间继续操作后返回丢失筛选/阅读位置的问题；返回与分类切换也保留已展开的版本卡片。[资源页面恢复检查](docs/reviews/resource-restore-2026-10-26.md)、[前置返回联动检查](docs/reviews/dependency-navigation-2026-10-26.md)。
 
 详情图标现采用独立请求：分类、设置/管理和取消下载后返回会重新加载，失败可重试；已取消或失去归属的响应与缓存不再改写页面。[图标生命周期检查](docs/reviews/resource-artwork-2026-10-26.md)。
 
@@ -36,7 +36,7 @@ Mod 操作结束后重新读取所选实例配置，外部隔离设置变化无�
 - **整合包**：CurseForge / Modrinth 搜索、详情、版本选择、下载安装，以及本地 ZIP / MRPACK 导入；大型覆盖文件流式读取，不设原先的固定容量上限。
 - **社区资源**：Mod、数据包、资源包、光影包的搜索、详情、版本筛选、必需前置链接、另存为及安装到指定实例。数据包明确选择存档，资源包与光影包采用实例的实际运行目录，安装后联动刷新管理页。
 - **已安装版本管理**：实例列表、名称/游戏版本/加载器搜索、详情和目录快捷方式；同路径的三种启动器绑定分别处理。愚人节、远古和快照按分类显示图标。
-- **本地 Mod 管理**：读取名称、版本、ID、加载器和内置图标；搜索、筛选、逐项启停及从文件安装。共享目录提示影响范围，文件与身份冲突不覆盖。
+- **本地 Mod 管理**：读取名称、版本、ID、加载器和内置图标；搜索、筛选、逐项和批量启停、从文件安装、双平台更新检查及带备份的更新/删除。共享目录提示影响范围，文件与身份冲突不覆盖。
 - **PCL 风格交互**：搜索分层、灰色标签、紧凑详情按钮、标题导航、逐卡片入场/返回、按压回弹和减少动画适配；快速操作退役旧动画和请求。
 - **外观与设置**：三种启动器的多份目录绑定、下载及社区资源设置；主题跟随采用外部启动器卡片中的 PCL，未知或读取失败时回退，滑稽彩动态近似沿用实验性外观权限。
 
@@ -46,9 +46,9 @@ Beta 5.0 同时修复资源弹窗失败恢复、启动目录恢复被切页中�
 
 ## 使用
 
-从 [Beta 5.0](https://github.com/tempChanghong/PCL-DB/releases/tag/v5.0.0-beta.1) 下载 `PCL-DB-5.0.0-beta.1.exe` 直接运行，或下载 ZIP 解压后运行其中的 `PCL-DB.exe`。源码构建方法见下文。
+从 [Beta 6.0](https://github.com/tempChanghong/PCL-DB/releases/tag/v6.0.0-beta.1) 下载 `PCL-DB-6.0.0-beta.1.exe` 直接运行，或下载 ZIP 解压后运行其中的 `PCL-DB.exe`。源码构建方法见下文。
 
-Beta 5.0 的两个下载入口使用相同的单 EXE，仍需系统安装 .NET Framework 4.8。ZIP 另外附带许可、使用说明和构建清单。已有多文件预览版运行时仍须保留自己的 DLL 和配置文件。源码默认构建入口为 `src/PclDownloadBridge.App/bin/Release/net48/PclDownloadBridge.exe`，显式打包后的便携目录入口为 `dist/PclDownloadBridge/PCL-DB.exe`。
+Beta 6.0 的两个下载入口使用相同的单 EXE，仍需系统安装 .NET Framework 4.8。ZIP 另外附带许可、使用说明和构建清单。已有多文件预览版运行时仍须保留自己的 DLL 和配置文件。源码默认构建入口为 `src/PclDownloadBridge.App/bin/Release/net48/PclDownloadBridge.exe`，显式打包后的便携目录入口为 `dist/PclDownloadBridge/PCL-DB.exe`。
 
 1. 打开「设置 → 外部启动器」，选择 PCL、HMCL 或 PCL-CE 的工作目录，点击「读取目录」，然后在「游戏」卡片选择安装目标；多份启动器可分别绑定，也可指定目录配置文件或手动选择 `.minecraft`。同页可分别设置「文件下载源」和「版本列表源」：BMCLAPI 优先、自动、官方优先；自动为默认值。切换版本列表源后，返回下载页会按新设置刷新当前列表；安装选项页也可点击「刷新列表」，保留版本、名称与组件选择。
 2. 回到「下载」，顶部显示安装目标；点击版本，填写实例名称。展开卡片选择 Forge、NeoForge、Fabric、Fabric API、OptiFine、OptiFabric 或 LiteLoader，点击「开始下载」。按 PCL 规则显示适用选项及互斥关系，Fabric API 和 OptiFabric 随父组件显示。默认拒绝覆盖同名实例。
@@ -312,7 +312,7 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 结果打印 ZIP、单 EXE、清单及本次 `result.json` 的完整路径，报告记录全部摘要。明确指定候选包可独立检查包内一致性及所有分发资产：
 
 ```powershell
-.\tools\verify-package.ps1 -PackagePath .\dist\PCL-DB-5.0.0-beta.1.zip -DistributionPath .\dist\PclDownloadBridge -StandalonePath .\dist\PCL-DB-5.0.0-beta.1.exe -ManifestPath .\dist\PCL-DB-5.0.0-beta.1.build-manifest.json
+.\tools\verify-package.ps1 -PackagePath .\dist\PCL-DB-6.0.0-beta.1.zip -DistributionPath .\dist\PclDownloadBridge -StandalonePath .\dist\PCL-DB-6.0.0-beta.1.exe -ManifestPath .\dist\PCL-DB-6.0.0-beta.1.build-manifest.json
 ```
 
 上面的命令执行归档完整性检查，返回 `VerificationLevel=ArchiveIntegrity`、`CandidateVerified=false`。Beta 1.0 的 v2 清单保留当时的 25/658/328 记录，仅校验其结构、非零整数计数及实际文件摘要；不套用当前套件数量。Beta 2.0 的 v3 清单还核对四组完整回执及其 EXE 摘要。两种归档检查都不证明源码来源、签名或通过当前验收，v1/未知格式仍拒绝；旧 ZIP 不会被重写。检查旧 Beta 时请同时指定它对应的资产，不要混用当前便携目录。
