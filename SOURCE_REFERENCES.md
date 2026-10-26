@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 存档读取的取消退役与父弹窗归属（2026-10-26）
+
+- 固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModLoader` 在通知令牌前改变取消状态，失败处理排除已取消/结束的加载器；当前页面呈现及资源详情参数继续参照 `MyPageRight`、`PageDownloadCompDetail`。
+- PCL-DB 的存档选择器先解除旧请求归属再取消，结果还核对原父弹窗，避免已取消的存档读取污染空选择或新光影包弹窗。布局、动画、三种启动器读取和文件安装机制保留。
+- 原始对象与摘要在 `artifacts/world-retirement/source/manifest.json`，详见[存档读取退役检查](docs/reviews/world-retirement-2026-10-26.md)。
+
 ## 前置解析失败与当前可见版本分组（2026-10-26）
 
 - 固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadCompDetail` 用当前页面参数构造项目、版本筛选与分组前置；页面状态和失败/取消继续参照 `MyPageRight`、`ModLoader`。

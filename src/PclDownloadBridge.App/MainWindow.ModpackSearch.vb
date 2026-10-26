@@ -542,7 +542,7 @@ Partial Public Class MainWindow
     Private Sub CompleteOnlinePrompt(value As String)
         If _resourceTargetPrompt Then
             _resourceTargetPrompt = False
-            _resourceTargetRequest?.Cancel() : _resourceWorldRequest?.Cancel()
+            CancelResourceWorldRequest() : _resourceTargetRequest?.Cancel()
         End If
         Dim prompt = _onlinePrompt : _onlinePrompt = Nothing
         If prompt Is Nothing OrElse Not AllowPageMotion() Then

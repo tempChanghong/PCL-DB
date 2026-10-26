@@ -14,6 +14,14 @@ Partial Public Class MainWindow
     Private _resourceTargetLauncher As LauncherInstallTarget
     Private _resourceInstallRunner As Func(Of ResourceInstallationPlan, String, SourcePolicy, IProgress(Of TransferProgress), CancellationToken, Task)
 
+    Private Sub CancelResourceWorldRequest()
+        ' Retire ownership before Cancel: a completed worker can already have
+        ' queued its continuation, or cancellation can run one inline.
+        Dim retired = _resourceWorldRequest
+        _resourceWorldRequest = Nothing : _resourceWorldLoading = False
+        retired?.Cancel()
+    End Sub
+
     Private Async Sub InstallCommunityResource(release As ModpackRelease, owner As FrameworkElement)
         If Not CanUseResourceDetail(owner) OrElse _localModWriting OrElse _readingPack OrElse Not _packReleases.Contains(release) Then Return
         Dim project = ActivePackProject()
@@ -91,7 +99,7 @@ Partial Public Class MainWindow
         If Not _resourceTargetPrompt OrElse _resourceTargetLoading OrElse _resourceTargetValidating OrElse _resourceTargetRequest Is Nothing OrElse _resourceTargetRequest.IsCancellationRequested Then Return
         Dim preferred = TryCast(TryCast(ResourceTargetInstance.SelectedItem, ComboBoxItem)?.Tag, InstalledInstance)?.Name
         OnlinePromptBody.StopScrolling() : OnlinePromptBody.ScrollToHome()
-        _resourceWorldRequest?.Cancel() : _resourceWorldRequest = Nothing
+        CancelResourceWorldRequest()
         _resourceTargetLoading = True : _resourceWorldLoading = False : _resourceTargetProblem = Nothing
         ResourceTargetInstance.IsEnabled = False : ResourceTargetWorld.IsEnabled = False
         ResourceTargetInstance.Items.Clear() : ResourceTargetWorld.Items.Clear()
@@ -100,23 +108,24 @@ Partial Public Class MainWindow
     End Sub
     Private Async Sub ResourceTargetInstanceChanged(sender As Object, e As SelectionChangedEventArgs)
         If Not _resourceTargetPrompt Then Return
-        _resourceWorldRequest?.Cancel()
+        CancelResourceWorldRequest()
         _resourceTargetProblem = Nothing : _resourceWorldLoading = False
         ResourceTargetWorld.Items.Clear() : ResourceTargetWorld.IsEnabled = False
         Dim instance = TryCast(TryCast(ResourceTargetInstance.SelectedItem, ComboBoxItem)?.Tag, InstalledInstance)
         If instance Is Nothing OrElse _resourceTargetRelease.Kind <> CommunityResourceKind.DataPack Then ValidateResourceTarget() : Return
-        Dim request = CancellationTokenSource.CreateLinkedTokenSource(_resourceTargetRequest.Token)
+        Dim parent = _resourceTargetRequest
+        Dim request = CancellationTokenSource.CreateLinkedTokenSource(parent.Token)
         Dim token = request.Token
         _resourceWorldRequest = request : _resourceWorldLoading = True : ValidateResourceTarget()
         Try
             Dim worlds = Await RunManagementWorkerAsync(Function() CommunityResourceInstallation.Worlds(instance, token), token)
-            If request.IsCancellationRequested OrElse _resourceWorldRequest IsNot request OrElse Not _resourceTargetPrompt OrElse TryCast(TryCast(ResourceTargetInstance.SelectedItem, ComboBoxItem)?.Tag, InstalledInstance) IsNot instance Then Return
+            If request.IsCancellationRequested OrElse _resourceWorldRequest IsNot request OrElse _resourceTargetRequest IsNot parent OrElse Not _resourceTargetPrompt OrElse TryCast(TryCast(ResourceTargetInstance.SelectedItem, ComboBoxItem)?.Tag, InstalledInstance) IsNot instance Then Return
             For Each world In worlds : ResourceTargetWorld.Items.Add(New PclComboBoxItem With {.Content = world.Name, .Tag = world, .ToolTip = world.Folder}) : Next
             ResourceTargetWorld.SelectedIndex = -1 : ResourceTargetWorld.IsEnabled = worlds.Count > 0
             If worlds.Count = 0 Then _resourceTargetProblem = "没有可用存档，请先在游戏中创建存档，或使用另存为。"
         Catch ex As OperationCanceledException When request.IsCancellationRequested
         Catch ex As Exception
-            If _resourceWorldRequest Is request AndAlso _resourceTargetPrompt Then _resourceTargetProblem = ex.GetBaseException().Message
+            If Not request.IsCancellationRequested AndAlso _resourceWorldRequest Is request AndAlso _resourceTargetRequest Is parent AndAlso _resourceTargetPrompt Then _resourceTargetProblem = ex.GetBaseException().Message
         Finally
             If _resourceWorldRequest Is request Then _resourceWorldRequest = Nothing : _resourceWorldLoading = False : ValidateResourceTarget()
             request.Dispose()

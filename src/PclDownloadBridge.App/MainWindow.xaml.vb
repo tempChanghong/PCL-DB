@@ -356,6 +356,7 @@ Partial Public Class MainWindow
         VerifyManagementStatusUi(artifactDirectory, checks)
         VerifyDependencyNamesUi(artifactDirectory, checks)
         VerifyDependencyFeedbackUi(artifactDirectory, checks)
+        VerifyWorldRetirementUi(artifactDirectory, checks)
         Return checks
     End Function
 
