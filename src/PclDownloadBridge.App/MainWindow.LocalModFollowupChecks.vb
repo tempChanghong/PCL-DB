@@ -85,6 +85,9 @@ Partial Public Class MainWindow
         Dim retired = _managedInstance, refreshing = LoadLocalModsAsync(True, refreshInstance:=True)
         BackFromLocalMods() : layout() : BackFromManagement(Nothing, Nothing) : layout()
         SelectManagedInstance(_managementInstances.Single(Function(item) item.Name = "我的原版")) : layout()
+        ' The retired request keeps its gate; the newly entered instance owns
+        ' a fresh native read rather than reusing the old test provider.
+        _localModInstanceReader = Function(instance, token) Task.FromResult(InstalledInstanceCatalog.Read(instance.Target, instance.Name, token))
         ShowLocalMods(Nothing, Nothing) : Await LoadLocalModsAsync(False) : layout()
         Dim accepted = _managedInstance, acceptedEntries = _localMods
         delayedInstance.TrySetResult(InstalledInstanceCatalog.Read(retired.Target, retired.Name, CancellationToken.None)) : Await refreshing : layout()

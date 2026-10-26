@@ -67,8 +67,9 @@ Partial Public Class MainWindow
         SelectManagedInstance(instance) : layout() : ShowLocalMods(Nothing, Nothing) : Await LoadLocalModsAsync(False) : layout()
         check(LocalModsPage.IsVisible AndAlso Not ManagementDetailPage.IsVisible AndAlso Not ManagementToolbar.IsVisible AndAlso ManagementTab.Checked AndAlso InnerTitle.Text.Contains("Mod"),
             "local Mods are a title-back management child page for the selected installed instance")
-        check(_localModInstance Is instance AndAlso _localMods.Count = 4 AndAlso LocalModRows.Children.Count = 4 AndAlso LocalModRows.Children.Cast(Of FrameworkElement)().All(Function(row) row.Height = 44),
+        check(_localModInstance Is _managedInstance AndAlso SameLocalModContext(instance) AndAlso _localMods.Count = 4 AndAlso LocalModRows.Children.Count = 4 AndAlso LocalModRows.Children.Cast(Of FrameworkElement)().All(Function(row) row.Height = 44),
             "native local Mod rows preserve all healthy unknown broken and disabled files at PCL row height")
+        instance = _managedInstance
         check(LocalModDirectory.Text = Path.Combine(instance.RunDirectory, "mods") AndAlso Not LocalModSharedHint.IsVisible,
             "an explicitly isolated instance displays its actual private Mods directory")
         check(_localMods.Any(Function(entry) Not entry.Recognized AndAlso entry.Problem Is Nothing) AndAlso _localMods.Any(Function(entry) entry.Problem IsNot Nothing AndAlso entry.CanToggle),

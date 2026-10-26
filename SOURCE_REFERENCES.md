@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## Mod 页面入口的原生配置重读（2026-10-26）
+
+- 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.PageOther_Loaded/LoaderRun`：进入页面使用当前实例 `PathIndie` 下的 Mods 目录；`LocalResourceLoaders` 协调目录更新与取消，`MyPageRight` 管理加载和离页状态。
+- PCL-DB 从缓存详情进入 Mod 页面时，先重读三种启动器的原生实例，再扫描实际运行目录。有效隔离变更无需手动刷新；读取失败保留重试入口，返回或改选实例仍由既有请求代次撤销旧结果。
+- 原始对象和摘要在 `artifacts/mod-entry-refresh/source/manifest.json`，验证边界见[Mod 入口检查](docs/reviews/mod-entry-refresh-2026-10-26.md)。配置只读，文件校验、写入锁及动画曲线不变。
+
 ## Mod 完成后的当前目录重读（2026-10-26）
 
 - 主参照固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.LoaderRun/ReloadModList`：重新加载使用当前实例 `PathIndie` 下的 Mods 目录；`LocalResourceLoaders` 协调目录更新，`MyPageRight` 管理离页后的加载状态。

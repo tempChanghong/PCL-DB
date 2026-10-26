@@ -92,7 +92,8 @@ Partial Public Class MainWindow
                                     RenderLocalMods()
                                     RefreshTitleNavigation()
                                 End Sub, LocalModsPage)
-        Await LoadLocalModsAsync(True)
+        ' A cached detail can outlive an external launcher's isolation setting.
+        Await LoadLocalModsAsync(True, refreshInstance:=True)
         If LocalModInputAllowed() Then FocusManagementViewport()
     End Sub
     Private Async Sub RefreshLocalMods(sender As Object, e As RoutedEventArgs)
