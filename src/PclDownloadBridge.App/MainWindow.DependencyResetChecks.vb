@@ -21,7 +21,9 @@ Partial Public Class MainWindow
             Using surface = PreviewSurface.Attach(host, 900, 650)
                 SynchronizationContext.SetSynchronizationContext(New DispatcherSynchronizationContext(owner.Dispatcher))
                 Dim work = owner.CheckDependencyResetAsync(layout, check)
-                If Not PumpMotionUntil(Function() work.IsCompleted, 30000) Then Throw New TimeoutException("Dependency name reset did not settle.")
+                ' This covers 24 independent platform/theme/motion/reset cases.
+                ' Keep a bounded suite budget without cutting off later cases.
+                If Not PumpMotionUntil(Function() work.IsCompleted, 90000) Then Throw New TimeoutException("Dependency name reset did not settle.")
                 work.GetAwaiter().GetResult()
             End Using
             File.WriteAllText(Path.Combine(directory, "dependency-reset.json"), observations.ToString())
