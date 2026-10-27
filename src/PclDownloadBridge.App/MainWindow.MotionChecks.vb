@@ -70,6 +70,7 @@ Partial Public Class MainWindow
         VerifyLocalModReadStartUi(directory, localModSelectionChecks)
         VerifyResourcePromptLifecycleUi(directory, localModSelectionChecks)
         VerifyResourceInputReentrancyUi(directory, localModSelectionChecks)
+        VerifyDependencyHandoffUi(directory, localModSelectionChecks)
         For Each label In localModSelectionChecks : check(True, label) : Next
         VerifyLocalModRowMotion(directory, check)
         Return passed

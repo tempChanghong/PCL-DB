@@ -246,9 +246,13 @@ Partial Public Class MainWindow
     End Function
     Private Async Sub OpenResourceDependency(project As ModpackProject, dependency As ResourceDependency, owner As FrameworkElement)
         If Not CanUseResourceDetail(owner) OrElse ActivePackProject() IsNot project Then Return
-        _dependencyRequest?.Cancel()
-        Dim request As New CancellationTokenSource : _dependencyRequest = request
+        Dim previous = _dependencyRequest, request As New CancellationTokenSource
+        _dependencyRequest = request
         Try
+            ' PCL registers loader state before cancellation notification. A
+            ' newer click or title return may synchronously retire this lookup.
+            previous?.Cancel()
+            If request.IsCancellationRequested OrElse _dependencyRequest IsNot request OrElse ActivePackProject() IsNot project OrElse Not CanUseResourceDetail(owner) Then Return
             Using client = _packCatalogFactory()
                 Dim linked = Await client.ResolveDependencyAsync(project.Platform, dependency, request.Token)
                 If request.IsCancellationRequested OrElse _dependencyRequest IsNot request OrElse ActivePackProject() IsNot project OrElse Not CanUseResourceDetail(owner) Then Return

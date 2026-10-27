@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 前置资源点击的查询交接（2026-10-27）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MyResourceItem.MyResourceItem_Click`、`PageDownloadCompDetail` 前置列表构造及 `ModLoader.State`。前置导航保留当前实例／加载器上下文，并由真正接受的页面切换建立返回帧；取消前先变更加载归属。
+- 桥接程序需要先异步解析前置，因此先登记查询，再通知旧请求取消；返回后复核请求、原项目和可交互链接，避免旧入口覆盖更晚的点击或返回。保留现有混合类型解析、返回帧捕获和动画实现。[复现与验证](docs/reviews/dependency-handoff-2026-10-27.md)，三份 Git 对象及 SHA-256 见 `artifacts/dependency-handoff/source/manifest.json`。
+
 ## Mod 列表读取启动与退役通知边界（2026-10-27）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModLoader.State`、`PageInstanceMod.ReloadModList`、`LocalResourceLoaders`。沿用先改变加载状态再通知取消、按实例实际 Mods 路径读取、同目录写入时等待的原则；桥接程序在旧状态退役后、任何旧令牌通知前登记本次列表读取。
