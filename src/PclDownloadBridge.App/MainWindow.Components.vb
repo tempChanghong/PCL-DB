@@ -21,6 +21,7 @@ Partial Public Class MainWindow
     Private ReadOnly _componentViews As New Dictionary(Of ComponentKind, ComponentView)
     Private _autoName As String
     Private _componentGeneration As Integer
+    Private _componentRefreshRevision As Long
     Private ReadOnly _suppressedDependencies As New HashSet(Of ComponentKind)
     Private Class ComponentView
         Public Card As PclCard
@@ -34,15 +35,33 @@ Partial Public Class MainWindow
         Public BodyPending As Boolean
     End Class
 
-    Private Sub InitializeComponents()
-        CancelComponentRequests()
+    Private Function InitializeComponents() As Boolean
+        If _closing OrElse _selectedEntry Is Nothing Then Return False
+        Dim owner = _selectedEntry, card As PclCard = Nothing
+        CancelComponentRequests(Sub()
+                                    PrepareComponentViews(owner)
+                                    card = _componentViews(ComponentKind.Fabric).Card
+                                    If owner.IsSupplemental Then
+                                        For Each kind In _componentViews.Keys : _componentEntries(kind) = New List(Of ComponentEntry)() : Next
+                                    ElseIf _preview AndAlso _componentProvider Is Nothing Then
+                                        PreviewComponents()
+                                    Else
+                                        LoadComponentsAsync(owner)
+                                    End If
+                                End Sub)
+        Dim current As ComponentView = Nothing
+        If _closing OrElse _selectedEntry IsNot owner OrElse Not _componentViews.TryGetValue(ComponentKind.Fabric, current) OrElse current.Card IsNot card Then Return False
+        RefreshComponents()
+        Return True
+    End Function
+
+    Private Sub PrepareComponentViews(owner As VersionEntry)
         _componentPending.Clear() : _unresolvedComponents.Clear()
         _componentsDirty = False
         _suppressedDependencies.Clear()
         _componentSelection = New ComponentSelection()
         _componentEntries.Clear() : _componentErrors.Clear() : _componentViews.Clear() : ComponentCards.Children.Clear()
-        _autoName = New VersionPresentation(_selectedEntry).DisplayId
-        Dim owner = _selectedEntry
+        _autoName = New VersionPresentation(owner).DisplayId
         For Each kind As ComponentKind In [Enum].GetValues(GetType(ComponentKind))
             Dim card As New PclCard With {.Title = ComponentCatalog.Label(kind), .SwapLogoRight = True, .Collapsible = False, .Collapsed = True, .Margin = New Thickness(0, 0, 0, 12), .BodyMargin = New Thickness(20, 40, 18, 15)}
             Dim summaryGrid As New Grid With {.Height = 18, .VerticalAlignment = VerticalAlignment.Center}
@@ -69,41 +88,53 @@ Partial Public Class MainWindow
             AddHandler card.FoldChanged, Sub() RefreshComponentHeader(kind)
             ComponentCards.Children.Add(card)
         Next
-        If _selectedEntry.IsSupplemental Then
-            For Each kind In _componentViews.Keys
-                _componentEntries(kind) = New List(Of ComponentEntry)()
-            Next
-        ElseIf _preview AndAlso _componentProvider Is Nothing Then
-            PreviewComponents()
-        Else
-            LoadComponentsAsync(_selectedEntry)
-        End If
-        RefreshComponents()
     End Sub
 
-    Private Sub CancelComponentRequests()
+    Private Function CancelComponentRequests(Optional afterRetire As Action = Nothing) As Long
+        Dim previous = _componentRequests.Values.ToArray()
         _componentGeneration += 1
-        For Each request In _componentRequests.Values.ToList() : request.Cancel() : Next
+        _componentRefreshRevision += 1
+        Dim revision = _componentRefreshRevision
         _componentRequests.Clear()
         _componentPending.Clear()
-    End Sub
+        Try
+            afterRetire?.Invoke()
+        Finally
+            For Each request In previous
+                Try
+                    request.Cancel()
+                Catch ex As Exception
+                    ' An optional metadata observer must not interrupt retirement
+                    ' of other requests or escape page changes / window closing.
+                    If Not _preview Then Log(ex)
+                End Try
+            Next
+        End Try
+        Return revision
+    End Function
 
     Private Async Sub LoadComponentsAsync(entry As VersionEntry)
+        If _closing OrElse entry IsNot _selectedEntry Then Return
         Await RefreshComponentListsAsync()
     End Sub
 
     Private Async Function RefreshComponentListsAsync(Optional onlyKind As ComponentKind? = Nothing) As Task
         If _busy OrElse _closing OrElse _selectedEntry Is Nothing Then Return
         If _downloadView = DownloadView.Modpacks Then Return
+        Dim entry = _selectedEntry
+        _componentRefreshRevision += 1
         If _selectedEntry.IsSupplemental Then
             _componentsDirty = False
             RefreshComponents()
             Return
         End If
         If _componentsDirty Then onlyKind = Nothing
-        If Not onlyKind.HasValue Then CancelComponentRequests()
+        If Not onlyKind.HasValue Then
+            Dim revision = CancelComponentRequests()
+            If revision <> _componentRefreshRevision OrElse entry IsNot _selectedEntry OrElse _closing OrElse _busy OrElse _downloadView = DownloadView.Modpacks Then Return
+        End If
         _componentsDirty = False
-        Dim entry = _selectedEntry, generation = _componentGeneration
+        Dim generation = _componentGeneration
         Dim kinds = If(onlyKind.HasValue, {onlyKind.Value}, [Enum].GetValues(GetType(ComponentKind)).Cast(Of ComponentKind)().ToArray())
         Dim operations As New List(Of Task)
         Dim requests As New Dictionary(Of ComponentKind, Tuple(Of CancellationTokenSource, CancellationTokenSource))

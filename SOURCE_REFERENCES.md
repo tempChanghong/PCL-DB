@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 组件整批退役与页面初始化交接（2026-10-27）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModLoader.State/IsCanceledWithThread` 及 `PageDownloadInstall.EnterSelectPage/ReloadSelected`。参照取消前改变状态、按当前执行身份拒绝旧结果和避免组件展示重入的边界。
+- 整批取消先摘除旧请求与等待标记，准备新页面上下文，再逐一通知捕获的旧对象；生产环境记录取消观察者异常并继续清理其余对象。刷新／来源入口在通知返回后核对操作修订号，初始化核对原版和卡片身份，避免旧外层操作重置新页面。[复现与验证](docs/reviews/component-retirement-2026-10-27.md)，两份原始 Git 对象及摘要见 `artifacts/component-retirement/source/manifest.json`。
+
 ## 组件重试的请求交接（2026-10-27）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadInstall.EnterSelectPage/ReloadSelected/PreviewSwap` 和 `ModLoader.State`：按所选原版启动 Forge 加载器、依据加载状态展示组件，防止重入更新，取消前先更新状态。

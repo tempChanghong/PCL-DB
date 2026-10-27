@@ -322,6 +322,7 @@ Partial Public Class MainWindow
         VerifyVersionLoading(check, artifactDirectory)
         VerifyComponentLoading(check, artifactDirectory)
         VerifyComponentRetryUi(artifactDirectory, checks)
+        VerifyComponentRetirementUi(artifactDirectory, checks)
         VerifyCompatibilityWorkflow(check)
         VerifyTaskLifecycle(check, artifactDirectory)
         VerifyPointerAlignment(check)
@@ -531,8 +532,9 @@ Partial Public Class MainWindow
         ClearVersionLoadingVisual()
         If _versions.Count = 0 Then EmptyVersions.Text = "点击刷新读取版本列表"
         RefreshDownloadChrome()
-        CancelComponentRequests()
         _componentsDirty = _selectedEntry IsNot Nothing
+        Dim revision = CancelComponentRequests()
+        If revision <> _componentRefreshRevision OrElse _closing Then Return
         If _selectedEntry IsNot Nothing Then RefreshComponents()
     End Sub
 
@@ -596,7 +598,7 @@ Partial Public Class MainWindow
     End Function
 
     Private Sub SelectVersion(entry As VersionEntry)
-        If _busy Then Return
+        If _busy OrElse _closing Then Return
         _managedRepairContext = Nothing
         ' Component cards are about to be replaced. Release only the old local
         ' decorations; horizontal reversal still samples its current page frame.
@@ -608,7 +610,7 @@ Partial Public Class MainWindow
         SelectedVersionText.Text = displayId
         SelectedVersionIcon.Source = New Imaging.BitmapImage(New Uri(IconFor(entry)))
         VanillaVersionIcon.Source = SelectedVersionIcon.Source
-        InitializeComponents()
+        If Not InitializeComponents() Then Return
         InstallScroll.ScrollToHome()
         SetDownloadView(DownloadView.Install)
         SwitchMainPage(False)

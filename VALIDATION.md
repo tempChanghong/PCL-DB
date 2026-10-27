@@ -1,5 +1,9 @@
 # 本地验证记录
 
+## Beta 6.0 后续：组件整批取消及初始化（2026-10-27，尚未发行）
+
+新增 60 项：明暗 × 开关动画，覆盖取消期间新单项读取、整批刷新让位、连续原版选择、来源变更时新读取、关闭时取消通知异常及后续清理。相同夹具下旧实现 48 项失败，修复后专项通过；同时复验此前单项重试 36 项和原组件流程 59 项。策略 `PCL-DB-checks/2026-10-27.19` 注册 all 3,475、motion 2,860，pack-search 保留 1,854。**本轮执行上述三个相关专项和验证工具，不重跑完整 all／motion、搜索组或 Core 全套；注册数不代表执行数。** 构建及固定 PCL 来源另验，以 `artifacts/component-retirement/validation.json` 为准；不打包发版。[检查说明](docs/reviews/component-retirement-2026-10-27.md)。
+
 ## Beta 6.0 后续：组件单项重试启动交接（2026-10-27，尚未发行）
 
 新增 36 项：明暗 × 开关动画，覆盖旧请求取消时更新的同组件重试、改选原版、取消通知异常及恢复，并检查并行 NeoForge、名称与显式取消的 Fabric API。旧实现 20 项失败，修复后专项通过；另行执行既有组件刷新、加载、兼容与清单联动的 59 项原断言。策略 `PCL-DB-checks/2026-10-27.18` 注册 all 3,415、motion 2,800，pack-search 保留 1,854。**本轮执行上述两个相关专项及验证工具，不重跑完整 all／motion、搜索组或 Core 全套；注册数不代表执行数。** 构建和固定 PCL 来源另验，最终以 `artifacts/component-retry/validation.json` 为准；不打包发版。[检查说明](docs/reviews/component-retry-2026-10-27.md)。
