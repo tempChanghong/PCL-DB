@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 补全与刷新入口的原实例绑定（2026-10-27）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceOverall.BtnManageCheck_Click`、`ModLoader.State`、`FormMain`。补全沿用所选实例、修改锁和重复操作门控的原则，取消通知先退役旧状态；桥接程序在通知前绑定原实例，通知后核对管理与目录代次、页面和输入门控。
+- 刷新也保留更新的目录操作。原补全安装页、目录解析和页面动画实现不变。[复现与验证](docs/reviews/management-intent-2026-10-27.md)，三份原始 Git 对象及摘要见 `artifacts/management-intent/source/manifest.json`。
+
 ## 管理刷新与目录动作的取消交接（2026-10-27）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModLoader.State`、`PageInstanceMod` 与 `FormMain`。参照加载器先更新状态、再通知取消的顺序，管理刷新与目录动作先退役旧归属和提示，再取消捕获的旧请求；入口核对代次，避免取消回调中的新操作被旧外层操作覆盖。

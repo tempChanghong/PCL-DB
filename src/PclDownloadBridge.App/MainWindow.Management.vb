@@ -160,9 +160,9 @@ Partial Public Class MainWindow
         If _closing OrElse _selectedFolder Is Nothing OrElse ManagementPage.Visibility <> Visibility.Visible Then Return
         Dim target = CurrentInstallTarget()
         If Not force AndAlso (_managementScanning OrElse (Not _managementDirty AndAlso SameManagementTarget(_managementTarget, target))) Then Return
-        Dim generation = _managementGeneration + 1
+        Dim generation = _managementGeneration + 1, folderGeneration = _managementFolderGeneration + 1
         CancelManagementRequest()
-        If generation <> _managementGeneration OrElse _closing OrElse ManagementPage.Visibility <> Visibility.Visible OrElse Not SameManagementTarget(target, CurrentInstallTarget()) Then Return
+        If generation <> _managementGeneration OrElse folderGeneration <> _managementFolderGeneration OrElse _closing OrElse ManagementPage.Visibility <> Visibility.Visible OrElse Not SameManagementTarget(target, CurrentInstallTarget()) Then Return
         Dim request As New CancellationTokenSource()
         _managementRequest = request : _managementScanning = True
         _managementProblem = Nothing
@@ -432,8 +432,14 @@ Partial Public Class MainWindow
         If _closing OrElse _busy OrElse _choosingOnline OrElse _localModWriting OrElse _managementPreparing OrElse _managementScanning OrElse _managedInstance Is Nothing OrElse
             Not _managedInstance.IsVanillaRepairCandidate OrElse ManagementPage.Visibility <> Visibility.Visible OrElse ManagementDetailPage.Visibility <> Visibility.Visible OrElse
             Not PageSurface.IsHitTestVisible OrElse Not ManagementViewHost.IsHitTestVisible Then Return
+        Dim owner = _managedInstance, generation = _managementGeneration + 1, folderGeneration = _managementFolderGeneration + 1
         CancelManagementRequest()
-        Dim owner = _managedInstance, instance = owner, generation = _managementGeneration, request As New CancellationTokenSource(TimeSpan.FromSeconds(100))
+        ' Cancellation can select another instance or start a newer folder action.
+        ' Bind this click before notifying, then recheck its intent and input gates.
+        If folderGeneration <> _managementFolderGeneration OrElse Not OwnsManagedRepairPreparation(owner, generation) OrElse
+            _busy OrElse _choosingOnline OrElse _localModWriting OrElse _managementPreparing OrElse _managementScanning OrElse
+            Not PageSurface.IsHitTestVisible OrElse Not ManagementViewHost.IsHitTestVisible Then Return
+        Dim instance = owner, request As New CancellationTokenSource(TimeSpan.FromSeconds(100))
         _managementRequest = request : _managementPreparing = True
         RefreshManagementAvailability()
         ManagedRepairStatus.Text = "正在核对原版下载信息…"
