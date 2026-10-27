@@ -32,7 +32,13 @@ Namespace Controls
             If Not animate Then
                 Snap(selected, key) : Return
             End If
-            If selected = _selected AndAlso key = _key Then Return
+            If selected = _selected Then
+                ' Metadata can change the title accent during deselection. Like
+                ' PCL's title refresh, it must not restart Checked geometry or
+                ' allocate an empty marker timeline for an idle row.
+                If key <> _key Then RefreshPalette(key)
+                Return
+            End If
             Dim height = _marker.Height, opacity = _marker.Opacity
             Dim color = DirectCast(_title.Foreground, SolidColorBrush).Color
             Detach()

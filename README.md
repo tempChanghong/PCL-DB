@@ -1,5 +1,7 @@
 # PCL-DB · PCL Download Bridge
 
+后续源码修复在线 Mod 更新信息到达时重启选中竖条退场、无选择变化时创建空动画的问题；标题配色与选择几何分开刷新。[检查说明](docs/reviews/local-mod-metadata-motion-2026-10-28.md)。本项尚未打包发布。
+
 后续源码修复本地 Mod 底栏被重复刷新提前收起，以及全选时屏外背板仍创建动画的问题；保留可见行效果、取消重试和焦点恢复。[检查说明](docs/reviews/local-mod-motion-followup-2026-10-28.md)。本项尚未打包发布。
 
 后续源码根据两段录屏补齐本地 Mod 选择动画：竖条弹性展开、标题渐变、行内按压反馈，全选／取消选择保留原位动画；底部操作栏退场保留原计数。[检查说明](docs/reviews/local-mod-selection-motion-2026-10-27.md)。本项尚未打包发布。

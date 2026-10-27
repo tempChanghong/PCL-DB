@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 本地 Mod 元数据与选择动画（2026-10-28）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MyLocalModItem.Checked` 和 `Refresh`：选择状态未变时不重播 Checked 动画，元数据刷新直接更新标题资源引用。
+- PCL-DB 保留自己的“可更新”强调色规则，只在选择状态改变时创建竖条动画；更新信息增加／移除时刷新标题配色，不替换正在退场的时钟，也不为闲置行创建空选择动画。[复现与验证](docs/reviews/local-mod-metadata-motion-2026-10-28.md)，固定 Git 原始字节及摘要见 `artifacts/local-mod-metadata-motion/source/manifest.json`。
+
 ## 本地 Mod 底栏重复刷新与屏外背板（2026-10-28）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.RefreshBars`、`MyLocalModItem.Checked/RefreshColor` 与 `ModBase.IsVisibleInForm`。PCL 对重复的零选择刷新保留当前退场，并用窗口可见性限制选择动画。
