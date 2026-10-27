@@ -94,6 +94,8 @@ Module Program
                     run = ArchiveCancellationChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "modpack-paths" Then
                     run = ModpackPathChecks.RunAsync(TestRoot)
+                ElseIf args(1) = "component-file-names" Then
+                    run = ComponentFileNameChecks.RunAsync(TestRoot)
                 ElseIf args(1).StartsWith("modrinth-", StringComparison.Ordinal) Then
                     run = ModrinthChecks.RunAsync(TestRoot, args(1))
                 ElseIf args(1).StartsWith("curseforge-", StringComparison.Ordinal) Then
@@ -199,6 +201,9 @@ Module Program
                 Check(True, label)
             Next
             For Each label In ComponentChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
+                Check(True, label)
+            Next
+            For Each label In ComponentFileNameChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
                 Check(True, label)
             Next
             For Each label In SupplementalVersionChecks.RunAsync(TestRoot).GetAwaiter().GetResult()

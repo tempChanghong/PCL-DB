@@ -274,7 +274,7 @@ Public Class ComponentCatalog
                 Not DateTimeOffset.TryParse(CStr(published), Globalization.CultureInfo.InvariantCulture, Globalization.DateTimeStyles.None, instant) Then Throw New InvalidDataException("Fabric API 发布时间无效。")
             Dim file = SelectFabricApiFile(item)
             If file Is Nothing Then Continue For ' PCL also omits versions without a download.
-            SafeFiles.ValidateInstanceName(CStr(file("filename")))
+            SafeFiles.ValidatePathSegment(CStr(file("filename")))
             ValidateCatalogueText(file, "url", "Fabric API")
             Dim address As Uri = Nothing
             If Not Uri.TryCreate(CStr(file("url")), UriKind.Absolute, address) OrElse

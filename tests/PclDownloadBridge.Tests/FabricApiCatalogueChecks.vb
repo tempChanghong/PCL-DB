@@ -20,19 +20,19 @@ Friend Module FabricApiCatalogueChecks
         Return passed
     End Function
 
-    Private Function ApiFile(Optional filename As String = "fabric-api.jar", Optional primary As Boolean? = Nothing, Optional content As Byte() = Nothing) As JObject
+    Friend Function ApiFile(Optional filename As String = "fabric-api.jar", Optional primary As Boolean? = Nothing, Optional content As Byte() = Nothing) As JObject
         Dim payload = If(content, Bytes)
         Dim result As New JObject From {{"url", "https://example.invalid/" & filename}, {"filename", filename},
             {"hashes", New JObject From {{"sha1", Hash(payload)}}}, {"size", payload.Length}}
         If primary.HasValue Then result("primary") = primary.Value
         Return result
     End Function
-    Private Function Row(Optional version As String = "matching") As JObject
+    Friend Function Row(Optional version As String = "matching") As JObject
         Return New JObject From {{"name", "Fabric API " & version}, {"version_number", version}, {"version_type", "release"},
             {"project_id", "P7dR8mSH"}, {"game_versions", New JArray("1.20.1")}, {"loaders", New JArray("fabric")},
             {"date_published", "2026-01-01T00:00:00Z"}, {"files", New JArray(ApiFile(primary:=True))}}
     End Function
-    Private Async Function LoadAsync(server As TestServer, rows As JToken, Optional mc As String = "1.20.1") As Task(Of List(Of ComponentEntry))
+    Friend Async Function LoadAsync(server As TestServer, rows As JToken, Optional mc As String = "1.20.1") As Task(Of List(Of ComponentEntry))
         server.Files(Endpoint) = Utf8(rows.ToString(Newtonsoft.Json.Formatting.None))
         Using timeout As New CancellationTokenSource(TimeSpan.FromSeconds(8))
             Return Await New ComponentCatalog(New FixturePolicy(server.Url)).LoadAsync(ComponentKind.FabricApi, mc, timeout.Token)

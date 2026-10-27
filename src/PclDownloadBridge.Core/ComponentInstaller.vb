@@ -69,7 +69,7 @@ Public Class ComponentInstaller
             Next
             Dim opt = _selection.Item(ComponentKind.OptiFine)
             If opt IsNot Nothing Then
-                SafeFiles.ValidateInstanceName(opt.FileName)
+                SafeFiles.ValidatePathSegment(opt.FileName)
                 If _selection.Has(ComponentKind.Forge) OrElse _selection.Has(ComponentKind.Fabric) OrElse _selection.Has(ComponentKind.LiteLoader) Then
                     ' PCL OptiFineAsMod: LiteLoader stores OptiFine in mods/<mc>/.
                     Dim relative = "mods/" & If(_selection.Has(ComponentKind.LiteLoader), mc & "/", "") & opt.FileName
@@ -101,7 +101,7 @@ Public Class ComponentInstaller
             For Each kind In {ComponentKind.FabricApi, ComponentKind.OptiFabric}
                 Dim entry = _selection.Item(kind)
                 If entry Is Nothing Then Continue For
-                SafeFiles.ValidateInstanceName(entry.FileName)
+                SafeFiles.ValidatePathSegment(entry.FileName)
                 Await FetchAsync(stage, {New DownloadFile With {.RelativePath = "mods/" & entry.FileName, .Url = entry.Url, .Sha1 = entry.Sha1, .Md5 = entry.Md5, .Size = entry.Size, .Category = "component"}}, "下载 " & ComponentCatalog.Label(kind), token).ConfigureAwait(False)
                 If kind = ComponentKind.OptiFabric Then
                     Dim info = ReadFabricMod(SafeFiles.UnderRoot(stage, "mods/" & entry.FileName))
@@ -156,7 +156,7 @@ Public Class ComponentInstaller
             Dim entry = selection.Item(kind)
             If entry Is Nothing Then Continue For
             If kind = ComponentKind.OptiFine AndAlso Not (selection.Has(ComponentKind.Forge) OrElse selection.Has(ComponentKind.Fabric) OrElse selection.Has(ComponentKind.LiteLoader)) Then Continue For
-            SafeFiles.ValidateInstanceName(entry.FileName)
+            SafeFiles.ValidatePathSegment(entry.FileName)
             Dim relative = "mods/" & If(kind = ComponentKind.OptiFine AndAlso selection.Has(ComponentKind.LiteLoader), mc & "/", "") & entry.FileName
             MinecraftInstaller.ValidateResourceName(relative, "组件 Mods")
             If result.Any(Function(item) String.Equals(item.RelativePath, relative, StringComparison.OrdinalIgnoreCase)) Then Throw New InvalidDataException("组件 Mods 文件名冲突：" & relative)

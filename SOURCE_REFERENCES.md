@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 组件目录与安装文件名（2026-10-27）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModDownload.DlFabricApiLoader/DlOptiFabricLoader` 与 `ModDownloadLib.McInstallLoadersGet`：API／OptiFabric 目录来自资源版本，使用 `ToNetFile` 将对应文件放入 Mods 临时目录；OptiFine 按加载器区分独立安装和作为 Mod 的路径。
+- PCL-DB 四处组件文件名检查改用已有普通路径段规则，不再使用实例名称的 100 字符限制。保留原组件兼容、摘要、OptiFabric 身份检查和目标冲突处理。[复现与验证](docs/reviews/component-file-names-2026-10-27.md)，固定 Git 原始字节与摘要见 `artifacts/component-file-names/source/manifest.json`。
+
 ## 整合包文件路径与长文件名复用（2026-10-27）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModModpack` 和 `ModNet`：整合包资源使用平台文件名交给对应目录，Modrinth 路径检查目标归属；已有文件匹配复制，失败时回退下载，下载临时文件使用独立随机名称。
