@@ -97,7 +97,7 @@ Partial Public NotInheritable Class ModpackCatalogClient
     Private ReadOnly _communitySource As Integer
     Public Sub New(Optional handler As HttpMessageHandler = Nothing, Optional apiKey As String = Nothing, Optional communitySource As Integer = 2)
         _client = New HttpClient(If(handler, New HttpClientHandler With {.AllowAutoRedirect = False, .AutomaticDecompression = DecompressionMethods.GZip Or DecompressionMethods.Deflate, .MaxConnectionsPerServer = 4})) With {.Timeout = Timeout.InfiniteTimeSpan}
-        _client.DefaultRequestHeaders.UserAgent.ParseAdd("PclDownloadBridge/6.0.0-beta.1 (modpack catalogue)")
+        _client.DefaultRequestHeaders.UserAgent.ParseAdd("PclDownloadBridge/7.0.0-beta.1 (modpack catalogue)")
         _key = If(apiKey, Environment.GetEnvironmentVariable("PCLDB_CURSEFORGE_API_KEY"))
         If communitySource < 0 OrElse communitySource > 2 Then Throw New ArgumentOutOfRangeException(NameOf(communitySource))
         _communitySource = communitySource

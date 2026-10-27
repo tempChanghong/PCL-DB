@@ -1,5 +1,11 @@
 # 本地验证记录
 
+## Beta 7.0 发布验证（2026-10-28）
+
+发行版本 `7.0.0-beta.1`，标签 `v7.0.0-beta.1`。发布流程按策略 `PCL-DB-checks/2026-10-28.6` 执行完整检查，单 EXE、内嵌 Core、便携 ZIP 和源码归档绑定同一最终提交；打包检查明确传入候选 `result.json`，分别使用 PowerShell 7 和 Windows PowerShell 5.1。候选、构建、源码外部重建与附件摘要回执保存在 `artifacts/beta-7.0-release/`，公开摘要随 Release 工件提供。具体通过计数以 `verification.json` 为准；临时夹具和离屏 WPF 不作为真实游戏启动或桌面帧率证明。[发布说明](docs/releases/7.0.0-beta.1.md)。
+
+以下保留各轮修复当时的验证范围；这些 Beta 6 后续改动统一纳入 Beta 7.0。
+
 ## Beta 6.0 后续：可更新 Mod 列表刷新（2026-10-28，尚未发行）
 
 新增 44 项 WPF 检查，覆盖明暗 × 开关动画下相同成员的行／焦点／选中时钟保持、新信息、缓存、成员增减、零结果页签、较新搜索和切页取消后的迟到结果。原实现 2/44 项失败，复现选中动画跳变；修复后选择链路 296 项（包含新增 44 项）、行与列表样式 45 项、文件操作与页面交互 17 项、更新生命周期与确认窗口 49 项通过。Release 重建零警告、零错误，验证工具和固定 PCL 来源另验。策略 `PCL-DB-checks/2026-10-28.6` 注册 all 3,745、motion 3,130、navigation 2,122，本轮未重跑完整 UI、motion、搜索 UI 或 Core 套件。使用受控在线提供器和临时目录，不请求真实网络、注入桌面按键、写用户文件或配置；不打包、推送或发版。[检查说明](docs/reviews/local-mod-update-filter-2026-10-28.md)，回执见 `artifacts/local-mod-update-filter/validation.json`。
