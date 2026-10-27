@@ -355,6 +355,7 @@ Partial Public Class MainWindow
         VerifySettingsRecoveryUi(artifactDirectory, checks)
         VerifyManagementStatusUi(artifactDirectory, checks)
         VerifyDependencyNamesUi(artifactDirectory, checks)
+        VerifyDependencyResetUi(artifactDirectory, checks)
         VerifyDependencyFeedbackUi(artifactDirectory, checks)
         VerifyDependencyHandoffUi(artifactDirectory, checks)
         VerifyResourceConfirmExitUi(artifactDirectory, checks)

@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 前置名称读取重置的归属与释放（2026-10-27）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModLoader.State`、`PageDownloadCompDetail` 前置列表和 `MyResourceItem.MyResourceItem_Click`。沿用先改变状态再通知取消、前置名称属于项目缓存且不影响版本下载的原则。
+- 桥接程序的名称请求重置先登记新令牌（关闭时为无令牌），再取消捕获的旧令牌，在 `Finally` 中只释放旧对象。不会清空已解析名称缓存，也不改变详情导航或动画参数。[复现与验证](docs/reviews/dependency-reset-2026-10-27.md)，三份 Git 对象及摘要见 `artifacts/dependency-reset/source/manifest.json`。
+
 ## 资源安装确认框退场与任务交接（2026-10-27）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MyMsgText.Close/Btn1_Click`、`MyPageRight` 及 `PageDownloadCompDetail.Install_Click`。上游先设置结果，再独立执行关闭动画；本轮保留现有淡出、位移、旋转和遮罩参数，不声称上游结果等待完整退场。

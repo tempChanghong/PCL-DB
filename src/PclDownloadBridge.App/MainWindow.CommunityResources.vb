@@ -48,10 +48,16 @@ Partial Public Class MainWindow
         FinishPackContentMotion()
     End Sub
     Private Sub ResetResourceNames()
+        Dim previous = _resourceNamesRequest
         _resourceDependencyNameLoads.Clear()
-        _resourceNamesRequest?.Cancel() : _resourceNamesRequest?.Dispose()
-        If _closing Then _resourceNamesRequest = Nothing : Return
-        _resourceNamesRequest = New CancellationTokenSource()
+        ' Publish the new ownership before cancellation can start another label
+        ' read or reset. Only the captured previous source may be disposed here.
+        _resourceNamesRequest = If(_closing, Nothing, New CancellationTokenSource())
+        Try
+            previous?.Cancel()
+        Finally
+            previous?.Dispose()
+        End Try
     End Sub
     Private Sub RefreshResourceDependencyLabels()
         If ActivePackProject() Is Nothing Then Return

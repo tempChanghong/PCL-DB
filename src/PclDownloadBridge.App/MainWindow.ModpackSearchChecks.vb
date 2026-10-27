@@ -43,6 +43,7 @@ Partial Public Class MainWindow
         VerifyDependencyHandoffUi(directory, passed)
         VerifyWorldRetirementUi(directory, passed)
         VerifyDependencyNamesUi(directory, passed)
+        VerifyDependencyResetUi(directory, passed)
         VerifyResourceArtworkUi(directory, passed)
         VerifyLocalPackNavigationUi(directory, passed)
         VerifyTaskChoiceUi(directory, passed)
