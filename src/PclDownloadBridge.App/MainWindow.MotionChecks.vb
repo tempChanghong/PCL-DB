@@ -61,6 +61,7 @@ Partial Public Class MainWindow
         Dim localModSelectionChecks As New List(Of String)
         VerifyLocalModSelectionUi(directory, localModSelectionChecks)
         VerifyLocalModUpdateLifecycleUi(directory, localModSelectionChecks)
+        VerifyLocalModPromptUi(directory, localModSelectionChecks)
         For Each label In localModSelectionChecks : check(True, label) : Next
         VerifyLocalModRowMotion(directory, check)
         Return passed

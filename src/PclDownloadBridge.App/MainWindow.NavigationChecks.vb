@@ -30,6 +30,7 @@ Partial Public Class MainWindow
         VerifyLocalModFolderUi(artifactDirectory, checks)
         VerifyLocalModSelectionUi(artifactDirectory, checks)
         VerifyLocalModUpdateLifecycleUi(artifactDirectory, checks)
+        VerifyLocalModPromptUi(artifactDirectory, checks)
         VerifyRepairNativeUi(artifactDirectory, checks)
         VerifyLocalModUi(artifactDirectory, check)
         Dim cancellationChecks As New List(Of String)

@@ -32,6 +32,7 @@ Partial Public Class MainWindow
     Private _packGameFilter As String = ""
     Private _packResultMotion As PclSurfaceMotion
     Private _onlinePrompt As TaskCompletionSource(Of String)
+    Private _onlinePromptClosed As TaskCompletionSource(Of Boolean)
     Private _onlinePromptRoot As String
     Private _onlineOptionalPrompt As Boolean
     Private _onlinePromptMotion As ClockGroup
@@ -499,6 +500,10 @@ Partial Public Class MainWindow
         _onlinePromptRoot = root : _onlineOptionalPrompt = optionalFile
         ResourceTargetChoices.Visibility = If(_resourceTargetPrompt, Visibility.Visible, Visibility.Collapsed)
         StopOnlinePromptMotion()
+        Dim previousExit = _onlinePromptClosed
+        _onlinePromptClosed = New TaskCompletionSource(Of Boolean)(TaskCreationOptions.RunContinuationsAsynchronously)
+        previousExit?.TrySetResult(False)
+        Dim shade = If(PackNameOverlay.IsVisible AndAlso _onlinePromptShade IsNot Nothing, _onlinePromptShade.Color, Color.FromArgb(0, 0, 0, 0))
         PackNameTitle.Text = title : PackNameDescription.Text = description
         OnlinePromptBody.StopScrolling() : OnlinePromptBody.ScrollToHome()
         OnlinePackName.Visibility = If(optionalFile, Visibility.Collapsed, Visibility.Visible)
@@ -509,7 +514,7 @@ Partial Public Class MainWindow
         _onlinePromptRotation = New RotateTransform(0) : _onlinePromptOffset = New TranslateTransform()
         Dim transforms As New TransformGroup() : transforms.Children.Add(_onlinePromptRotation) : transforms.Children.Add(_onlinePromptOffset)
         PackNameDialog.RenderTransform = transforms
-        _onlinePromptShade = New SolidColorBrush(Color.FromArgb(90, 0, 0, 0)) : PackNameOverlay.Background = _onlinePromptShade
+        _onlinePromptShade = New SolidColorBrush(shade) : PackNameOverlay.Background = _onlinePromptShade
         AnimateOnlinePrompt(True)
         ValidateOnlinePackName()
         If optionalFile Then OnlinePackConfirm.Focus() Else OnlinePackName.Focus() : OnlinePackName.SelectAll()
@@ -540,6 +545,9 @@ Partial Public Class MainWindow
         CompleteOnlinePrompt(If(_onlineOptionalPrompt, "no", Nothing))
     End Sub
     Private Sub CompleteOnlinePrompt(value As String)
+        ' MyMsgText.IsExited ignores repeated buttons while Close still owns
+        ' its animation. Explicit shutdown/reduced motion can still settle it.
+        If _onlinePrompt Is Nothing AndAlso AllowPageMotion() Then Return
         If _resourceTargetPrompt Then
             _resourceTargetPrompt = False
             CancelResourceWorldRequest() : _resourceTargetRequest?.Cancel()
@@ -555,8 +563,13 @@ Partial Public Class MainWindow
     End Sub
     Private Sub HideOnlinePrompt()
         Dim restore = _promptFocusReturn : _promptFocusReturn = Nothing
+        Dim closed = _onlinePromptClosed : _onlinePromptClosed = Nothing
         PackNameOverlay.Visibility = Visibility.Collapsed : PageSurface.IsEnabled = True : TopTabs.IsEnabled = True
+        ' Parent enable notifications can settle the floating action bar before
+        ' its rows have inherited the new value. Recompute gates before focus.
+        If LocalModsPage.IsVisible Then RefreshLocalModAvailability()
         QueuePromptFocus(restore)
+        closed?.TrySetResult(True)
     End Sub
     Private Sub StopOnlinePromptMotion()
         Dim previous = _onlinePromptMotion : _onlinePromptMotion = Nothing
@@ -571,14 +584,13 @@ Partial Public Class MainWindow
     Private Sub AnimateOnlinePrompt(entering As Boolean)
         StopOnlinePromptMotion()
         If Not AllowPageMotion() Then
-            PackNameDialog.Opacity = 1
+            SettleOnlinePromptVisual(entering)
             If Not entering Then HideOnlinePrompt()
             Return
         End If
         Dim timeline As New ParallelTimeline()
         If entering Then
             PackNameDialog.Opacity = 0 : _onlinePromptRotation.Angle = -4 : _onlinePromptOffset.Y = 40
-            _onlinePromptShade.Color = Color.FromArgb(0, 0, 0, 0)
             timeline.Children.Add(New DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(120)) With {.BeginTime = TimeSpan.FromMilliseconds(60)})
             timeline.Children.Add(New PclDialogYAnimation With {.BeginTime = TimeSpan.FromMilliseconds(60)})
             timeline.Children.Add(New DoubleAnimation(-4, 0, TimeSpan.FromMilliseconds(300)) With {.BeginTime = TimeSpan.FromMilliseconds(60), .EasingFunction = New PowerEase With {.Power = 2, .EasingMode = EasingMode.EaseOut}})
@@ -587,18 +599,31 @@ Partial Public Class MainWindow
             timeline.Children.Add(New DoubleAnimation(_onlinePromptOffset.Y, 20, TimeSpan.FromMilliseconds(150)) With {.EasingFunction = New PowerEase With {.Power = 3, .EasingMode = EasingMode.EaseOut}})
             timeline.Children.Add(New DoubleAnimation(_onlinePromptRotation.Angle, 6, TimeSpan.FromMilliseconds(150)) With {.EasingFunction = New PowerEase With {.Power = 2, .EasingMode = EasingMode.EaseIn}})
         End If
-        timeline.Children.Add(New ColorAnimation(_onlinePromptShade.Color, If(entering, Color.FromArgb(90, 0, 0, 0), Color.FromArgb(0, 0, 0, 0)), TimeSpan.FromMilliseconds(200)))
+        ' MyMsgText.Close starts the Weak Fluent shade exit after 30 ms.
+        ' A replacement enters from the displayed shade, never transparent.
+        timeline.Children.Add(New ColorAnimation(_onlinePromptShade.Color, If(entering, Color.FromArgb(90, 0, 0, 0), Color.FromArgb(0, 0, 0, 0)), TimeSpan.FromMilliseconds(200)) With {
+            .BeginTime = TimeSpan.FromMilliseconds(If(entering, 0, 30)),
+            .EasingFunction = If(entering, Nothing, New QuadraticEase With {.EasingMode = EasingMode.EaseOut})})
         Dim clock = DirectCast(timeline.CreateClock(True), ClockGroup)
         _onlinePromptMotion = clock
         AddHandler clock.Completed, Sub()
                                         If _onlinePromptMotion IsNot clock Then Return
                                         StopOnlinePromptMotion()
+                                        ' Completed can precede the last dependency-property
+                                        ' invalidation. Do not freeze the previous rendered frame.
+                                        SettleOnlinePromptVisual(entering)
                                         If Not entering AndAlso _onlinePrompt Is Nothing Then HideOnlinePrompt()
                                     End Sub
         PackNameDialog.ApplyAnimationClock(OpacityProperty, DirectCast(clock.Children(0), AnimationClock))
         _onlinePromptOffset.ApplyAnimationClock(TranslateTransform.YProperty, DirectCast(clock.Children(1), AnimationClock))
         _onlinePromptRotation.ApplyAnimationClock(RotateTransform.AngleProperty, DirectCast(clock.Children(2), AnimationClock))
         _onlinePromptShade.ApplyAnimationClock(SolidColorBrush.ColorProperty, DirectCast(clock.Children(3), AnimationClock))
+    End Sub
+    Private Sub SettleOnlinePromptVisual(entering As Boolean)
+        PackNameDialog.Opacity = If(entering, 1.0, 0.0)
+        _onlinePromptOffset.Y = If(entering, 0.0, 20.0)
+        _onlinePromptRotation.Angle = If(entering, 0.0, 6.0)
+        _onlinePromptShade.Color = If(entering, Color.FromArgb(90, 0, 0, 0), Color.FromArgb(0, 0, 0, 0))
     End Sub
     Private Async Function ChooseOnlineOptionalAsync(package As ModrinthPackage, token As CancellationToken) As Task(Of IEnumerable(Of String))
         Dim selected As New List(Of String)

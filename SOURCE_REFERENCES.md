@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## Mod 更新确认窗口动画（2026-10-27）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MyMsgText.xaml/.vb`、`PageInstanceMod` 和 `ModAnimation`。保留 60/120/300 ms 入场、80/150 ms 退场及左侧中心旋转，遮罩对齐延迟 30 ms 后的 200 ms Weak Fluent 淡出；重复确认参照 `IsExited` 拦截。
+- WPF 中断动画继续采样当前画面，自然结束明确写入终点。Mod 更新等待所属窗口退场回执，替换或实例退役不会启动旧更新；恢复底栏门控和实际按钮焦点。[复现与验证](docs/reviews/mod-update-dialog-motion-2026-10-27.md)，原始 Git 对象摘要在 `artifacts/mod-prompt-motion/source/manifest.json`。
+
 ## Mod 更新查询的退役、提示与行时钟（2026-10-26）
 
 参照固定 PCL 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 ModLoader 状态先于取消令牌通知，以及 PageInstanceMod/MyLocalModItem 的当前文件状态与更新提示。父读取和查询槽位先退役再取消，保留重入的新请求；提示保留本地诊断，更新标记不再清理悬停时钟。三个原始 Git 对象及摘要见 artifacts/mod-update-lifecycle/source/manifest.json，[专项检查](docs/reviews/mod-update-lifecycle-2026-10-26.md)。

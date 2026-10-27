@@ -154,7 +154,11 @@ Partial Public Class MainWindow
                     Dim escape As New KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(OnlinePackConfirm), Environment.TickCount, Key.Escape) With {.RoutedEvent = Keyboard.KeyDownEvent}
                     ShellKeyDown(OnlinePackConfirm, escape)
                     Try : Await choice : Catch ex As OperationCanceledException : End Try
-                    Await running : settle()
+                    Await running
+                    ' PCL completes the result before removing MyMsgText.
+                    ' Task completion must not truncate that owned exit.
+                    _onlinePromptMotion?.Controller.SkipToFill()
+                    Await WaitPackUiAsync(Function() _onlinePromptMotion Is Nothing) : settle()
                     check(escape.Handled AndAlso tokenOwned.IsCancellationRequested AndAlso Not _busy AndAlso _taskOutcome = TaskOutcome.Cancelled AndAlso _onlinePrompt Is Nothing AndAlso
                         PackNameOverlay.Visibility = Visibility.Collapsed AndAlso PageSurface.IsEnabled AndAlso FocusManager.GetFocusedElement(host) Is origin,
                         "Escape cancellation settles the task and returns focus to the still-active management page" & label)

@@ -182,29 +182,27 @@ Partial Public Class MainWindow
         Dim selected = SelectedLocalMods(), enabled = Boolean.Parse(CStr(DirectCast(sender, FrameworkElement).Tag))
         Await RunLocalModWriteAsync(Function(instance, token) RunManagementWorkerAsync(Function() LocalModActions.SetEnabledBatch(instance, selected, enabled, token), token), If(enabled, "正在启用所选 Mod…", "正在禁用所选 Mod…"))
     End Sub
-    Private Async Function ConfirmLocalModBatchAsync(title As String, description As String) As Task(Of Boolean)
+    Private Async Function ConfirmLocalModBatchAsync(title As String, description As String, Optional returnTarget As FrameworkElement = Nothing) As Task(Of Boolean)
         Dim owner = _localModInstance, generation = _localModGeneration, selected = String.Join("|", _localModSelection.OrderBy(Function(value) value))
         If Not LocalModInputAllowed() OrElse _choosingOnline OrElse _onlinePrompt IsNot Nothing Then Return False
-        Dim prompt = PromptOnlinePackAsync(title, description, Nothing, Nothing, True, CancellationToken.None, LocalModSelectAll)
+        Dim prompt = PromptOnlinePackAsync(title, description, Nothing, Nothing, True, CancellationToken.None, returnTarget)
+        Dim closed = _onlinePromptClosed.Task
         OnlinePackConfirm.Text = "继续" : OnlinePackCancel.Text = "取消"
         Dim answer = Await prompt
-        Dim exitWait = System.Diagnostics.Stopwatch.StartNew()
-        While PackNameOverlay.IsVisible AndAlso _onlinePrompt Is Nothing AndAlso Not _closing AndAlso exitWait.ElapsedMilliseconds < 1500
-            Await Task.Delay(16)
-        End While
-        Return answer = "yes" AndAlso generation = _localModGeneration AndAlso _localModInstance Is owner AndAlso SameLocalModContext(owner) AndAlso
+        Dim exited = Await closed
+        Return exited AndAlso answer = "yes" AndAlso generation = _localModGeneration AndAlso _localModInstance Is owner AndAlso SameLocalModContext(owner) AndAlso
             selected = String.Join("|", _localModSelection.OrderBy(Function(value) value)) AndAlso LocalModInputAllowed()
     End Function
     Private Async Sub DeleteSelectedLocalMods(sender As Object, e As RoutedEventArgs)
         If Not LocalModInputAllowed() OrElse Not LocalModDeleteSelected.IsEnabled Then Return
         Dim selected = SelectedLocalMods()
-        If Not Await ConfirmLocalModBatchAsync("删除所选 Mod", "将移出 " & selected.Count & " 个 Mod。原文件保留在运行目录的 .pcl-db-mod-backups 中，可手动恢复。共享目录中的其他实例也会受到影响。") Then Return
+        If Not Await ConfirmLocalModBatchAsync("删除所选 Mod", "将移出 " & selected.Count & " 个 Mod。原文件保留在运行目录的 .pcl-db-mod-backups 中，可手动恢复。共享目录中的其他实例也会受到影响。", LocalModDeleteSelected) Then Return
         Await RunLocalModWriteAsync(Function(instance, token) RunManagementWorkerAsync(Function() LocalModActions.DeleteBatch(instance, selected, token), token), "正在移出所选 Mod…")
     End Sub
     Private Async Sub UpdateSelectedLocalMods(sender As Object, e As RoutedEventArgs)
         If Not LocalModInputAllowed() OrElse Not LocalModUpdateSelected.IsEnabled Then Return
         Dim selected = SelectedLocalMods().Where(Function(entry) HasLocalModUpdate(entry)).Select(Function(entry) _localModUpdates(entry.FilePath)).ToList()
-        If Not Await ConfirmLocalModBatchAsync("更新所选 Mod", "将更新 " & selected.Count & " 个 Mod。更新可能影响整合包兼容性；原文件将保留备份，并保留启用或禁用状态。共享目录中的其他实例也会受到影响。") Then Return
+        If Not Await ConfirmLocalModBatchAsync("更新所选 Mod", "将更新 " & selected.Count & " 个 Mod。更新可能影响整合包兼容性；原文件将保留备份，并保留启用或禁用状态。共享目录中的其他实例也会受到影响。", LocalModUpdateSelected) Then Return
         Dim limit As Double
         If Not TryGetSpeedLimit(limit) Then Return
         Dim policySnapshot = Policy(), connections = ConnectionCount(), cache = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PclDownloadBridge", "ResourceCache")

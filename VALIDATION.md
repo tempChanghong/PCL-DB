@@ -1,5 +1,9 @@
 # 本地验证记录
 
+## Beta 6.0 后续：Mod 更新确认窗口动画（2026-10-27，尚未发行）
+
+新增 31 项明暗主题、精确时钟、重复取消、替换、延迟退场、门控及焦点验证，原行为的 29 项检查中 13 项失败；修复后专项通过。完整策略 `PCL-DB-checks/2026-10-27.1`：all 2,062、motion 1,532、pack-search 1,169，navigation 908 包含在 all 中；固定 PCL 来源和 97 项验证契约另行校验。以 `artifacts/mod-prompt-motion/validation.json` 及分组回执为最终结果。Core 文件发布／下载内核未改，本轮不重跑其套件，不打包发版。[检查说明](docs/reviews/mod-update-dialog-motion-2026-10-27.md)。
+
 ## Beta 6.0 发布候选（2026-10-26）
 
 以 f4e629b03ba697ce36effedabc0e5a3af8b40639 为功能基线，将 App、Core、manifest 与四处 HTTP 请求标识统一为 6.0.0-beta.1。修正全量界面检查的构建/单 EXE 入口等待期限为有上限的 600 秒，其他组保留 180 秒；此前约 370 秒的全量检查会超过旧期限。

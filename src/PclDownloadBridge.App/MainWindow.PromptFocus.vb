@@ -64,7 +64,11 @@ Partial Public Class MainWindow
                        (view = DownloadView.Install AndAlso _selectedEntry IsNot entry)) Then Return False
                    Dim origin As FrameworkElement = Nothing
                    If weakTarget IsNot Nothing AndAlso weakTarget.TryGetTarget(origin) AndAlso IsPromptFocusTarget(origin, surface) Then
-                       Dim bounds = PclExitSnapshot.VisibleBounds(origin, viewport)
+                       ' Floating Mod actions are siblings of the scroll viewer.
+                       ' Clip them against their surface, while scrolled rows must
+                       ' still be fully visible inside the actual viewport.
+                       Dim clip As FrameworkElement = If(origin Is viewport OrElse origin.IsDescendantOf(viewport), DirectCast(viewport, FrameworkElement), surface)
+                       Dim bounds = PclExitSnapshot.VisibleBounds(origin, clip)
                        If Not bounds.IsEmpty AndAlso bounds.Height >= origin.ActualHeight - 0.5 AndAlso bounds.Width >= origin.ActualWidth - 0.5 Then
                            FocusPromptTarget(origin, viewport) : Return True
                        End If
