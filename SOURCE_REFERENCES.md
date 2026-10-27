@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 搜索分页读取的启动交接（2026-10-27）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModLoader.State`、`ResourceSearcher.SearchResult/GetLoader`、`PageResource.StartNewSearch` 和 `MyPageRight`。沿用先改变归属再通知取消、按来源保存游标与缓存、连续搜索不能丢失存储引用以及按加载状态展示的原则。
+- 分页读取同时登记搜索和图片请求；只取消／释放捕获的旧对象，在取消返回和更新加载界面后复核会话与请求。保留 60 秒搜索缓存、混合来源预览、后续页失败保留已有结果及页面动画。[复现与验证](docs/reviews/search-start-2026-10-27.md)，四份 Git 对象和摘要见 `artifacts/search-start/source/manifest.json`。
+
 ## 详情刷新启动时的请求归属（2026-10-27）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModLoader.State`、`MyPageRight.PageLoaderState/PageLoaderRestart` 和 `PageDownloadCompDetail.xaml.vb` 的资源文件加载器。沿用先变更加载状态再通知取消、只接收未取消加载结果及分阶段加载展示的原则。

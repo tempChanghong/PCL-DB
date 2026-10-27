@@ -45,6 +45,7 @@ Partial Public Class MainWindow
         VerifyDependencyNamesUi(directory, passed)
         VerifyDependencyResetUi(directory, passed)
         VerifyDetailStartUi(directory, passed)
+        VerifySearchStartUi(directory, passed)
         VerifyResourceArtworkUi(directory, passed)
         VerifyLocalPackNavigationUi(directory, passed)
         VerifyTaskChoiceUi(directory, passed)

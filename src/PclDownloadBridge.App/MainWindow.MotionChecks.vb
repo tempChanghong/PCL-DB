@@ -74,6 +74,7 @@ Partial Public Class MainWindow
         VerifyResourceConfirmExitUi(directory, localModSelectionChecks)
         VerifyDependencyResetUi(directory, localModSelectionChecks)
         VerifyDetailStartUi(directory, localModSelectionChecks)
+        VerifySearchStartUi(directory, localModSelectionChecks)
         For Each label In localModSelectionChecks : check(True, label) : Next
         VerifyLocalModRowMotion(directory, check)
         Return passed

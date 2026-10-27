@@ -234,11 +234,10 @@ Partial Public Class MainWindow
             PackSearchHint.ToolTip = Nothing : PackSearchHint.Visibility = Visibility.Visible
             Return
         End If
-        _packSearchRequest?.Cancel()
-        _packArtworkRequest?.Cancel() : _packArtworkRequest?.Dispose()
-        _packArtworkRequest = New CancellationTokenSource()
-        Dim artworkToken = _packArtworkRequest.Token
-        Dim request As New CancellationTokenSource : _packSearchRequest = request
+        Dim previous = _packSearchRequest, previousArtwork = _packArtworkRequest
+        Dim request As New CancellationTokenSource, artwork As New CancellationTokenSource
+        Dim artworkToken = artwork.Token
+        _packSearchRequest = request : _packArtworkRequest = artwork
         Dim acceptsPreviews = True, previewShown = False, previewWork As Task = Task.CompletedTask
         Dim progress As New Progress(Of ModpackSearchPreview)(Sub(value)
                                                                  If Dispatcher.HasShutdownStarted Then Return
@@ -252,15 +251,28 @@ Partial Public Class MainWindow
                                                                      ' A closing dispatcher owns no presentation.
                                                                  End Try
                                                              End Sub)
-        PackFirstPage.IsEnabled = False : PackPreviousPage.IsEnabled = False : PackNextPage.IsEnabled = False
-        _packSearchLoading.Start(request, request.Token, AddressOf PreparePackSearchLoading, Sub() ChangePackResults(Sub()
+        Try
+            ' Publish search and artwork ownership before notifying old work.
+            ' A newer page/query may replace both sources during cancellation.
+            Try
+                previous?.Cancel()
+            Finally
+                Try
+                    previousArtwork?.Cancel()
+                Finally
+                    previousArtwork?.Dispose()
+                End Try
+            End Try
+            If Not CurrentPackSearch(session, request) Then Return
+            PackFirstPage.IsEnabled = False : PackPreviousPage.IsEnabled = False : PackNextPage.IsEnabled = False
+            _packSearchLoading.Start(request, request.Token, AddressOf PreparePackSearchLoading, Sub() ChangePackResults(Sub()
                               PackSearchHint.Visibility = Visibility.Collapsed : PackPagingCard.Visibility = Visibility.Collapsed
                               PackResultsCard.Visibility = Visibility.Visible
                               PackProjectRows.Children.Clear() : PackResultsCard.Title = "正在获取" & ResourceNameSpaced(_resourceKind) & "列表…"
                               PackResultsCard.HorizontalAlignment = HorizontalAlignment.Center
                               PackProjectRows.Children.Add(New PclLoadingView("正在获取" & ResourceNameSpaced(_resourceKind) & "列表"))
                           End Sub), immediate:=_packImmediateSearch)
-        Try
+            If Not CurrentPackSearch(session, request) Then Return
             Dim items As List(Of ModpackProject)
             Dim retainedPage = False
             Using client = _packCatalogFactory()
