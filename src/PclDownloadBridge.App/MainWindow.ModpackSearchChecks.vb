@@ -49,6 +49,7 @@ Partial Public Class MainWindow
         VerifyManagementPromptUi(directory, passed)
         VerifyResourcePromptLifecycleUi(directory, passed)
         VerifyResourceInputReentrancyUi(directory, passed)
+        VerifyResourceConfirmExitUi(directory, passed)
     End Sub
     Private Async Function VerifyPackSearchAsync(directory As String, host As Border, check As Action(Of Boolean, String)) As Task
         Dim layout As Action = Sub()

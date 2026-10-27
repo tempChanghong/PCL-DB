@@ -141,8 +141,11 @@ Partial Public Class MainWindow
                     Finally
                         SynchronizationContext.SetSynchronizationContext(context)
                     End Try
+                    Dim acceptedExit = _onlinePromptClosed.Task
                     ConfirmResourceTargetAsync()
                     Await WaitPackUiAsync(Function() held.Count > 0)
+                    If _onlinePromptMotion IsNot Nothing Then _onlinePromptMotion.Controller.SkipToFill()
+                    Await WaitPackUiAsync(Function() acceptedExit.IsCompleted)
                     replacement = PromptResourceTargetAsync(later, target, ChangeFolderButton)
                     ConfirmResourceTargetAsync()
                     Dim secondPlan = Await replacement

@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 资源安装确认框退场与任务交接（2026-10-27）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MyMsgText.Close/Btn1_Click`、`MyPageRight` 及 `PageDownloadCompDetail.Install_Click`。上游先设置结果，再独立执行关闭动画；本轮保留现有淡出、位移、旋转和遮罩参数，不声称上游结果等待完整退场。
+- PCL-DB 的额外安装目标弹窗改为在成功选择后等待其自身退场完成，再交给资源任务页；替代弹窗使原退场失效时放弃旧计划。取消仍按原逻辑返回，关闭动画时立即交接。[复现与验证](docs/reviews/resource-confirm-exit-2026-10-27.md)，三份原始 Git 对象及摘要见 `artifacts/resource-confirm-exit/source/manifest.json`。
+
 ## 前置资源点击的查询交接（2026-10-27）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MyResourceItem.MyResourceItem_Click`、`PageDownloadCompDetail` 前置列表构造及 `ModLoader.State`。前置导航保留当前实例／加载器上下文，并由真正接受的页面切换建立返回帧；取消前先变更加载归属。

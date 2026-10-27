@@ -65,11 +65,16 @@ Partial Public Class MainWindow
         ResourceTargetWorldRow.Visibility = If(release.Kind = CommunityResourceKind.DataPack, Visibility.Visible, Visibility.Collapsed)
         ResourceTargetLocation.Text = "正在读取已安装版本…"
         Dim prompt = PromptOnlinePackAsync("安装到版本", CommunityResources.Name(release.Kind) & " · " & release.Name, target.Root, "", True, request.Token, owner)
+        Dim closed = _onlinePromptClosed.Task
         OnlinePackConfirm.Text = "安装" : OnlinePackCancel.Text = "取消"
         LoadResourceTargetsAsync(target, request)
         Try
             Dim result = Await prompt
-            Return If(result = "yes", choice.Plan, Nothing)
+            If result <> "yes" Then Return Nothing
+            ' Preserve PCL's close motion before handing off to the task page.
+            ' A replacement modal revokes this accepted choice's pending exit.
+            Dim exited = Await closed
+            Return If(exited AndAlso Not _closing, choice.Plan, Nothing)
         Finally
             request.Cancel()
             If _resourceTargetRequest Is request Then _resourceTargetRequest = Nothing

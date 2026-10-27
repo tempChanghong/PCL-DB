@@ -103,8 +103,9 @@ Partial Public Class MainWindow
                     check(Not _choosingOnline AndAlso gates.Count = 1 AndAlso _taskGeneration = taskGeneration AndAlso _onlinePrompt Is Nothing AndAlso
                         first.Release.Id = release.Id AndAlso first.Root = root AndAlso Not first.Token.IsCancellationRequested,
                         "the accepted choice hands ownership to the frozen running task rather than retaining a global selection lock" & label)
-                    blockedExit = Not animated OrElse (PackNameOverlay.Visibility = Visibility.Visible AndAlso Not NavigateTitleBack())
-                    check(blockedExit, "task start cannot bypass a modal exit still on screen" & label)
+                    blockedExit = If(resource, PackNameOverlay.Visibility = Visibility.Collapsed AndAlso PageSurface.IsEnabled,
+                        Not animated OrElse (PackNameOverlay.Visibility = Visibility.Visible AndAlso Not NavigateTitleBack()))
+                    check(blockedExit, "task start respects its resource exit completion or online-pack modal input gate" & label)
                     hidePrompt()
                     Dim returned = NavigateTitleBack() : settle()
                     check(returned AndAlso _downloadView = DownloadView.Modpacks AndAlso _packMode = PackBrowserMode.Detail AndAlso _packProject Is project AndAlso
