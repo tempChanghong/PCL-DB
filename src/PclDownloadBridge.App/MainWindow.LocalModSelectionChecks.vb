@@ -16,6 +16,7 @@ Partial Public Class MainWindow
         VerifyLocalModShortcutUi(directory, passed)
         VerifyLocalModToolbarFocusUi(directory, passed)
         VerifyLocalModBatchFocusUi(directory, passed)
+        VerifyLocalModUpdateFilterUi(directory, passed)
         Dim owner As New MainWindow(True), original = owner.Content, previous = SynchronizationContext.Current
         Dim host As New Border With {.Width = 900, .Height = 700}, layout = ControlLayout(host)
         Dim check As Action(Of Boolean, String) = Sub(ok, label)

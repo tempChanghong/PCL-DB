@@ -192,17 +192,18 @@ Partial Public Class MainWindow
             LocalModUpdateStatus.Text = If(result.Errors.Count = 0, "", "部分来源暂不可用，点击刷新重试。")
             LocalModUpdateStatus.ToolTip = String.Join(vbCrLf, result.Errors)
             ' Online metadata does not own page motion or keyboard focus.
-            If _localModFilter = "updates" Then
+            Dim query = LocalModSearch.Text.Trim()
+            Dim updatable = _localMods.Where(Function(item) HasLocalModUpdate(item) AndAlso (query.Length = 0 OrElse
+                (item.DisplayName & " " & item.Version & " " & item.FileName & " " & item.Description & " " & String.Join(" ", item.ModIds)).IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0)).ToList()
+            If _localModFilter = "updates" AndAlso Not updatable.SequenceEqual(LocalModRows.Children.OfType(Of PclLocalModItem)().Select(Function(item) DirectCast(item.Tag, LocalModEntry))) Then
                 RenderLocalMods()
             Else
-                ' Do not detach a focused row when online metadata arrives.
+                ' Matching membership needs metadata only. Reattaching these
+                ' same rows would settle their partly entered selection clocks.
                 For Each item In LocalModRows.Children.OfType(Of PclLocalModItem)()
                     ConfigureLocalModSelection(item, DirectCast(item.Tag, LocalModEntry))
                 Next
-                Dim query = LocalModSearch.Text.Trim()
-                Dim count = _localMods.Where(Function(item) HasLocalModUpdate(item) AndAlso (query.Length = 0 OrElse
-                    (item.DisplayName & " " & item.Version & " " & item.FileName & " " & item.Description & " " & String.Join(" ", item.ModIds)).IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0)).Count()
-                LocalModUpdatable.Text = "可更新 (" & count & ")" : LocalModUpdatable.Visibility = If(count > 0, Visibility.Visible, Visibility.Collapsed)
+                LocalModUpdatable.Text = "可更新 (" & updatable.Count & ")" : LocalModUpdatable.Visibility = If(updatable.Count > 0 OrElse _localModFilter = "updates", Visibility.Visible, Visibility.Collapsed)
                 RefreshLocalModSelectionAvailability(LocalModRows.IsEnabled AndAlso _localModReadSucceeded AndAlso Not _localModWriting)
             End If
         Catch ex As OperationCanceledException When request.IsCancellationRequested

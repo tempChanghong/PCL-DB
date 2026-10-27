@@ -1,5 +1,9 @@
 # PCL2 代码依据
 
+## 可更新 Mod 列表的信息刷新与动画（2026-10-28）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.McModListItem/RefreshUI` 和 `MyLocalModItem.Refresh/Checked`：在线信息走单行刷新，成员重建与选中动画分开处理。PCL-DB 在“可更新”成员及顺序不变时保留已挂载行，避免结算未完成的选中时钟；实际成员变化仍刷新列表并裁剪选择。[复现与验证](docs/reviews/local-mod-update-filter-2026-10-28.md)，两份固定 Git 原始字节及摘要见 `artifacts/local-mod-update-filter/source/manifest.json`。
+
 ## 本地 Mod 批量操作的焦点交接（2026-10-28）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.RefreshBars/BtnSelectED_Click/EDMods` 以及 `MyScrollViewer`。PCL-DB 为自己的异步批量操作与可聚焦底栏补齐视口焦点交接，沿现有动画门控、实例／代次和输入归属检查处理。[复现与验证](docs/reviews/local-mod-batch-focus-2026-10-28.md)，两份固定 Git 原始字节及摘要见 `artifacts/local-mod-batch-focus/source/manifest.json`。
