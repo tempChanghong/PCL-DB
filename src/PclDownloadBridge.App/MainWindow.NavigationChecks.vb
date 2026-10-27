@@ -32,6 +32,7 @@ Partial Public Class MainWindow
         VerifyLocalModUpdateLifecycleUi(artifactDirectory, checks)
         VerifyLocalModPromptUi(artifactDirectory, checks)
         VerifyResourcePromptLifecycleUi(artifactDirectory, checks)
+        VerifyResourceInputReentrancyUi(artifactDirectory, checks)
         VerifyRepairNativeUi(artifactDirectory, checks)
         VerifyLocalModUi(artifactDirectory, check)
         Dim cancellationChecks As New List(Of String)

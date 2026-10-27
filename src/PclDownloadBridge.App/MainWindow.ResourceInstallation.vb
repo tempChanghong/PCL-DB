@@ -13,6 +13,7 @@ Partial Public Class MainWindow
     Private _resourceTargetChoice As ResourceTargetChoice
     Private NotInheritable Class ResourceTargetChoice
         Friend Plan As ResourceInstallationPlan
+        Friend InputRevision As Long
     End Class
     Private _resourceTargetProblem As String
     Private _resourceTargetLauncher As LauncherInstallTarget
@@ -106,23 +107,30 @@ Partial Public Class MainWindow
     End Sub
     Private Sub RefreshResourceTargets(sender As Object, e As RoutedEventArgs)
         If Not _resourceTargetPrompt OrElse _resourceTargetLoading OrElse _resourceTargetValidating OrElse _resourceTargetRequest Is Nothing OrElse _resourceTargetRequest.IsCancellationRequested Then Return
+        Dim parent = _resourceTargetRequest, choice = _resourceTargetChoice, launcher = _resourceTargetLauncher
+        choice.InputRevision += 1
+        Dim revision = choice.InputRevision
         Dim preferred = TryCast(TryCast(ResourceTargetInstance.SelectedItem, ComboBoxItem)?.Tag, InstalledInstance)?.Name
-        OnlinePromptBody.StopScrolling() : OnlinePromptBody.ScrollToHome()
         CancelResourceWorldRequest()
+        If Not OwnsResourceTargetInput(choice, parent, revision) Then Return
+        OnlinePromptBody.StopScrolling() : OnlinePromptBody.ScrollToHome()
         _resourceTargetLoading = True : _resourceWorldLoading = False : _resourceTargetProblem = Nothing
         ResourceTargetInstance.IsEnabled = False : ResourceTargetWorld.IsEnabled = False
         ResourceTargetInstance.Items.Clear() : ResourceTargetWorld.Items.Clear()
         ValidateResourceTarget()
-        LoadResourceTargetsAsync(_resourceTargetLauncher, _resourceTargetRequest, preferred, chooseDefault:=False)
+        LoadResourceTargetsAsync(launcher, parent, preferred, chooseDefault:=False)
     End Sub
     Private Async Sub ResourceTargetInstanceChanged(sender As Object, e As SelectionChangedEventArgs)
         If Not _resourceTargetPrompt Then Return
+        Dim parent = _resourceTargetRequest, choice = _resourceTargetChoice
+        choice.InputRevision += 1
+        Dim revision = choice.InputRevision
         CancelResourceWorldRequest()
+        If Not OwnsResourceTargetInput(choice, parent, revision) Then Return
         _resourceTargetProblem = Nothing : _resourceWorldLoading = False
         ResourceTargetWorld.Items.Clear() : ResourceTargetWorld.IsEnabled = False
         Dim instance = TryCast(TryCast(ResourceTargetInstance.SelectedItem, ComboBoxItem)?.Tag, InstalledInstance)
         If instance Is Nothing OrElse _resourceTargetRelease.Kind <> CommunityResourceKind.DataPack Then ValidateResourceTarget() : Return
-        Dim parent = _resourceTargetRequest
         Dim request = CancellationTokenSource.CreateLinkedTokenSource(parent.Token)
         Dim token = request.Token
         _resourceWorldRequest = request : _resourceWorldLoading = True : ValidateResourceTarget()
@@ -140,6 +148,12 @@ Partial Public Class MainWindow
             request.Dispose()
         End Try
     End Sub
+    Private Function OwnsResourceTargetInput(choice As ResourceTargetChoice, parent As CancellationTokenSource, revision As Long) As Boolean
+        ' Cancellation can synchronously select/refresh again in the same modal
+        ' and parent request. Only the latest input may rebuild its controls.
+        Return Not _closing AndAlso _resourceTargetPrompt AndAlso _resourceTargetChoice Is choice AndAlso _resourceTargetRequest Is parent AndAlso
+            choice.InputRevision = revision AndAlso Not parent.IsCancellationRequested
+    End Function
     Private Sub ResourceTargetWorldChanged(sender As Object, e As SelectionChangedEventArgs)
         If _resourceTargetPrompt Then _resourceTargetProblem = Nothing : ValidateResourceTarget()
     End Sub

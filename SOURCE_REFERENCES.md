@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 资源刷新与实例切换的输入代次（2026-10-27）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MyMsgSelect`、`PageInstanceMod.ReloadModList`。保留显式刷新、滚动回顶和明确选择；异步取消返回后，桥接程序另核对窗口、父请求和输入代次，避免旧流程覆盖更新的实例／存档。
+- 刷新捕获原启动器及父请求，归属失效后不再清空控件或发起新读取，原动画不变。[复现与验证](docs/reviews/resource-input-reentrancy-2026-10-27.md)，原始对象摘要见 `artifacts/resource-input-reentrancy/source/manifest.json`。
+
 ## 资源选择弹窗的取消与结果归属（2026-10-27）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MyMsgSelect`、`MyMsgText` 与 `PageDownloadCompDetail`。参照消息先确定退出状态、再关闭和退场的边界，保留已有动画；异步请求和每次确认结果的归属由桥接程序补充处理。

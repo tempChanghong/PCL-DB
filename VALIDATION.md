@@ -1,5 +1,9 @@
 # 本地验证记录
 
+## Beta 6.0 后续：刷新及实例选择重入（2026-10-27，尚未发行）
+
+新增 144 项，覆盖三种启动器、明暗、开关动画、取消时重开、同窗嵌套刷新、实例切换及最新存档选择。原行为 60 项失败；修复后专项通过。策略 `PCL-DB-checks/2026-10-27.3`：all 2,374、motion 1,844、pack-search 1,481；navigation 1,220 包含在 all 中。固定 PCL 来源、97 项验证契约及构建另验；最终回执在 `artifacts/resource-input-reentrancy/validation.json`。专项只使用临时实例及存档标记，不启动下载，不改 Core 源码，不打包发版。[检查说明](docs/reviews/resource-input-reentrancy-2026-10-27.md)。
+
 ## Beta 6.0 后续：资源安装弹窗归属（2026-10-27，尚未发行）
 
 新增 168 项，覆盖 PCL／HMCL／PCL-CE、明暗主题、开关动画、重复打开、取消回调重开、取消通知异常和两个确认的延迟返回。原行为先执行 144 项，其中 84 项失败；修复后专项通过。策略 `PCL-DB-checks/2026-10-27.2`：all 2,230、motion 1,700、pack-search 1,337；navigation 1,076 包含在 all 中。固定 PCL 来源、97 项验证契约及构建另验；最终结果在 `artifacts/resource-prompt-lifecycle/validation.json`。只操作临时实例，配置与存档字节保持，未发起下载；Core 源码未改，不打包发版。[检查说明](docs/reviews/resource-prompt-lifecycle-2026-10-27.md)。
