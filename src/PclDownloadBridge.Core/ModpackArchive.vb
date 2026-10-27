@@ -57,6 +57,7 @@ Public NotInheritable Class ModpackArchiveInstaller
     Private Sub New()
     End Sub
     Public Shared Async Function AcquireAsync(release As ModpackRelease, root As String, policy As SourcePolicy, progress As IProgress(Of TransferProgress), token As CancellationToken, Optional connections As Integer = 16, Optional limit As Long = 0) As Task(Of String)
+        token.ThrowIfCancellationRequested()
         release = release.Copy()
         ModpackArchivePolicy.Validate(release.Url, release.Platform, policy.AllowLoopback)
         If release.Size <= 0 OrElse (release.Sha1 Is Nothing AndAlso release.Sha512 Is Nothing AndAlso release.Md5 Is Nothing) Then Throw New InvalidDataException("归档缺少有效大小或校验摘要。")
@@ -96,6 +97,7 @@ Public NotInheritable Class ModpackArchiveInstaller
     ' Online and local acquisition converge at the same content detection,
     ' parsers and installers; catalogue display metadata never supplies dependencies.
     Public Shared Function ReadPackage(path As String, token As CancellationToken) As Object
+        token.ThrowIfCancellationRequested()
         If ModpackFormats.Detect(path) = ModpackFormat.Modrinth Then Return ModrinthPackage.Read(path, token)
         Return CurseForgePackage.Read(path, token)
     End Function

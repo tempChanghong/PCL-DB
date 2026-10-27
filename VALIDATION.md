@@ -1,5 +1,9 @@
 # 本地验证记录
 
+## Beta 6.0 后续：资源获取／整合包识别的取消入口（2026-10-27，尚未发行）
+
+新增 31 项 Core 检查：两平台 × 五类资源 × 未建缓存／文件占位，检查调用前已取消时的异常令牌、零目录创建、占位文件保持、零进度／网络请求；另覆盖缺失、损坏和正常两种格式的本地包，以及取消后重新下载、缓存复用和格式识别。原实现 22 项失败，修复后通过。执行 `modpack-catalogue` 444 项、`community-resources` 143 项、`local-mod-updates` 144 项，合计含新增组 762 项；临时夹具和回环 HTTP 验证，不操作用户游戏文件。Release 构建零警告、零错误，固定 PCL 来源／资源和验证工具另验。未重跑完整 UI／搜索／Core 全套，未打包、推送或发版。[检查说明](docs/reviews/archive-cancellation-2026-10-27.md)，回执见 `artifacts/archive-cancellation/validation.json`。
+
 ## Beta 6.0 后续：HMCL 导出的 Modrinth 环境声明（2026-10-27，尚未发行）
 
 新增 25 项 Core 检查：只含客户端的环境声明、明确服务端声明、非法／缺失客户端、非法／空服务端，以及选择／不选择可选文件时的真实下载、取消、原子发布、重试、共享 Mods／设置保持和已有目标冲突。旧实现在首个包读取处报 `Modrinth server 文本字段无效`；修复后专项通过。执行完整 `modrinth-all` 153 项（包含新增 25 项）和 `native-isolation` 148 项，使用临时目录及回环 HTTP。Release 构建零警告、零错误，固定 PCL 来源／资源和验证工具另验。本轮不重跑完整 UI、搜索或 Core 全套，不将已有注册数量当成执行数量；不打包发版。[检查说明](docs/reviews/modrinth-client-environment-2026-10-27.md)，回执见 `artifacts/modrinth-client-env/validation.json`。

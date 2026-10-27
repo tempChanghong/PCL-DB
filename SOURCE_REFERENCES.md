@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 归档获取及本地导入的取消入口（2026-10-27）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModLoader.LoaderTask`：取消异常单独进入取消状态，已取消／替代线程的结果不作为成功结果发布；`ModModpack` 按清单类型进入各整合包安装器。
+- PCL-DB 的额外公共接口 `AcquireAsync`、`ReadPackage` 在请求已取消时先返回对应取消异常，避免先创建缓存或打开文件。这里使用 .NET 令牌补齐本工具的入口边界，不声称上游存在同名接口或相同实现。[复现与验证](docs/reviews/archive-cancellation-2026-10-27.md)，两份固定 Git 原始字节和摘要见 `artifacts/archive-cancellation/source/manifest.json`。
+
 ## Modrinth 客户端环境与 HMCL 导出兼容（2026-10-27）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModModpack.InstallPackModrinth`：依据 `env.client` 提供可选文件选择、跳过不支持客户端的文件，不要求服务端声明参与客户端安装。
