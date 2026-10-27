@@ -296,7 +296,10 @@ Partial Public Class MainWindow
         End Try
     End Sub
     Private Sub QueueLocalModWriteFocus(owner As InstalledInstance, entry As LocalModEntry, previous As IInputElement, inputVersion As Long, operationGeneration As Long, readGeneration As Long)
-        If entry Is Nothing Then Return
+        Dim previousControl = TryCast(previous, DependencyObject)
+        ' Batch actions retire their own toolbar, rather than a single row.
+        ' Restore the viewport through the same guarded content handoff.
+        If entry Is Nothing AndAlso (previousControl Is Nothing OrElse Not LocalModSelectionBar.IsAncestorOf(previousControl)) Then Return
         _localModFocusRestore = Sub()
                                    If _closing OrElse _localModWriting OrElse _localModScanning OrElse operationGeneration <> _localModOperationGeneration OrElse
                                        readGeneration <> _localModGeneration OrElse Not SameLocalModContext(owner) OrElse Not LocalModInputAllowed() Then Return
@@ -306,7 +309,7 @@ Partial Public Class MainWindow
                                    Dim source = PresentationSource.FromVisual(LocalModsPage)
                                    If current IsNot Nothing AndAlso current IsNot previous AndAlso current IsNot Me AndAlso current IsNot LocalModsPage AndAlso current IsNot source?.RootVisual Then Return
                                    Dim destination As UIElement = LocalModsPage
-                                   If inputVersion = _downloadFocusInputVersion AndAlso _localModReadSucceeded Then
+                                   If entry IsNot Nothing AndAlso inputVersion = _downloadFocusInputVersion AndAlso _localModReadSucceeded Then
                                        Dim replacement = _localMods.FirstOrDefault(Function(item) String.Equals(item.FileName, entry.FileName, StringComparison.OrdinalIgnoreCase))
                                        If replacement Is Nothing Then replacement = _localMods.FirstOrDefault(Function(item) String.Equals(item.EnabledName, entry.EnabledName, StringComparison.OrdinalIgnoreCase))
                                        Dim row As Grid = Nothing

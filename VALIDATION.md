@@ -1,5 +1,9 @@
 # 本地验证记录
 
+## Beta 6.0 后续：Mod 批量操作焦点（2026-10-28，尚未发行）
+
+新增 60 项 WPF 检查，覆盖明暗 × 开关动画下批量写入生命周期的成功、失败、请求取消后重读、重读失败、焦点／滚动、动画交接及新搜索／设置页焦点保护。原实现 16/60 项失败；修复后选择链路 252 项（包含新增 60 项）、行与列表样式 45 项、文件操作与页面交互 17 项通过。使用受控操作 Task、临时目录及实际列表重读；不向桌面发送按键，不写用户实例／配置。策略 `PCL-DB-checks/2026-10-28.5` 注册 all 3,701、motion 3,086、navigation 2,078，本轮未重跑完整 UI、motion、搜索 UI 或 Core 套件。Release 重建零警告、零错误，验证工具和固定 PCL 来源另验；不打包、推送或发版。[检查说明](docs/reviews/local-mod-batch-focus-2026-10-28.md)，回执见 `artifacts/local-mod-batch-focus/validation.json`。
+
 ## Beta 6.0 后续：Mod 底栏退场焦点（2026-10-28，尚未发行）
 
 新增 28 项 WPF 检查，覆盖明暗 × 开关动画下实际按钮 Enter 激活、选择清理、退场前／后的键盘焦点、非零滚动位置、搜索编辑、顶部按钮和设置页焦点保护。原实现 8/28 项失败，修复后选择链路 192 项（已包含新增 28 项）、列表样式／行交互 45 项、取消焦点与页面交互 17 项通过。策略 `PCL-DB-checks/2026-10-28.4` 注册 all 3,641、motion 3,026、navigation 2,018；本轮未重跑完整套件、搜索 UI 或 Core 全套。Release 重建零警告、零错误，验证工具和固定 PCL 来源另验。使用临时 WPF／Mod 夹具，不向桌面发送按键，不写入用户实例或配置，不打包、推送或发版。[检查说明](docs/reviews/local-mod-toolbar-focus-2026-10-28.md)，回执见 `artifacts/local-mod-toolbar-focus/validation.json`。

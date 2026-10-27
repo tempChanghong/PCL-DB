@@ -1,5 +1,7 @@
 # PCL-DB · PCL Download Bridge
 
+后续源码补齐 Mod 批量操作后的焦点交接：底栏收起后，成功、取消和重读失败沿原动画门控返回列表，保留滚动位置和新页面焦点。[检查说明](docs/reviews/local-mod-batch-focus-2026-10-28.md)。本项尚未打包发布。
+
 后续源码修复键盘取消 Mod 选择后焦点滞留在退场操作栏的问题，回到列表时保留滚动位置，搜索和页面切换继续保留各自焦点。[检查说明](docs/reviews/local-mod-toolbar-focus-2026-10-28.md)。本项尚未打包发布。
 
 后续源码对齐 PCL2 的 Mod 全选快捷键：连续 Ctrl+A 保持全选，空搜索框交给列表处理；有文字时保留文本全选，按钮仍可取消全选。[检查说明](docs/reviews/local-mod-shortcuts-2026-10-28.md)。本项尚未打包发布。

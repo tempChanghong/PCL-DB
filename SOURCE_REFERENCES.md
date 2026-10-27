@@ -1,5 +1,9 @@
 # PCL2 代码依据
 
+## 本地 Mod 批量操作的焦点交接（2026-10-28）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.RefreshBars/BtnSelectED_Click/EDMods` 以及 `MyScrollViewer`。PCL-DB 为自己的异步批量操作与可聚焦底栏补齐视口焦点交接，沿现有动画门控、实例／代次和输入归属检查处理。[复现与验证](docs/reviews/local-mod-batch-focus-2026-10-28.md)，两份固定 Git 原始字节及摘要见 `artifacts/local-mod-batch-focus/source/manifest.json`。
+
 ## 本地 Mod 底栏退场的键盘焦点（2026-10-28）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.RefreshBars` 退场／收起逻辑，以及 `MyScrollViewer` 的焦点与滚动处理。保留原底栏时长、计数和清理规则。
