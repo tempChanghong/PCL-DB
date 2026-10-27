@@ -124,8 +124,16 @@ Public Module SafeFiles
     End Function
 
     Public Sub ValidateInstanceName(value As String)
-        If String.IsNullOrWhiteSpace(value) OrElse value <> value.Trim() OrElse value.EndsWith(".", StringComparison.Ordinal) OrElse value.Length > 100 OrElse value.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 OrElse value = "." OrElse value = ".." Then Throw New ArgumentException("实例名称无效，请使用普通文件夹名称。")
-        If System.Text.RegularExpressions.Regex.IsMatch(value, "^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\.|$)", System.Text.RegularExpressions.RegexOptions.IgnoreCase) Then Throw New ArgumentException("实例名称是 Windows 保留名称。")
+        ValidateName(value, 100, "实例")
+    End Sub
+
+    Friend Sub ValidatePathSegment(value As String)
+        ValidateName(value, 255, "文件或文件夹")
+    End Sub
+
+    Private Sub ValidateName(value As String, maximum As Integer, description As String)
+        If String.IsNullOrWhiteSpace(value) OrElse value <> value.Trim() OrElse value.EndsWith(".", StringComparison.Ordinal) OrElse value.Length > maximum OrElse value.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 OrElse value = "." OrElse value = ".." Then Throw New ArgumentException(description & "名称无效，请使用普通文件夹名称。")
+        If System.Text.RegularExpressions.Regex.IsMatch(value, "^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\.|$)", System.Text.RegularExpressions.RegexOptions.IgnoreCase) Then Throw New ArgumentException(description & "名称是 Windows 保留名称。")
     End Sub
 
     Public Function Matches(path As String, item As DownloadFile) As Boolean

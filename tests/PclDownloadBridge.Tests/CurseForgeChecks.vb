@@ -41,7 +41,7 @@ Friend Module CurseForgeChecks
         End Using
         Return target
     End Function
-    Private Class Handler
+    Friend Class Handler
         Inherits HttpMessageHandler
         Friend ReadOnly Requests As New ConcurrentQueue(Of String)
         Friend ReadOnly Bytes As New Dictionary(Of Long, Byte()) From {{1001, Encoding.UTF8.GetBytes("fixture required mod")}, {1002, Encoding.UTF8.GetBytes("fixture optional mod")}}

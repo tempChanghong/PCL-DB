@@ -100,7 +100,7 @@ Public Class CurseForgeFileResolver
                 Dim games = TryCast(data("gameVersions"), JArray)
                 If games Is Nothing OrElse games.Any(Function(value) value.Type <> JTokenType.String) OrElse Not games.Values(Of String)().Contains(mc) Then Throw New InvalidDataException("文件未声明支持整合包指定的 Minecraft 版本")
                 Dim filename = CurseForgePackage.TextValue(data, "fileName")
-                SafeFiles.ValidateInstanceName(filename)
+                SafeFiles.ValidatePathSegment(filename)
                 Dim folder = "mods/"
                 If Not filename.EndsWith(".jar", StringComparison.OrdinalIgnoreCase) Then
                     Dim project = TryCast((Await JsonAsync(source.Substring(0, source.LastIndexOf("/files/", StringComparison.Ordinal)), token).ConfigureAwait(False))("data"), JObject)

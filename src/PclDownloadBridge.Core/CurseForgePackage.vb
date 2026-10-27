@@ -124,9 +124,9 @@ Public NotInheritable Class CurseForgePackage
         Return entry.FullName.EndsWith("/", StringComparison.Ordinal) OrElse entry.FullName.EndsWith("\", StringComparison.Ordinal)
     End Function
     Friend Shared Sub ValidateRelative(value As String)
-        If String.IsNullOrWhiteSpace(value) OrElse value.Length > 240 OrElse value.StartsWith("/", StringComparison.Ordinal) OrElse value.Contains("\"c) Then Throw New InvalidDataException("整合包路径无效：" & value)
+        If String.IsNullOrWhiteSpace(value) OrElse value.Length > 32767 OrElse value.StartsWith("/", StringComparison.Ordinal) OrElse value.Contains("\"c) Then Throw New InvalidDataException("整合包路径无效：" & value)
         For Each segment In value.Split("/"c)
-            SafeFiles.ValidateInstanceName(segment)
+            SafeFiles.ValidatePathSegment(segment)
         Next
     End Sub
     Friend Shared Function Number(value As JObject, field As String, Optional minimum As Long = 1) As Long

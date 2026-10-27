@@ -45,7 +45,7 @@ Friend Class VerifiedComponentCache
                 Try
                     Dim candidate = SafeFiles.UnderRoot(readRoot, relative)
                     If Not SafeFiles.Matches(candidate, item) Then Continue For
-                    temporary = target & ".cache-" & Guid.NewGuid().ToString("N")
+                    temporary = Path.Combine(Path.GetDirectoryName(target), ".pcldb.cache-" & Guid.NewGuid().ToString("N") & ".tmp")
                     CopyChecked(candidate, temporary, item, token)
                 Catch ex As Exception When TypeOf ex Is IOException OrElse TypeOf ex Is UnauthorizedAccessException OrElse TypeOf ex Is ArgumentException
                     ' Optional cache reads/copies may fall back. A real destination

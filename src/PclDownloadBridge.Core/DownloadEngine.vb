@@ -193,7 +193,7 @@ Public Class DownloadEngine
                 Continue For
             End Try
             If reusable Then
-                Dim copyTemp = target & ".reuse-" & Guid.NewGuid().ToString("N")
+                Dim copyTemp = Path.Combine(Path.GetDirectoryName(target), ".pcldb.reuse-" & Guid.NewGuid().ToString("N") & ".tmp")
                 Try
                     Try
                         token.ThrowIfCancellationRequested()
