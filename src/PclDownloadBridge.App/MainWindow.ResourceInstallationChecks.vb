@@ -200,7 +200,7 @@ Partial Public Class MainWindow
         Dim staleWorld = DirectCast(DirectCast(ResourceTargetWorld.SelectedItem, ComboBoxItem).Tag, InstalledWorld), taskBeforeRefresh = _taskGeneration
         File.WriteAllText(Path.Combine(staleWorld.Folder, "level.dat"), "changed while picker stayed open")
         ConfirmOnlinePackName(Nothing, Nothing) : Await WaitPackUiAsync(Function() Not _resourceTargetValidating) : layout()
-        check(_resourceTargetPrompt AndAlso _confirmedResourcePlan Is Nothing AndAlso OnlinePackNameHint.IsVisible AndAlso ResourceTargetRefresh.IsEnabled AndAlso _taskGeneration = taskBeforeRefresh, "changed world confirmation remains in the picker with an actionable refresh and no installation task")
+        check(_resourceTargetPrompt AndAlso _resourceTargetChoice.Plan Is Nothing AndAlso OnlinePackNameHint.IsVisible AndAlso ResourceTargetRefresh.IsEnabled AndAlso _taskGeneration = taskBeforeRefresh, "changed world confirmation remains in the picker with an actionable refresh and no installation task")
         RefreshResourceTargets(Nothing, Nothing) : Await WaitPackUiAsync(Function() Not _resourceTargetLoading AndAlso Not _resourceWorldLoading) : layout()
         check(DirectCast(DirectCast(ResourceTargetInstance.SelectedItem, ComboBoxItem).Tag, InstalledInstance).Name = "Isolated" AndAlso ResourceTargetWorld.SelectedIndex = -1 AndAlso Not OnlinePackConfirm.IsEnabled, "refresh retains the explicit instance while requiring a new world selection")
         ResourceTargetWorld.SelectedIndex = 0 : ConfirmOnlinePackName(Nothing, Nothing)

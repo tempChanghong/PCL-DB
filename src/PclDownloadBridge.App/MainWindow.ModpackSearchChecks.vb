@@ -46,6 +46,7 @@ Partial Public Class MainWindow
         VerifyLocalPackNavigationUi(directory, passed)
         VerifyTaskChoiceUi(directory, passed)
         VerifyManagementPromptUi(directory, passed)
+        VerifyResourcePromptLifecycleUi(directory, passed)
     End Sub
     Private Async Function VerifyPackSearchAsync(directory As String, host As Border, check As Action(Of Boolean, String)) As Task
         Dim layout As Action = Sub()

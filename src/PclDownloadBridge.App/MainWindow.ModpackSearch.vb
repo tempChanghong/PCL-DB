@@ -548,18 +548,32 @@ Partial Public Class MainWindow
         ' MyMsgText.IsExited ignores repeated buttons while Close still owns
         ' its animation. Explicit shutdown/reduced motion can still settle it.
         If _onlinePrompt Is Nothing AndAlso AllowPageMotion() Then Return
+        Dim prompt = _onlinePrompt : _onlinePrompt = Nothing
+        Dim worldRequest As CancellationTokenSource = Nothing, targetRequest As CancellationTokenSource = Nothing
         If _resourceTargetPrompt Then
             _resourceTargetPrompt = False
-            CancelResourceWorldRequest() : _resourceTargetRequest?.Cancel()
+            worldRequest = _resourceWorldRequest : targetRequest = _resourceTargetRequest
+            _resourceWorldRequest = Nothing : _resourceTargetRequest = Nothing
+            _resourceWorldLoading = False
         End If
-        Dim prompt = _onlinePrompt : _onlinePrompt = Nothing
         If prompt Is Nothing OrElse Not AllowPageMotion() Then
             StopOnlinePromptMotion() : HideOnlinePrompt()
         Else
             PackNameDialog.IsHitTestVisible = False
             AnimateOnlinePrompt(False)
         End If
-        prompt?.TrySetResult(value)
+        ' Cancel can synchronously reenter and open another picker. Retire all
+        ' ownership and start this exit before notifying only captured requests.
+        ' Finish the old result even if a cancellation callback fails.
+        Try
+            worldRequest?.Cancel()
+        Finally
+            Try
+                targetRequest?.Cancel()
+            Finally
+                prompt?.TrySetResult(value)
+            End Try
+        End Try
     End Sub
     Private Sub HideOnlinePrompt()
         Dim restore = _promptFocusReturn : _promptFocusReturn = Nothing

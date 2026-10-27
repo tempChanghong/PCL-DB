@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 资源选择弹窗的取消与结果归属（2026-10-27）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MyMsgSelect`、`MyMsgText` 与 `PageDownloadCompDetail`。参照消息先确定退出状态、再关闭和退场的边界，保留已有动画；异步请求和每次确认结果的归属由桥接程序补充处理。
+- 拒绝重复打开时不改原状态；取消前先退役旧请求和结果任务，取消通知只使用捕获的旧请求；迟到确认读取独立计划，不借用后续选择。[复现与验证](docs/reviews/resource-prompt-lifecycle-2026-10-27.md)，原始对象摘要见 `artifacts/resource-prompt-lifecycle/source/manifest.json`。
+
 ## Mod 更新确认窗口动画（2026-10-27）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MyMsgText.xaml/.vb`、`PageInstanceMod` 和 `ModAnimation`。保留 60/120/300 ms 入场、80/150 ms 退场及左侧中心旋转，遮罩对齐延迟 30 ms 后的 200 ms Weak Fluent 淡出；重复确认参照 `IsExited` 拦截。

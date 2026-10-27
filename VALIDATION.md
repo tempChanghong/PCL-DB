@@ -1,5 +1,9 @@
 # 本地验证记录
 
+## Beta 6.0 后续：资源安装弹窗归属（2026-10-27，尚未发行）
+
+新增 168 项，覆盖 PCL／HMCL／PCL-CE、明暗主题、开关动画、重复打开、取消回调重开、取消通知异常和两个确认的延迟返回。原行为先执行 144 项，其中 84 项失败；修复后专项通过。策略 `PCL-DB-checks/2026-10-27.2`：all 2,230、motion 1,700、pack-search 1,337；navigation 1,076 包含在 all 中。固定 PCL 来源、97 项验证契约及构建另验；最终结果在 `artifacts/resource-prompt-lifecycle/validation.json`。只操作临时实例，配置与存档字节保持，未发起下载；Core 源码未改，不打包发版。[检查说明](docs/reviews/resource-prompt-lifecycle-2026-10-27.md)。
+
 ## Beta 6.0 后续：Mod 更新确认窗口动画（2026-10-27，尚未发行）
 
 新增 31 项明暗主题、精确时钟、重复取消、替换、延迟退场、门控及焦点验证，原行为的 29 项检查中 13 项失败；修复后专项通过。完整策略 `PCL-DB-checks/2026-10-27.1`：all 2,062、motion 1,532、pack-search 1,169，navigation 908 包含在 all 中；固定 PCL 来源和 97 项验证契约另行校验。以 `artifacts/mod-prompt-motion/validation.json` 及分组回执为最终结果。Core 文件发布／下载内核未改，本轮不重跑其套件，不打包发版。[检查说明](docs/reviews/mod-update-dialog-motion-2026-10-27.md)。

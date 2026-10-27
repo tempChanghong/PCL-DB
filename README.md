@@ -1,5 +1,7 @@
 # PCL-DB · PCL Download Bridge
 
+后续源码修复资源安装弹窗的重复打开、取消时重开和迟到确认串用计划问题，保留当前实例、配置与动画。[检查说明](docs/reviews/resource-prompt-lifecycle-2026-10-27.md)。本项尚未打包发布。
+
 Beta 6 后续源码修复 Mod 更新确认窗口的入退场、重复取消、遮罩交接、底栏门控和焦点返回；等待所属动画完成后才允许文件操作。[检查说明](docs/reviews/mod-update-dialog-motion-2026-10-27.md)。本项尚未打包发布。
 
 本地 Mod 管理现支持按 PCL2 风格多选、筛选可更新项、批量启停／删除／更新，以及按实例版本和加载器下载新 Mod。更新前校验文件并备份，保留禁用状态及外部启动器设置。[实现与验证说明](docs/reviews/local-mod-updates-2026-10-26.md)。

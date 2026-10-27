@@ -9,7 +9,11 @@ Imports PclDownloadBridge.Core
 Partial Public Class MainWindow
     Private _resourceTargetPrompt As Boolean, _resourceTargetLoading As Boolean, _resourceWorldLoading As Boolean, _resourceTargetValidating As Boolean
     Private _resourceTargetRequest As CancellationTokenSource, _resourceWorldRequest As CancellationTokenSource
-    Private _resourceTargetRelease As ModpackRelease, _confirmedResourcePlan As ResourceInstallationPlan
+    Private _resourceTargetRelease As ModpackRelease
+    Private _resourceTargetChoice As ResourceTargetChoice
+    Private NotInheritable Class ResourceTargetChoice
+        Friend Plan As ResourceInstallationPlan
+    End Class
     Private _resourceTargetProblem As String
     Private _resourceTargetLauncher As LauncherInstallTarget
     Private _resourceInstallRunner As Func(Of ResourceInstallationPlan, String, SourcePolicy, IProgress(Of TransferProgress), CancellationToken, Task)
@@ -46,7 +50,11 @@ Partial Public Class MainWindow
         End Try
     End Sub
     Private Async Function PromptResourceTargetAsync(release As ModpackRelease, target As LauncherInstallTarget, owner As FrameworkElement) As Task(Of ResourceInstallationPlan)
-        _resourceTargetPrompt = True : _resourceTargetRelease = release.Copy() : _confirmedResourcePlan = Nothing
+        ' Reject another live modal before changing shared picker controls/state.
+        If _onlinePrompt IsNot Nothing Then Throw New InvalidOperationException("已有待确认的操作。")
+        Dim choice As New ResourceTargetChoice
+        _resourceTargetChoice = choice
+        _resourceTargetPrompt = True : _resourceTargetRelease = release.Copy()
         _resourceTargetLauncher = target
         _resourceTargetLoading = True : _resourceWorldLoading = False : _resourceTargetValidating = False : _resourceTargetProblem = Nothing
         _resourceTargetRequest = New CancellationTokenSource()
@@ -60,10 +68,11 @@ Partial Public Class MainWindow
         LoadResourceTargetsAsync(target, request)
         Try
             Dim result = Await prompt
-            Return If(result = "yes", _confirmedResourcePlan, Nothing)
+            Return If(result = "yes", choice.Plan, Nothing)
         Finally
             request.Cancel()
             If _resourceTargetRequest Is request Then _resourceTargetRequest = Nothing
+            If _resourceTargetChoice Is choice Then _resourceTargetChoice = Nothing
             request.Dispose()
         End Try
     End Function
@@ -170,7 +179,7 @@ Partial Public Class MainWindow
     End Sub
     Private Async Sub ConfirmResourceTargetAsync()
         If Not _resourceTargetPrompt OrElse _resourceTargetValidating OrElse Not OnlinePackConfirm.IsEnabled Then Return
-        Dim request = _resourceTargetRequest, instance = DirectCast(DirectCast(ResourceTargetInstance.SelectedItem, ComboBoxItem).Tag, InstalledInstance)
+        Dim request = _resourceTargetRequest, choice = _resourceTargetChoice, instance = DirectCast(DirectCast(ResourceTargetInstance.SelectedItem, ComboBoxItem).Tag, InstalledInstance)
         Dim token = request.Token
         Dim world = TryCast(TryCast(ResourceTargetWorld.SelectedItem, ComboBoxItem)?.Tag, InstalledWorld)
         _resourceTargetValidating = True : ResourceTargetInstance.IsEnabled = False : ResourceTargetWorld.IsEnabled = False : ValidateResourceTarget()
@@ -178,7 +187,7 @@ Partial Public Class MainWindow
             Dim release = _resourceTargetRelease.Copy()
             Dim plan = Await RunManagementWorkerAsync(Function() CommunityResourceInstallation.Create(release, instance, world, token), token)
             If request.IsCancellationRequested OrElse _resourceTargetRequest IsNot request OrElse Not _resourceTargetPrompt Then Return
-            _confirmedResourcePlan = plan : CompleteOnlinePrompt("yes")
+            choice.Plan = plan : CompleteOnlinePrompt("yes")
         Catch ex As OperationCanceledException When request.IsCancellationRequested
         Catch ex As Exception
             If _resourceTargetPrompt AndAlso _resourceTargetRequest Is request Then _resourceTargetProblem = ex.GetBaseException().Message
