@@ -9,6 +9,7 @@ try {
     if (!$SkipTests) {
         & './tools/verify-pcl-ui.ps1'
         & './tools/verify-validation-contracts.ps1'
+        & './tools/verify-verification-timeouts.ps1'
         & './tools/verify-verification-process.ps1'
         New-Item -ItemType Directory -Path artifacts -Force | Out-Null
         $core = Invoke-PclDbVerificationProcess -Name 'core fixtures' -FilePath (Join-Path $PSScriptRoot 'tests/PclDownloadBridge.Tests/bin/Release/net48/PclDownloadBridge.Tests.exe') -WorkingDirectory $PSScriptRoot -StdoutPath (Join-Path $PSScriptRoot 'artifacts/core-checks.stdout.log') -StderrPath (Join-Path $PSScriptRoot 'artifacts/core-checks.stderr.log') -TimeoutSeconds 900
@@ -19,7 +20,7 @@ try {
             $policy = Get-PclDbCheckPolicy $scope
             $stem = if ($scope -eq 'all') { 'ui' } else { $scope }
             $path = Join-Path $PSScriptRoot ('artifacts/' + $stem + '-checks.json')
-            $run = Invoke-PclDbVerificationProcess -Name ($scope + ' checks') -FilePath $app -Arguments ($policy.Mode + ' "' + $path + '"') -WorkingDirectory $PSScriptRoot -StdoutPath ($path + '.stdout.log') -StderrPath ($path + '.stderr.log') -ExpectedOutputPaths @($path) -TimeoutSeconds $(if ($scope -ceq 'all') { 600 } else { 180 })
+            $run = Invoke-PclDbVerificationProcess -Name ($scope + ' checks') -FilePath $app -Arguments ($policy.Mode + ' "' + $path + '"') -WorkingDirectory $PSScriptRoot -StdoutPath ($path + '.stdout.log') -StderrPath ($path + '.stderr.log') -ExpectedOutputPaths @($path) -TimeoutSeconds $policy.TimeoutSeconds
             if ($run.ExecutableSHA256 -cne $appHash) { throw 'Application changed between verification scopes.' }
             $report = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
             Assert-PclDbCheckReport $report $scope -ExecutableSHA256 $appHash

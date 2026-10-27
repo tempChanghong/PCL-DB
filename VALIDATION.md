@@ -1,5 +1,9 @@
 # 本地验证记录
 
+## Beta 6.0 后续：验证入口的限时一致性（2026-10-27，尚未发行）
+
+上轮正常动画检查耗时 236,971 ms，但普通构建和单文件验证仍对该模式设置 180 秒。新增 44 项策略／真实调用表达式检查，旧实现 27 项失败，修复后通过；两个入口统一读取 `Get-PclDbCheckPolicy.TimeoutSeconds`，完整界面及动画 600 秒，其余界面模式 180 秒，核心夹具 900 秒及通用进程默认 180 秒保持。计数、模式、报告接收规则和策略 ID 不变。另验 PowerShell 7／Windows PowerShell 5.1、97 项验证契约、19 项进程检查和固定 PCL 来源；以新策略单独实跑动画组。最终以 `artifacts/verification-timeouts/validation.json` 为准。本轮不改 App／Core，不构建单文件候选、不打包发版。[检查说明](docs/reviews/verification-timeouts-2026-10-27.md)。
+
 ## Beta 6.0 后续：Mod 写入启动与目标绑定（2026-10-27，尚未发行）
 
 新增 144 项：三种启动器 × 明暗 × 开关动画，覆盖取消旧目录读取时的导航、嵌套刷新／写入、启动阶段取消。旧行为 108 项失败；修复后专项通过。12 组使用 Core 真实导入验证目标目录和文件字节，其余时序使用受控零写入结果。检查原目标绑定、新页面独立反馈、同目录读取延后、单写入代次、取消前零文件操作、完成刷新及既有游戏／配置字节保持。策略 `PCL-DB-checks/2026-10-27.8`：all 2,862、motion 2,332、pack-search 1,481；navigation 1,708 包含在 all 中。固定 PCL 来源、验证契约及构建另验，最终以 `artifacts/mod-write-start/validation.json` 为准。Core 源码未改，不打包发版。[检查说明](docs/reviews/mod-write-start-2026-10-27.md)。

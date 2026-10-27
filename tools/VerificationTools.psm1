@@ -13,7 +13,10 @@ function Get-PclDbCheckPolicy {
     param([Parameter(Mandatory)][string]$Scope)
     if (!$script:Counts.ContainsKey($Scope)) { throw "Unknown check scope: $Scope" }
     $mode = if ($Scope -ceq 'all') { '--ui-checks' } elseif ($Scope -ceq 'cards') { '--card-checks' } else { '--' + $Scope + '-checks' }
-    [pscustomobject]@{Policy=$script:PolicyId; Scope=$Scope; Count=$script:Counts[$Scope]; Mode=$mode}
+    # The motion suite includes complete native navigation/lifecycle fixtures.
+    # Keep a finite budget in one place for ordinary and isolated verification.
+    $timeout = if ($Scope -cin @('all','motion')) { 600 } else { 180 }
+    [pscustomobject]@{Policy=$script:PolicyId; Scope=$Scope; Count=$script:Counts[$Scope]; Mode=$mode; TimeoutSeconds=$timeout}
 }
 
 function Test-CheckCount([object]$Value) {
