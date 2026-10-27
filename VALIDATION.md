@@ -1,5 +1,9 @@
 # 本地验证记录
 
+## Beta 6.0 后续：管理取消交接与入口重入（2026-10-27，尚未发行）
+
+新增 84 项，覆盖三种启动器 × 明暗 × 开关动画，以及目录替换、刷新替换、目录取消时启动刷新。实际调用目录按钮与刷新流程，在受控取消回调内启动新动作；检查旧读取退出、新请求及加载门控、唯一目录打开、结果提交、动画交接和所有夹具文件字节保持。旧行为 48 项失败；只修清理方法仍有 24 项失败，补齐入口代次检查后专项通过。策略 `PCL-DB-checks/2026-10-27.5`：all 2,526、motion 1,996、pack-search 1,481；navigation 1,372 包含在 all 中。固定 PCL 来源、97 项验证契约及构建另验；最终结果见 `artifacts/management-retirement/validation.json`。Core 源码未改，不打包发版。[检查说明](docs/reviews/management-retirement-2026-10-27.md)。
+
 ## Beta 6.0 后续：批量 Mod 更新限速（2026-10-27，尚未发行）
 
 新增 68 项实际按钮／确认窗口检查，覆盖明暗、开关动画、en-US／de-DE 小数解析、0.5 MB/s 取消与重试、8 MB/s 和不限速。原行为 12 项失败，确认限速值缺少 MB→字节换算。修复后专项通过；检查实际传给更新器的参数、退场门控、重复点击、取消和刷新，临时游戏与配置字节保持。策略 `PCL-DB-checks/2026-10-27.4`：all 2,442、motion 1,912、pack-search 1,481；navigation 1,288 包含在 all 中。固定 PCL 来源、验证契约及构建另验，最终以 `artifacts/local-mod-transfer/validation.json` 为准。不改 Core、不验证公网吞吐，不打包发版。[检查说明](docs/reviews/local-mod-transfer-2026-10-27.md)。

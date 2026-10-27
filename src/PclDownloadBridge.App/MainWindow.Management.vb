@@ -55,12 +55,19 @@ Partial Public Class MainWindow
             String.Equals(a.ConfigPath, b.ConfigPath, StringComparison.OrdinalIgnoreCase) AndAlso String.Equals(a.SharedConfigPath, b.SharedConfigPath, StringComparison.OrdinalIgnoreCase)
     End Function
     Private Sub CancelManagementRequest()
+        Dim request = _managementRequest
         _managementGeneration += 1
-        CancelManagementFolderRequest()
-        _managementRequest?.Cancel()
         _managementRequest = Nothing
         _managementScanning = False : _managementPreparing = False
+        Dim folderRequest = RetireManagementFolderRequest()
         RefreshManagementStatus()
+        ' Like PCL ModLoader.State, retire ownership before notifying a token.
+        ' A cancellation callback can synchronously start a newer scan/action.
+        Try
+            folderRequest?.Cancel()
+        Finally
+            request?.Cancel()
+        End Try
     End Sub
     Private Sub RefreshManagementFolders()
         If ManagementFolders Is Nothing Then Return
@@ -153,8 +160,10 @@ Partial Public Class MainWindow
         If _closing OrElse _selectedFolder Is Nothing OrElse ManagementPage.Visibility <> Visibility.Visible Then Return
         Dim target = CurrentInstallTarget()
         If Not force AndAlso (_managementScanning OrElse (Not _managementDirty AndAlso SameManagementTarget(_managementTarget, target))) Then Return
+        Dim generation = _managementGeneration + 1
         CancelManagementRequest()
-        Dim generation = _managementGeneration, request As New CancellationTokenSource()
+        If generation <> _managementGeneration OrElse _closing OrElse ManagementPage.Visibility <> Visibility.Visible OrElse Not SameManagementTarget(target, CurrentInstallTarget()) Then Return
+        Dim request As New CancellationTokenSource()
         _managementRequest = request : _managementScanning = True
         _managementProblem = Nothing
         RefreshManagementStatus()
@@ -361,19 +370,25 @@ Partial Public Class MainWindow
         Return Path.Combine(_managedInstance.RunDirectory, kind)
     End Function
     Private Sub CancelManagementFolderRequest()
+        Dim retired = RetireManagementFolderRequest()
+        retired?.Cancel()
+    End Sub
+    Private Function RetireManagementFolderRequest() As CancellationTokenSource
         _managementFolderGeneration += 1
         Dim retired = _managementFolderRequest
         _managementFolderRequest = Nothing
-        retired?.Cancel()
         If ManagedFolderStatus IsNot Nothing Then ManagedFolderStatus.Text = ""
-    End Sub
+        Return retired
+    End Function
     Private Async Sub OpenManagedFolder(sender As Object, e As RoutedEventArgs)
         If _closing OrElse _managementScanning OrElse _managementPreparing OrElse _managedInstance Is Nothing OrElse ManagementPage.Visibility <> Visibility.Visible OrElse ManagementDetailPage.Visibility <> Visibility.Visible OrElse
             Not PageSurface.IsHitTestVisible OrElse Not ManagementViewHost.IsHitTestVisible Then Return
         Dim button = TryCast(sender, FrameworkElement), kind = TryCast(button?.Tag, String)
         If Not {"instance", "mods", "saves", "resourcepacks", "screenshots"}.Contains(kind) Then Return
+        Dim actionGeneration = _managementFolderGeneration + 1
         CancelManagementFolderRequest()
-        Dim owner = _managedInstance, generation = _managementGeneration, actionGeneration = _managementFolderGeneration
+        If actionGeneration <> _managementFolderGeneration OrElse _closing Then Return
+        Dim owner = _managedInstance, generation = _managementGeneration
         Dim request As New CancellationTokenSource(TimeSpan.FromSeconds(100))
         _managementFolderRequest = request
         Dim current As Func(Of Boolean) = Function() Not _closing AndAlso

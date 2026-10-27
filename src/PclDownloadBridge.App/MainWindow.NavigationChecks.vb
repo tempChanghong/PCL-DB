@@ -27,6 +27,7 @@ Partial Public Class MainWindow
         VerifyModEntryRefreshUi(artifactDirectory, checks)
         VerifyTaskManagementRefreshUi(artifactDirectory, checks)
         VerifyManagementFolderUi(artifactDirectory, checks)
+        VerifyManagementRetirementUi(artifactDirectory, checks)
         VerifyLocalModFolderUi(artifactDirectory, checks)
         VerifyLocalModSelectionUi(artifactDirectory, checks)
         VerifyLocalModUpdateLifecycleUi(artifactDirectory, checks)

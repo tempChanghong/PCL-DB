@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 管理刷新与目录动作的取消交接（2026-10-27）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModLoader.State`、`PageInstanceMod` 与 `FormMain`。参照加载器先更新状态、再通知取消的顺序，管理刷新与目录动作先退役旧归属和提示，再取消捕获的旧请求；入口核对代次，避免取消回调中的新操作被旧外层操作覆盖。
+- 本工具的异步请求身份和输入代次属于桥接实现；保持原页面／卡片动画和只读外部配置。[复现与验证](docs/reviews/management-retirement-2026-10-27.md)，三份原始 Git 对象及摘要见 `artifacts/management-retirement/source/manifest.json`。
+
 ## Mod 更新限速单位与确认交接（2026-10-27）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModNet.NetTaskSpeedLimitHigh`、`PageSetupSystem`、`PageInstanceMod.UpdateMods`。依照界面 M/s 到网络字节预算的 `1024 × 1024` 换算，修复批量更新入口漏乘；保留本工具 0 不限速、已有确认退场及冻结清单的机制。
