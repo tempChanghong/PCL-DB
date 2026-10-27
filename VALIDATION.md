@@ -1,5 +1,9 @@
 # 本地验证记录
 
+## Beta 6.0 后续：Mod 列表读取启动交接（2026-10-27，尚未发行）
+
+新增 144 项：三种启动器 × 明暗 × 开关动画，覆盖旧本地读取取消、父管理读取取消、返回改选实例、嵌套读取后开始写入。最终同一夹具下，旧行为 72 项失败；修复后专项通过。检查最新读取的请求／令牌、加载提示、唯一查询、最终条目、新实例反馈、写入期间零额外原生读取及完成刷新、配置和游戏字节保持。策略 `PCL-DB-checks/2026-10-27.9`：all 3,006、motion 2,476、pack-search 1,481；navigation 1,852 包含在 all。固定 PCL 来源、限时策略、验证契约、进程检查和构建另验；最终以 `artifacts/local-mod-read-start/validation.json` 为准。Core 源码未改，不打包发版。[检查说明](docs/reviews/local-mod-read-start-2026-10-27.md)。
+
 ## Beta 6.0 后续：验证入口的限时一致性（2026-10-27，尚未发行）
 
 上轮正常动画检查耗时 236,971 ms，但普通构建和单文件验证仍对该模式设置 180 秒。新增 44 项策略／真实调用表达式检查，旧实现 27 项失败，修复后通过；两个入口统一读取 `Get-PclDbCheckPolicy.TimeoutSeconds`，完整界面及动画 600 秒，其余界面模式 180 秒，核心夹具 900 秒及通用进程默认 180 秒保持。计数、模式、报告接收规则和策略 ID 不变。另验 PowerShell 7／Windows PowerShell 5.1、97 项验证契约、19 项进程检查和固定 PCL 来源；以新策略单独实跑动画组。最终以 `artifacts/verification-timeouts/validation.json` 为准。本轮不改 App／Core，不构建单文件候选、不打包发版。[检查说明](docs/reviews/verification-timeouts-2026-10-27.md)。

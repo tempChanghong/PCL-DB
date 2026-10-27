@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## Mod 列表读取启动与退役通知边界（2026-10-27）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModLoader.State`、`PageInstanceMod.ReloadModList`、`LocalResourceLoaders`。沿用先改变加载状态再通知取消、按实例实际 Mods 路径读取、同目录写入时等待的原则；桥接程序在旧状态退役后、任何旧令牌通知前登记本次列表读取。
+- 父管理取消返回后先核对原实例和代次，已被替代的刷新不再取消新本地读取。原生路径、读写等待和动画实现保持。[复现与验证](docs/reviews/local-mod-read-start-2026-10-27.md)，三份原始 Git 对象及摘要见 `artifacts/local-mod-read-start/source/manifest.json`。
+
 ## Mod 写入启动前的目标与互斥归属（2026-10-27）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.InstallMods/UpdateMods`、`LocalResourceLoaders`、`ModLoader.State`。参照先固定实例／清单、按实际 Mods 目录协调读写、先改变状态再通知取消的原则，桥接程序在取消旧读取前登记原写入实例和请求。

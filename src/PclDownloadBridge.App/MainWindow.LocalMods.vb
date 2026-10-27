@@ -69,7 +69,7 @@ Partial Public Class MainWindow
         LocalModStatus.Text = If(_managedInstance.Problem IsNot Nothing, "无法读取 Mod 列表：" & _managedInstance.Problem, "版本目录已变化，请刷新列表。")
         RefreshLocalModAvailability()
     End Sub
-    Private Sub CancelLocalModRequest()
+    Private Sub CancelLocalModRequest(Optional afterRetire As Action = Nothing)
         Dim folderRequest = _localModFolderRequest, request = _localModRequest
         ' PCL ModLoader changes state before notifying cancellation. A token
         ' callback may synchronously restart a read, so retire all old ownership
@@ -79,7 +79,7 @@ Partial Public Class MainWindow
         _localModReadSucceeded = False
         _localModWaitingForWrite = False
         _localModFocusRestore = Nothing : _localModFilterPending = False
-        RetireLocalModUpdates()
+        RetireLocalModUpdates(afterRetire)
         folderRequest?.Cancel() : request?.Cancel()
     End Sub
     Private Async Sub ShowLocalMods(sender As Object, e As RoutedEventArgs)
@@ -116,13 +116,26 @@ Partial Public Class MainWindow
             (_localModScanning AndAlso Not force) Then Return
         If LocalModReadWaitsForWrite(_managedInstance) Then _localModWaitingForWrite = True : RefreshLocalModAvailability() : Return
         If Not refreshInstance AndAlso (_managedInstance.RunDirectory Is Nothing OrElse _managedInstance.Problem IsNot Nothing) Then Return
-        If refreshInstance Then CancelManagementRequest()
-        CancelLocalModRequest()
-        Dim instance = _managedInstance, request As New CancellationTokenSource(), generation = _localModGeneration
-        _localModInstance = instance : _localModRequest = request : _localModScanning = True
-        LocalModStatus.Text = "正在读取 Mod 列表…"
-        RefreshLocalModAvailability()
+        Dim instance = _managedInstance, beforeGeneration = _localModGeneration, folderRequest = _localModFolderRequest
+        If refreshInstance Then
+            Dim parentGeneration = _managementGeneration + 1, folderGeneration = _managementFolderGeneration + 1
+            CancelManagementRequest()
+            If parentGeneration <> _managementGeneration OrElse folderGeneration <> _managementFolderGeneration OrElse beforeGeneration <> _localModGeneration OrElse
+                _localModFolderRequest IsNot folderRequest OrElse _managedInstance IsNot instance OrElse Not SameLocalModIdentity(instance) OrElse _closing OrElse
+                ManagementPage.Visibility <> Visibility.Visible OrElse LocalModsPage.Visibility <> Visibility.Visible Then Return
+        End If
+        Dim request As New CancellationTokenSource(), generation As Long = -1
         Try
+            ' Retire old state, then reserve this read before notifying any old
+            ' update/folder/list token. A forced replacement can retire it again.
+            CancelLocalModRequest(Sub()
+                                      generation = _localModGeneration
+                                      _localModInstance = instance : _localModRequest = request : _localModScanning = True
+                                      LocalModStatus.Text = "正在读取 Mod 列表…"
+                                      RefreshLocalModAvailability()
+                                  End Sub)
+            If request.IsCancellationRequested OrElse _localModRequest IsNot request OrElse generation <> _localModGeneration OrElse _closing OrElse Not SameLocalModIdentity(instance) OrElse
+                ManagementPage.Visibility <> Visibility.Visible OrElse LocalModsPage.Visibility <> Visibility.Visible Then Return
             If refreshInstance Then
                 Dim previous = instance
                 instance = Await _localModInstanceReader(previous, request.Token)
@@ -155,12 +168,12 @@ Partial Public Class MainWindow
                                     End Sub)
         Catch ex As OperationCanceledException When request.IsCancellationRequested
         Catch ex As Exception
-            If generation = _localModGeneration AndAlso Not _closing AndAlso LocalModsPage.Visibility = Visibility.Visible Then
+            If generation = _localModGeneration AndAlso _localModRequest Is request AndAlso Not _closing AndAlso LocalModsPage.Visibility = Visibility.Visible Then
                 If Not _preview Then Log(ex)
                 LocalModStatus.Text = "无法读取 Mod 列表：" & ex.Message
             End If
         Finally
-            If generation = _localModGeneration Then _localModRequest = Nothing : _localModScanning = False
+            If generation = _localModGeneration AndAlso _localModRequest Is request Then _localModRequest = Nothing : _localModScanning = False
             request.Dispose()
             RefreshLocalModAvailability()
             FlushLocalModInteraction()

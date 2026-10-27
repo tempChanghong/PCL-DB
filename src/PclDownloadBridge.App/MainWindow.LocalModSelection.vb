@@ -104,12 +104,13 @@ Partial Public Class MainWindow
         End If
         RefreshLocalModSelectionAvailability(LocalModRows.IsEnabled AndAlso _localModReadSucceeded AndAlso Not _localModWriting)
     End Sub
-    Private Sub RetireLocalModUpdates()
+    Private Sub RetireLocalModUpdates(Optional afterRetire As Action = Nothing)
         Dim previous = _localModUpdatesRequest
         _localModUpdatesRequest = Nothing
         _localModUpdates.Clear() : _localModSelection.Clear()
         If LocalModUpdateStatus IsNot Nothing Then LocalModUpdateStatus.Text = "" : LocalModUpdateStatus.ToolTip = Nothing
         RefreshLocalModSelection(False)
+        afterRetire?.Invoke()
         previous?.Cancel()
     End Sub
     Private Async Sub StartLocalModUpdates()
