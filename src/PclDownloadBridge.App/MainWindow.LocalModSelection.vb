@@ -112,10 +112,12 @@ Partial Public Class MainWindow
             AddHandler clock.Completed, Sub()
                                             If _localModSelectedCount = 0 AndAlso _localModBarOpacity.Clock Is Nothing Then LocalModSelectionBar.Visibility = Visibility.Collapsed
                                         End Sub
-        ElseIf Not moving OrElse count = 0 Then
+        ElseIf Not moving Then
             _localModBarOffset.SetValue(If(count > 0, -25.0, -10.0)) : _localModBarOpacity.SetValue(If(count > 0, 1.0, 0.0))
             LocalModSelectionBar.Visibility = If(count > 0, Visibility.Visible, Visibility.Collapsed)
         End If
+        ' PCL RefreshBars ignores repeated empty refreshes: an existing exit
+        ' owns its fade until completion. Availability still follows current input.
         RefreshLocalModSelectionAvailability(LocalModRows.IsEnabled AndAlso _localModReadSucceeded AndAlso Not _localModWriting)
     End Sub
     Private Sub RetireLocalModUpdates(Optional afterRetire As Action = Nothing)

@@ -234,17 +234,19 @@ Namespace Controls
             Dim interactive = MotionPolicy.Interactive, active = interactive AndAlso (IsMouseOver OrElse IsKeyboardFocusWithin OrElse _touchRevealed)
             Dim plate = _checked OrElse active
             Dim moving = animate AndAlso MotionPolicy.CanAnimate AndAlso Not PclTheme.Changing
+            If moving Then
+                ' Apply the viewport budget to the whole row. Bulk selection
+                ' changes its backing plate as well as the selection marker.
+                Dim root = TryCast(PresentationSource.FromVisual(Me)?.RootVisual, FrameworkElement)
+                moving = root IsNot Nothing AndAlso Not PclExitSnapshot.VisibleBounds(Me, root).IsEmpty
+            End If
             Dim titleKey = If(_checked, If(DirectCast(Tag, LocalModEntry).Enabled, "ColorBrush2", "ColorBrush5"), If(_hasUpdate, "ColorBrush3", If(DirectCast(Tag, LocalModEntry).Enabled, "ColorBrush1", "ColorBrushGray4")))
             If paletteOnly Then
                 _selectionMotion.RefreshPalette(titleKey)
                 _hover.RefreshPalette(Brush(If(_pressed AndAlso interactive, "ColorBrush6", If(plate, "ColorBrushBg1", "ColorBrush7"))).Color)
                 Return
             End If
-            ' MyLocalModItem.Checked uses IsVisibleInForm: selecting a large
-            ' catalogue must not create marker/color clocks below the viewport.
-            Dim root = TryCast(PresentationSource.FromVisual(Me)?.RootVisual, FrameworkElement)
-            Dim selectionMoving = moving AndAlso root IsNot Nothing AndAlso Not PclExitSnapshot.VisibleBounds(Me, root).IsEmpty
-            _selectionMotion.Update(_checked, titleKey, selectionMoving, MotionPolicy.PauseForChecks)
+            _selectionMotion.Update(_checked, titleKey, moving, MotionPolicy.PauseForChecks)
             _hover.Update(plate, interactive AndAlso _pressed, Brush(If(_pressed AndAlso interactive, "ColorBrush6", If(plate, "ColorBrushBg1", "ColorBrush7"))).Color, moving, MotionPolicy.PauseForChecks)
             If moving AndAlso _lastActive.HasValue AndAlso _lastActive.Value = active Then Return
             _lastActive = active

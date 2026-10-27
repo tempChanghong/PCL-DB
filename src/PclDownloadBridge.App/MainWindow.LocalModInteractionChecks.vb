@@ -162,6 +162,9 @@ Partial Public Class MainWindow
         readGate.TrySetResult(LocalModCatalog.Scan(oldOwner, CancellationToken.None)) : Await oldWrite : layout()
         check(_localModWriting AndAlso LocalModStatus.Text = status AndAlso _localModFocusRestore Is Nothing,
             "a retired post-write read cannot queue old row focus while a newer operation owns the returned Mods page")
+        ' Exercise the real request cancellation; cancelling only the provider's
+        ' task is an unrelated error whose message depends on the Windows language.
+        CancelLocalModOperation(Nothing, Nothing)
         writeGate.TrySetCanceled() : Await writing : layout()
         replacement = _localMods.Single(Function(item) item.EnabledName = entry.EnabledName)
         check(Keyboard.FocusedElement Is _localModRowViews(replacement).Children.OfType(Of PclIconButton)().Single() AndAlso LocalModStatus.Text.Contains("取消"),

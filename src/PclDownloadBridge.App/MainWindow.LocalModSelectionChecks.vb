@@ -11,6 +11,7 @@ Imports PclDownloadBridge.Core
 Partial Public Class MainWindow
     Public Sub VerifyLocalModSelectionUi(directory As String, passed As List(Of String))
         VerifyLocalModSelectionMotionUi(directory, passed)
+        VerifyLocalModMotionFollowupUi(directory, passed)
         Dim owner As New MainWindow(True), original = owner.Content, previous = SynchronizationContext.Current
         Dim host As New Border With {.Width = 900, .Height = 700}, layout = ControlLayout(host)
         Dim check As Action(Of Boolean, String) = Sub(ok, label)

@@ -1,5 +1,7 @@
 # PCL-DB · PCL Download Bridge
 
+后续源码修复本地 Mod 底栏被重复刷新提前收起，以及全选时屏外背板仍创建动画的问题；保留可见行效果、取消重试和焦点恢复。[检查说明](docs/reviews/local-mod-motion-followup-2026-10-28.md)。本项尚未打包发布。
+
 后续源码根据两段录屏补齐本地 Mod 选择动画：竖条弹性展开、标题渐变、行内按压反馈，全选／取消选择保留原位动画；底部操作栏退场保留原计数。[检查说明](docs/reviews/local-mod-selection-motion-2026-10-27.md)。本项尚未打包发布。
 
 后续源码补齐组件文件名的长名称支持，修复合法 Fabric API 文件名导致列表来源被判失败、组件安装被实例名称规则拒绝的问题。覆盖隔离／共享 Mods 与取消重试。[检查说明](docs/reviews/component-file-names-2026-10-27.md)。本项尚未打包发布。

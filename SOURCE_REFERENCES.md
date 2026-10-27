@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 本地 Mod 底栏重复刷新与屏外背板（2026-10-28）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.RefreshBars`、`MyLocalModItem.Checked/RefreshColor` 与 `ModBase.IsVisibleInForm`。PCL 对重复的零选择刷新保留当前退场，并用窗口可见性限制选择动画。
+- PCL-DB 恢复底栏重复刷新不打断退场的规则；将上一轮的可视区判断扩展到整个本地 Mod 行，避免全选时屏外背板／操作区额外创建时钟。这是本工具的开销优化，可见行的 PCL 曲线和时长保持。[复现与验证](docs/reviews/local-mod-motion-followup-2026-10-28.md)，三份固定 Git 原始字节及摘要见 `artifacts/local-mod-motion-followup/source/manifest.json`。
+
 ## 本地 Mod 选择与底栏动画（2026-10-27）
 
 - 对照用户两段录屏，重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MyLocalModItem.Checked/RefreshColor`、`PageInstanceMod` 底栏和 `ChangeAllSelected`，并核对 `ModBase.IsVisibleInForm` 与 `ModAnimation` 曲线：32 DIP 竖条由 200 ms 弱 Fluent 与 300 ms 弱 Back 并行展开，标题渐变；取消时收缩和延迟淡出。底栏在取消最后一项时保留计数，原位全选不卸载列表行。
