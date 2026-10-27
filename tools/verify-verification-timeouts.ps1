@@ -38,8 +38,8 @@ foreach ($scope in @('standalone','all','motion','pack-search','appearance','dev
     $hasDeadline = $null -ne $policy.PSObject.Properties['TimeoutSeconds']
     $deadline = if ($hasDeadline) { $policy.TimeoutSeconds } else { $null }
     Assert-Case ($hasDeadline -and $deadline -is [int] -and $deadline -ge 1 -and $deadline -le 3600) ("policy exposes a finite process-compatible deadline: $scope")
-    $expectedDeadline = if ($scope -cin @('all','motion')) { 600 } else { 180 }
-    Assert-Case ($hasDeadline -and $deadline -ceq $expectedDeadline) ("policy budgets the full UI and motion suites while retaining compact-scope limits: $scope")
+    $expectedDeadline = if ($scope -cin @('all','motion')) { 600 } elseif ($scope -ceq 'pack-search') { 240 } else { 180 }
+    Assert-Case ($hasDeadline -and $deadline -ceq $expectedDeadline) ("policy budgets the full UI, motion and search suites while retaining compact-scope limits: $scope")
 }
 $rejected = $false
 try { & $script:policyCommand 'unrecognised-scope' | Out-Null } catch { $rejected = $_.Exception.Message.Contains('Unknown check scope') }

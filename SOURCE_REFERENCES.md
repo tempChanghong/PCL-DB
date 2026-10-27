@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 详情简介与图片的渲染归属（2026-10-27）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadCompDetail.Init`、`MyResourceItem`、`MyImage.Source/Load` 和 `ModLoader.State`。简介由当前项目创建独立资源行，图片保留缓存与备用源；加载器先改变状态再通知取消。
+- 桥接程序额外使用渲染代次及原始／已验证项目引用，在退役旧图片请求后复核归属，旧外层渲染不再替换更新的卡片或重开图片请求。保持简介行复用、原图片回退和现有动画，不声称上游具有同样的代次实现。[复现与验证](docs/reviews/project-render-2026-10-27.md)，四份原始 Git 对象及摘要见 `artifacts/project-render/source/manifest.json`。
+
 ## 搜索分页读取的启动交接（2026-10-27）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModLoader.State`、`ResourceSearcher.SearchResult/GetLoader`、`PageResource.StartNewSearch` 和 `MyPageRight`。沿用先改变归属再通知取消、按来源保存游标与缓存、连续搜索不能丢失存储引用以及按加载状态展示的原则。
