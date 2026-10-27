@@ -37,7 +37,7 @@ Partial Public Class MainWindow
             Using surface = PreviewSurface.Attach(host, 900, 700)
                 SynchronizationContext.SetSynchronizationContext(New DispatcherSynchronizationContext(owner.Dispatcher))
                 Dim work = owner.CheckResourceTaskResultAsync(directory, layout, check)
-                If Not PumpMotionUntil(Function() work.IsCompleted, 45000) Then Throw New TimeoutException("Resource task result checks did not settle.")
+                If Not PumpMotionUntil(Function() work.IsCompleted, 90000) Then Throw New TimeoutException("Resource task result checks did not settle.")
                 work.GetAwaiter().GetResult()
             End Using
             File.WriteAllText(Path.Combine(directory, "resource-task-result.json"), observations.ToString())

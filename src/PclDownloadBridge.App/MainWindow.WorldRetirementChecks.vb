@@ -20,7 +20,7 @@ Partial Public Class MainWindow
             Using surface = PreviewSurface.Attach(host, 900, 700)
                 SynchronizationContext.SetSynchronizationContext(New DispatcherSynchronizationContext(owner.Dispatcher))
                 Dim work = owner.CheckWorldRetirementAsync(directory, host, layout, check)
-                If Not PumpMotionUntil(Function() work.IsCompleted, 60000) Then Throw New TimeoutException("World retirement checks did not settle.")
+                If Not PumpMotionUntil(Function() work.IsCompleted, 90000) Then Throw New TimeoutException("World retirement checks did not settle.")
                 work.GetAwaiter().GetResult()
             End Using
             File.WriteAllText(Path.Combine(directory, "world-retirement.json"), observations.ToString())

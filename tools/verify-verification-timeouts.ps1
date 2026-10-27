@@ -38,7 +38,7 @@ foreach ($scope in @('standalone','all','motion','pack-search','appearance','dev
     $hasDeadline = $null -ne $policy.PSObject.Properties['TimeoutSeconds']
     $deadline = if ($hasDeadline) { $policy.TimeoutSeconds } else { $null }
     Assert-Case ($hasDeadline -and $deadline -is [int] -and $deadline -ge 1 -and $deadline -le 3600) ("policy exposes a finite process-compatible deadline: $scope")
-    $expectedDeadline = if ($scope -cin @('all','motion')) { 1800 } elseif ($scope -ceq 'pack-search') { 240 } else { 180 }
+    $expectedDeadline = if ($scope -cin @('all','motion','navigation')) { 1800 } elseif ($scope -ceq 'pack-search') { 900 } else { 180 }
     Assert-Case ($hasDeadline -and $deadline -ceq $expectedDeadline) ("policy budgets the full UI, motion and search suites while retaining compact-scope limits: $scope")
 }
 $rejected = $false

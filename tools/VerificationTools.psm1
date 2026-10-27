@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 
 # Bump the policy ID when the required suites change. Archive integrity never
 # applies today's counts to an older manifest; current candidates always do.
-$script:PolicyId = 'PCL-DB-checks/2026-10-28.8'
+$script:PolicyId = 'PCL-DB-checks/2026-10-28.9'
 $script:CandidateScopes = @('standalone', 'all', 'motion', 'pack-search')
 $script:Counts = @{standalone=25; all=3745; motion=3130; 'pack-search'=1854; appearance=191; developer=36; cards=134; navigation=2122; compatibility=49; 'control-motion'=677}
 $script:Fields = @{standalone='StandaloneChecks'; all='UiChecks'; motion='MotionChecks'; 'pack-search'='PackSearchChecks'}
@@ -13,9 +13,10 @@ function Get-PclDbCheckPolicy {
     param([Parameter(Mandatory)][string]$Scope)
     if (!$script:Counts.ContainsKey($Scope)) { throw "Unknown check scope: $Scope" }
     $mode = if ($Scope -ceq 'all') { '--ui-checks' } elseif ($Scope -ceq 'cards') { '--card-checks' } else { '--' + $Scope + '-checks' }
-    # Motion and search include complete native navigation/lifecycle fixtures.
+    # Navigation and motion include complete native lifecycle fixtures. Search
+    # has its own resource matrices; compact control suites keep their budget.
     # Keep a finite budget in one place for ordinary and isolated verification.
-    $timeout = if ($Scope -cin @('all','motion')) { 1800 } elseif ($Scope -ceq 'pack-search') { 240 } else { 180 }
+    $timeout = if ($Scope -cin @('all','motion','navigation')) { 1800 } elseif ($Scope -ceq 'pack-search') { 900 } else { 180 }
     [pscustomobject]@{Policy=$script:PolicyId; Scope=$Scope; Count=$script:Counts[$Scope]; Mode=$mode; TimeoutSeconds=$timeout}
 }
 

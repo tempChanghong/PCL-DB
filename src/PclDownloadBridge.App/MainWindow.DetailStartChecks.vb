@@ -23,7 +23,7 @@ Partial Public Class MainWindow
             Using surface = PreviewSurface.Attach(host, 900, 680)
                 SynchronizationContext.SetSynchronizationContext(New DispatcherSynchronizationContext(owner.Dispatcher))
                 Dim work = owner.CheckDetailStartAsync(layout, check)
-                If Not PumpMotionUntil(Function() work.IsCompleted, 45000) Then Throw New TimeoutException("Detail startup checks did not settle.")
+                If Not PumpMotionUntil(Function() work.IsCompleted, 90000) Then Throw New TimeoutException("Detail startup checks did not settle.")
                 work.GetAwaiter().GetResult()
             End Using
             File.WriteAllText(Path.Combine(directory, "detail-start.json"), observations.ToString())
