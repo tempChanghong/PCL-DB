@@ -1,5 +1,9 @@
 # 本地验证记录
 
+## Beta 6.0 后续：普通资源任务结果与目标路径（2026-10-27，尚未发行）
+
+新增 37 项：三种启动器 × 另存为／指定实例安装 × 成功／失败／取消，覆盖运行中目标记录、终态展示与复制、切换目录后目标保持、成功文件操作及资源／实例日志说明。相同最终夹具下旧实现 37 项失败，修复后专项通过；另外复验既有原版任务结果的 15 项检查。策略 `PCL-DB-checks/2026-10-27.17` 注册 all 3,379、motion 保留 2,764、pack-search 1,854。**本轮执行专项、原版任务结果及完整搜索组，不执行完整 all／motion 或 Core 全套。** 构建、固定 PCL 来源与验证工具另验，以 `artifacts/resource-task-result/validation.json` 为准；不打包发版。[检查说明](docs/reviews/resource-task-result-2026-10-27.md)。
+
 ## Beta 6.0 后续：旧版纹理包另存为目录（2026-10-27，尚未发行）
 
 新增 48 项：三种启动器 × 共享／隔离 × 1.5.2／1.6.4，覆盖安装与另存为路径一致、管理／本地 Mod 两种实例上下文、目录不存在和快速切换目标。相同夹具下旧实现 12 项失败，修复后专项通过，原生配置和实例文件字节保持。策略 `PCL-DB-checks/2026-10-27.16` 注册 all 3,342、motion 保留 2,764、pack-search 1,817。**本轮执行专项、完整搜索组和 Core 的 resource-installation 回归，不执行完整 all／motion 或 Core 全套；注册数不作为执行数。** 构建、固定 PCL 来源和验证工具另验，以 `artifacts/resource-save-directory/validation.json` 为准；不打包发版。[检查说明](docs/reviews/resource-save-directory-2026-10-27.md)。

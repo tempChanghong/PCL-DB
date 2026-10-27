@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 普通资源任务的目标文件与结果信息（2026-10-27）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadCompDetail` 保存资源流程和 `ModLoader.State`。上游按保存对话框选定的 `Target` 构造文件任务，使用资源任务状态提示；取消先改变加载状态。本工具的额外结果面板也应记录该目标，而不是把下载缓存当成游戏目录。
+- 为资源任务单独保存计划目标，终态展示和复制信息使用该路径；成功发布仍由既有 `_taskResourceFile` 表示，失败／取消不开放成功文件操作。本工具资源下载器在缓存中记录累计日志，保留该入口并改为准确的下载日志说明；后续实例任务重置资源状态。[复现与验证](docs/reviews/resource-task-result-2026-10-27.md)，两份原始 Git 对象及摘要见 `artifacts/resource-task-result/source/manifest.json`。
+
 ## 资源另存为默认目录与旧版兼容（2026-10-27）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadCompDetail` 默认保存位置和 `PageInstanceExport` 资源包目录收集。沿用按资源类型、所选实例实际路径设置默认目录；导出同时识别 `resourcepacks` 与 `texturepacks`。上游另存为入口本身使用 `resourcepacks`，不声称其已做旧版目录分流。

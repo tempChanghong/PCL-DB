@@ -16,6 +16,7 @@ Partial Public Class MainWindow
     Private _taskComponents As String
     Private _taskDiagnostic As String
     Private _taskResourceFile As String
+    Private _taskResourceDestination As String
     Private _taskResourceTransfer As Boolean
     Private _taskAction As Action(Of String, String)
 
@@ -26,6 +27,7 @@ Partial Public Class MainWindow
         _taskComponents = String.Join("、", _componentSelection.Entries.Values.Select(Function(c) ComponentLabel(c)))
         _taskDiagnostic = Nothing
         _taskResourceFile = Nothing
+        _taskResourceDestination = Nothing
         _taskResourceTransfer = False
         _taskOutcome = TaskOutcome.Running
         TaskResultActions.Visibility = Visibility.Collapsed
@@ -76,21 +78,37 @@ Partial Public Class MainWindow
         OpenTaskFolderButton.IsEnabled = folder IsNot Nothing
         OpenTaskFolderButton.ToolTip = If(folder, "此任务的版本文件夹不存在或无法访问。")
         OpenTaskLogButton.IsEnabled = log IsNot Nothing
-        OpenTaskLogButton.ToolTip = If(log IsNot Nothing, log & Environment.NewLine & "此文件是该游戏目录的累计安装器日志。", "此任务尚无可用的安装器日志。")
+        OpenTaskLogButton.Text = If(_taskResourceTransfer, "打开下载日志", "打开安装器日志")
+        OpenTaskLogButton.ToolTip = If(log IsNot Nothing, log & Environment.NewLine & If(_taskResourceTransfer, "此文件是资源下载缓存的累计日志。", "此文件是该游戏目录的累计安装器日志。"), TaskLogUnavailableMessage())
         If _taskFinished Then
-            TaskResultLocation.Text = If(_taskOutcome = TaskOutcome.Succeeded AndAlso Not String.IsNullOrEmpty(_taskInstancePath), "实例位置：" & _taskInstancePath,
-                If(String.IsNullOrEmpty(_taskRoot), "", "游戏目录：" & _taskRoot))
+            If _taskResourceTransfer Then
+                TaskResultLocation.Text = If(String.IsNullOrEmpty(_taskResourceDestination), "", "目标文件：" & _taskResourceDestination)
+            Else
+                TaskResultLocation.Text = If(_taskOutcome = TaskOutcome.Succeeded AndAlso Not String.IsNullOrEmpty(_taskInstancePath), "实例位置：" & _taskInstancePath,
+                    If(String.IsNullOrEmpty(_taskRoot), "", "游戏目录：" & _taskRoot))
+            End If
         End If
     End Sub
 
+    Private Function TaskLogUnavailableMessage() As String
+        Return If(_taskResourceTransfer, "此任务尚无可用的下载日志。", "此任务尚无可用的安装器日志。")
+    End Function
+
     Private Function TaskInformation() As String
         Dim outcome = If(_taskOutcome = TaskOutcome.Succeeded, "成功", If(_taskOutcome = TaskOutcome.Cancelled, "已取消", "失败"))
-        Return String.Join(Environment.NewLine, {
+        Dim lines As New List(Of String) From {
             ProductInfo.DisplayName & " " & ProductInfo.VersionText,
             "任务：" & _taskName, "Minecraft：" & If(_taskMinecraft, "未记录"),
             "组件：" & If(String.IsNullOrEmpty(_taskComponents), "原版", _taskComponents),
-            "结果：" & outcome, "游戏目录：" & If(_taskRoot, "未记录"),
-            "实例位置：" & If(_taskInstancePath, "未发布"), "详情：" & _taskDiagnostic})
+            "结果：" & outcome}
+        If _taskResourceTransfer Then
+            lines.Add("目标文件：" & If(_taskResourceDestination, "未记录"))
+        Else
+            lines.Add("游戏目录：" & If(_taskRoot, "未记录"))
+            lines.Add("实例位置：" & If(_taskInstancePath, "未发布"))
+        End If
+        lines.Add("详情：" & _taskDiagnostic)
+        Return String.Join(Environment.NewLine, lines)
     End Function
 
     Private Sub CopyTaskInformation(sender As Object, e As RoutedEventArgs)
@@ -113,7 +131,7 @@ Partial Public Class MainWindow
         If Not _taskFinished Then Return
         Dim log = TaskLogPath()
         If log Is Nothing Then
-            TaskActionStatus.Text = "此任务尚无可用的安装器日志。"
+            TaskActionStatus.Text = TaskLogUnavailableMessage()
             RefreshTaskResultActions()
             Return
         End If

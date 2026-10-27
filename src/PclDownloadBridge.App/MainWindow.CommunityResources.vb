@@ -346,6 +346,7 @@ Partial Public Class MainWindow
         Return If(Directory.Exists(destination), destination, folder)
     End Function
     Private Async Function RunResourceSaveAsync(release As ModpackRelease, destination As String, Optional installation As ResourceInstallationPlan = Nothing) As Task
+        Dim resourceDestination = Path.GetFullPath(destination)
         Dim cache = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PclDownloadBridge", "ResourceCache")
         Dim policySnapshot = Policy(), connections = ConnectionCount(), limit As Double
         If Not TryGetSpeedLimit(limit) Then Return
@@ -355,7 +356,9 @@ Partial Public Class MainWindow
         Dim request As New CancellationTokenSource : _cancellation = request : _busy = True
         _taskInstallTarget = Nothing : SetBusy(True)
         ResetTaskView(Path.GetFileName(destination), False, cache, hasArchive:=True)
-        _taskResourceTransfer = True
+        ' The planned path survives failure/cancellation. Only a successful
+        ' publication may set _taskResourceFile and enable the folder action.
+        _taskResourceTransfer = True : _taskResourceDestination = resourceDestination
         TaskTitle.Text = If(installation Is Nothing, "下载 ", "安装 ") & Path.GetFileName(destination)
         For Each key In {"metadata", "files"}
             DirectCast(_taskRows(key).Label.Parent, UIElement).Visibility = Visibility.Collapsed
