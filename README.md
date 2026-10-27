@@ -1,5 +1,7 @@
 # PCL-DB · PCL Download Bridge
 
+后续源码对齐 PCL2 的 Mod 全选快捷键：连续 Ctrl+A 保持全选，空搜索框交给列表处理；有文字时保留文本全选，按钮仍可取消全选。[检查说明](docs/reviews/local-mod-shortcuts-2026-10-28.md)。本项尚未打包发布。
+
 后续源码修复在线 Mod 更新信息到达时重启选中竖条退场、无选择变化时创建空动画的问题；标题配色与选择几何分开刷新。[检查说明](docs/reviews/local-mod-metadata-motion-2026-10-28.md)。本项尚未打包发布。
 
 后续源码修复本地 Mod 底栏被重复刷新提前收起，以及全选时屏外背板仍创建动画的问题；保留可见行效果、取消重试和焦点恢复。[检查说明](docs/reviews/local-mod-motion-followup-2026-10-28.md)。本项尚未打包发布。

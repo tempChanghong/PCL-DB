@@ -1,5 +1,9 @@
 # 本地验证记录
 
+## Beta 6.0 后续：Mod 全选快捷键（2026-10-28，尚未发行）
+
+新增 34 项 WPF 检查，覆盖明暗模式下连续 Ctrl+A、行与底栏时钟保持、按钮切换、空／非空／空格搜索、筛选结果、输入门控、写入保护、Escape 和隐藏页面焦点。使用合成 KeyEventArgs 和可控修饰键参数，不向桌面发送按键；旧行为基线仅增加相同参数、保留原业务分支，复现 10/34 项失败。修复后选择链路 164 项（包含新增 34 项）、列表样式／行交互 45 项、取消焦点与页面交互 17 项通过。策略 `PCL-DB-checks/2026-10-28.3` 注册 all 3,613、motion 2,998、navigation 1,990；本轮未重跑完整套件、搜索 UI 或 Core 全套。Release 重建零警告、零错误，验证工具和固定 PCL 来源另验；不写入用户实例／配置，不打包、推送或发版。[检查说明](docs/reviews/local-mod-shortcuts-2026-10-28.md)，回执见 `artifacts/local-mod-shortcuts/validation.json`。
+
 ## Beta 6.0 后续：Mod 元数据与选择动画（2026-10-28，尚未发行）
 
 新增 40 项 WPF 检查：明暗 × 启用／禁用文件 × 更新信息增加／移除，覆盖退场 60 ms 时的数据变化、原时钟与当前帧保持、100 ms 的原始几何采样、自然完成、标题配色和闲置行不创建空动画。相同最终夹具下原实现 40/40 项失败。修复后选择链路 130 项（已包含新增 40 项）、列表样式／行交互 45 项、取消焦点与页面交互 17 项通过。策略 `PCL-DB-checks/2026-10-28.2` 注册 all 3,579、motion 2,964、navigation 1,956；本轮未重跑完整套件、搜索 UI 或 Core 全套。Release 重建零警告、零错误，验证工具和固定 PCL 来源另验。使用临时 WPF 夹具，不操作用户实例，不打包、推送或发版。[检查说明](docs/reviews/local-mod-metadata-motion-2026-10-28.md)，回执见 `artifacts/local-mod-metadata-motion/validation.json`。

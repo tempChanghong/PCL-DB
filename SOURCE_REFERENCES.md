@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 本地 Mod 全选快捷键与搜索焦点（2026-10-28）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.ChangeAllSelected/FrmMain_KeyDown/SearchBox_PreviewKeyDown/BtnManageSelectAll_Click`：Ctrl+A 始终请求全选；按钮按当前选择数量切换；空搜索框转移焦点，含文字的搜索保留编辑器处理。
+- PCL-DB 区分按钮切换与快捷键全选，继续按实际显示行处理筛选，保留输入门控和写入保护，连续按键不重挂行或重启选择动画。[复现与验证](docs/reviews/local-mod-shortcuts-2026-10-28.md)，固定 Git 原始字节及摘要见 `artifacts/local-mod-shortcuts/source/manifest.json`。
+
 ## 本地 Mod 元数据与选择动画（2026-10-28）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MyLocalModItem.Checked` 和 `Refresh`：选择状态未变时不重播 Checked 动画，元数据刷新直接更新标题资源引用。

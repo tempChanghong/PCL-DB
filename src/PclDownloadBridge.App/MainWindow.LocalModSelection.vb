@@ -39,9 +39,13 @@ Partial Public Class MainWindow
     Private Sub SelectAllLocalMods(sender As Object, e As RoutedEventArgs)
         If Not LocalModInputAllowed() OrElse Not LocalModSelectAll.IsEnabled Then Return
         Dim visible = LocalModRows.Children.OfType(Of PclLocalModItem)().Select(Function(row) DirectCast(row.Tag, LocalModEntry)).ToList()
-        Dim clear = visible.All(Function(entry) _localModSelection.Contains(entry.FilePath))
-        For Each entry In visible
-            If clear Then _localModSelection.Remove(entry.FilePath) Else _localModSelection.Add(entry.FilePath)
+        SetAllLocalMods(Not visible.All(Function(entry) _localModSelection.Contains(entry.FilePath)))
+    End Sub
+    Private Sub SetAllLocalMods(selected As Boolean)
+        If Not LocalModInputAllowed() OrElse Not LocalModSelectAll.IsEnabled Then Return
+        For Each row In LocalModRows.Children.OfType(Of PclLocalModItem)()
+            Dim entry = DirectCast(row.Tag, LocalModEntry)
+            If selected Then _localModSelection.Add(entry.FilePath) Else _localModSelection.Remove(entry.FilePath)
         Next
         ApplyLocalModSelection()
     End Sub
@@ -62,13 +66,22 @@ Partial Public Class MainWindow
         End Try
         RefreshLocalModSelection(True)
     End Sub
-    Private Function LocalModSelectionKey(e As KeyEventArgs) As Boolean
+    Private Function LocalModSelectionKey(e As KeyEventArgs, Optional modifiers As ModifierKeys? = Nothing) As Boolean
         If Not LocalModInputAllowed() Then Return False
         If e.Key = Key.Escape AndAlso _localModSelection.Count > 0 AndAlso Not _localModWriting Then
             ClearLocalModSelection(Nothing, Nothing) : Return True
         End If
-        If e.Key = Key.A AndAlso Keyboard.Modifiers = ModifierKeys.Control AndAlso Not LocalModSearch.IsKeyboardFocusWithin Then
-            SelectAllLocalMods(Nothing, Nothing) : Return True
+        ' The optional modifier input keeps isolated checks off the desktop
+        ' keyboard. Normal shell events read the current Windows modifiers.
+        If e.Key = Key.A AndAlso modifiers.GetValueOrDefault(Keyboard.Modifiers) = ModifierKeys.Control Then
+            If LocalModSearch.IsKeyboardFocusWithin AndAlso LocalModSearch.Text.Length > 0 Then Return False
+            If LocalModSelectAll.IsEnabled Then
+                ' PCL's empty search yields Ctrl+A to the Mods viewport. Its
+                ' shortcut always selects; only the toolbar button toggles.
+                If LocalModSearch.IsKeyboardFocusWithin Then LocalModsPage.Focus()
+                SetAllLocalMods(True)
+            End If
+            Return True
         End If
         Return False
     End Function
