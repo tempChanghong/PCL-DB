@@ -340,7 +340,8 @@ Partial Public Class MainWindow
     Private Function ResourceSaveDirectory(kind As CommunityResourceKind) As String
         Dim instance = ResourceSaveContext(), folder = If(instance?.RunDirectory, _selectedFolder?.Location)
         If folder Is Nothing OrElse Not Directory.Exists(folder) Then Return Nothing
-        Dim child = If(kind = CommunityResourceKind.Mod, "mods", If(kind = CommunityResourceKind.ResourcePack, "resourcepacks", If(kind = CommunityResourceKind.Shader, "shaderpacks", "")))
+        Dim packs = If(CommunityResourceInstallation.UsesLegacyTexturePacks(instance?.MinecraftVersion), "texturepacks", "resourcepacks")
+        Dim child = If(kind = CommunityResourceKind.Mod, "mods", If(kind = CommunityResourceKind.ResourcePack, packs, If(kind = CommunityResourceKind.Shader, "shaderpacks", "")))
         Dim destination = Path.Combine(folder, child)
         Return If(Directory.Exists(destination), destination, folder)
     End Function

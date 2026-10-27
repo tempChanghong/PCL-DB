@@ -213,6 +213,9 @@ Friend Module ResourceInstallationChecks
         plan = CommunityResourceInstallation.Create(dataRelease, item, world, CancellationToken.None) : Put(Path.Combine(world.Folder, "level.dat"), "changed")
         Check(Reject(Sub() plan.Publish(source, CancellationToken.None)) AndAlso Not Directory.Exists(Path.Combine(world.Folder, "datapacks")), "changed world marker rejects stale selection before directory creation", passed)
         Dim legacy = Instance(target, "legacy", "1.5.2", False), texture = ResourceInstallationChecks.Release(CommunityResourceKind.ResourcePack, bytes) : texture.GameVersions = {"1.5.2"}
+        Check({"1.0", "1.5.2", "a1.2.6", "b1.7.3"}.All(Function(version) CommunityResourceInstallation.UsesLegacyTexturePacks(version)) AndAlso
+            {Nothing, "", "1.6.1", "1.16.5", "26.3", "13w24a"}.All(Function(version) Not CommunityResourceInstallation.UsesLegacyTexturePacks(version)),
+            "save and install share the existing legacy texture-pack boundary with modern and unknown fallbacks", passed)
         Check(CommunityResourceInstallation.Create(texture, legacy, Nothing, CancellationToken.None).Destination = Path.GetFullPath(Path.Combine(target.Root, "texturepacks/resource.zip")), "legacy instances use texturepacks for explicitly compatible releases", passed)
         Check(CommunityResourceInstallation.CompatibilityProblem(dataRelease, legacy) IsNot Nothing AndAlso CommunityResourceInstallation.CompatibilityProblem(modRelease, legacy) IsNot Nothing, "game-version and loader mismatches reject unsuitable instances", passed)
         Dim customTarget = ResourceInstallationChecks.Target(Path.Combine(base, "missing-custom"), "HMCL-legacy", False, Path.Combine(base, "not-created")), missing = Instance(customTarget, "missing")

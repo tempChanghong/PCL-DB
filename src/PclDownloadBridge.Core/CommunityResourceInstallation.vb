@@ -178,10 +178,11 @@ Public NotInheritable Class CommunityResourceInstallation
             Dim required = release.Loaders.Where(Function(loader) {"neoforge", "forge", "fabric", "quilt", "liteloader", "rift", "modloader"}.Contains(loader, StringComparer.OrdinalIgnoreCase)).ToArray()
             If required.Length > 0 AndAlso Not required.Intersect(installed, StringComparer.OrdinalIgnoreCase).Any() Then Return "Mod 加载器与实例不匹配。"
         End If
-        If release.Kind = CommunityResourceKind.ResourcePack AndAlso LegacyTextures(instance.MinecraftVersion) AndAlso Not release.GameVersions.Contains(instance.MinecraftVersion, StringComparer.OrdinalIgnoreCase) Then Return "资源未声明支持这个旧版游戏的纹理包格式。"
+        If release.Kind = CommunityResourceKind.ResourcePack AndAlso UsesLegacyTexturePacks(instance.MinecraftVersion) AndAlso Not release.GameVersions.Contains(instance.MinecraftVersion, StringComparer.OrdinalIgnoreCase) Then Return "资源未声明支持这个旧版游戏的纹理包格式。"
         Return Nothing
     End Function
-    Private Shared Function LegacyTextures(version As String) As Boolean
+    ' Save dialogs and installation must use the same legacy-format boundary.
+    Public Shared Function UsesLegacyTexturePacks(version As String) As Boolean
         Return Regex.IsMatch(If(version, ""), "\A(?:1\.[0-5](?:\.|\z)|[ab]1\.)", RegexOptions.IgnoreCase Or RegexOptions.CultureInvariant)
     End Function
     Public Shared Function ResourceDirectory(release As ModpackRelease, instance As InstalledInstance, Optional world As InstalledWorld = Nothing) As String
@@ -189,7 +190,7 @@ Public NotInheritable Class CommunityResourceInstallation
         If problem IsNot Nothing Then Throw New InvalidDataException(problem)
         Select Case release.Kind
             Case CommunityResourceKind.Mod : Return Path.GetDirectoryName(SafeFiles.UnderRoot(instance.RunDirectory, "mods/entry"))
-            Case CommunityResourceKind.ResourcePack : Return Path.GetDirectoryName(SafeFiles.UnderRoot(instance.RunDirectory, If(LegacyTextures(instance.MinecraftVersion), "texturepacks", "resourcepacks") & "/entry"))
+            Case CommunityResourceKind.ResourcePack : Return Path.GetDirectoryName(SafeFiles.UnderRoot(instance.RunDirectory, If(UsesLegacyTexturePacks(instance.MinecraftVersion), "texturepacks", "resourcepacks") & "/entry"))
             Case CommunityResourceKind.Shader : Return Path.GetDirectoryName(SafeFiles.UnderRoot(instance.RunDirectory, "shaderpacks/entry"))
             Case CommunityResourceKind.DataPack
                 If world Is Nothing Then Throw New InvalidOperationException("请选择要安装数据包的存档。")

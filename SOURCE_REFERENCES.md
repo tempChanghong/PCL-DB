@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 资源另存为默认目录与旧版兼容（2026-10-27）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadCompDetail` 默认保存位置和 `PageInstanceExport` 资源包目录收集。沿用按资源类型、所选实例实际路径设置默认目录；导出同时识别 `resourcepacks` 与 `texturepacks`。上游另存为入口本身使用 `resourcepacks`，不声称其已做旧版目录分流。
+- PCL-DB 已有旧版纹理包安装支持，本轮将其既有版本判断公开为 `UsesLegacyTexturePacks`，让另存为复用，避免维护两套规则。安装兼容边界、三种启动器隔离、无目录回退和动画保持。[复现与验证](docs/reviews/resource-save-directory-2026-10-27.md)，两份原始 Git 对象及摘要见 `artifacts/resource-save-directory/source/manifest.json`。
+
 ## 详情简介与图片的渲染归属（2026-10-27）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadCompDetail.Init`、`MyResourceItem`、`MyImage.Source/Load` 和 `ModLoader.State`。简介由当前项目创建独立资源行，图片保留缓存与备用源；加载器先改变状态再通知取消。
