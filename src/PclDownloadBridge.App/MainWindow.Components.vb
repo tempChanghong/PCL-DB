@@ -106,18 +106,21 @@ Partial Public Class MainWindow
         Dim entry = _selectedEntry, generation = _componentGeneration
         Dim kinds = If(onlyKind.HasValue, {onlyKind.Value}, [Enum].GetValues(GetType(ComponentKind)).Cast(Of ComponentKind)().ToArray())
         Dim operations As New List(Of Task)
+        Dim requests As New Dictionary(Of ComponentKind, Tuple(Of CancellationTokenSource, CancellationTokenSource))
         Dim requestPolicy = Policy()
         For Each kind In kinds
             Dim previous As CancellationTokenSource = Nothing
-            If _componentRequests.TryGetValue(kind, previous) Then previous.Cancel()
+            _componentRequests.TryGetValue(kind, previous)
             Dim request As New CancellationTokenSource(TimeSpan.FromSeconds(100))
+            requests.Add(kind, Tuple.Create(request, previous))
             _componentRequests(kind) = request
             _componentPending.Add(kind) : _unresolvedComponents.Remove(kind)
             _componentEntries.Remove(kind) : _componentErrors.Remove(kind)
         Next
         RefreshComponents()
         For Each kind In kinds
-            operations.Add(LoadComponentKindAsync(requestPolicy, kind, entry, generation, _componentRequests(kind)))
+            Dim start = requests(kind)
+            operations.Add(LoadComponentKindAsync(requestPolicy, kind, entry, generation, start.Item1, start.Item2))
         Next
         Await Task.WhenAll(operations)
     End Function
@@ -128,8 +131,13 @@ Partial Public Class MainWindow
             _componentRequests.TryGetValue(kind, current) AndAlso current Is request
     End Function
 
-    Private Async Function LoadComponentKindAsync(policy As SourcePolicy, kind As ComponentKind, entry As VersionEntry, generation As Integer, request As CancellationTokenSource) As Task
+    Private Async Function LoadComponentKindAsync(policy As SourcePolicy, kind As ComponentKind, entry As VersionEntry, generation As Integer, request As CancellationTokenSource,
+                                                  Optional previous As CancellationTokenSource = Nothing) As Task
         Try
+            ' Bind the request before cancellation can accept a newer retry or
+            ' version. Keep observer failures inside the normal retry feedback.
+            previous?.Cancel()
+            If Not IsCurrentComponentRequest(kind, entry, generation, request) Then Return
             Dim versions As List(Of ComponentEntry)
             If _componentProvider IsNot Nothing Then
                 versions = Await _componentProvider(policy, kind, entry.Id, request.Token)

@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 组件重试的请求交接（2026-10-27）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadInstall.EnterSelectPage/ReloadSelected/PreviewSwap` 和 `ModLoader.State`：按所选原版启动 Forge 加载器、依据加载状态展示组件，防止重入更新，取消前先更新状态。
+- 桥接程序先登记本批各组件的新请求，再在单个加载器的异常处理内取消捕获的旧请求；启动时使用本批捕获对象并复核组件／原版／代次／请求归属。取消通知异常走已有获取失败与重试界面，不改变折叠动画或依赖兼容规则。[复现与验证](docs/reviews/component-retry-2026-10-27.md)，两份原始 Git 对象及摘要见 `artifacts/component-retry/source/manifest.json`。
+
 ## 普通资源任务的目标文件与结果信息（2026-10-27）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadCompDetail` 保存资源流程和 `ModLoader.State`。上游按保存对话框选定的 `Target` 构造文件任务，使用资源任务状态提示；取消先改变加载状态。本工具的额外结果面板也应记录该目标，而不是把下载缓存当成游戏目录。

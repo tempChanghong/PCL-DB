@@ -49,6 +49,7 @@ Partial Public Class MainWindow
         VerifyTaskReturnFocus(directory, passed)
         VerifyInstallActionHandoff(directory, passed)
         VerifyInstallPressMotion(directory, passed)
+        VerifyComponentRetryUi(directory, passed)
         VerifyInstallActionMotion(directory, check)
         VerifyVanillaCardMotion(directory, check)
         VerifyControlMotionUi(directory, passed)
