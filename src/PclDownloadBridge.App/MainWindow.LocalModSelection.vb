@@ -104,6 +104,15 @@ Partial Public Class MainWindow
         End If
         Dim count = If(LocalModsPage.IsVisible AndAlso Not _closing, _localModSelection.Count, 0), before = _localModSelectedCount
         _localModSelectedCount = count
+        If count = 0 AndAlso before > 0 AndAlso LocalModSelectionBar.IsKeyboardFocusWithin AndAlso LocalModInputAllowed() AndAlso
+            _localModReadSucceeded AndAlso Not _localModScanning AndAlso Not _localModWriting Then
+            ' Move focus before fading/collapsing its owner. A deferred exit
+            ' callback could otherwise steal a newer editor or page focus.
+            Dim offset = LocalModsPage.VerticalOffset
+            FocusManager.SetFocusedElement(FocusManager.GetFocusScope(LocalModsPage), LocalModsPage)
+            LocalModsPage.Focus()
+            LocalModsPage.ScrollToVerticalOffset(offset)
+        End If
         If count > 0 Then LocalModSelectionCount.Text = "已选择 " & count & " 个文件"
         LocalModSelectAll.Text = If(count > 0 AndAlso count = LocalModRows.Children.Count, "取消全选", "全选")
         LocalModContent.Margin = New Thickness(25, 10, 25, If(count > 0, 95, 10))

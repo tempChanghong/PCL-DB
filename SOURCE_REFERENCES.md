@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 本地 Mod 底栏退场的键盘焦点（2026-10-28）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.RefreshBars` 退场／收起逻辑，以及 `MyScrollViewer` 的焦点与滚动处理。保留原底栏时长、计数和清理规则。
+- PCL-DB 为自己的可聚焦操作栏按钮补齐退场前的焦点交接；只在焦点确属操作栏、实例读取有效且没有文件读写时返回当前 Mod 列表，保留滚动位置，其他编辑器和页面的焦点保持原归属。[复现与验证](docs/reviews/local-mod-toolbar-focus-2026-10-28.md)，两份固定 Git 原始字节及摘要见 `artifacts/local-mod-toolbar-focus/source/manifest.json`。
+
 ## 本地 Mod 全选快捷键与搜索焦点（2026-10-28）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.ChangeAllSelected/FrmMain_KeyDown/SearchBox_PreviewKeyDown/BtnManageSelectAll_Click`：Ctrl+A 始终请求全选；按钮按当前选择数量切换；空搜索框转移焦点，含文字的搜索保留编辑器处理。

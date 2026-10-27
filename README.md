@@ -1,5 +1,7 @@
 # PCL-DB · PCL Download Bridge
 
+后续源码修复键盘取消 Mod 选择后焦点滞留在退场操作栏的问题，回到列表时保留滚动位置，搜索和页面切换继续保留各自焦点。[检查说明](docs/reviews/local-mod-toolbar-focus-2026-10-28.md)。本项尚未打包发布。
+
 后续源码对齐 PCL2 的 Mod 全选快捷键：连续 Ctrl+A 保持全选，空搜索框交给列表处理；有文字时保留文本全选，按钮仍可取消全选。[检查说明](docs/reviews/local-mod-shortcuts-2026-10-28.md)。本项尚未打包发布。
 
 后续源码修复在线 Mod 更新信息到达时重启选中竖条退场、无选择变化时创建空动画的问题；标题配色与选择几何分开刷新。[检查说明](docs/reviews/local-mod-metadata-motion-2026-10-28.md)。本项尚未打包发布。
