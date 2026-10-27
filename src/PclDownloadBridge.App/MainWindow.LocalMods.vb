@@ -448,15 +448,19 @@ Partial Public Class MainWindow
     Private Async Function OpenLocalModFolderAsync() As Task
         If Not LocalModInputAllowed() OrElse _localModScanning OrElse _localModWriting Then Return
         Dim previous = _localModFolderRequest
-        _localModFolderRequest = Nothing : previous?.Cancel()
         Dim owner = _localModInstance, generation = _localModGeneration
         Dim request As New CancellationTokenSource(TimeSpan.FromSeconds(100))
+        ' Reserve this click before notifying cancellation. A newer action can
+        ' replace/retire it while the previous request's callbacks are running.
         _localModFolderRequest = request
         Dim current As Func(Of Boolean) = Function() Not _closing AndAlso _localModFolderRequest Is request AndAlso generation = _localModGeneration AndAlso
             _localModInstance Is owner AndAlso SameLocalModContext(owner) AndAlso
             ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible
-        LocalModStatus.Text = "正在读取文件夹…"
         Try
+            previous?.Cancel()
+            If Not current() OrElse Not LocalModInputAllowed() OrElse _localModScanning OrElse _localModWriting Then Return
+            request.Token.ThrowIfCancellationRequested()
+            LocalModStatus.Text = "正在读取文件夹…"
             ' PCL opens the current instance's PathIndie/mods. Keep native
             ' rereads and unchanged/link validation off the WPF input thread.
             Dim refreshed = Await _managementFolderReader(owner, request.Token)

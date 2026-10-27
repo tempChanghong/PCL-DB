@@ -30,6 +30,7 @@ Partial Public Class MainWindow
         VerifyManagementRetirementUi(artifactDirectory, checks)
         VerifyManagementIntentUi(artifactDirectory, checks)
         VerifyLocalModFolderUi(artifactDirectory, checks)
+        VerifyLocalModFolderIntentUi(artifactDirectory, checks)
         VerifyLocalModSelectionUi(artifactDirectory, checks)
         VerifyLocalModUpdateLifecycleUi(artifactDirectory, checks)
         VerifyLocalModPromptUi(artifactDirectory, checks)

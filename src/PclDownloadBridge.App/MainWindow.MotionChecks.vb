@@ -65,6 +65,7 @@ Partial Public Class MainWindow
         VerifyLocalModTransferUi(directory, localModSelectionChecks)
         VerifyManagementRetirementUi(directory, localModSelectionChecks)
         VerifyManagementIntentUi(directory, localModSelectionChecks)
+        VerifyLocalModFolderIntentUi(directory, localModSelectionChecks)
         VerifyResourcePromptLifecycleUi(directory, localModSelectionChecks)
         VerifyResourceInputReentrancyUi(directory, localModSelectionChecks)
         For Each label In localModSelectionChecks : check(True, label) : Next

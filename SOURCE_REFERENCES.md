@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 本地 Mod 目录动作与当前实例／请求绑定（2026-10-27）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.BtnManageOpen_Click`、`ReloadModList`、`ModLoader.State` 和 `FormMain`。沿用当前实例实际 Mods 目录和显式刷新，参照状态先更新、再通知取消的顺序；桥接程序先绑定原实例与请求，再取消旧读取并复核当前输入状态。
+- 过期目录点击不再干扰新目录、列表刷新、文件操作或新实例。原生目录读取与原动画实现不变。[复现与验证](docs/reviews/local-mod-folder-intent-2026-10-27.md)，三份原始 Git 对象及摘要见 `artifacts/local-mod-folder-intent/source/manifest.json`。
+
 ## 补全与刷新入口的原实例绑定（2026-10-27）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceOverall.BtnManageCheck_Click`、`ModLoader.State`、`FormMain`。补全沿用所选实例、修改锁和重复操作门控的原则，取消通知先退役旧状态；桥接程序在通知前绑定原实例，通知后核对管理与目录代次、页面和输入门控。
