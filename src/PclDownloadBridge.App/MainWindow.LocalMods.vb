@@ -388,15 +388,18 @@ Partial Public Class MainWindow
         Dim focused = Keyboard.FocusedElement, inputVersion = _downloadFocusInputVersion
         Dim focusedRow = LocalModRows.Children.OfType(Of Grid)().FirstOrDefault(Function(row) row.IsKeyboardFocusWithin)
         Dim focusedEntry = TryCast(focusedRow?.Tag, LocalModEntry)
-        CancelLocalModRequest()
         _localModOperationGeneration += 1
         Dim operationGeneration = _localModOperationGeneration
         Dim owner = _localModInstance, request As New CancellationTokenSource(), outcome As String = Nothing, taskGeneration = _taskGeneration
         _localModWriting = True : _localModWriteRequest = request
         _localModWriteOwner = owner
-        LocalModStatus.Text = message
-        RefreshLocalModWriteGates()
         Try
+            ' Bind the accepted writer before cancellation can navigate or
+            ' reenter another file action. Its target must remain immutable.
+            CancelLocalModRequest()
+            If SameLocalModContext(owner) AndAlso LocalModsPage.Visibility = Visibility.Visible Then LocalModStatus.Text = message
+            RefreshLocalModWriteGates()
+            request.Token.ThrowIfCancellationRequested()
             Dim result = Await operation(owner, request.Token)
             outcome = "完成：更改 " & result.ChangedCount & " 个，跳过 " & result.SkippedCount & " 个。" &
                 If(result.Warnings.Count = 0, "", " " & ShortLocalModText(String.Join("；", result.Warnings), 1024)) & If(result.BackupDirectory Is Nothing, "", " 原文件备份：" & result.BackupDirectory)

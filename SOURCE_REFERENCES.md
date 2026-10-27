@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## Mod 写入启动前的目标与互斥归属（2026-10-27）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.InstallMods/UpdateMods`、`LocalResourceLoaders`、`ModLoader.State`。参照先固定实例／清单、按实际 Mods 目录协调读写、先改变状态再通知取消的原则，桥接程序在取消旧读取前登记原写入实例和请求。
+- 导航后不借用新实例执行原文件操作；同目录刷新延后、重复写入受门控，启动时的取消在调用文件操作前生效。Core 事务与原动画未改。[复现与验证](docs/reviews/mod-write-start-2026-10-27.md)，三份原始 Git 对象及摘要见 `artifacts/mod-write-start/source/manifest.json`。
+
 ## 本地 Mod 目录动作与当前实例／请求绑定（2026-10-27）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.BtnManageOpen_Click`、`ReloadModList`、`ModLoader.State` 和 `FormMain`。沿用当前实例实际 Mods 目录和显式刷新，参照状态先更新、再通知取消的顺序；桥接程序先绑定原实例与请求，再取消旧读取并复核当前输入状态。
