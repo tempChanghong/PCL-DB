@@ -10,6 +10,7 @@ Imports PclDownloadBridge.Core
 
 Partial Public Class MainWindow
     Public Sub VerifyLocalModSelectionUi(directory As String, passed As List(Of String))
+        VerifyLocalModSelectionMotionUi(directory, passed)
         Dim owner As New MainWindow(True), original = owner.Content, previous = SynchronizationContext.Current
         Dim host As New Border With {.Width = 900, .Height = 700}, layout = ControlLayout(host)
         Dim check As Action(Of Boolean, String) = Sub(ok, label)
@@ -76,7 +77,7 @@ Partial Public Class MainWindow
         PageSurface.IsHitTestVisible = True : layout()
         check(LocalModSelectionBar.IsHitTestVisible, "page handoff restores selection toolbar input")
         RestoreAppearance(New JObject From {{"darkMode", True}}) : layout()
-        check(DirectCast(row.TitleLabel.Foreground, SolidColorBrush).Color = DirectCast(FindResource("ColorBrush3"), SolidColorBrush).Color AndAlso row.Checked, "dark palette changes preserve selected-row accent and identity")
+        check(DirectCast(row.TitleLabel.Foreground, SolidColorBrush).Color = DirectCast(FindResource("ColorBrush2"), SolidColorBrush).Color AndAlso row.Checked, "dark palette changes preserve selected-row accent and identity")
         host.Width = 810 : host.Height = 540 : layout()
         Dim bounds = LocalModSelectionBar.TransformToAncestor(host).TransformBounds(New Rect(LocalModSelectionBar.RenderSize))
         check(bounds.Left >= 0 AndAlso bounds.Right <= host.Width AndAlso bounds.Bottom <= host.Height AndAlso LocalModContent.Margin.Bottom = 95,

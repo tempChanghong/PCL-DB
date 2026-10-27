@@ -43,11 +43,24 @@ Partial Public Class MainWindow
         For Each entry In visible
             If clear Then _localModSelection.Remove(entry.FilePath) Else _localModSelection.Add(entry.FilePath)
         Next
-        RenderLocalMods()
+        ApplyLocalModSelection()
     End Sub
     Private Sub ClearLocalModSelection(sender As Object, e As RoutedEventArgs)
         If Not LocalModInputAllowed() OrElse _localModWriting Then Return
-        _localModSelection.Clear() : RenderLocalMods()
+        _localModSelection.Clear() : ApplyLocalModSelection()
+    End Sub
+    Private Sub ApplyLocalModSelection()
+        ' PCL ChangeAllSelected updates attached rows; rebuilding the list would
+        ' unload the controls and settle their just-started selection clocks.
+        _localModRenderingSelection = True
+        Try
+            For Each row In LocalModRows.Children.OfType(Of PclLocalModItem)()
+                row.Checked = _localModSelection.Contains(DirectCast(row.Tag, LocalModEntry).FilePath)
+            Next
+        Finally
+            _localModRenderingSelection = False
+        End Try
+        RefreshLocalModSelection(True)
     End Sub
     Private Function LocalModSelectionKey(e As KeyEventArgs) As Boolean
         If Not LocalModInputAllowed() Then Return False
@@ -78,7 +91,7 @@ Partial Public Class MainWindow
         End If
         Dim count = If(LocalModsPage.IsVisible AndAlso Not _closing, _localModSelection.Count, 0), before = _localModSelectedCount
         _localModSelectedCount = count
-        LocalModSelectionCount.Text = "已选择 " & count & " 个文件"
+        If count > 0 Then LocalModSelectionCount.Text = "已选择 " & count & " 个文件"
         LocalModSelectAll.Text = If(count > 0 AndAlso count = LocalModRows.Children.Count, "取消全选", "全选")
         LocalModContent.Margin = New Thickness(25, 10, 25, If(count > 0, 95, 10))
         Dim moving = animate AndAlso _localModBarPolicy.CanAnimate
@@ -92,7 +105,8 @@ Partial Public Class MainWindow
             _localModBarOffset.Animate(bounce, -25.0, _localModBarPolicy.PauseForChecks)
             _localModBarOpacity.Animate(New DoubleAnimation(LocalModSelectionBar.Opacity, 1, TimeSpan.FromMilliseconds(60)), 1.0, _localModBarPolicy.PauseForChecks)
         ElseIf moving AndAlso count = 0 AndAlso before > 0 Then
-            _localModBarOffset.Animate(New DoubleAnimation(LocalModSelectionOffset.Y, -10, TimeSpan.FromMilliseconds(90)), -10.0, _localModBarPolicy.PauseForChecks)
+            _localModBarOffset.Animate(New DoubleAnimation(LocalModSelectionOffset.Y, -10, TimeSpan.FromMilliseconds(90)) With {
+                .EasingFunction = New QuadraticEase With {.EasingMode = EasingMode.EaseIn}}, -10.0, _localModBarPolicy.PauseForChecks)
             _localModBarOpacity.Animate(New DoubleAnimation(LocalModSelectionBar.Opacity, 0, TimeSpan.FromMilliseconds(90)), 0.0, _localModBarPolicy.PauseForChecks)
             Dim clock = _localModBarOpacity.Clock
             AddHandler clock.Completed, Sub()

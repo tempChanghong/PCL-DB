@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 本地 Mod 选择与底栏动画（2026-10-27）
+
+- 对照用户两段录屏，重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MyLocalModItem.Checked/RefreshColor`、`PageInstanceMod` 底栏和 `ChangeAllSelected`，并核对 `ModBase.IsVisibleInForm` 与 `ModAnimation` 曲线：32 DIP 竖条由 200 ms 弱 Fluent 与 300 ms 弱 Back 并行展开，标题渐变；取消时收缩和延迟淡出。底栏在取消最后一项时保留计数，原位全选不卸载列表行。
+- PCL-DB 为本地 Mod 独立管理竖条／标题时钟，复用已有 PCL 高度与 ARGB 曲线，保留悬停、按钮、主题与页面输入门控的各自所有权。[复现与验证](docs/reviews/local-mod-selection-motion-2026-10-27.md)，五份固定 Git 原始字节及摘要见 `artifacts/video-motion-2026-10-27/source/manifest.json`。
+
 ## 组件目录与安装文件名（2026-10-27）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModDownload.DlFabricApiLoader/DlOptiFabricLoader` 与 `ModDownloadLib.McInstallLoadersGet`：API／OptiFabric 目录来自资源版本，使用 `ToNetFile` 将对应文件放入 Mods 临时目录；OptiFine 按加载器区分独立安装和作为 Mod 的路径。

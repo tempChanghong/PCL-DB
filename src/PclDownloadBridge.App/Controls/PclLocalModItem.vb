@@ -26,6 +26,7 @@ Namespace Controls
         Private _lastActive As Boolean?, _pressed As Boolean, _touchRevealed As Boolean, _titleCompression As Integer
         Private _checked As Boolean, _hasUpdate As Boolean, _rowPress As Point?
         Private ReadOnly _selectionMark As Border
+        Private ReadOnly _selectionMotion As PclLocalModSelectionMotion
         Public Event CheckedChanged As EventHandler
         Public Property Checked As Boolean
             Get
@@ -33,7 +34,7 @@ Namespace Controls
             End Get
             Set(value As Boolean)
                 If value = _checked Then Return
-                _checked = value : _selectionMark.Visibility = If(value, Visibility.Visible, Visibility.Collapsed)
+                _checked = value
                 AutomationProperties.SetItemStatus(Me, If(value, "已选择", "未选择"))
                 RefreshAppearance(True) : RaiseEvent CheckedChanged(Me, EventArgs.Empty)
             End Set
@@ -44,7 +45,7 @@ Namespace Controls
             End Get
             Set(value As Boolean)
                 If value = _hasUpdate Then Return
-                _hasUpdate = value : RefreshTitleColor()
+                _hasUpdate = value : RefreshAppearance(True)
             End Set
         End Property
         Friend Sub SetUpdateInfo(update As LocalModUpdate)
@@ -96,7 +97,7 @@ Namespace Controls
                 ColumnDefinitions.Add(New ColumnDefinition With {.Width = columnSize})
             Next
             _padding = ColumnDefinitions(5)
-            _selectionMark = New Border With {.Width = 5, .CornerRadius = New CornerRadius(2), .Margin = New Thickness(0, 5, 0, 5), .HorizontalAlignment = HorizontalAlignment.Left, .Visibility = Visibility.Collapsed, .IsHitTestVisible = False}
+            _selectionMark = New Border With {.Width = 5, .Height = 0, .Opacity = 0, .CornerRadius = New CornerRadius(2), .Margin = New Thickness(-3, 0, 0, 0), .VerticalAlignment = VerticalAlignment.Center, .HorizontalAlignment = HorizontalAlignment.Left, .IsHitTestVisible = False}
             _selectionMark.SetResourceReference(Border.BackgroundProperty, "ColorBrush3")
             SetRowSpan(_selectionMark, 4) : SetColumnSpan(_selectionMark, 6) : Panel.SetZIndex(_selectionMark, 2) : Children.Add(_selectionMark)
             For Each rowSize As GridLength In {New GridLength(1, GridUnitType.Star), New GridLength(17), New GridLength(18), New GridLength(1, GridUnitType.Star)}
@@ -126,6 +127,7 @@ Namespace Controls
                 .VerticalAlignment = VerticalAlignment.Bottom, .TextDecorations = If(entry.Enabled, Nothing, TextDecorations.Strikethrough)}
             TitleLabel.SetResourceReference(TextBlock.ForegroundProperty, If(entry.Enabled, "ColorBrush1", "ColorBrushGray4"))
             _titleGrid.Children.Add(TitleLabel)
+            _selectionMotion = New PclLocalModSelectionMotion(_selectionMark, TitleLabel)
             VersionLabel = New TextBlock With {.Text = If(String.IsNullOrEmpty(entry.Version), "", "  |  " & Bounded(Flat(entry.Version), 200)), .FontSize = 12,
                 .TextTrimming = TextTrimming.CharacterEllipsis, .VerticalAlignment = VerticalAlignment.Bottom, .Opacity = 0.4,
                 .Visibility = If(fileNameFirst OrElse String.IsNullOrEmpty(entry.Version), Visibility.Collapsed, Visibility.Visible)}
@@ -164,7 +166,7 @@ Namespace Controls
                                                          RefreshAppearance(True)
                                                      End Sub
             AddHandler PreviewMouseLeftButtonDown, Sub(sender, args)
-                                                       If MotionPolicy.Interactive AndAlso ToggleButton.IsMouseOver Then _pressed = True : RefreshAppearance(True)
+                                                       If MotionPolicy.Interactive Then _pressed = True : RefreshAppearance(True)
                                                        If MotionPolicy.Interactive AndAlso Not ToggleButton.IsMouseOver Then _rowPress = args.GetPosition(Me)
                                                    End Sub
             AddHandler PreviewMouseLeftButtonUp, Sub(sender, args)
@@ -230,13 +232,19 @@ Namespace Controls
         Private Sub RefreshAppearance(animate As Boolean, Optional paletteOnly As Boolean = False)
             If MotionPolicy Is Nothing Then Return
             Dim interactive = MotionPolicy.Interactive, active = interactive AndAlso (IsMouseOver OrElse IsKeyboardFocusWithin OrElse _touchRevealed)
-            RefreshTitleColor()
             Dim plate = _checked OrElse active
             Dim moving = animate AndAlso MotionPolicy.CanAnimate AndAlso Not PclTheme.Changing
+            Dim titleKey = If(_checked, If(DirectCast(Tag, LocalModEntry).Enabled, "ColorBrush2", "ColorBrush5"), If(_hasUpdate, "ColorBrush3", If(DirectCast(Tag, LocalModEntry).Enabled, "ColorBrush1", "ColorBrushGray4")))
             If paletteOnly Then
+                _selectionMotion.RefreshPalette(titleKey)
                 _hover.RefreshPalette(Brush(If(_pressed AndAlso interactive, "ColorBrush6", If(plate, "ColorBrushBg1", "ColorBrush7"))).Color)
                 Return
             End If
+            ' MyLocalModItem.Checked uses IsVisibleInForm: selecting a large
+            ' catalogue must not create marker/color clocks below the viewport.
+            Dim root = TryCast(PresentationSource.FromVisual(Me)?.RootVisual, FrameworkElement)
+            Dim selectionMoving = moving AndAlso root IsNot Nothing AndAlso Not PclExitSnapshot.VisibleBounds(Me, root).IsEmpty
+            _selectionMotion.Update(_checked, titleKey, selectionMoving, MotionPolicy.PauseForChecks)
             _hover.Update(plate, interactive AndAlso _pressed, Brush(If(_pressed AndAlso interactive, "ColorBrush6", If(plate, "ColorBrushBg1", "ColorBrush7"))).Color, moving, MotionPolicy.PauseForChecks)
             If moving AndAlso _lastActive.HasValue AndAlso _lastActive.Value = active Then Return
             _lastActive = active
@@ -249,9 +257,6 @@ Namespace Controls
             Else
                 _actionOpacity.SetValue(opacity) : _actionInset.SetValue(inset)
             End If
-        End Sub
-        Private Sub RefreshTitleColor()
-            If TitleLabel IsNot Nothing Then TitleLabel.SetResourceReference(TextBlock.ForegroundProperty, If(_checked OrElse _hasUpdate, "ColorBrush3", If(DirectCast(Tag, LocalModEntry).Enabled, "ColorBrush1", "ColorBrushGray4")))
         End Sub
         Private Sub CompressTitle()
             If _titleGrid Is Nothing OrElse ActualWidth <= 0 Then Return
