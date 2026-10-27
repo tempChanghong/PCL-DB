@@ -44,6 +44,7 @@ Partial Public Class MainWindow
         VerifyWorldRetirementUi(directory, passed)
         VerifyDependencyNamesUi(directory, passed)
         VerifyDependencyResetUi(directory, passed)
+        VerifyDetailStartUi(directory, passed)
         VerifyResourceArtworkUi(directory, passed)
         VerifyLocalPackNavigationUi(directory, passed)
         VerifyTaskChoiceUi(directory, passed)

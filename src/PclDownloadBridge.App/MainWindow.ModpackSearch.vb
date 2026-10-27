@@ -386,37 +386,43 @@ Partial Public Class MainWindow
     End Sub
     Private Async Function LoadPackDetailsAsync(project As ModpackProject) As Task
         If project Is Nothing OrElse project IsNot _packProject OrElse _closing Then Return
-        ResetResourceNames()
-        _packDetailRequest?.Cancel()
+        Dim previous = _packDetailRequest, request As New CancellationTokenSource
+        _packDetailRequest = request
         _packDetailCompletedProject = Nothing
-        Dim request As New CancellationTokenSource : _packDetailRequest = request
-        _packDetailLoading.Start(request, request.Token, AddressOf PreparePackDetailLoading, Sub() ChangePackContent(PackBrowserMode.Detail, Sub()
+        Try
+            ' Like PCL's loader state transition, reserve ownership before any
+            ' old cancellation can refresh again or open a different project.
+            previous?.Cancel()
+            If Not CurrentPackDetail(project, request) Then Return
+            ResetResourceNames()
+            If Not CurrentPackDetail(project, request) Then Return
+            _packDetailLoading.Start(request, request.Token, AddressOf PreparePackDetailLoading, Sub() ChangePackContent(PackBrowserMode.Detail, Sub()
                                                      PackVersionCards.Children.Clear() : PackVersionFilters.Children.Clear()
                                                      PackVersionFilterCard.Visibility = Visibility.Collapsed
                                                      PackDetailHint.Visibility = Visibility.Collapsed : PackDetailRetry.Visibility = Visibility.Collapsed
                                                      Dim loading As New PclCard With {.ShowHeader = False, .HorizontalAlignment = HorizontalAlignment.Center, .BodyMargin = New Thickness(0), .Body = New PclLoadingView("正在获取版本列表")}
                                                      PackVersionCards.Children.Add(loading)
                                                  End Sub))
-        Try
+            If Not CurrentPackDetail(project, request) Then Return
             Using client = _packCatalogFactory()
                 Dim verified = Await client.GetProjectAsync(project.Platform, project.Id, request.Token, project.Kind)
                 verified.PreferredVersionId = project.PreferredVersionId
                 Dim releases = Await client.GetVersionsAsync(verified, request.Token)
                 If verified.Kind = CommunityResourceKind.Mod AndAlso Not String.IsNullOrEmpty(_resourceTargetLoader) Then releases = releases.Where(Function(item) item.Loaders.Contains(_resourceTargetLoader, StringComparer.OrdinalIgnoreCase)).ToList()
-                If _closing OrElse request.IsCancellationRequested OrElse _packDetailRequest IsNot request OrElse _packProject IsNot project Then Return
+                If Not CurrentPackDetail(project, request) Then Return
                 Await _packDetailLoading.CompleteAsync(request)
-                If _closing OrElse request.IsCancellationRequested OrElse _packDetailRequest IsNot request OrElse _packProject IsNot project Then Return
+                If Not CurrentPackDetail(project, request) Then Return
                 ChangePackContent(PackBrowserMode.Detail, Sub()
                                                              _packVerifiedProject = verified : _packReleases = releases
                                                              RenderPackProject(verified)
                                                              PackDetailHint.Visibility = Visibility.Collapsed : InitializePackVersions()
                                                          End Sub)
-                If Not _closing AndAlso Not request.IsCancellationRequested AndAlso _packDetailRequest Is request AndAlso _packProject Is project Then
+                If CurrentPackDetail(project, request) Then
                     _packDetailCompletedProject = project
                 End If
             End Using
         Catch ex As Exception
-            If Not _closing AndAlso Not request.IsCancellationRequested AndAlso _packDetailRequest Is request AndAlso _packProject Is project Then
+            If CurrentPackDetail(project, request) Then
                 _packDetailLoading.Cancel(request)
                 _packDetailCompletedProject = Nothing
                 ChangePackContent(PackBrowserMode.Detail, Sub()
@@ -429,6 +435,10 @@ Partial Public Class MainWindow
             If _packDetailRequest Is request Then _packDetailRequest = Nothing
             request.Dispose()
         End Try
+    End Function
+    Private Function CurrentPackDetail(project As ModpackProject, request As CancellationTokenSource) As Boolean
+        ' Hidden details may still finish into their accepted cache after Back.
+        Return Not _closing AndAlso Not request.IsCancellationRequested AndAlso _packDetailRequest Is request AndAlso _packProject Is project
     End Function
     Private Function PackSearchGameValue() As String
         Dim value = PackSearchGame.Text.Trim()

@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 详情刷新启动时的请求归属（2026-10-27）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModLoader.State`、`MyPageRight.PageLoaderState/PageLoaderRestart` 和 `PageDownloadCompDetail.xaml.vb` 的资源文件加载器。沿用先变更加载状态再通知取消、只接收未取消加载结果及分阶段加载展示的原则。
+- 详情读取先绑定新请求和完成状态，再在异常处理内取消捕获的旧请求。旧取消及名称重置返回后均复核当前请求／项目；过期入口不创建新查询或重置新页面。归属判定保留隐藏详情的缓存完成，不增加页面可见性条件。[复现与验证](docs/reviews/detail-start-2026-10-27.md)，三份原始 Git 对象及摘要见 `artifacts/detail-start/source/manifest.json`。
+
 ## 前置名称读取重置的归属与释放（2026-10-27）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModLoader.State`、`PageDownloadCompDetail` 前置列表和 `MyResourceItem.MyResourceItem_Click`。沿用先改变状态再通知取消、前置名称属于项目缓存且不影响版本下载的原则。
