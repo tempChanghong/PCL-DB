@@ -1,5 +1,9 @@
 # 本地验证记录
 
+## Beta 6.0 后续：批量 Mod 更新限速（2026-10-27，尚未发行）
+
+新增 68 项实际按钮／确认窗口检查，覆盖明暗、开关动画、en-US／de-DE 小数解析、0.5 MB/s 取消与重试、8 MB/s 和不限速。原行为 12 项失败，确认限速值缺少 MB→字节换算。修复后专项通过；检查实际传给更新器的参数、退场门控、重复点击、取消和刷新，临时游戏与配置字节保持。策略 `PCL-DB-checks/2026-10-27.4`：all 2,442、motion 1,912、pack-search 1,481；navigation 1,288 包含在 all 中。固定 PCL 来源、验证契约及构建另验，最终以 `artifacts/local-mod-transfer/validation.json` 为准。不改 Core、不验证公网吞吐，不打包发版。[检查说明](docs/reviews/local-mod-transfer-2026-10-27.md)。
+
 ## Beta 6.0 后续：刷新及实例选择重入（2026-10-27，尚未发行）
 
 新增 144 项，覆盖三种启动器、明暗、开关动画、取消时重开、同窗嵌套刷新、实例切换及最新存档选择。原行为 60 项失败；修复后专项通过。策略 `PCL-DB-checks/2026-10-27.3`：all 2,374、motion 1,844、pack-search 1,481；navigation 1,220 包含在 all 中。固定 PCL 来源、97 项验证契约及构建另验；最终回执在 `artifacts/resource-input-reentrancy/validation.json`。专项只使用临时实例及存档标记，不启动下载，不改 Core 源码，不打包发版。[检查说明](docs/reviews/resource-input-reentrancy-2026-10-27.md)。

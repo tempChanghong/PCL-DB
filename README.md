@@ -1,5 +1,7 @@
 # PCL-DB · PCL Download Bridge
 
+后续源码修复批量 Mod 更新的限速单位错误：与其他下载统一将 MB/s 换算为字节/秒，保留 0 为不限速，并检查确认退场、取消及重试。[检查说明](docs/reviews/local-mod-transfer-2026-10-27.md)。本项尚未打包发布。
+
 后续源码修复资源刷新和实例切换取消重入后，旧流程重复读取、覆盖新实例／存档选择的问题，保留原动画和配置。[检查说明](docs/reviews/resource-input-reentrancy-2026-10-27.md)。本项尚未打包发布。
 
 后续源码修复资源安装弹窗的重复打开、取消时重开和迟到确认串用计划问题，保留当前实例、配置与动画。[检查说明](docs/reviews/resource-prompt-lifecycle-2026-10-27.md)。本项尚未打包发布。

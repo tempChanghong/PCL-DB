@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## Mod 更新限速单位与确认交接（2026-10-27）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModNet.NetTaskSpeedLimitHigh`、`PageSetupSystem`、`PageInstanceMod.UpdateMods`。依照界面 M/s 到网络字节预算的 `1024 × 1024` 换算，修复批量更新入口漏乘；保留本工具 0 不限速、已有确认退场及冻结清单的机制。
+- [复现与验证](docs/reviews/local-mod-transfer-2026-10-27.md)；三份原始 Git 对象摘要见 `artifacts/local-mod-transfer/source/manifest.json`。只改 UI 到更新器的参数边界，未改 Core 下载预算或文件事务。
+
 ## 资源刷新与实例切换的输入代次（2026-10-27）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MyMsgSelect`、`PageInstanceMod.ReloadModList`。保留显式刷新、滚动回顶和明确选择；异步取消返回后，桥接程序另核对窗口、父请求和输入代次，避免旧流程覆盖更新的实例／存档。

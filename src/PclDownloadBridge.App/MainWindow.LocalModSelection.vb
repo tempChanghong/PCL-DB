@@ -18,6 +18,8 @@ Partial Public Class MainWindow
     Private _localModUpdateCache As LocalModUpdateCheckResult
     Private _localModBarPolicy As PclControlMotionPolicy, _localModBarOpacity As PclMotionSlot, _localModBarOffset As PclMotionSlot
     Private _localModUpdateProvider As Func(Of InstalledInstance, List(Of LocalModEntry), CancellationToken, Task(Of LocalModUpdateCheckResult))
+    Private _localModUpdateInstaller As Func(Of InstalledInstance, List(Of LocalModUpdate), String, SourcePolicy, CancellationToken, Integer, Long, Task(Of LocalModActionResult)) =
+        Function(instance, updates, cache, policy, token, connections, limit) LocalModUpdater.InstallAsync(instance, updates, cache, policy, Nothing, token, connections, limit)
     Private Function HasLocalModUpdate(entry As LocalModEntry) As Boolean
         Dim update As LocalModUpdate = Nothing
         Return _localModUpdates.TryGetValue(entry.FilePath, update) AndAlso update.Entry.Sha256 = entry.Sha256 AndAlso update.HasUpdate
@@ -207,7 +209,9 @@ Partial Public Class MainWindow
         If Not TryGetSpeedLimit(limit) Then Return
         Dim policySnapshot = Policy(), connections = ConnectionCount(), cache = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PclDownloadBridge", "ResourceCache")
         _localModUpdateCacheKey = Nothing
-        Await RunLocalModWriteAsync(Function(instance, token) LocalModUpdater.InstallAsync(instance, selected, cache, policySnapshot, Nothing, token, connections, CLng(limit)), "正在下载并更新所选 Mod…")
+        ' Settings use MB/s; the shared download budget consumes bytes/s.
+        Dim bytesPerSecond = CLng(limit * 1024 * 1024)
+        Await RunLocalModWriteAsync(Function(instance, token) _localModUpdateInstaller(instance, selected, cache, policySnapshot, token, connections, bytesPerSecond), "正在下载并更新所选 Mod…")
     End Sub
     Private Sub DownloadNewLocalMod(sender As Object, e As RoutedEventArgs)
         If Not LocalModInputAllowed() OrElse Not LocalModDownload.IsEnabled Then Return

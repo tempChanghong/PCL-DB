@@ -31,6 +31,7 @@ Partial Public Class MainWindow
         VerifyLocalModSelectionUi(artifactDirectory, checks)
         VerifyLocalModUpdateLifecycleUi(artifactDirectory, checks)
         VerifyLocalModPromptUi(artifactDirectory, checks)
+        VerifyLocalModTransferUi(artifactDirectory, checks)
         VerifyResourcePromptLifecycleUi(artifactDirectory, checks)
         VerifyResourceInputReentrancyUi(artifactDirectory, checks)
         VerifyRepairNativeUi(artifactDirectory, checks)
