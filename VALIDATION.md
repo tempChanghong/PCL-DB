@@ -2,7 +2,7 @@
 
 ## Beta 7.0 发布验证（2026-10-28）
 
-发行版本 `7.0.0-beta.1`，标签 `v7.0.0-beta.1`。发布流程按策略 `PCL-DB-checks/2026-10-28.6` 执行完整检查，单 EXE、内嵌 Core、便携 ZIP 和源码归档绑定同一最终提交；打包检查明确传入候选 `result.json`，分别使用 PowerShell 7 和 Windows PowerShell 5.1。候选、构建、源码外部重建与附件摘要回执保存在 `artifacts/beta-7.0-release/`，公开摘要随 Release 工件提供。具体通过计数以 `verification.json` 为准；临时夹具和离屏 WPF 不作为真实游戏启动或桌面帧率证明。[发布说明](docs/releases/7.0.0-beta.1.md)。
+发行版本 `7.0.0-beta.1`，标签 `v7.0.0-beta.1`。发布流程按策略 `PCL-DB-checks/2026-10-28.7` 执行完整检查，单 EXE、内嵌 Core、便携 ZIP 和源码归档绑定同一最终提交；打包检查明确传入候选 `result.json`，分别使用 PowerShell 7 和 Windows PowerShell 5.1。首次候选的界面套件仍在执行时触及 600 秒期限，失败回执保留；完整界面和动画期限改为统一的 900 秒，搜索及其他检查的期限保持，随后重新构建和验收。候选、构建、源码外部重建与附件摘要回执保存在 `artifacts/beta-7.0-release/`，公开摘要随 Release 工件提供。具体通过计数以 `verification.json` 为准；临时夹具和离屏 WPF 不作为真实游戏启动或桌面帧率证明。[发布说明](docs/releases/7.0.0-beta.1.md)。
 
 以下保留各轮修复当时的验证范围；这些 Beta 6 后续改动统一纳入 Beta 7.0。
 
