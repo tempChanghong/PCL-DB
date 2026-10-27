@@ -24,6 +24,9 @@ Public NotInheritable Class ModrinthReference
         If environment IsNot Nothing Then
             If Not TypeOf environment Is JObject Then Throw New InvalidDataException("Modrinth env 字段无效。")
             For Each side In {"client", "server"}
+                ' PCL installs by env.client; HMCL exports optional files without
+                ' a server field. Still validate server whenever it is supplied.
+                If side = "server" AndAlso environment(side) Is Nothing Then Continue For
                 Dim mode = Text(DirectCast(environment, JObject), side)
                 If Not {"required", "optional", "unsupported"}.Contains(mode, StringComparer.Ordinal) Then Throw New InvalidDataException("Modrinth 环境声明无效：" & side)
                 If side = "client" Then Client = mode

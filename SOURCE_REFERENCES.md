@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## Modrinth 客户端环境与 HMCL 导出兼容（2026-10-27）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModModpack.InstallPackModrinth`：依据 `env.client` 提供可选文件选择、跳过不支持客户端的文件，不要求服务端声明参与客户端安装。
+- 对照 HMCL `0d20910ea302a907d6a01fec9244ab10d2993d5e` 的 `ModrinthModpackExportTask.tryGetRemoteFile`：禁用文件导出为只含 `client: optional` 的环境对象。兼容缺少 `server` 的情况；已有 `server` 和必需的 `client` 仍严格校验。固定 Git 原始字节、blob 与 SHA-256 见 `artifacts/modrinth-client-env/source/manifest.json`。[复现与验证](docs/reviews/modrinth-client-environment-2026-10-27.md)。
+
 ## 组件整批退役与页面初始化交接（2026-10-27）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModLoader.State/IsCanceledWithThread` 及 `PageDownloadInstall.EnterSelectPage/ReloadSelected`。参照取消前改变状态、按当前执行身份拒绝旧结果和避免组件展示重入的边界。

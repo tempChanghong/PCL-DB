@@ -19,7 +19,7 @@ Friend Module ModrinthChecks
         Return New DownloadFile With {.RelativePath = reference.Path, .Url = reference.Downloads(0), .AlternateUrls = reference.Downloads.Skip(1).ToArray(),
             .EstimatedSize = reference.EstimatedSize, .Sha1 = reference.Sha1, .Sha512 = reference.Sha512, .Category = "modrinth"}
     End Function
-    Private Function Manifest(Optional loader As Boolean = True) As JObject
+    Friend Function Manifest(Optional loader As Boolean = True) As JObject
         Dim files As New JArray()
         For Each label In {"required", "optional", "unsupported"}
             Dim bytes = Encoding.UTF8.GetBytes("fixture " & label & " content")
@@ -73,6 +73,7 @@ Friend Module ModrinthChecks
     End Class
     Friend Async Function RunAsync(root As String, Optional onlyCase As String = Nothing) As Task(Of List(Of String))
         Dim passed As New List(Of String)
+        If onlyCase Is Nothing OrElse onlyCase = "modrinth-all" OrElse onlyCase = "modrinth-environment" Then Await ModrinthEnvironmentChecks.RunAsync(root, passed)
         If onlyCase Is Nothing OrElse onlyCase = "modrinth-all" OrElse onlyCase = "modrinth-package" Then Packages(root, passed)
         If onlyCase Is Nothing OrElse onlyCase = "modrinth-all" OrElse onlyCase = "modrinth-download" Then Await DownloadsAsync(root, passed)
         If onlyCase Is Nothing OrElse onlyCase = "modrinth-all" OrElse onlyCase = "modrinth-install" Then Await InstallsAsync(root, passed)

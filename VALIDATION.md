@@ -1,5 +1,9 @@
 # 本地验证记录
 
+## Beta 6.0 后续：HMCL 导出的 Modrinth 环境声明（2026-10-27，尚未发行）
+
+新增 25 项 Core 检查：只含客户端的环境声明、明确服务端声明、非法／缺失客户端、非法／空服务端，以及选择／不选择可选文件时的真实下载、取消、原子发布、重试、共享 Mods／设置保持和已有目标冲突。旧实现在首个包读取处报 `Modrinth server 文本字段无效`；修复后专项通过。执行完整 `modrinth-all` 153 项（包含新增 25 项）和 `native-isolation` 148 项，使用临时目录及回环 HTTP。Release 构建零警告、零错误，固定 PCL 来源／资源和验证工具另验。本轮不重跑完整 UI、搜索或 Core 全套，不将已有注册数量当成执行数量；不打包发版。[检查说明](docs/reviews/modrinth-client-environment-2026-10-27.md)，回执见 `artifacts/modrinth-client-env/validation.json`。
+
 ## Beta 6.0 后续：组件整批取消及初始化（2026-10-27，尚未发行）
 
 新增 60 项：明暗 × 开关动画，覆盖取消期间新单项读取、整批刷新让位、连续原版选择、来源变更时新读取、关闭时取消通知异常及后续清理。相同夹具下旧实现 48 项失败，修复后专项通过；同时复验此前单项重试 36 项和原组件流程 59 项。策略 `PCL-DB-checks/2026-10-27.19` 注册 all 3,475、motion 2,860，pack-search 保留 1,854。**本轮执行上述三个相关专项和验证工具，不重跑完整 all／motion、搜索组或 Core 全套；注册数不代表执行数。** 构建及固定 PCL 来源另验，以 `artifacts/component-retirement/validation.json` 为准；不打包发版。[检查说明](docs/reviews/component-retirement-2026-10-27.md)。
