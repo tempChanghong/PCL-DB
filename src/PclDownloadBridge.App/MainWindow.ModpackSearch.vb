@@ -761,22 +761,32 @@ Partial Public Class MainWindow
         Return selected
     End Function
     Private Async Function RunOnlinePackInstallationAsync(release As ModpackRelease, root As String, name As String, limit As Long, Optional displayedTitle As String = Nothing, Optional target As LauncherInstallTarget = Nothing) As Task
+        If _busy OrElse _localModWriting OrElse _closing Then Return
         target = If(target, CurrentInstallTarget())
         If Not SameGameRoot(root, target.Root) Then Throw New InvalidOperationException("安装目录与当前任务不一致，请重新选择。")
         target.ValidateDestination(root)
         InstallPreflight.ValidateDestination(root, name, False)
-        CancelPackRead()
-        _packSearchRequest?.Cancel() : _packDetailRequest?.Cancel()
         Dim policySnapshot = Policy(), reuse = If(ReuseBox.IsChecked = True, _folders.Select(Function(folder) folder.Location).ToList(), New List(Of String))
         Dim connections = ConnectionCount(), javaPath = JavaPathBox.Text.Trim()
         Dim request As New CancellationTokenSource : _cancellation = request : _busy = True
-        _taskInstallTarget = target
-        SetBusy(True) : PersistSettings() : TaskPanel.Visibility = Visibility.Visible
-        ResetTaskView(name, True, root, hasArchive:=True)
-        _taskMinecraft = String.Join("、", release.GameVersions) : _taskComponents = release.Platform.ToString() & " " & PackReleaseConfirmation(release, displayedTitle).Replace(vbCrLf, " · ")
-        _taskRows("metadata").Label.Text = "读取整合包清单与游戏版本信息" : _taskRows("files").Label.Text = "下载游戏、资源与整合包文件"
-        ShowProgress(Nothing, Nothing)
         Try
+            ' PCL binds the loader's target and terminal callbacks before entering
+            ' task management. Old readers must not reserve a competing writer.
+            _taskInstallTarget = target
+            ResetTaskView(name, True, root, hasArchive:=True)
+            _taskMinecraft = String.Join("、", release.GameVersions) : _taskComponents = release.Platform.ToString() & " " & PackReleaseConfirmation(release, displayedTitle).Replace(vbCrLf, " · ")
+            _taskRows("metadata").Label.Text = "读取整合包清单与游戏版本信息" : _taskRows("files").Label.Text = "下载游戏、资源与整合包文件"
+            SetBusy(True) : PersistSettings()
+            Dim localRead = _packReadCancellation, notify = RetireResourceRequests(preserveContentMotion:=True), previousSurface = ActiveSurface()
+            SetDownloadView(DownloadView.Progress)
+            If ActiveSurface() Is previousSurface Then SwitchMainPage(False)
+            RefreshTaskResultActions()
+            NotifyResourceRetirements({Sub()
+                                          CancelSubmittedSearchRequest(localRead)
+                                          MarkCancelledPackQueries()
+                                      End Sub, notify})
+            request.Token.ThrowIfCancellationRequested()
+            If _closing Then Throw New OperationCanceledException(request.Token)
             Dim progress = CreateTaskProgress(), result As InstallResult
             If _onlineInstallRunner IsNot Nothing Then
                 result = Await _onlineInstallRunner(release, root, name, progress, request.Token)

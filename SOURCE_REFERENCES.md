@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 在线整合包安装启动与取消交接（2026-10-28）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadCompDetail.Install_Click`、`ModModpack.InstallPackCurseForge/InstallPackModrinth`、`ModLoader.IsCanceledWithThread` 和 `MyPageRight.PageOnForceExit`：加载器绑定目标与终态回调、避免重复安装，再切入任务管理；旧页面与执行不得接管后续状态。
+- PCL-DB 为在线整合包入口补齐忙碌门控，先绑定任务、再退役旧读取并进入进度页，将旧读取通知与取消检查纳入任务的错误和清理边界。保留较新页面、原安装目标及既有返回动画。[复现与验证](docs/reviews/online-pack-start-2026-10-28.md)，四份 Git 原始文件与摘要见 `artifacts/online-pack-start/source/manifest.json`。
+
 ## Mod 文件操作后的刷新归属（2026-10-28）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.InstallMods/ReloadModList/LoaderRun`、`ModLoader.LoaderTask.IsCanceledWithThread` 和 `MyPageRight.PageOnForceExit`：文件操作绑定实例实际 Mods 目录，重读输出属于当前执行，离页时清理冲突动画。

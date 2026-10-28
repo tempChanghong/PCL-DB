@@ -44,7 +44,7 @@ Partial Public Class MainWindow
         Dim notify = RetireResourceRequests()
         If _resourceRetirementNotifications Is Nothing Then notify() Else _resourceRetirementNotifications.Add(notify)
     End Sub
-    Private Function RetireResourceRequests() As Action
+    Private Function RetireResourceRequests(Optional preserveContentMotion As Boolean = False) As Action
         Dim dependency = _dependencyRequest, names = _resourceNamesRequest, search = _packSearchRequest, detail = _packDetailRequest
         Dim artwork = _packArtworkRequest, header = _packDetailArtworkRequest
         _resourceDetailGeneration += 1
@@ -55,7 +55,9 @@ Partial Public Class MainWindow
         _packSearchLoading?.Reset() : _packDetailLoading?.Reset()
         ' PCL PageOnForceExit stops retired animation without firing entry completion.
         ' All old owners are detached before a notification can start newer work.
-        _packResultMotion?.Cancel() : _packDetailMotion?.Cancel()
+        ' A parent task-page change must first capture the composited child
+        ' frame; ApplyDownloadView then retires its content clocks as usual.
+        If Not preserveContentMotion Then _packResultMotion?.Cancel() : _packDetailMotion?.Cancel()
         Dim captured = {dependency, names, search, detail, artwork, header}.Where(Function(source) source IsNot Nothing).Distinct().ToArray()
         Dim disposable As New HashSet(Of CancellationTokenSource) From {names, artwork, header}, pending = True
         Return Sub()
