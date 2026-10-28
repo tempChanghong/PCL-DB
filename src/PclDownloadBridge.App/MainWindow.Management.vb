@@ -115,9 +115,11 @@ Partial Public Class MainWindow
         Dim target = If(_selectedFolder Is Nothing, Nothing, CurrentInstallTarget())
         RefreshManagementFolders()
         If Not SelectSurface(ManagementPage) Then Return
-        Dim scan = ScanManagementAsync(False), generation = _managementGeneration
+        Dim before = _managementGeneration, folderBefore = _managementFolderGeneration
+        Dim scan = ScanManagementAsync(False), started = _managementGeneration <> before
+        Dim generation = before + If(started, 1, 0), folderGeneration = folderBefore + If(started, 1, 0)
         Await scan
-        If _closing OrElse generation <> _managementGeneration OrElse _selectedFolder Is Nothing OrElse Not SameManagementTarget(target, CurrentInstallTarget()) Then Return
+        If _closing OrElse generation <> _managementGeneration OrElse folderGeneration <> _managementFolderGeneration OrElse _selectedFolder Is Nothing OrElse Not SameManagementTarget(target, CurrentInstallTarget()) Then Return
         If ManagementPage.Visibility = Visibility.Visible AndAlso _managementReturnName IsNot Nothing Then
             Dim name = _managementReturnName
             _managementReturnName = Nothing
@@ -147,9 +149,9 @@ Partial Public Class MainWindow
     End Sub
     Private Async Function RefreshManagementAsync() As Task
         If _closing OrElse ManagementPage.Visibility <> Visibility.Visible OrElse _managementPreparing OrElse _selectedFolder Is Nothing Then Return
-        Dim target = CurrentInstallTarget(), scan = ScanManagementAsync(True), generation = _managementGeneration
-        Await scan
-        If _closing OrElse generation <> _managementGeneration OrElse _selectedFolder Is Nothing OrElse
+        Dim target = CurrentInstallTarget(), generation = _managementGeneration + 1, folderGeneration = _managementFolderGeneration + 1
+        Await ScanManagementAsync(True)
+        If _closing OrElse generation <> _managementGeneration OrElse folderGeneration <> _managementFolderGeneration OrElse _selectedFolder Is Nothing OrElse
             Not SameManagementTarget(target, CurrentInstallTarget()) OrElse _localModWriting Then Return
         If _managementDirty Then
             ' The root-list status is hidden on this child page. Do not replace
@@ -180,19 +182,26 @@ Partial Public Class MainWindow
             Dim selectedName = _managedInstance?.Name
             _managementTarget = target : _managementInstances = instances : _managementDirty = False
             _managedInstance = instances.FirstOrDefault(Function(item) item.Name = selectedName)
-            ChangeManagementContent(Sub()
-                                        RenderManagementRows()
-                                        If ManagementDetailPage.Visibility = Visibility.Visible OrElse LocalModsPage.Visibility = Visibility.Visible Then
-                                            If _managedInstance Is Nothing Then
-                                                ManagementDetailPage.Visibility = Visibility.Collapsed : ManagementListPage.Visibility = Visibility.Visible
-                                                LocalModsPage.Visibility = Visibility.Collapsed : CancelLocalModRequest()
-                                            Else
-                                                InvalidateChangedLocalModContext()
-                                                If ManagementDetailPage.Visibility = Visibility.Visible Then RenderManagedInstance()
+            Dim notify As Action = Nothing
+            Try
+                ChangeManagementContent(Sub()
+                                            RenderManagementRows()
+                                            If ManagementDetailPage.Visibility = Visibility.Visible OrElse LocalModsPage.Visibility = Visibility.Visible Then
+                                                If _managedInstance Is Nothing Then
+                                                    ManagementDetailPage.Visibility = Visibility.Collapsed : ManagementListPage.Visibility = Visibility.Visible
+                                                    LocalModsPage.Visibility = Visibility.Collapsed : notify = RetireLocalModRequest()
+                                                Else
+                                                    notify = RetireChangedLocalModContext()
+                                                    If ManagementDetailPage.Visibility = Visibility.Visible Then RenderManagedInstance()
+                                                End If
                                             End If
-                                        End If
-                                        RefreshTitleNavigation()
-                                    End Sub, If((ManagementDetailPage.Visibility = Visibility.Visible OrElse LocalModsPage.Visibility = Visibility.Visible) AndAlso _managedInstance Is Nothing, DirectCast(ManagementListPage, FrameworkElement), Nothing))
+                                            RefreshTitleNavigation()
+                                        End Sub, If((ManagementDetailPage.Visibility = Visibility.Visible OrElse LocalModsPage.Visibility = Visibility.Visible) AndAlso _managedInstance Is Nothing, DirectCast(ManagementListPage, FrameworkElement), Nothing))
+            Finally
+                ' Bind the page and its PCL entry clock before old readers can
+                ' notify a replacement scan or navigate to another main page.
+                notify?.Invoke()
+            End Try
         Catch ex As OperationCanceledException When request.IsCancellationRequested
         Catch ex As Exception
             If generation = _managementGeneration AndAlso ManagementPage.Visibility = Visibility.Visible AndAlso Not _closing Then

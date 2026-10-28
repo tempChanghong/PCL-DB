@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 管理扫描结果、目录失效与动画交接（2026-10-28）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageSelectRight.McInstanceListUI/McInstanceListContent/Item_Click`、`PageInstanceMod.ReloadModList/LoaderRun`、`ModLoader.LoaderTask.IsCanceledWithThread` 和 `MyPageRight.PageOnForceExit`：列表与 Mod 目录属于当前实例和执行，旧输出与冲突动画须退役。
+- PCL-DB 发布实例消失或隔离目录变化后，先完成页面／动画绑定，再通知已解绑的 Mod 读取；管理进入和刷新在扫描前绑定预期代次，避免同步回调后的旧后续操作。[复现与验证](docs/reviews/management-publication-2026-10-28.md)，四份 Git 原始文件与摘要见 `artifacts/management-publication/source/manifest.json`。
+
 ## 原版清单刷新、切源与取消交接（2026-10-28）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadInstall.LoaderInit/LoadMinecraft_OnFinish`、`ModLoader.LoaderTask.Start/IsCanceledWithThread/Failed` 与 `MyPageRight.PageOnEnter`：清单和组件分别加载，执行身份约束输出与错误，加载表现沿原状态进入。

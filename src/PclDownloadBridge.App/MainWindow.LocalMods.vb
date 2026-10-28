@@ -63,12 +63,13 @@ Partial Public Class MainWindow
         Return _localModWriting AndAlso _localModWriteOwner IsNot Nothing AndAlso (instance Is Nothing OrElse instance.Problem IsNot Nothing OrElse
             String.IsNullOrEmpty(instance.RunDirectory) OrElse SameGameRoot(instance.RunDirectory, _localModWriteOwner.RunDirectory))
     End Function
-    Private Sub InvalidateChangedLocalModContext()
-        If LocalModsPage.Visibility <> Visibility.Visible OrElse _managedInstance Is Nothing OrElse SameLocalModContext(_localModInstance) Then Return
-        CancelLocalModRequest()
+    Private Function RetireChangedLocalModContext() As Action
+        If LocalModsPage.Visibility <> Visibility.Visible OrElse _managedInstance Is Nothing OrElse SameLocalModContext(_localModInstance) Then Return Nothing
+        Dim notify = RetireLocalModRequest()
         LocalModStatus.Text = If(_managedInstance.Problem IsNot Nothing, "无法读取 Mod 列表：" & _managedInstance.Problem, "版本目录已变化，请刷新列表。")
         RefreshLocalModAvailability()
-    End Sub
+        Return notify
+    End Function
     Private Sub CancelLocalModRequest(Optional afterRetire As Action = Nothing)
         Dim notify = RetireLocalModRequest(afterRetire)
         notify()
