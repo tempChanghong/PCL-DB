@@ -46,6 +46,7 @@ Partial Public Class MainWindow
         VerifyDependencyResetUi(directory, passed)
         VerifyDetailStartUi(directory, passed)
         VerifySearchStartUi(directory, passed)
+        VerifySearchSubmissionUi(directory, passed)
         VerifyProjectRenderUi(directory, passed)
         VerifyResourceSaveDirectoryUi(directory, passed)
         VerifyResourceTaskResultUi(directory, passed)

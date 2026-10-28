@@ -360,6 +360,7 @@ Partial Public Class MainWindow
         VerifyDependencyResetUi(artifactDirectory, checks)
         VerifyDetailStartUi(artifactDirectory, checks)
         VerifySearchStartUi(artifactDirectory, checks)
+        VerifySearchSubmissionUi(artifactDirectory, checks)
         VerifyProjectRenderUi(artifactDirectory, checks)
         VerifyResourceSaveDirectoryUi(artifactDirectory, checks)
         VerifyResourceTaskResultUi(artifactDirectory, checks)

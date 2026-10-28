@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 新搜索提交与旧请求的交接（2026-10-28）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageResource.StartNewSearch`、`ModLoader.LoaderTask.Start/IsCanceled` 及 `MyPageRight`：新搜索更新结果容器，等价请求保留已有容器，过期工作不发布输出，失败保留重试，页面加载使用现有过渡。
+- PCL-DB 把新查询与分页共用的请求绑定放到旧取消通知之前；只取消捕获的旧详情／前置请求，通知异常进入当前搜索的重试提示，已经结束并释放的旧请求不误报失败。加载等待、最小停留和卡片动画沿用原逻辑。[复现与验证](docs/reviews/search-submission-2026-10-28.md)，三份固定 Git 原始字节及摘要见 `artifacts/search-submission/source/manifest.json`。
+
 ## 可更新 Mod 列表的信息刷新与动画（2026-10-28）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.McModListItem/RefreshUI` 和 `MyLocalModItem.Refresh/Checked`：在线信息走单行刷新，成员重建与选中动画分开处理。PCL-DB 在“可更新”成员及顺序不变时保留已挂载行，避免结算未完成的选中时钟；实际成员变化仍刷新列表并裁剪选择。[复现与验证](docs/reviews/local-mod-update-filter-2026-10-28.md)，两份固定 Git 原始字节及摘要见 `artifacts/local-mod-update-filter/source/manifest.json`。

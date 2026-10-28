@@ -189,15 +189,31 @@ Partial Public Class MainWindow
         If _packSearchSession IsNot Nothing AndAlso key = _packLastQuery AndAlso _packSearchRequest IsNot Nothing AndAlso Not _packSearchRequest.IsCancellationRequested Then Return
         Dim cacheAge = DateTime.UtcNow - _packLastSearch
         If _packSearchSession IsNot Nothing AndAlso key = _packLastQuery AndAlso _packSearchRequest Is Nothing AndAlso _packSearchSession.ErrorMessage = "" AndAlso cacheAge >= TimeSpan.Zero AndAlso cacheAge <= TimeSpan.FromSeconds(60) Then candidate = _packSearchSession
-        _packSearchRequest?.Cancel()
-        _packDetailRequest?.Cancel()
-        _dependencyRequest?.Cancel() : _resourceBack.Clear()
+        Dim previousDetail = _packDetailRequest, previousDependency = _dependencyRequest
+        _packDetailRequest = Nothing : _dependencyRequest = Nothing
+        _resourceBack.Clear()
         If candidate IsNot _packSearchSession Then _packLastSearch = DateTime.UtcNow
         _packSearchSession = candidate : _packLastQuery = key
         _packProject = Nothing : _packVerifiedProject = Nothing : _packDetailCompletedProject = Nothing : _packReleases.Clear()
         _packSearchPage = 0 : _packSearchScroll = 0
-        ChangePackMode(PackBrowserMode.Search)
-        Await LoadPackSearchPageAsync(0)
+        ' Publish the submitted session before notifying any previous work.
+        ' The page reader reserves its search/artwork owners and contains faults
+        ' from every captured cancellation before changing the visible mode.
+        Await LoadPackSearchPageAsync(0, retireContext:=Sub()
+                                                          Try
+                                                              CancelSubmittedSearchRequest(previousDetail)
+                                                          Finally
+                                                              CancelSubmittedSearchRequest(previousDependency)
+                                                          End Try
+                                                      End Sub)
+    End Sub
+    Private Shared Sub CancelSubmittedSearchRequest(request As CancellationTokenSource)
+        Try
+            request?.Cancel()
+        Catch ex As ObjectDisposedException
+            ' A captured old reader may finish/dispose during another source's
+            ' cancellation. It is already retired; callback faults still propagate.
+        End Try
     End Sub
     Private Sub ResetPackSearch(sender As Object, e As RoutedEventArgs)
         If _busy OrElse _choosingOnline Then Return
@@ -224,7 +240,7 @@ Partial Public Class MainWindow
     Private Shared Function PackSearchPageLimitText() As String
         Return "搜索最多支持前 " & (ModpackSearchSession.MaxPage + 1).ToString() & " 页，请缩小搜索范围或更改条件。"
     End Function
-    Private Async Function LoadPackSearchPageAsync(page As Integer, Optional restoreScroll As Double? = Nothing) As Task
+    Private Async Function LoadPackSearchPageAsync(page As Integer, Optional restoreScroll As Double? = Nothing, Optional retireContext As Action = Nothing) As Task
         Dim session = _packSearchSession
         If session Is Nothing OrElse _busy OrElse _closing OrElse _choosingOnline Then Return
         ' Reject stale/programmatic navigation before canceling the accepted
@@ -260,9 +276,15 @@ Partial Public Class MainWindow
                 Try
                     previousArtwork?.Cancel()
                 Finally
-                    previousArtwork?.Dispose()
+                    Try
+                        previousArtwork?.Dispose()
+                    Finally
+                        retireContext?.Invoke()
+                    End Try
                 End Try
             End Try
+            If Not CurrentPackSearch(session, request) Then Return
+            If retireContext IsNot Nothing Then ChangePackMode(PackBrowserMode.Search)
             If Not CurrentPackSearch(session, request) Then Return
             PackFirstPage.IsEnabled = False : PackPreviousPage.IsEnabled = False : PackNextPage.IsEnabled = False
             _packSearchLoading.Start(request, request.Token, AddressOf PreparePackSearchLoading, Sub() ChangePackResults(Sub()
