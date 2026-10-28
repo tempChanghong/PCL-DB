@@ -535,10 +535,10 @@ Partial Public Class MainWindow
             _taskResourceFile = destination
             FinishTaskView(True, StatusText.Text)
         Catch ex As OperationCanceledException
-            TaskTitle.Text = "已取消，可重新下载" : StatusText.Text = "操作已取消，重试时会校验下载缓存。"
+            TaskTitle.Text = "已取消，可重新" & If(installation Is Nothing, "下载", "安装") : StatusText.Text = "操作已取消，重试时会校验下载缓存。"
             FinishTaskView(False, StatusText.Text, cancelled:=True)
         Catch ex As Exception
-            TaskTitle.Text = "下载未完成，可重试" : StatusText.Text = ex.GetBaseException().Message
+            TaskTitle.Text = If(installation Is Nothing, "下载", "安装") & "未完成，可重试" : StatusText.Text = ex.GetBaseException().Message
             FinishTaskView(False, StatusText.Text, cancelled:=request.IsCancellationRequested)
         Finally
             If installation IsNot Nothing Then InvalidateResourceManagement(installation)

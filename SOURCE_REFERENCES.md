@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 任务进度名称与结果反馈归属（2026-10-28）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageSpeedLeft.TaskRefresh/Watcher`、`PageSpeedRight.Init`、`PageDownloadCompDetail.Save_Click` 和 `ModLoader.IsCanceledWithThread`：任务卡片由加载器名称建立，进度只更新阶段与比例；资源另存为使用资源下载任务名，旧执行的输出不能接管当前状态。任务页滚动初始化与进度刷新分别核对。
+- PCL-DB 保留入口绑定的下载／安装标题，统一资源日志与文件夹反馈，按实际操作区分失败及取消文案；结果操作返回后再次验证任务代次，保留较新任务的提示。[复现与验证](docs/reviews/task-feedback-2026-10-28.md)，四份 Git 原始文件与摘要见 `artifacts/task-feedback/source/manifest.json`。
+
 ## 原版与本地整合包的任务启动边界（2026-10-28）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModDownloadLib.McInstallStart/McInstallState`、`ModModpack.InstallPackCurseForge/InstallPackModrinth`、`ModLoader.IsCanceledWithThread` 和 `MyPageRight.PageOnForceExit`：任务准备与启动有错误边界，加载器绑定原目标、状态与清理，旧执行和页面时钟不能接管后续状态。

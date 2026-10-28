@@ -168,7 +168,8 @@ Partial Public Class MainWindow
         _lastReused = Math.Max(_lastReused, value.Reused + If(phase = "archive", 0, _archiveReused))
         _lastSplits = Math.Max(_lastSplits, value.DynamicSplits + If(phase = "archive", 0, _archiveSplits))
         _lastRetries = Math.Max(_lastRetries, value.Retries + If(phase = "archive", 0, _archiveRetries))
-        TaskTitle.Text = _taskName & " 安装"
+        ' PCL task cards keep the accepted loader name while progress changes.
+        ' Resource save/install entry points already bind their own title.
         TaskProgress.IsIndeterminate = False : TaskProgress.Value = _taskOverall
         TaskPercent.Text = (_taskOverall * 100).ToString("0.00") & " %"
         TaskSpeed.Text = FormatBytes(value.BytesPerSecond) & "/s"
@@ -177,8 +178,8 @@ Partial Public Class MainWindow
         TaskDetail.Text = "已传输 " & FormatBytes(_lastNetworkBytes) & " · 已复用 " & _lastReused.ToString("N0") & " 个文件 · 用时 " & _taskClock.Elapsed.ToString("mm\:ss")
         TransferStats.Text = value.ActiveConnections & " 个活动连接 · 累计分段 " & _lastSplits & " 次 · 失败尝试 " & _lastRetries & " 次" & If(value.KnownBytes > 0, vbCrLf & "当前批次已校验 " & FormatBytes(value.VerifiedBytes) & " / " & FormatBytes(value.KnownBytes), "")
         TransferFile.Text = If(value.CurrentFile, value.Detail)
-        TransferSource.Text = If(String.IsNullOrWhiteSpace(value.Source), "正在处理本地安装步骤", "最近使用的来源：" & value.Source)
+        TransferSource.Text = If(String.IsNullOrWhiteSpace(value.Source), If(_taskResourceTransfer, "正在处理本地文件", "正在处理本地安装步骤"), "最近使用的来源：" & value.Source)
         Dim detail = If(value.Detail, "")
-        StatusText.Text = If(detail.Length > 240, detail.Substring(0, 240) & "…（完整内容见安装器日志）", detail)
+        StatusText.Text = If(detail.Length > 240, detail.Substring(0, 240) & If(_taskResourceTransfer, "…（完整内容见下载日志）", "…（完整内容见安装器日志）"), detail)
     End Sub
 End Class

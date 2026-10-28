@@ -74,6 +74,7 @@ Partial Public Class MainWindow
         VerifyModWriteReadOwnerUi(directory, localModSelectionChecks)
         VerifyOnlinePackStartUi(directory, localModSelectionChecks)
         VerifyLocalInstallStartUi(directory, localModSelectionChecks)
+        VerifyTaskFeedbackUi(directory, localModSelectionChecks)
         VerifyLocalModReadStartUi(directory, localModSelectionChecks)
         VerifyLocalModNavigationUi(directory, localModSelectionChecks)
         VerifySurfaceNavigationUi(directory, localModSelectionChecks)

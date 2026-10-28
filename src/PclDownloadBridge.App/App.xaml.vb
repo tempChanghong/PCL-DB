@@ -63,6 +63,7 @@ Partial Public Class App
                         checkWindow.VerifyPackSearchUi(directory, passed)
                         checkWindow.VerifyOnlinePackStartUi(directory, passed)
                         checkWindow.VerifyLocalInstallStartUi(directory, passed)
+                        checkWindow.VerifyTaskFeedbackUi(directory, passed)
                         checkWindow.VerifyPackPagingUi(directory, passed)
                         checkWindow.VerifyCommunityResourceUi(directory, passed)
                         checkWindow.VerifyResourceSearchRepairUi(directory, passed)

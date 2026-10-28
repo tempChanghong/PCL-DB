@@ -76,7 +76,7 @@ Partial Public Class MainWindow
         OpenTaskFolderButton.Visibility = If(_taskOutcome = TaskOutcome.Succeeded, Visibility.Visible, Visibility.Collapsed)
         Dim folder = TaskFolderPath(), log = TaskLogPath()
         OpenTaskFolderButton.IsEnabled = folder IsNot Nothing
-        OpenTaskFolderButton.ToolTip = If(folder, "此任务的版本文件夹不存在或无法访问。")
+        OpenTaskFolderButton.ToolTip = If(folder, TaskFolderUnavailableMessage())
         OpenTaskLogButton.IsEnabled = log IsNot Nothing
         OpenTaskLogButton.Text = If(_taskResourceTransfer, "打开下载日志", "打开安装器日志")
         OpenTaskLogButton.ToolTip = If(log IsNot Nothing, log & Environment.NewLine & If(_taskResourceTransfer, "此文件是资源下载缓存的累计日志。", "此文件是该游戏目录的累计安装器日志。"), TaskLogUnavailableMessage())
@@ -92,6 +92,10 @@ Partial Public Class MainWindow
 
     Private Function TaskLogUnavailableMessage() As String
         Return If(_taskResourceTransfer, "此任务尚无可用的下载日志。", "此任务尚无可用的安装器日志。")
+    End Function
+
+    Private Function TaskFolderUnavailableMessage() As String
+        Return If(_taskResourceTransfer, "下载文件不存在或无法访问。", "此任务的版本文件夹不存在或无法访问。")
     End Function
 
     Private Function TaskInformation() As String
@@ -120,7 +124,7 @@ Partial Public Class MainWindow
         If Not _taskFinished OrElse _taskOutcome <> TaskOutcome.Succeeded Then Return
         Dim folder = TaskFolderPath()
         If folder Is Nothing Then
-            TaskActionStatus.Text = "此任务的版本文件夹不存在或无法访问。"
+            TaskActionStatus.Text = TaskFolderUnavailableMessage()
             RefreshTaskResultActions()
             Return
         End If
@@ -139,6 +143,7 @@ Partial Public Class MainWindow
     End Sub
 
     Private Sub DispatchTaskAction(kind As String, value As String)
+        Dim generation = _taskGeneration
         Try
             If _taskAction IsNot Nothing Then
                 _taskAction(kind, value)
@@ -149,9 +154,14 @@ Partial Public Class MainWindow
             Else
                 Process.Start(New ProcessStartInfo(value) With {.UseShellExecute = True})
             End If
-            TaskActionStatus.Text = If(kind = "copy", "任务信息已复制。", If(kind = "folder", "已打开此任务的版本文件夹。", "已打开此任务所在游戏目录的安装器日志。"))
+            ' Shell/clipboard dispatch can reenter the UI. Only the task which
+            ' accepted this action may publish its success or failure feedback.
+            If generation <> _taskGeneration OrElse _closing OrElse Not _taskFinished Then Return
+            TaskActionStatus.Text = If(kind = "copy", "任务信息已复制。", If(kind = "folder",
+                If(_taskResourceTransfer, "已打开文件所在文件夹。", "已打开此任务的版本文件夹。"),
+                If(_taskResourceTransfer, "已打开此任务的下载日志。", "已打开此任务所在游戏目录的安装器日志。")))
         Catch ex As Exception
-            TaskActionStatus.Text = "操作未完成：" & ex.Message
+            If generation = _taskGeneration AndAlso Not _closing AndAlso _taskFinished Then TaskActionStatus.Text = "操作未完成：" & ex.Message
         End Try
     End Sub
 End Class
