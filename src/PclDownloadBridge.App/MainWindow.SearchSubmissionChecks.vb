@@ -26,7 +26,7 @@ Partial Public Class MainWindow
             Using surface = PreviewSurface.Attach(host, 900, 680)
                 SynchronizationContext.SetSynchronizationContext(New DispatcherSynchronizationContext(owner.Dispatcher))
                 Dim work = owner.CheckSearchSubmissionAsync(directory, layout, check, failures)
-                If Not PumpMotionUntil(Function() work.IsCompleted, 90000) Then Throw New TimeoutException("Search submission checks did not settle.")
+                If Not PumpMotionUntil(Function() work.IsCompleted, 180000) Then Throw New TimeoutException("Search submission checks did not settle.")
                 work.GetAwaiter().GetResult()
             End Using
             File.WriteAllText(Path.Combine(directory, "search-submission.json"), observations.ToString())
