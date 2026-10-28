@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 管理页实例选择、返回与取消交接（2026-10-28）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageSelectRight.McInstanceListContent/Item_Click`、`PageInstanceLeft.PageChange/PageChangeRun` 及 `ModLoader.LoaderTask.IsCanceledWithThread/Start`：进入管理页前绑定实例，切页统一处理异常和冲突动画，过期执行不发布输出。
+- PCL-DB 在选择或返回取消旧读取后检查目标、代次、页面及实例身份，避免旧导航覆盖后续选择、刷新或主页面跳转；选择还确认缓存成员未被替换。异常只向仍有效的当前页面提供重试，沿用既有卡片／焦点动画。[复现与验证](docs/reviews/management-selection-2026-10-28.md)，三份固定 Git 原始字节及摘要见 `artifacts/management-selection/source/manifest.json`。
+
 ## 社区资源任务启动与页面交接（2026-10-28）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadCompDetail.Save_Click`、`ModLoader.LoaderTask.Start` 和 `MyPageRight`：下载由自己的加载器持有输入、状态与结果，失败／取消统一处理，页面状态沿用加载过渡。

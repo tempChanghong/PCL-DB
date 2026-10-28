@@ -67,6 +67,7 @@ Partial Public Class MainWindow
         VerifyLocalModTransferUi(directory, localModSelectionChecks)
         VerifyManagementRetirementUi(directory, localModSelectionChecks)
         VerifyManagementIntentUi(directory, localModSelectionChecks)
+        VerifyManagementSelectionUi(directory, localModSelectionChecks)
         VerifyLocalModFolderIntentUi(directory, localModSelectionChecks)
         VerifyModWriteStartUi(directory, localModSelectionChecks)
         VerifyLocalModReadStartUi(directory, localModSelectionChecks)

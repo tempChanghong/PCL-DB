@@ -286,23 +286,52 @@ Partial Public Class MainWindow
         Return "pack://application:,,,/Images/Blocks/" & name & ".png"
     End Function
     Private Sub SelectManagedInstance(instance As InstalledInstance)
-        If _closing OrElse ManagementPage.Visibility <> Visibility.Visible OrElse Not PageSurface.IsHitTestVisible OrElse Not ManagementViewHost.IsHitTestVisible OrElse
+        If _closing OrElse _selectedFolder Is Nothing OrElse ManagementPage.Visibility <> Visibility.Visible OrElse Not PageSurface.IsHitTestVisible OrElse Not ManagementViewHost.IsHitTestVisible OrElse
             Not _managementInstances.Contains(instance) Then Return
-        CancelManagementRequest()
-        CancelLocalModRequest()
-        _managementReturnName = Nothing
-        _managementListOffset = ManagementListPage.VerticalOffset
-        Dim outgoing = ManagementContent()
-        ChangeManagementContent(Sub()
-                                                                  _managedInstance = instance
-                                                                  RenderManagedInstance()
-                                                                  ManagementListPage.Visibility = Visibility.Collapsed
-                                                                  ManagementDetailPage.Visibility = Visibility.Visible
-                                                                  LocalModsPage.Visibility = Visibility.Collapsed
-                                                                  ManagementDetailPage.ScrollToHome()
-                                                                  RefreshTitleNavigation()
-                                End Sub, ManagementDetailPage)
-        FocusManagementViewport()
+        Dim target = CurrentInstallTarget()
+        If instance Is Nothing OrElse Not SameManagementTarget(instance.Target, target) Then Return
+        Dim generation = _managementGeneration + 1, folderGeneration = _managementFolderGeneration + 1, localGeneration = _localModGeneration
+        Dim current As Func(Of Boolean) = Function() Not _closing AndAlso ManagementPage.Visibility = Visibility.Visible AndAlso _selectedFolder IsNot Nothing AndAlso
+            generation = _managementGeneration AndAlso folderGeneration = _managementFolderGeneration AndAlso localGeneration = _localModGeneration AndAlso
+            SameManagementTarget(target, CurrentInstallTarget()) AndAlso _managementInstances.Contains(instance)
+        Try
+            ' PCL binds the selected instance before entering its page, and its
+            ' loader rejects retired work. Cancellation can synchronously select
+            ' another instance or refresh this cache; neither belongs to this click.
+            CancelManagementRequest()
+            If Not current() Then Return
+            localGeneration += 1
+            CancelLocalModRequest()
+            If Not current() Then Return
+            _managementReturnName = Nothing
+            _managementListOffset = ManagementListPage.VerticalOffset
+            ChangeManagementContent(Sub()
+                                        _managedInstance = instance
+                                        RenderManagedInstance()
+                                        ManagementListPage.Visibility = Visibility.Collapsed
+                                        ManagementDetailPage.Visibility = Visibility.Visible
+                                        LocalModsPage.Visibility = Visibility.Collapsed
+                                        ManagementDetailPage.ScrollToHome()
+                                        RefreshTitleNavigation()
+                                    End Sub, ManagementDetailPage)
+            FocusManagementViewport()
+        Catch ex As Exception
+            If Not current() Then Return
+            ShowManagementNavigationFailure(ex, "切换版本失败，请重试：")
+        End Try
+    End Sub
+    Private Sub ShowManagementNavigationFailure(ex As Exception, prefix As String)
+        If Not _preview Then Log(ex)
+        Dim message = prefix & ex.GetBaseException().Message
+        If LocalModsPage.Visibility = Visibility.Visible Then
+            LocalModStatus.Text = message
+            RefreshLocalModAvailability()
+        ElseIf ManagementDetailPage.Visibility = Visibility.Visible Then
+            ManagedRepairStatus.Text = message
+        Else
+            ManagementStatus.Text = message
+        End If
+        RefreshManagementAvailability()
     End Sub
     Private Sub RenderManagedInstance()
         Dim item = _managedInstance
@@ -320,16 +349,29 @@ Partial Public Class MainWindow
         RefreshManagementAvailability()
     End Sub
     Private Sub BackFromManagement(sender As Object, e As RoutedEventArgs)
-        If ManagementPage.Visibility <> Visibility.Visible OrElse ManagementDetailPage.Visibility <> Visibility.Visible Then Return
-        CancelManagementRequest()
-        _managementReturnName = Nothing
-        _managementMotion.Change(ManagementDetailPage, ManagementListPage, Sub()
-                                                                            ManagementDetailPage.Visibility = Visibility.Collapsed
-                                                                            ManagementListPage.Visibility = Visibility.Visible
-                                                                            ManagementListPage.ScrollToVerticalOffset(_managementListOffset)
-                                                                            RefreshTitleNavigation()
-                                                                        End Sub)
-        FocusManagementViewport()
+        If _closing OrElse _selectedFolder Is Nothing OrElse ManagementPage.Visibility <> Visibility.Visible OrElse ManagementDetailPage.Visibility <> Visibility.Visible Then Return
+        Dim instance = _managedInstance, target = CurrentInstallTarget()
+        Dim generation = _managementGeneration + 1, folderGeneration = _managementFolderGeneration + 1, localGeneration = _localModGeneration
+        Dim current As Func(Of Boolean) = Function() Not _closing AndAlso ManagementPage.Visibility = Visibility.Visible AndAlso _selectedFolder IsNot Nothing AndAlso
+            generation = _managementGeneration AndAlso folderGeneration = _managementFolderGeneration AndAlso localGeneration = _localModGeneration AndAlso
+            _managedInstance Is instance AndAlso SameManagementTarget(target, CurrentInstallTarget())
+        Try
+            ' Returning is a navigation intent too: an old read's cancellation
+            ' must not hide a newer detail page or replace its entry animation.
+            CancelManagementRequest()
+            If Not current() Then Return
+            _managementReturnName = Nothing
+            _managementMotion.Change(ManagementDetailPage, ManagementListPage, Sub()
+                                                                                ManagementDetailPage.Visibility = Visibility.Collapsed
+                                                                                ManagementListPage.Visibility = Visibility.Visible
+                                                                                ManagementListPage.ScrollToVerticalOffset(_managementListOffset)
+                                                                                RefreshTitleNavigation()
+                                                                            End Sub)
+            FocusManagementViewport()
+        Catch ex As Exception
+            If Not current() Then Return
+            ShowManagementNavigationFailure(ex, "返回版本列表失败，请重试：")
+        End Try
     End Sub
     Private Sub FocusManagementViewport()
         If _closing OrElse ManagementPage.Visibility <> Visibility.Visible OrElse PackNameOverlay.Visibility = Visibility.Visible Then Return
