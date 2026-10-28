@@ -87,6 +87,53 @@ Partial Public Class MainWindow
         Next
         If errors.Count > 0 Then Throw New AggregateException("取消旧资源读取失败。", errors)
     End Sub
+    Private Function PrepareResourceEntry(ByRef generation As Long, Optional lookup As CancellationTokenSource = Nothing) As Boolean
+        _resourceDetailGeneration += 1 : generation = _resourceDetailGeneration
+        Dim accepted = generation, main = ActiveSurface(), category = _resourceCategoryGeneration, kind = _resourceKind, mode = _packMode, view = _downloadView
+        Dim project = _packProject, verified = _packVerifiedProject, session = _packSearchSession, frames = _resourceBack.ToArray()
+        Dim dependency = If(lookup Is Nothing, _dependencyRequest, Nothing), detail = _packDetailRequest, header = _packDetailArtworkRequest
+        Dim rows = PackVersionCards.Children.Cast(Of UIElement)().ToArray(), names As CancellationTokenSource = Nothing
+        If lookup Is Nothing Then _dependencyRequest = Nothing
+        _packDetailRequest = Nothing : _packDetailArtworkRequest = Nothing : _packDetailArtworkRow = Nothing
+        _packDetailLoading.Cancel(detail)
+        Dim current As Func(Of Boolean) = Function() Not _closing AndAlso Not _busy AndAlso Not _choosingOnline AndAlso accepted = _resourceDetailGeneration AndAlso
+            ActiveSurface() Is main AndAlso category = _resourceCategoryGeneration AndAlso kind = _resourceKind AndAlso mode = _packMode AndAlso view = _downloadView AndAlso
+            _packProject Is project AndAlso _packVerifiedProject Is verified AndAlso _packSearchSession Is session AndAlso _resourceNamesRequest Is names AndAlso
+            _packDetailRequest Is Nothing AndAlso _dependencyRequest Is lookup AndAlso _resourceBack.SequenceEqual(frames) AndAlso (lookup Is Nothing OrElse Not lookup.IsCancellationRequested)
+        Dim retireHeader As Action = Sub()
+                                         Try
+                                             CancelSubmittedSearchRequest(header)
+                                         Finally
+                                             header?.Dispose()
+                                         End Try
+                                     End Sub
+        Try
+            ' PCL binds PageCurrent before its loaders publish. Keep this entry's
+            ' old readers separate until cancellation callbacks have finished.
+            NotifyResourceRetirements({Sub() ResetResourceNames(Sub() names = _resourceNamesRequest),
+                Sub() CancelSubmittedSearchRequest(dependency), Sub() CancelSubmittedSearchRequest(detail), retireHeader})
+        Catch ex As Exception
+            If Not _preview Then Log(ex)
+            If current() Then ShowResourceEntryFailure(ex)
+            OfferRetiredResourceDetailRetry(project, names, detail, rows)
+            Return False
+        End Try
+        If current() Then Return True
+        OfferRetiredResourceDetailRetry(project, names, detail, rows)
+        Return False
+    End Function
+    Private Function CurrentResourceEntry(project As ModpackProject, generation As Long, main As FrameworkElement, category As Long) As Boolean
+        Return Not _closing AndAlso Not _busy AndAlso Not _choosingOnline AndAlso _resourceDetailGeneration = generation AndAlso _packProject Is project AndAlso
+            ActiveSurface() Is main AndAlso _resourceCategoryGeneration = category
+    End Function
+    Private Sub ShowResourceEntryFailure(ex As Exception)
+        If _packMode = PackBrowserMode.Detail Then
+            PackProjectActionStatus.Text = "无法打开资源详情，请重试。" : PackProjectActionStatus.ToolTip = ex.GetBaseException().Message : PackProjectActionStatus.Visibility = Visibility.Visible
+            If _packDetailCompletedProject IsNot _packProject AndAlso _packDetailRequest Is Nothing Then PackDetailRetry.Visibility = Visibility.Visible
+        Else
+            PackSearchInputHint.Theme = PclHintTheme.Red : PackSearchInputHint.Text = "无法打开资源详情，请重试。" : PackSearchInputHint.ToolTip = ex.GetBaseException().Message : PackSearchInputHint.Visibility = Visibility.Visible
+        End If
+    End Sub
     Private Sub ResetResourceNames(Optional afterRetire As Action = Nothing)
         Dim previous = _resourceNamesRequest
         _resourceDependencyNameLoads.Clear()
@@ -345,14 +392,9 @@ Partial Public Class MainWindow
             Using client = _packCatalogFactory()
                 Dim linked = Await client.ResolveDependencyAsync(project.Platform, dependency, request.Token)
                 If request.IsCancellationRequested OrElse _dependencyRequest IsNot request OrElse ActivePackProject() IsNot project OrElse Not CanUseResourceDetail(owner) Then Return
-                If _resourceBack.Count >= 32 Then Throw New InvalidOperationException("前置跳转层级过多，请返回后重试。")
-                ' PCL's page stack records PageCurrent at the actual handoff.
-                ' The parent can still be filtered, scrolled or folded while this
-                ' lookup is pending; preserve those latest accepted choices.
-                _resourceBack.Push(CaptureResourceDetail())
                 ' Same-type references can use the cached project card; a fixed
                 ' dependency version remains part of its accepted detail owner.
-                ShowDependencyProjectAsync(linked)
+                Await ShowDependencyProjectAsync(linked, request)
             End Using
         Catch ex As OperationCanceledException
         Catch ex As Exception
@@ -368,17 +410,27 @@ Partial Public Class MainWindow
             request.Dispose()
         End Try
     End Sub
-    Private Async Sub ShowDependencyProjectAsync(project As ModpackProject)
-        _packDetailRequest?.Cancel()
-        ResetResourceNames()
-        ChangePackContent(PackBrowserMode.Detail, Sub()
-            _packProject = project : _packVerifiedProject = Nothing : _packDetailCompletedProject = Nothing
-            _packReleases = New List(Of ModpackRelease) : _packDetailScroll = 0 : _packVersionCache.Clear()
-            RenderPackProject(project) : PackVersionCards.Children.Clear()
-            ModpackPage.ScrollToHome()
-        End Sub)
-        Await LoadPackDetailsAsync(project)
-    End Sub
+    Private Async Function ShowDependencyProjectAsync(project As ModpackProject, lookup As CancellationTokenSource) As Task
+        Dim generation As Long, main = ActiveSurface(), category = _resourceCategoryGeneration
+        If _resourceBack.Count >= 32 Then Throw New InvalidOperationException("前置跳转层级过多，请返回后重试。")
+        If Not PrepareResourceEntry(generation, lookup) Then Return
+        ' Capture the latest parent only after old notifications have accepted
+        ' this transition; a newer Back must not consume a speculative frame.
+        _resourceBack.Push(CaptureResourceDetail())
+        Try
+            ChangePackContent(PackBrowserMode.Detail, Sub()
+                _packProject = project : _packVerifiedProject = Nothing : _packDetailCompletedProject = Nothing
+                _packReleases = New List(Of ModpackRelease) : _packDetailScroll = 0 : _packVersionCache.Clear()
+                RenderPackProject(project)
+                If Not CurrentResourceEntry(project, generation, main, category) Then Return
+                PackVersionCards.Children.Clear() : ModpackPage.ScrollToHome()
+            End Sub)
+            If CurrentResourceEntry(project, generation, main, category) Then Await LoadPackDetailsAsync(project)
+        Catch ex As Exception
+            If Not _preview Then Log(ex)
+            If CurrentResourceEntry(project, generation, main, category) Then ShowResourceEntryFailure(ex)
+        End Try
+    End Function
     Private Function CanUseResourceDetail(owner As FrameworkElement) As Boolean
         Return Not _busy AndAlso Not _choosingOnline AndAlso Not _closing AndAlso owner.IsLoaded AndAlso owner.IsVisible AndAlso owner.IsEnabled AndAlso owner.IsHitTestVisible AndAlso
             _downloadView = DownloadView.Modpacks AndAlso _packMode = PackBrowserMode.Detail AndAlso DownloadPage.IsVisible AndAlso PageSurface.IsHitTestVisible AndAlso DownloadViewHost.IsHitTestVisible AndAlso PackDetailResultsHost.IsHitTestVisible

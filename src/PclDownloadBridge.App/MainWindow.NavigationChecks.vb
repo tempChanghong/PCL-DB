@@ -41,6 +41,7 @@ Partial Public Class MainWindow
         VerifyResourcePromptLifecycleUi(artifactDirectory, checks)
         VerifyResourceInputReentrancyUi(artifactDirectory, checks)
         VerifyResourceRetirementUi(artifactDirectory, checks)
+        VerifyResourceEntryUi(artifactDirectory, checks)
         VerifyRepairNativeUi(artifactDirectory, checks)
         VerifyLocalModUi(artifactDirectory, check)
         Dim cancellationChecks As New List(Of String)

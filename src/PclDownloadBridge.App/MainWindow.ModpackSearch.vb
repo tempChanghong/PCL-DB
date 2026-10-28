@@ -450,21 +450,29 @@ Partial Public Class MainWindow
         Return Not _closing AndAlso Not request.IsCancellationRequested AndAlso _packSearchRequest Is request AndAlso _packSearchSession Is session
     End Function
     Private Async Sub OpenPackDetails(project As ModpackProject)
-        If _busy OrElse _choosingOnline OrElse _closing OrElse Not DownloadViewHost.IsHitTestVisible OrElse Not PackSearchResultsHost.IsHitTestVisible Then Return
+        If project Is Nothing OrElse _busy OrElse _choosingOnline OrElse _closing OrElse Not DownloadViewHost.IsHitTestVisible OrElse Not PackSearchResultsHost.IsHitTestVisible Then Return
+        Dim generation = _resourceDetailGeneration, main = ActiveSurface(), category = _resourceCategoryGeneration
         Dim changingProject = _packProject Is Nothing OrElse _packProject.Key <> project.Key
         If changingProject Then
-            _dependencyRequest?.Cancel() : ResetResourceNames() : _resourceBack.Clear()
+            If Not PrepareResourceEntry(generation) Then Return
+            _resourceBack.Clear()
             RetirePromptFocus()
-            _packProject = project : _packVerifiedProject = Nothing : _packDetailCompletedProject = Nothing : _packReleases.Clear() : _packDetailScroll = 0
+            _packProject = project : _packVerifiedProject = Nothing : _packDetailCompletedProject = Nothing : _packReleases = New List(Of ModpackRelease) : _packDetailScroll = 0
             _packTargetGame = If(_packSearchSession?.Query.Minecraft, "")
             _resourceTargetLoader = If(_packSearchSession?.Query.Loader, "")
             _packVersionCache.Clear()
         End If
-        RenderPackProject(ActivePackProject())
-        ChangePackMode(PackBrowserMode.Detail)
-        If _packDetailCompletedProject IsNot _packProject AndAlso (changingProject OrElse _packDetailRequest Is Nothing OrElse _packDetailRequest.IsCancellationRequested) Then
-            Await LoadPackDetailsAsync(_packProject)
-        End If
+        Dim accepted = _packProject
+        Try
+            RenderPackProject(ActivePackProject())
+            If Not CurrentResourceEntry(accepted, generation, main, category) Then Return
+            ChangePackMode(PackBrowserMode.Detail)
+            If CurrentResourceEntry(accepted, generation, main, category) AndAlso _packDetailCompletedProject IsNot accepted AndAlso
+                (changingProject OrElse _packDetailRequest Is Nothing OrElse _packDetailRequest.IsCancellationRequested) Then Await LoadPackDetailsAsync(accepted)
+        Catch ex As Exception
+            If Not _preview Then Log(ex)
+            If CurrentResourceEntry(accepted, generation, main, category) Then ShowResourceEntryFailure(ex)
+        End Try
     End Sub
     Private Async Sub RetryPackDetails(sender As Object, e As RoutedEventArgs)
         If _packProject Is Nothing OrElse _busy OrElse _choosingOnline OrElse _closing OrElse _packMode <> PackBrowserMode.Detail OrElse _downloadView <> DownloadView.Modpacks OrElse Not PackDetailSurface.IsVisible OrElse Not PageSurface.IsHitTestVisible OrElse Not DownloadViewHost.IsHitTestVisible OrElse Not PackDetailResultsHost.IsHitTestVisible Then Return

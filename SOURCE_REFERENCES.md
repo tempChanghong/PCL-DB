@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 资源详情进入、前置交接与取消重试（2026-10-28）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `FormMain.PageChangeActual/PageBack/PageChangeAnim`、`PageDownloadResourceDetail.LoadPageArguments/ResourceFileLoader`、`ModLoader.LoaderTask.IsCanceledWithThread` 和 `MyPageRight.PageOnForceExit`：当前页面、参数、历史与加载器属于同一次导航，旧执行不再发布，切页处理异常并停止冲突动画。
+- PCL-DB 为详情进入捕获并解绑旧读取，取消通知后确认归属再更新项目与历史；前置进入改为可等待的交接，通知失败保留当前页面重试，新项目使用独立版本列表。[复现与验证](docs/reviews/resource-entry-2026-10-28.md)，四份固定 Git 原始字节及摘要见 `artifacts/resource-entry/source/manifest.json`。
+
 ## 共享资源读取退役与分类交接（2026-10-28）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadLeft.PageGet/PageChange/PageChangeRun`、`PageResource.StartNewSearch`、`ModLoader.LoaderTask` 和 `MyPageRight.PageOnForceExit`：分类保留独立状态，查询与结果绑定，旧执行和旧动画退役后不能发布新状态或误发入场完成。
