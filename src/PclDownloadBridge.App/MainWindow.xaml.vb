@@ -899,38 +899,51 @@ Partial Public Class MainWindow
         Dim installer As New MinecraftInstaller(policySnapshot, target.PclDirectory, newInstanceIsolationStrategy:=defaultIsolation, launcherTarget:=target)
         Dim packInstaller As New CurseForgeInstaller(policySnapshot, target.PclDirectory, launcherTarget:=target)
         _taskInstallTarget = target
-        _cancellation = New CancellationTokenSource()
-        _busy = True
-        SetBusy(True)
-        PersistSettings()
-        TaskPanel.Visibility = Visibility.Visible
-        ResetTaskView(name, If(modrinth IsNot Nothing, modrinth.LoaderKind.HasValue, If(pack IsNot Nothing, pack.LoaderKind.HasValue, selection.Entries.Count > 0)), root)
-        _managementTaskOrigin = If(repair AndAlso Not isPack, _managedRepairContext, Nothing)
-        _taskMinecraft = entry.Id
-        If pack IsNot Nothing Then
-            _taskComponents = "CurseForge " & pack.Name & " " & pack.Version & If(pack.LoaderKind.HasValue, " · " & pack.LoaderKind.ToString() & " " & pack.LoaderVersion, "")
-            _taskRows("metadata").Label.Text = "查询整合包文件与游戏版本信息"
-            _taskRows("files").Label.Text = "下载游戏、资源与整合包文件"
-        End If
-        If modrinth IsNot Nothing Then
-            _taskComponents = "Modrinth " & modrinth.Name & " " & modrinth.Version & If(modrinth.LoaderKind.HasValue, " · " & modrinth.LoaderKind.ToString() & " " & modrinth.LoaderVersion, "")
-            _taskRows("metadata").Label.Text = "校验整合包清单与游戏版本信息"
-            _taskRows("files").Label.Text = "下载游戏、资源与整合包文件"
-        End If
-        ShowProgress(Nothing, Nothing)
+        Dim request As New CancellationTokenSource : _cancellation = request : _busy = True
         Try
+            ' As in PCL McInstallStart, task preparation and page handoff share
+            ' the task's failure boundary. Bind its identity before UI callbacks.
+            ResetTaskView(name, If(modrinth IsNot Nothing, modrinth.LoaderKind.HasValue, If(pack IsNot Nothing, pack.LoaderKind.HasValue, selection.Entries.Count > 0)), root)
+            _managementTaskOrigin = If(repair AndAlso Not isPack, _managedRepairContext, Nothing)
+            _taskMinecraft = entry.Id
+            If pack IsNot Nothing Then
+                _taskComponents = "CurseForge " & pack.Name & " " & pack.Version & If(pack.LoaderKind.HasValue, " · " & pack.LoaderKind.ToString() & " " & pack.LoaderVersion, "")
+                _taskRows("metadata").Label.Text = "查询整合包文件与游戏版本信息"
+                _taskRows("files").Label.Text = "下载游戏、资源与整合包文件"
+            End If
+            If modrinth IsNot Nothing Then
+                _taskComponents = "Modrinth " & modrinth.Name & " " & modrinth.Version & If(modrinth.LoaderKind.HasValue, " · " & modrinth.LoaderKind.ToString() & " " & modrinth.LoaderVersion, "")
+                _taskRows("metadata").Label.Text = "校验整合包清单与游戏版本信息"
+                _taskRows("files").Label.Text = "下载游戏、资源与整合包文件"
+            End If
+            SetBusy(True) : PersistSettings() : TaskPanel.Visibility = Visibility.Visible
+            Dim localRead = _packReadCancellation, notify = RetireResourceRequests(preserveContentMotion:=True), previousSurface = ActiveSurface()
+            Try
+                SetDownloadView(DownloadView.Progress)
+                If ActiveSurface() Is previousSurface Then SwitchMainPage(False)
+                RefreshTaskResultActions()
+            Finally
+                ' Even an entry callback fault must retire all captured readers.
+                ' The parent captures the old composited frame before clocks exit.
+                NotifyResourceRetirements({Sub()
+                                              CancelSubmittedSearchRequest(localRead)
+                                              MarkCancelledPackQueries()
+                                          End Sub, notify})
+            End Try
+            request.Token.ThrowIfCancellationRequested()
+            If _closing Then Throw New OperationCanceledException(request.Token)
             Dim progress = CreateTaskProgress()
             Dim result As InstallResult
             If _installRunner IsNot Nothing Then
-                result = Await _installRunner(entry, root, name, selection, isolation, defaultIsolation, _cancellation.Token)
+                result = Await _installRunner(entry, root, name, selection, isolation, defaultIsolation, request.Token)
             ElseIf _preview Then
                 Throw New InvalidOperationException("界面预览不会执行实际安装。")
             ElseIf modrinth IsNot Nothing Then
-                result = Await Task.Run(Function() New ModrinthInstaller(policySnapshot, target.PclDirectory, target).InstallAsync(modrinth, root, name, reuse, modrinthOptions, progress, _cancellation.Token, connections, CLng(limit * 1024 * 1024), selection.JavaPath))
+                result = Await Task.Run(Function() New ModrinthInstaller(policySnapshot, target.PclDirectory, target).InstallAsync(modrinth, root, name, reuse, modrinthOptions, progress, request.Token, connections, CLng(limit * 1024 * 1024), selection.JavaPath))
             ElseIf pack IsNot Nothing Then
-                result = Await Task.Run(Function() packInstaller.InstallAsync(pack, root, name, reuse, optionalFiles, progress, _cancellation.Token, connections, CLng(limit * 1024 * 1024), selection.JavaPath))
+                result = Await Task.Run(Function() packInstaller.InstallAsync(pack, root, name, reuse, optionalFiles, progress, request.Token, connections, CLng(limit * 1024 * 1024), selection.JavaPath))
             Else
-                result = Await Task.Run(Function() installer.InstallAsync(entry, root, name, reuse, progress, _cancellation.Token, repair, connections, CLng(limit * 1024 * 1024), selection, isolation))
+                result = Await Task.Run(Function() installer.InstallAsync(entry, root, name, reuse, progress, request.Token, repair, connections, CLng(limit * 1024 * 1024), selection, isolation))
             End If
             TaskProgress.IsIndeterminate = False
             TaskProgress.Value = 1
@@ -945,7 +958,7 @@ Partial Public Class MainWindow
             StatusText.Text = "已取消，重试时会校验复用已下载文件。"
             FinishTaskView(False, StatusText.Text, cancelled:=True)
         Catch ex As Exception
-            If _cancellation.IsCancellationRequested Then
+            If request.IsCancellationRequested Then
                 TaskTitle.Text = "已取消，可重新开始"
             Else
                 TaskTitle.Text = "安装未完成，可重试"
@@ -955,12 +968,11 @@ Partial Public Class MainWindow
             FinishTaskView(False, StatusText.Text)
             If Not _preview Then
                 Log(ex)
-                If Not _cancellation.IsCancellationRequested Then MessageBox.Show(Me, ex.GetBaseException().Message & Environment.NewLine & "详细记录已写入日志目录。", "安装未完成", MessageBoxButton.OK, MessageBoxImage.Warning)
+                If Not request.IsCancellationRequested Then MessageBox.Show(Me, ex.GetBaseException().Message & Environment.NewLine & "详细记录已写入日志目录。", "安装未完成", MessageBoxButton.OK, MessageBoxImage.Warning)
             End If
         Finally
             _busy = False
-            _cancellation.Dispose()
-            _cancellation = Nothing
+            _cancellation = Nothing : request.Dispose()
             SetBusy(False)
         End Try
     End Sub

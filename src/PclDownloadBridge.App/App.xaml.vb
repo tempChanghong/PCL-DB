@@ -62,6 +62,7 @@ Partial Public Class App
                     If scope = "pack-search" Then
                         checkWindow.VerifyPackSearchUi(directory, passed)
                         checkWindow.VerifyOnlinePackStartUi(directory, passed)
+                        checkWindow.VerifyLocalInstallStartUi(directory, passed)
                         checkWindow.VerifyPackPagingUi(directory, passed)
                         checkWindow.VerifyCommunityResourceUi(directory, passed)
                         checkWindow.VerifyResourceSearchRepairUi(directory, passed)

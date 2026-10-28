@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 原版与本地整合包的任务启动边界（2026-10-28）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModDownloadLib.McInstallStart/McInstallState`、`ModModpack.InstallPackCurseForge/InstallPackModrinth`、`ModLoader.IsCanceledWithThread` 和 `MyPageRight.PageOnForceExit`：任务准备与启动有错误边界，加载器绑定原目标、状态与清理，旧执行和页面时钟不能接管后续状态。
+- PCL-DB 为原版及本地 ZIP／MRPACK 安装入口补齐同样的启动边界，绑定本次取消源与任务身份后再切页、退役读取，并在调用安装器前检查取消。保留父切页对当前动画画面的捕获、较新管理页及原生隔离策略。[复现与验证](docs/reviews/local-install-start-2026-10-28.md)，四份 Git 原始文件与摘要见 `artifacts/local-install-start/source/manifest.json`。
+
 ## 在线整合包安装启动与取消交接（2026-10-28）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadCompDetail.Install_Click`、`ModModpack.InstallPackCurseForge/InstallPackModrinth`、`ModLoader.IsCanceledWithThread` 和 `MyPageRight.PageOnForceExit`：加载器绑定目标与终态回调、避免重复安装，再切入任务管理；旧页面与执行不得接管后续状态。
