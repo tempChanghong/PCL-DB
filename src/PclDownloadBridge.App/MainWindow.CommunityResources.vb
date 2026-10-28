@@ -346,28 +346,38 @@ Partial Public Class MainWindow
         Return If(Directory.Exists(destination), destination, folder)
     End Function
     Private Async Function RunResourceSaveAsync(release As ModpackRelease, destination As String, Optional installation As ResourceInstallationPlan = Nothing) As Task
+        If _busy OrElse _localModWriting OrElse _closing Then Return
         Dim resourceDestination = Path.GetFullPath(destination)
         Dim cache = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PclDownloadBridge", "ResourceCache")
         Dim policySnapshot = Policy(), connections = ConnectionCount(), limit As Double
         If Not TryGetSpeedLimit(limit) Then Return
         Dim instance = ResourceSaveContext()
         If instance IsNot Nothing AndAlso (release.Kind <> CommunityResourceKind.Mod OrElse Not SameGameRoot(Path.GetDirectoryName(Path.GetFullPath(destination)), Path.Combine(instance.RunDirectory, "mods"))) Then instance = Nothing
-        CancelResourceRequests()
         Dim request As New CancellationTokenSource : _cancellation = request : _busy = True
-        _taskInstallTarget = Nothing : SetBusy(True)
-        ResetTaskView(Path.GetFileName(destination), False, cache, hasArchive:=True)
-        ' The planned path survives failure/cancellation. Only a successful
-        ' publication may set _taskResourceFile and enable the folder action.
-        _taskResourceTransfer = True : _taskResourceDestination = resourceDestination
-        TaskTitle.Text = If(installation Is Nothing, "下载 ", "安装 ") & Path.GetFileName(destination)
-        For Each key In {"metadata", "files"}
-            DirectCast(_taskRows(key).Label.Parent, UIElement).Visibility = Visibility.Collapsed
-        Next
-        _taskMinecraft = String.Join("、", release.GameVersions) : _taskComponents = CommunityResources.Name(release.Kind) & " · " & release.Platform.ToString()
-        _taskRows("archive").Label.Text = "下载并校验文件"
-        _taskRows("commit").Label.Text = If(installation Is Nothing, "保存文件", "安装到 " & installation.InstanceName)
-        ShowProgress(Nothing, Nothing)
         Try
+            _taskInstallTarget = Nothing : SetBusy(True)
+            ResetTaskView(Path.GetFileName(destination), False, cache, hasArchive:=True)
+            ' The planned path survives failure/cancellation. Only a successful
+            ' publication may set _taskResourceFile and enable the folder action.
+            _taskResourceTransfer = True : _taskResourceDestination = resourceDestination
+            TaskTitle.Text = If(installation Is Nothing, "下载 ", "安装 ") & Path.GetFileName(destination)
+            For Each key In {"metadata", "files"}
+                DirectCast(_taskRows(key).Label.Parent, UIElement).Visibility = Visibility.Collapsed
+            Next
+            _taskMinecraft = String.Join("、", release.GameVersions) : _taskComponents = CommunityResources.Name(release.Kind) & " · " & release.Platform.ToString()
+            _taskRows("archive").Label.Text = "下载并校验文件"
+            _taskRows("commit").Label.Text = If(installation Is Nothing, "保存文件", "安装到 " & installation.InstanceName)
+            Dim previousSurface = ActiveSurface()
+            SetDownloadView(DownloadView.Progress)
+            ' Hiding details can itself notify old requests. A surface chosen
+            ' by that notification must win over this older task-page handoff.
+            If ActiveSurface() Is previousSurface Then SwitchMainPage(False)
+            RefreshTaskResultActions()
+            ' Bind the task and its UI before old browser notifications can
+            ' reenter, cancel, fail or navigate. Only this task may start a writer.
+            CancelResourceRequests()
+            request.Token.ThrowIfCancellationRequested()
+            If _closing Then Throw New OperationCanceledException(request.Token)
             If installation IsNot Nothing Then
                 If _resourceInstallRunner IsNot Nothing Then
                     Await _resourceInstallRunner(installation, cache, policySnapshot, CreateTaskProgress(), request.Token)

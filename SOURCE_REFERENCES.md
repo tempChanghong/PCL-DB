@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 社区资源任务启动与页面交接（2026-10-28）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadCompDetail.Save_Click`、`ModLoader.LoaderTask.Start` 和 `MyPageRight`：下载由自己的加载器持有输入、状态与结果，失败／取消统一处理，页面状态沿用加载过渡。
+- PCL-DB 保留现有单前台任务约束，在通知旧浏览请求前绑定任务、取消源、目标与进度页；任务启动中的取消和异常进入原有结果／重试流程。详情退场若已切到另一个主页面，较早任务跳转不覆盖较新页面。既有卡片与任务进出动画继续使用原控制器。[复现与验证](docs/reviews/resource-task-start-2026-10-28.md)，三份固定 Git 原始字节及摘要见 `artifacts/resource-task-start/source/manifest.json`。
+
 ## 新搜索提交与旧请求的交接（2026-10-28）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageResource.StartNewSearch`、`ModLoader.LoaderTask.Start/IsCanceled` 及 `MyPageRight`：新搜索更新结果容器，等价请求保留已有容器，过期工作不发布输出，失败保留重试，页面加载使用现有过渡。

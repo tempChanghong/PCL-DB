@@ -78,6 +78,7 @@ Partial Public Class MainWindow
         VerifyDetailStartUi(directory, localModSelectionChecks)
         VerifySearchStartUi(directory, localModSelectionChecks)
         VerifySearchSubmissionUi(directory, localModSelectionChecks)
+        VerifyResourceTaskStartUi(directory, localModSelectionChecks)
         VerifyProjectRenderUi(directory, localModSelectionChecks)
         For Each label In localModSelectionChecks : check(True, label) : Next
         VerifyLocalModRowMotion(directory, check)
