@@ -1,6 +1,8 @@
 # PCL-DB · PCL Download Bridge
 
-VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载与本地实例管理工具，简称 PCL-DB。最新发布为 **Beta 7.0**（`7.0.0-beta.1`）。[发布说明](docs/releases/7.0.0-beta.1.md)。
+VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载与本地实例管理工具，简称 PCL-DB。最新发布为 **Beta 8.0**（`8.0.0-beta.1`）。[发布说明](docs/releases/8.0.0-beta.1.md)。
+
+Beta 8.0 完善快速切换、搜索返回、安装任务与本地管理的交接：旧请求和取消通知不再覆盖新操作，任务页和返回标题保持一致；资源已成功安装后，列表刷新异常不再将其误报为失败或阻止重试。打包直接保留完整验证回执并压缩 JSON 格式，无需环境覆盖。
 
 Beta 7.0 集中修复 Mod 选择与确认窗口动画、焦点和全选交互，完善管理、搜索、下载之间的快速切换及取消重试；修复整合包长路径、组件长文件名和部分 HMCL 导出 MRPACK 的兼容问题。已有目录和外部启动器配置保持。
 
@@ -48,9 +50,9 @@ Beta 5.0 同时修复资源弹窗失败恢复、启动目录恢复被切页中�
 
 ## 使用
 
-从 [Beta 6.0](https://github.com/tempChanghong/PCL-DB/releases/tag/v6.0.0-beta.1) 下载 `PCL-DB-6.0.0-beta.1.exe` 直接运行，或下载 ZIP 解压后运行其中的 `PCL-DB.exe`。源码构建方法见下文。
+从 [Beta 8.0](https://github.com/tempChanghong/PCL-DB/releases/tag/v8.0.0-beta.1) 下载 `PCL-DB-8.0.0-beta.1.exe` 直接运行，或下载 ZIP 解压后运行其中的 `PCL-DB.exe`。源码构建方法见下文。
 
-Beta 6.0 的两个下载入口使用相同的单 EXE，仍需系统安装 .NET Framework 4.8。ZIP 另外附带许可、使用说明和构建清单。已有多文件预览版运行时仍须保留自己的 DLL 和配置文件。源码默认构建入口为 `src/PclDownloadBridge.App/bin/Release/net48/PclDownloadBridge.exe`，显式打包后的便携目录入口为 `dist/PclDownloadBridge/PCL-DB.exe`。
+Beta 8.0 的两个下载入口使用相同的单 EXE，仍需系统安装 .NET Framework 4.8。ZIP 另外附带许可、使用说明和构建清单。已有多文件预览版运行时仍须保留自己的 DLL 和配置文件。源码默认构建入口为 `src/PclDownloadBridge.App/bin/Release/net48/PclDownloadBridge.exe`，显式打包后的便携目录入口为 `dist/PclDownloadBridge/PCL-DB.exe`。
 
 1. 打开「设置 → 外部启动器」，选择 PCL、HMCL 或 PCL-CE 的工作目录，点击「读取目录」，然后在「游戏」卡片选择安装目标；多份启动器可分别绑定，也可指定目录配置文件或手动选择 `.minecraft`。同页可分别设置「文件下载源」和「版本列表源」：BMCLAPI 优先、自动、官方优先；自动为默认值。切换版本列表源后，返回下载页会按新设置刷新当前列表；安装选项页也可点击「刷新列表」，保留版本、名称与组件选择。
 2. 回到「下载」，顶部显示安装目标；点击版本，填写实例名称。展开卡片选择 Forge、NeoForge、Fabric、Fabric API、OptiFine、OptiFabric 或 LiteLoader，点击「开始下载」。按 PCL 规则显示适用选项及互斥关系，Fabric API 和 OptiFabric 随父组件显示。默认拒绝覆盖同名实例。

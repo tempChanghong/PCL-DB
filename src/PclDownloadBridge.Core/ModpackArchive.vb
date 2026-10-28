@@ -20,7 +20,7 @@ Public NotInheritable Class ModpackArchivePolicy
     End Sub
     Friend Shared Function CreateClient(platform As ModpackPlatform, allowLoopback As Boolean) As HttpClient
         Dim client As New HttpClient(New ArchiveRedirects(platform, allowLoopback)) With {.Timeout = Timeout.InfiniteTimeSpan}
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("PclDownloadBridge/7.0.0-beta.1 (modpack archive)")
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("PclDownloadBridge/8.0.0-beta.1 (modpack archive)")
         Return client
     End Function
     Private Class ArchiveRedirects
