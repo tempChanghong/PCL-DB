@@ -152,7 +152,7 @@ Partial Public Class MainWindow
         _localModUpdateCacheKey = Nothing
         Await LoadLocalModsAsync(True, refreshInstance:=True)
     End Sub
-    Private Async Function LoadLocalModsAsync(force As Boolean, Optional refreshInstance As Boolean = False) As Task
+    Private Async Function LoadLocalModsAsync(force As Boolean, Optional refreshInstance As Boolean = False, Optional onBound As Action(Of Long) = Nothing) As Task
         If _closing OrElse ManagementPage.Visibility <> Visibility.Visible OrElse LocalModsPage.Visibility <> Visibility.Visible OrElse
             _managedInstance Is Nothing OrElse
             (_localModScanning AndAlso Not force) Then Return
@@ -184,6 +184,7 @@ Partial Public Class MainWindow
             CancelLocalModRequest(Sub()
                                       generation = _localModGeneration
                                       _localModInstance = instance : _localModRequest = request : _localModScanning = True
+                                      onBound?.Invoke(generation)
                                       LocalModStatus.Text = "正在读取 Mod 列表…"
                                       RefreshLocalModAvailability()
                                   End Sub)
@@ -497,8 +498,11 @@ Partial Public Class MainWindow
         If SameLocalModContext(owner) AndAlso ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible Then
             ' Like PCL's reload input, resolve the current run directory again.
             ' Native launcher settings can change without a management scan.
-            Dim refresh = LoadLocalModsAsync(True, refreshInstance:=True), readGeneration = _localModGeneration
-            Await refresh
+            Dim managementGeneration = _managementGeneration + 1, folderGeneration = _managementFolderGeneration + 1, localGeneration = _localModGeneration
+            Dim surfaceGeneration = _surfaceNavigationGeneration, previousFolder = _localModFolderRequest, readGeneration As Long = -1
+            ' PCL reload output belongs to its execution. Capture our generation
+            ' when reserved, before old cancellation can complete a newer read.
+            Await LoadLocalModsAsync(True, refreshInstance:=True, onBound:=Sub(accepted) readGeneration = accepted)
             If operationGeneration = _localModOperationGeneration AndAlso readGeneration = _localModGeneration Then
                 QueueLocalModWriteFocus(owner, focusedEntry, focused, inputVersion, operationGeneration, readGeneration)
             End If
@@ -506,6 +510,14 @@ Partial Public Class MainWindow
                 SameLocalModContext(owner) AndAlso LocalModsPage.Visibility = Visibility.Visible AndAlso Not _closing Then LocalModStatus.Text = outcome
             If operationGeneration = _localModOperationGeneration AndAlso readGeneration = _localModGeneration AndAlso Not _localModWriting AndAlso Not _busy AndAlso Not _closing AndAlso
                 taskGeneration = _taskGeneration AndAlso (Not _localModReadSucceeded OrElse Not SameLocalModContext(owner)) Then StatusText.Text = owner.Name & " · " & outcome
+            If readGeneration < 0 AndAlso operationGeneration = _localModOperationGeneration AndAlso managementGeneration = _managementGeneration AndAlso
+                folderGeneration = _managementFolderGeneration AndAlso localGeneration = _localModGeneration AndAlso _localModFolderRequest Is previousFolder AndAlso
+                surfaceGeneration = _surfaceNavigationGeneration AndAlso SameLocalModContext(owner) AndAlso ManagementPage.IsVisible AndAlso LocalModsPage.IsVisible AndAlso
+                Not _localModWriting AndAlso Not _busy AndAlso Not _closing AndAlso taskGeneration = _taskGeneration Then
+                ' An owned parent-retirement error did not reserve any read. Keep
+                ' its local retry hint and expose this completed writer separately.
+                StatusText.Text = owner.Name & " · " & outcome
+            End If
         Else
             ' PCL coordinates reloads by the actual Mods directory. A different
             ' directory's accepted read/error does not belong to this writer.

@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## Mod 文件操作后的刷新归属（2026-10-28）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.InstallMods/ReloadModList/LoaderRun`、`ModLoader.LoaderTask.IsCanceledWithThread` 和 `MyPageRight.PageOnForceExit`：文件操作绑定实例实际 Mods 目录，重读输出属于当前执行，离页时清理冲突动画。
+- PCL-DB 在重读请求实际绑定时记录执行代次，避免取消通知接受的新读取被旧写入接管；本次刷新尚未绑定便失败时，仅向仍属于原操作的页面显示文件操作结果。[复现与验证](docs/reviews/mod-write-read-owner-2026-10-28.md)，三份 Git 原始文件与摘要见 `artifacts/mod-write-read-owner/source/manifest.json`。
+
 ## 管理读取入口的取消异常与重试（2026-10-28）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageSelectRight` 实例设置入口、`PageInstanceMod.LoaderInit/LoaderRun/Load_Click`、`ModLoader.LoaderTask.Start/Failed/Cancel/IsCanceledWithThread` 和 `MyPageRight.PageOnForceExit`：读取、失败与重试属于当前实例及执行，旧状态与冲突时钟须退役。
