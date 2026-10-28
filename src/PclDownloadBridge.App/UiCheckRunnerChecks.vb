@@ -1,4 +1,5 @@
 Imports System.IO
+Imports System.Windows
 Imports System.Windows.Threading
 Imports Newtonsoft.Json.Linq
 
@@ -53,6 +54,29 @@ Friend Module UiCheckRunnerChecks
                 Console.SetError(originalError)
             End Try
         End Using
+        Dim primary = Application.Current.MainWindow, existing As New MainWindow(True), other As New Window()
+        Try
+            Dim created As MainWindow = Nothing
+            MainWindow.VerifyPreviewFixture(Sub() created = New MainWindow(True))
+            check(created IsNot Nothing AndAlso Not Application.Current.Windows.Cast(Of Window)().Contains(created) AndAlso
+                  Application.Current.MainWindow Is primary AndAlso Application.Current.Windows.Cast(Of Window)().Contains(primary),
+                  "a completed preview fixture closes its new hidden window and preserves the primary check window")
+            check(Application.Current.Windows.Cast(Of Window)().Contains(existing), "fixture cleanup preserves a pre-existing secondary preview window")
+            check(Application.Current.Windows.Cast(Of Window)().Contains(other), "fixture cleanup does not close an unrelated non-launcher window")
+            Dim sentinel As New InvalidOperationException("controlled fixture failure"), caught As Exception = Nothing, failedWindow As MainWindow = Nothing
+            Try
+                MainWindow.VerifyPreviewFixture(Sub()
+                    failedWindow = New MainWindow(True)
+                    Throw sentinel
+                End Sub)
+            Catch ex As Exception
+                caught = ex
+            End Try
+            check(caught Is sentinel AndAlso failedWindow IsNot Nothing AndAlso Not Application.Current.Windows.Cast(Of Window)().Contains(failedWindow),
+                  "failed fixtures close their new preview windows and preserve the original failure instance")
+        Finally
+            existing.Close() : other.Close()
+        End Try
     End Sub
 
     Private Sub QueueFailure(message As String)

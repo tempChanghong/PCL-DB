@@ -60,38 +60,38 @@ Partial Public Class App
                     Dim checkWindow As New MainWindow(True)
                     MainWindow = checkWindow
                     If scope = "pack-search" Then
-                        checkWindow.VerifyPackSearchUi(directory, passed)
-                        checkWindow.VerifyOnlinePackStartUi(directory, passed)
-                        checkWindow.VerifyLocalInstallStartUi(directory, passed)
-                        checkWindow.VerifyTaskFeedbackUi(directory, passed)
-                        checkWindow.VerifyResourceCompletionUi(directory, passed)
-                        checkWindow.VerifyPackPagingUi(directory, passed)
-                        checkWindow.VerifyCommunityResourceUi(directory, passed)
-                        checkWindow.VerifyResourceSearchRepairUi(directory, passed)
-                        checkWindow.VerifyResourceBrowserFollowupUi(directory, passed)
-                        checkWindow.VerifyCataloguePresentationUi(directory, passed)
-                        checkWindow.VerifyCommunitySettingsUi(directory, passed)
-                        checkWindow.VerifyExperienceSearchUi(directory, passed)
-                        checkWindow.VerifyExperiencePaletteUi(directory, passed)
-                        checkWindow.VerifyKeyboardHandoffPromptUi(directory, passed)
-                        checkWindow.VerifyResourceInstallationUi(directory, passed)
-                        checkWindow.VerifyResourceTargetRecoveryUi(directory, passed)
+                        Global.PclDownloadBridge.MainWindow.VerifyPreviewFixture(Sub() checkWindow.VerifyPackSearchUi(directory, passed))
+                        Global.PclDownloadBridge.MainWindow.VerifyPreviewFixture(Sub() checkWindow.VerifyOnlinePackStartUi(directory, passed))
+                        Global.PclDownloadBridge.MainWindow.VerifyPreviewFixture(Sub() checkWindow.VerifyLocalInstallStartUi(directory, passed))
+                        Global.PclDownloadBridge.MainWindow.VerifyPreviewFixture(Sub() checkWindow.VerifyTaskFeedbackUi(directory, passed))
+                        Global.PclDownloadBridge.MainWindow.VerifyPreviewFixture(Sub() checkWindow.VerifyResourceCompletionUi(directory, passed))
+                        Global.PclDownloadBridge.MainWindow.VerifyPreviewFixture(Sub() checkWindow.VerifyPackPagingUi(directory, passed))
+                        Global.PclDownloadBridge.MainWindow.VerifyPreviewFixture(Sub() checkWindow.VerifyCommunityResourceUi(directory, passed))
+                        Global.PclDownloadBridge.MainWindow.VerifyPreviewFixture(Sub() checkWindow.VerifyResourceSearchRepairUi(directory, passed))
+                        Global.PclDownloadBridge.MainWindow.VerifyPreviewFixture(Sub() checkWindow.VerifyResourceBrowserFollowupUi(directory, passed))
+                        Global.PclDownloadBridge.MainWindow.VerifyPreviewFixture(Sub() checkWindow.VerifyCataloguePresentationUi(directory, passed))
+                        Global.PclDownloadBridge.MainWindow.VerifyPreviewFixture(Sub() checkWindow.VerifyCommunitySettingsUi(directory, passed))
+                        Global.PclDownloadBridge.MainWindow.VerifyPreviewFixture(Sub() checkWindow.VerifyExperienceSearchUi(directory, passed))
+                        Global.PclDownloadBridge.MainWindow.VerifyPreviewFixture(Sub() checkWindow.VerifyExperiencePaletteUi(directory, passed))
+                        Global.PclDownloadBridge.MainWindow.VerifyPreviewFixture(Sub() checkWindow.VerifyKeyboardHandoffPromptUi(directory, passed))
+                        Global.PclDownloadBridge.MainWindow.VerifyPreviewFixture(Sub() checkWindow.VerifyResourceInstallationUi(directory, passed))
+                        Global.PclDownloadBridge.MainWindow.VerifyPreviewFixture(Sub() checkWindow.VerifyResourceTargetRecoveryUi(directory, passed))
                     ElseIf scope = "all" Then
-                        checkWindow.VerifyUi(directory, passed)
+                        Global.PclDownloadBridge.MainWindow.VerifyPreviewFixture(Sub() checkWindow.VerifyUi(directory, passed))
                     ElseIf scope = "appearance" Then
-                        checkWindow.VerifyAppearanceUi(directory, passed)
+                        Global.PclDownloadBridge.MainWindow.VerifyPreviewFixture(Sub() checkWindow.VerifyAppearanceUi(directory, passed))
                     ElseIf scope = "cards" Then
-                        checkWindow.VerifyCardUi(directory, passed)
+                        Global.PclDownloadBridge.MainWindow.VerifyPreviewFixture(Sub() checkWindow.VerifyCardUi(directory, passed))
                     ElseIf scope = "navigation" Then
-                        checkWindow.VerifyNavigationUi(directory, passed)
+                        Global.PclDownloadBridge.MainWindow.VerifyPreviewFixture(Sub() checkWindow.VerifyNavigationUi(directory, passed))
                     ElseIf scope = "motion" Then
-                        checkWindow.VerifyMotionUi(directory, passed)
+                        Global.PclDownloadBridge.MainWindow.VerifyPreviewFixture(Sub() checkWindow.VerifyMotionUi(directory, passed))
                     ElseIf scope = "control-motion" Then
-                        checkWindow.VerifyControlMotionUi(directory, passed)
+                        Global.PclDownloadBridge.MainWindow.VerifyPreviewFixture(Sub() checkWindow.VerifyControlMotionUi(directory, passed))
                     ElseIf scope = "developer" Then
-                        checkWindow.VerifyDeveloperUi(directory, passed)
+                        Global.PclDownloadBridge.MainWindow.VerifyPreviewFixture(Sub() checkWindow.VerifyDeveloperUi(directory, passed))
                     Else
-                        checkWindow.VerifyCompatibilityUi(directory, passed)
+                        Global.PclDownloadBridge.MainWindow.VerifyPreviewFixture(Sub() checkWindow.VerifyCompatibilityUi(directory, passed))
                     End If
                 End Sub))
             Return
