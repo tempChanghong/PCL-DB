@@ -65,4 +65,17 @@ function Invoke-PclDbVerificationProcess {
     }
 }
 
-Export-ModuleMember -Function Invoke-PclDbVerificationProcess
+function New-PclDbVerificationDirectory {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Root, [Parameter(Mandatory)][string]$Scope)
+    if ($Scope -cnotmatch '^[a-z][a-z0-9-]{0,63}$') { throw 'Invalid verification scope directory name.' }
+    $parent = [IO.Path]::GetFullPath($Root)
+    $null = [IO.Directory]::CreateDirectory($parent)
+    $path = Join-Path $parent ($Scope + '-' + [Guid]::NewGuid().ToString('N'))
+    # Never reuse or clear an earlier suite's files. Several native fixtures
+    # intentionally use deterministic archive names and FileMode.CreateNew.
+    New-Item -ItemType Directory -Path $path -ErrorAction Stop | Out-Null
+    return $path
+}
+
+Export-ModuleMember -Function Invoke-PclDbVerificationProcess, New-PclDbVerificationDirectory

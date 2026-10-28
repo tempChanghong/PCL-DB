@@ -42,6 +42,44 @@ function Invoke-Fixture([string]$Mode, [string[]]$Expected=@($output), [int]$Tim
     Invoke-PclDbVerificationProcess -Name ('fixture-' + $Mode) -FilePath $hostExe -Arguments ('-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $helper + '" ' + $Mode + ' "' + $output + '"') -WorkingDirectory $fixture -StdoutPath (Join-Path $fixture "$script:sequence.stdout.log") -StderrPath (Join-Path $fixture "$script:sequence.stderr.log") -ExpectedOutputPaths $Expected -TimeoutSeconds $Timeout
 }
 try {
+    $allDirectory = New-PclDbVerificationDirectory -Root $fixture -Scope 'all'
+    $motionDirectory = New-PclDbVerificationDirectory -Root $fixture -Scope 'motion'
+    Assert-Case ($allDirectory -cne $motionDirectory -and (Test-Path -LiteralPath $allDirectory -PathType Container) -and
+        (Test-Path -LiteralPath $motionDirectory -PathType Container)) 'different verification scopes receive fresh existing directories'
+    Assert-Case ((Split-Path $allDirectory -Parent) -ceq $fixture -and (Split-Path $motionDirectory -Parent) -ceq $fixture) 'scope directories retain their quoted Unicode operation parent'
+    foreach ($directory in @($allDirectory, $motionDirectory)) {
+        $null = [IO.Directory]::CreateDirectory((Join-Path $directory 'startup-9'))
+        $archive = Join-Path $directory 'startup-9/pack.zip'
+        $stream = [IO.File]::Open($archive, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write)
+        try { $stream.WriteByte(42) } finally { $stream.Dispose() }
+    }
+    Assert-Case ([IO.File]::ReadAllBytes((Join-Path $allDirectory 'startup-9/pack.zip'))[0] -eq 42 -and
+        [IO.File]::ReadAllBytes((Join-Path $motionDirectory 'startup-9/pack.zip'))[0] -eq 42) 'deterministic CreateNew fixture archives coexist across UI and motion without overwriting prior evidence'
+    $retryDirectory = New-PclDbVerificationDirectory -Root $fixture -Scope 'all'
+    Assert-Case ($retryDirectory -cne $allDirectory -and !(Test-Path (Join-Path $retryDirectory 'startup-9/pack.zip')) -and
+        [IO.File]::ReadAllBytes((Join-Path $allDirectory 'startup-9/pack.zip'))[0] -eq 42) 'repeating a scope receives a fresh workspace and preserves the previous archive'
+    $invalidRoot = Join-Path $fixture 'invalid-scope-parent'
+    $reason = ''
+    try { New-PclDbVerificationDirectory -Root $invalidRoot -Scope '../outside' | Out-Null } catch { $reason = $_.Exception.Message }
+    Assert-Case ($reason -like '*Invalid verification scope*' -and !(Test-Path -LiteralPath $invalidRoot)) 'invalid scope names are rejected before creating any directory'
+    foreach ($caller in @('build.ps1','tools/verify-single-exe.ps1')) {
+        $tokens = $null; $errors = $null
+        $ast = [Management.Automation.Language.Parser]::ParseFile((Join-Path $root $caller), [ref]$tokens, [ref]$errors)
+        if ($errors.Count) { throw 'Invalid verification caller' }
+        $directoryAssignment = @($ast.FindAll({param($node) $node -is [Management.Automation.Language.AssignmentStatementAst] -and
+            $node.Left -is [Management.Automation.Language.VariableExpressionAst] -and $node.Left.VariablePath.UserPath -ceq 'scopeDirectory'}, $true))
+        $pathAssignment = @($ast.FindAll({param($node) $node -is [Management.Automation.Language.AssignmentStatementAst] -and
+            $node.Left -is [Management.Automation.Language.VariableExpressionAst] -and $node.Left.VariablePath.UserPath -ceq 'path'}, $true))
+        if ($directoryAssignment.Count -ne 1 -or $pathAssignment.Count -ne 1) { throw 'Expected one scoped directory and report assignment per caller' }
+        $operation = $fixture; $checksRoot = $fixture; $scope = 'all'; $name = 'ui'; $stem = 'ui'
+        . ([scriptblock]::Create($directoryAssignment[0].Extent.Text))
+        . ([scriptblock]::Create($pathAssignment[0].Extent.Text))
+        $firstReport = $path
+        . ([scriptblock]::Create($directoryAssignment[0].Extent.Text))
+        . ([scriptblock]::Create($pathAssignment[0].Extent.Text))
+        Assert-Case ($firstReport -cne $path -and (Split-Path $path -Parent) -ceq $scopeDirectory -and
+            (Split-Path $firstReport -Parent) -cne $fixture) ('actual caller binds its report to each fresh suite workspace: ' + $caller)
+    }
     $sentinel = Join-Path $fixture 'unrelated receipt.json'
     [IO.File]::WriteAllText($sentinel, 'retain this prior receipt')
     [IO.File]::WriteAllText($output, '{"Succeeded":true,"Run":"old"}')

@@ -16,14 +16,17 @@ try {
         Get-Content -LiteralPath $core.Stdout -Tail 2
         $app = Join-Path $PSScriptRoot 'src/PclDownloadBridge.App/bin/Release/net48/PclDownloadBridge.exe'
         $appHash = (Get-FileHash -LiteralPath $app -Algorithm SHA256).Hash
+        $checksRoot = New-PclDbVerificationDirectory -Root (Join-Path $PSScriptRoot 'artifacts') -Scope 'build'
         foreach ($scope in @('all','motion','pack-search')) {
             $policy = Get-PclDbCheckPolicy $scope
             $stem = if ($scope -eq 'all') { 'ui' } else { $scope }
-            $path = Join-Path $PSScriptRoot ('artifacts/' + $stem + '-checks.json')
+            $scopeDirectory = New-PclDbVerificationDirectory -Root $checksRoot -Scope $scope
+            $path = Join-Path $scopeDirectory ($stem + '-checks.json')
             $run = Invoke-PclDbVerificationProcess -Name ($scope + ' checks') -FilePath $app -Arguments ($policy.Mode + ' "' + $path + '"') -WorkingDirectory $PSScriptRoot -StdoutPath ($path + '.stdout.log') -StderrPath ($path + '.stderr.log') -ExpectedOutputPaths @($path) -TimeoutSeconds $policy.TimeoutSeconds
             if ($run.ExecutableSHA256 -cne $appHash) { throw 'Application changed between verification scopes.' }
             $report = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
             Assert-PclDbCheckReport $report $scope -ExecutableSHA256 $appHash
+            Copy-Item -LiteralPath $path -Destination (Join-Path $PSScriptRoot ('artifacts/' + $stem + '-checks.json'))
             Write-Output "PASS $scope checks: $($report.Count)."
         }
     }
