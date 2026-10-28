@@ -4,6 +4,7 @@ Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
 Import-Module (Join-Path $PSScriptRoot 'PackageCandidateTools.psm1')
 Import-Module (Join-Path $PSScriptRoot 'VerificationTools.psm1')
 $script:PayloadNames = @('PCL-DB.exe','LICENCE','README.md','SOURCE_REFERENCES.md','THIRD_PARTY_NOTICES.md','VALIDATION.md','PATCH_MECHANISMS.md','VS2026_DEBUG.md')
+$script:BuildManifestLimit = 1048576
 
 function Get-StreamHash([IO.Stream]$Stream) {
     $algorithm = [Security.Cryptography.SHA256]::Create()
@@ -68,6 +69,15 @@ function New-PclDbBuildManifest([object]$Candidate) {
     }
 }
 
+function Write-PclDbBuildManifest([object]$Manifest, [string]$Path) {
+    # Assertion lists are part of the receipt, not disposable formatting. Keep
+    # every field while sharing the archive reader's existing UTF-8 byte limit.
+    $json = $Manifest | ConvertTo-Json -Depth 12 -Compress
+    $encoding = [Text.UTF8Encoding]::new($false)
+    if ($encoding.GetByteCount($json) -gt $script:BuildManifestLimit) { throw 'Oversized build manifest.' }
+    [IO.File]::WriteAllText($Path, $json, $encoding)
+}
+
 function Assert-ManifestCandidate([object]$Manifest, [object]$Candidate) {
     if ($Manifest.Format -cne 'PCL-DB-single-exe/v3') { throw 'A historical manifest cannot satisfy current candidate verification.' }
     Assert-PclDbVerification $Manifest.Verification $Candidate.CandidateSHA256 -Current
@@ -105,7 +115,7 @@ function Test-PclDbPackage {
             $entries[$name] = $entry
         }
         $manifestEntry = $entries['PclDownloadBridge/build-manifest.json']
-        if ($manifestEntry.Length -gt 1048576) { throw 'Oversized build manifest.' }
+        if ($manifestEntry.Length -gt $script:BuildManifestLimit) { throw 'Oversized build manifest.' }
         $stream = $manifestEntry.Open()
         $reader = New-Object IO.StreamReader($stream, [Text.Encoding]::UTF8)
         try { $manifest = $reader.ReadToEnd() | ConvertFrom-Json } finally { $reader.Dispose() }
@@ -181,7 +191,7 @@ function New-PclDbPackage {
         New-Item -ItemType Directory -Path $stage -Force | Out-Null
         foreach ($file in $candidate.PayloadFiles) { Copy-Item -LiteralPath (Join-Path $candidate.PayloadDirectory $file.Name) -Destination (Join-Path $stage $file.Name) }
         $manifest = New-PclDbBuildManifest $candidate
-        $manifest | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath (Join-Path $stage 'build-manifest.json') -Encoding UTF8
+        Write-PclDbBuildManifest $manifest (Join-Path $stage 'build-manifest.json')
         $stem = 'PCL-DB-' + $candidate.ReleaseVersion
         $stageZip = Join-Path $operation ($stem + '.zip')
         $stageExe = Join-Path $operation ($stem + '.exe')

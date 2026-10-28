@@ -3,7 +3,9 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $root = Split-Path $PSScriptRoot -Parent
 Import-Module (Join-Path $PSScriptRoot 'VerificationTools.psm1') -Force
-$script:policyCommand = Get-Command Get-PclDbCheckPolicy -Module VerificationTools
+# Imported FunctionInfo is mutable: declaring the spy below replaces its body
+# in place. Retain the original module-bound script block before shadowing it.
+$script:policyBody = (Get-Command Get-PclDbCheckPolicy -Module VerificationTools).ScriptBlock
 if (!$ReportPath) { $ReportPath = Join-Path $root 'artifacts/verification-timeout-checks.json' }
 $observations = [ordered]@{}
 $passed = New-Object 'Collections.Generic.List[string]'
@@ -34,7 +36,7 @@ function Invoke-PclDbVerificationProcess {
 }
 
 foreach ($scope in @('standalone','all','motion','pack-search','appearance','developer','cards','navigation','compatibility','control-motion')) {
-    $policy = & $script:policyCommand $scope
+    $policy = & $script:policyBody $scope
     $hasDeadline = $null -ne $policy.PSObject.Properties['TimeoutSeconds']
     $deadline = if ($hasDeadline) { $policy.TimeoutSeconds } else { $null }
     Assert-Case ($hasDeadline -and $deadline -is [int] -and $deadline -ge 1 -and $deadline -le 3600) ("policy exposes a finite process-compatible deadline: $scope")
@@ -42,12 +44,12 @@ foreach ($scope in @('standalone','all','motion','pack-search','appearance','dev
     Assert-Case ($hasDeadline -and $deadline -ceq $expectedDeadline) ("policy budgets the full UI, motion and search suites while retaining compact-scope limits: $scope")
 }
 $rejected = $false
-try { & $script:policyCommand 'unrecognised-scope' | Out-Null } catch { $rejected = $_.Exception.Message.Contains('Unknown check scope') }
+try { & $script:policyBody 'unrecognised-scope' | Out-Null } catch { $rejected = $_.Exception.Message.Contains('Unknown check scope') }
 Assert-Case $rejected 'unknown scope cannot acquire an arbitrary execution budget'
 
 function Get-PclDbCheckPolicy([string]$Scope) {
     $script:queries++
-    $result = & $script:policyCommand $Scope
+    $result = & $script:policyBody $Scope
     # Distinct test budgets prove consumers use metadata, not matching literals.
     $result | Add-Member -NotePropertyName TimeoutSeconds -NotePropertyValue $script:sentinel -Force
     return $result

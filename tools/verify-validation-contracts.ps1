@@ -33,7 +33,7 @@ function New-Receipt([string]$Scope, [string]$Hash, [bool]$Animations=$true) {
     [pscustomobject]@{Scope=$Scope; Succeeded=$true; Count=$count; Passed=@(1..$count | ForEach-Object { "Controlled $Scope assertion $_" })
         ExecutableSHA256=$Hash; Standalone=$true; ClientAreaAnimation=$Animations; FailedCheck=$null; Exception=$null}
 }
-function Write-FixtureZip([string]$Path, [object]$Manifest, [scriptblock]$Edit) {
+function Write-FixtureZip([string]$Path, [object]$Manifest, [scriptblock]$Edit, [byte[]]$ManifestBytes) {
     # Tiny parser fixtures only: the EXE payload is text, never executable or a
     # candidate. This script never calls New-PclDbPackage / verify-single-exe.
     $zip = [IO.Compression.ZipFile]::Open($Path, [IO.Compression.ZipArchiveMode]::Create)
@@ -42,7 +42,7 @@ function Write-FixtureZip([string]$Path, [object]$Manifest, [scriptblock]$Edit) 
             $stream = $zip.CreateEntry('PclDownloadBridge/' + $name).Open()
             try { $stream.Write($payload[$name], 0, $payload[$name].Length) } finally { $stream.Dispose() }
         }
-        $bytes = [Text.Encoding]::UTF8.GetBytes(($Manifest | ConvertTo-Json -Depth 15))
+        $bytes = if ($null -ne $ManifestBytes) { $ManifestBytes } else { [Text.Encoding]::UTF8.GetBytes(($Manifest | ConvertTo-Json -Depth 15)) }
         $stream = $zip.CreateEntry('PclDownloadBridge/build-manifest.json').Open()
         try { $stream.Write($bytes, 0, $bytes.Length) } finally { $stream.Dispose() }
     } finally { $zip.Dispose() }
@@ -223,6 +223,58 @@ try {
         $path=Join-Path $fixture ($case.Name+'.zip'); Write-FixtureZip $path $legacy $case.Edit
         Assert-Rejected { Test-PclDbPackage -ProjectRoot $root -PackagePath $path } $case.Error ("historical archive rejects " + $case.Name + ' entries')
     }
+
+    # Reproduce a complete receipt whose whitespace alone breaks the archive's
+    # 1 MiB guard. These remain synthetic parser fixtures, never app acceptance.
+    $large = Copy-Object $manifest
+    $large.Verification.Reports[0].Passed[0] += " Unicode label: $([char]0x6D4B)$([char]0x8BD5) `"quoted`"`nnext line "
+    $encoding = [Text.UTF8Encoding]::new($false)
+    $compact = $large | ConvertTo-Json -Depth 12 -Compress
+    $padding = 1040000 - $encoding.GetByteCount($compact)
+    if ($padding -le 0) { throw 'Large manifest fixture needs a larger bounded receipt target.' }
+    $large.Verification.Reports[0].Passed[0] += 'x' * $padding
+    $compact = $large | ConvertTo-Json -Depth 12 -Compress
+    Assert-Case ($encoding.GetByteCount($compact) -eq 1040000 -and $encoding.GetByteCount(($large | ConvertTo-Json -Depth 12)) -gt 1048576) 'complete receipt fits the archive limit only when formatting whitespace is removed'
+    $serialized = Join-Path $fixture 'complete-manifest.json'
+    & $packageModule { param($value,$path) Write-PclDbBuildManifest $value $path } $large $serialized
+    $serializedBytes = [IO.File]::ReadAllBytes($serialized)
+    Assert-Case ($serializedBytes.Length -eq $encoding.GetByteCount($compact)) 'production manifest writer emits compact UTF-8 without BOM or trailing whitespace'
+    $roundTrip = [IO.File]::ReadAllText($serialized, $encoding) | ConvertFrom-Json
+    Assert-Case (($roundTrip | ConvertTo-Json -Depth 12 -Compress) -ceq $compact) 'manifest round trip preserves every assertion, Unicode, quotes and nested verification field'
+    $bound = Copy-Object $candidate; $bound.Verification = $large.Verification
+    Assert-BoundManifest $roundTrip $bound
+    Assert-Case $true 'compact manifest retains exact source, payload, dependency and complete assertion binding'
+    $path = Join-Path $fixture 'complete-compact.zip'
+    Write-FixtureZip $path $large $null $serializedBytes
+    $compactReport = Test-PclDbPackage -ProjectRoot $root -PackagePath $path -ManifestPath $serialized
+    Assert-Case ($compactReport.Succeeded -and !$compactReport.CandidateVerified -and $compactReport.FileCount -eq 9) 'default production serialization passes full archive integrity without a current candidate claim'
+
+    $boundary = Copy-Object $large
+    $boundary.Verification.Reports[0].Passed[0] += 'x' * 8576
+    $atLimit = Join-Path $fixture 'boundary-manifest.json'
+    & $packageModule { param($value,$path) Write-PclDbBuildManifest $value $path } $boundary $atLimit
+    Assert-Case ((Get-Item -LiteralPath $atLimit).Length -eq 1048576) 'writer accepts a manifest exactly at the original 1 MiB byte limit'
+    $path = Join-Path $fixture 'boundary.zip'
+    Write-FixtureZip $path $boundary $null ([IO.File]::ReadAllBytes($atLimit))
+    $null = Test-PclDbPackage -ProjectRoot $root -PackagePath $path
+    Assert-Case $true 'archive reader accepts the same exact byte boundary as the writer'
+
+    # A multibyte replacement keeps character count unchanged but exceeds the
+    # byte limit. Reject before touching either an old file or a new destination.
+    $oversized = Copy-Object $boundary
+    $label = $oversized.Verification.Reports[0].Passed[0]
+    $oversized.Verification.Reports[0].Passed[0] = $label.Substring(0, $label.Length - 1) + [char]0x6D4B
+    $oversizedJson = $oversized | ConvertTo-Json -Depth 12 -Compress
+    Assert-Case ($oversizedJson.Length -lt 1048576 -and $encoding.GetByteCount($oversizedJson) -eq 1048578) 'size enforcement uses UTF-8 bytes rather than JSON character count'
+    $oldHash = (Get-FileHash -LiteralPath $atLimit -Algorithm SHA256).Hash
+    Assert-Rejected { & $packageModule { param($value,$path) Write-PclDbBuildManifest $value $path } $oversized $atLimit } 'Oversized build manifest' 'oversized compact receipts fail before overwriting an existing manifest'
+    Assert-Case ((Get-FileHash -LiteralPath $atLimit -Algorithm SHA256).Hash -ceq $oldHash) 'rejected serialization preserves the prior manifest byte for byte'
+    $missing = Join-Path $fixture 'oversized-new.json'
+    Assert-Rejected { & $packageModule { param($value,$path) Write-PclDbBuildManifest $value $path } $oversized $missing } 'Oversized build manifest' 'oversized compact receipts fail before creating a new manifest'
+    Assert-Case (!(Test-Path -LiteralPath $missing)) 'oversized serialization leaves no partial new manifest'
+    $path = Join-Path $fixture 'oversized.zip'
+    Write-FixtureZip $path $oversized $null ($encoding.GetBytes($oversizedJson))
+    Assert-Rejected { Test-PclDbPackage -ProjectRoot $root -PackagePath $path } 'Oversized build manifest' 'archive byte limit remains enforced for genuinely oversized compact receipts'
     $result=[pscustomobject]@{Succeeded=$true;Scope='validation-contracts';Count=$passed.Count;Passed=@($passed);Fixture=$fixture
         RealCandidateExecuted=$false;DistributionUpdated=$false;Evidence='Controlled receipts and tiny non-executable parser ZIP fixtures only.'}
 } catch {

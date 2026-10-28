@@ -35,7 +35,9 @@ function Edit-Manifest([object]$Zip, [scriptblock]$Edit) {
     $reader = New-Object IO.StreamReader($Zip.GetEntry($name).Open(), [Text.Encoding]::UTF8)
     try { $manifest = $reader.ReadToEnd() | ConvertFrom-Json } finally { $reader.Dispose() }
     & $Edit $manifest
-    Set-ZipBytes $Zip $name ([Text.Encoding]::UTF8.GetBytes(($manifest | ConvertTo-Json -Depth 8)))
+    # Corruption probes must reach their intended validation rule rather than
+    # fail early because formatting whitespace expanded a complete receipt.
+    Set-ZipBytes $Zip $name ([Text.Encoding]::UTF8.GetBytes(($manifest | ConvertTo-Json -Depth 8 -Compress)))
 }
 function Output-Snapshot {
     return (@(Get-ChildItem -LiteralPath (Join-Path $fixture 'dist') -Recurse -File -Force | Sort-Object FullName | ForEach-Object {
