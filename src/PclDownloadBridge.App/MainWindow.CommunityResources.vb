@@ -11,6 +11,7 @@ Partial Public Class MainWindow
     Private ReadOnly _resourceBrowsers As New Dictionary(Of CommunityResourceKind, ResourceBrowserState)
     Private ReadOnly _resourceBack As New Stack(Of ResourceDetailState)
     Private _dependencyRequest As CancellationTokenSource
+    Private _resourceDetailGeneration As Long
     Private _resourceNamesRequest As CancellationTokenSource
     Private ReadOnly _resourceNameSlots As New SemaphoreSlim(4)
     Private ReadOnly _resourceDependencyNames As New Dictionary(Of String, String)(StringComparer.Ordinal)
@@ -47,14 +48,15 @@ Partial Public Class MainWindow
         _packSearchLoading?.Reset() : _packDetailLoading?.Reset()
         FinishPackContentMotion()
     End Sub
-    Private Sub ResetResourceNames()
+    Private Sub ResetResourceNames(Optional afterRetire As Action = Nothing)
         Dim previous = _resourceNamesRequest
         _resourceDependencyNameLoads.Clear()
         ' Publish the new ownership before cancellation can start another label
         ' read or reset. Only the captured previous source may be disposed here.
         _resourceNamesRequest = If(_closing, Nothing, New CancellationTokenSource())
         Try
-            previous?.Cancel()
+            afterRetire?.Invoke()
+            CancelSubmittedSearchRequest(previous)
         Finally
             previous?.Dispose()
         End Try
@@ -145,6 +147,7 @@ Partial Public Class MainWindow
         ResetResourceNames()
         _packProject = state.Project : _packVerifiedProject = state.Verified : _packDetailCompletedProject = state.Completed
         _packReleases = state.Releases : _packDetailScroll = state.Scroll : _packTargetGame = state.Game : _resourceTargetLoader = state.Loader
+        PackDetailRetry.Visibility = Visibility.Collapsed
         _packVersionCache.Clear() : RenderPackProject(ActivePackProject())
         InitializePackVersions(state.Expanded)
         ' Empty is PCL's explicit All choice, not an absent saved selection.
@@ -252,6 +255,7 @@ Partial Public Class MainWindow
     End Function
     Private Async Sub OpenResourceDependency(project As ModpackProject, dependency As ResourceDependency, owner As FrameworkElement)
         If Not CanUseResourceDetail(owner) OrElse ActivePackProject() IsNot project Then Return
+        _resourceDetailGeneration += 1
         Dim previous = _dependencyRequest, request As New CancellationTokenSource
         _dependencyRequest = request
         Try

@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 资源详情返回、取消与恢复（2026-10-28）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `FormMain.PageBack/PageChangeActual/PageChangeAnim`、`PageDownloadResourceDetail.LoadPageArguments/ResourceFileLoader`、`ModLoader.LoaderTask.IsCanceledWithThread/Start` 和 `MyPageRight`：返回记录、当前项目与加载结果具有明确归属，页面沿既有状态与动画切换。
+- PCL-DB 为资源返回绑定请求、上下文和操作代次，取消通知后才消费返回记录；已经结束的新查询仍能使旧返回失效。被中断但保留的详情复用原重试入口，释放旧加载控件，恢复父页时清理子页提示，保持较新页面和时钟。[复现与验证](docs/reviews/resource-back-2026-10-28.md)，四份固定 Git 原始字节及摘要见 `artifacts/resource-back/source/manifest.json`。
+
 ## 管理页实例选择、返回与取消交接（2026-10-28）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageSelectRight.McInstanceListContent/Item_Click`、`PageInstanceLeft.PageChange/PageChangeRun` 及 `ModLoader.LoaderTask.IsCanceledWithThread/Start`：进入管理页前绑定实例，切页统一处理异常和冲突动画，过期执行不发布输出。

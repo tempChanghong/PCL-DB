@@ -361,6 +361,7 @@ Partial Public Class MainWindow
         VerifyDetailStartUi(artifactDirectory, checks)
         VerifySearchStartUi(artifactDirectory, checks)
         VerifySearchSubmissionUi(artifactDirectory, checks)
+        VerifyResourceBackUi(artifactDirectory, checks)
         VerifyProjectRenderUi(artifactDirectory, checks)
         VerifyResourceSaveDirectoryUi(artifactDirectory, checks)
         VerifyResourceTaskResultUi(artifactDirectory, checks)

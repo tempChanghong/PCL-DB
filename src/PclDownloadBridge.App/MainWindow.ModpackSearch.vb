@@ -135,16 +135,68 @@ Partial Public Class MainWindow
         ChangePackMode(PackBrowserMode.Local)
     End Sub
     Private Sub BackToPackSearch(sender As Object, e As RoutedEventArgs)
-        If _choosingOnline Then Return
-        _dependencyRequest?.Cancel()
-        ResetResourceNames()
-        If _packMode = PackBrowserMode.Detail AndAlso _resourceBack.Count > 0 Then
-            _packDetailRequest?.Cancel()
-            Dim frame = _resourceBack.Pop()
+        If _busy OrElse _choosingOnline OrElse _closing OrElse _downloadView <> DownloadView.Modpacks OrElse Not DownloadPage.IsVisible Then Return
+        _resourceDetailGeneration += 1
+        Dim generation = _resourceDetailGeneration
+        Dim project = _packProject, session = _packSearchSession, kind = _resourceKind, mode = _packMode, frames = _resourceBack.ToArray()
+        Dim frame = If(mode = PackBrowserMode.Detail AndAlso frames.Length > 0, frames.First(), Nothing)
+        Dim dependency = _dependencyRequest, detail = If(frame Is Nothing, Nothing, _packDetailRequest), names As CancellationTokenSource = Nothing
+        Dim detailRows = PackVersionCards.Children.Cast(Of UIElement)().ToArray()
+        _dependencyRequest = Nothing
+        If detail IsNot Nothing Then _packDetailRequest = Nothing : _packDetailLoading.Cancel(detail)
+        Dim current As Func(Of Boolean) = Function() Not _busy AndAlso Not _choosingOnline AndAlso Not _closing AndAlso DownloadPage.IsVisible AndAlso
+            _downloadView = DownloadView.Modpacks AndAlso _resourceKind = kind AndAlso _packMode = mode AndAlso _packProject Is project AndAlso
+            _packSearchSession Is session AndAlso generation = _resourceDetailGeneration AndAlso _resourceNamesRequest Is names AndAlso _dependencyRequest Is Nothing AndAlso _resourceBack.SequenceEqual(frames)
+        Try
+            ' PCL changes PageCurrent/history as one accepted transition. Retire
+            ' only these old readers; their notifications may accept a later Back,
+            ' project, query or main-page change before this transition can commit.
+            Try
+                ResetResourceNames(Sub() names = _resourceNamesRequest)
+            Finally
+                Try
+                    CancelSubmittedSearchRequest(dependency)
+                Finally
+                    CancelSubmittedSearchRequest(detail)
+                End Try
+            End Try
+        Catch ex As Exception
+            If current() Then
+                If Not _preview Then Log(ex)
+                If mode = PackBrowserMode.Detail Then
+                    PackProjectActionStatus.Text = "无法返回，请重试。" : PackProjectActionStatus.ToolTip = ex.GetBaseException().Message : PackProjectActionStatus.Visibility = Visibility.Visible
+                ElseIf mode = PackBrowserMode.Local Then
+                    PackReadStatus.Text = "无法返回搜索，请重试。"
+                Else
+                    PackSearchInputHint.Theme = PclHintTheme.Red : PackSearchInputHint.Text = "无法返回，请重试。" : PackSearchInputHint.ToolTip = ex.GetBaseException().Message : PackSearchInputHint.Visibility = Visibility.Visible
+                End If
+            End If
+            OfferRetiredResourceDetailRetry(project, names, detail, detailRows)
+            Return
+        End Try
+        If Not current() Then
+            OfferRetiredResourceDetailRetry(project, names, detail, detailRows)
+            Return
+        End If
+        If frame IsNot Nothing Then
+            _resourceBack.Pop()
             ChangePackContent(PackBrowserMode.Detail, Sub() RestoreResourceDetail(frame))
             Return
         End If
         ChangePackMode(PackBrowserMode.Search)
+    End Sub
+    Private Sub OfferRetiredResourceDetailRetry(project As ModpackProject, names As CancellationTokenSource, request As CancellationTokenSource, rows As UIElement())
+        If request Is Nothing OrElse Not request.IsCancellationRequested OrElse _closing OrElse _packMode <> PackBrowserMode.Detail OrElse
+            _packProject IsNot project OrElse _resourceNamesRequest IsNot names OrElse _packDetailRequest IsNot Nothing OrElse _packDetailCompletedProject Is project OrElse
+            Not PackVersionCards.Children.Cast(Of UIElement)().SequenceEqual(rows) Then Return
+        ' A superseding main-page/lookup action can leave this cancelled child
+        ' cached. Only its unchanged body may become retryable; keep newer errors,
+        ' results and clocks with their owners. Unloading also stops the pickaxe.
+        For Each loading In rows.OfType(Of PclCard)().Where(Function(card) TypeOf card.Body Is PclLoadingView).ToArray()
+            PackVersionCards.Children.Remove(loading)
+        Next
+        PackDetailHint.Theme = PclHintTheme.Blue : PackDetailHint.Text = "已取消读取版本列表，点击重试。" : PackDetailHint.ToolTip = Nothing
+        PackDetailHint.Visibility = Visibility.Visible : PackDetailRetry.Visibility = Visibility.Visible
     End Sub
     Private Function CurrentPackQuery() As ModpackQuery
         Dim game = PackSearchGameValue(), category = TryCast(PackSearchCategory.SelectedItem, ComboBoxItem)
@@ -420,6 +472,7 @@ Partial Public Class MainWindow
     End Sub
     Private Async Function LoadPackDetailsAsync(project As ModpackProject) As Task
         If project Is Nothing OrElse project IsNot _packProject OrElse _closing Then Return
+        _resourceDetailGeneration += 1
         Dim previous = _packDetailRequest, request As New CancellationTokenSource
         _packDetailRequest = request
         _packDetailCompletedProject = Nothing
