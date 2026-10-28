@@ -100,6 +100,18 @@ Partial Public Class MainWindow
         TaskConnections.Text = "0"
         TaskDetail.Text = detail & " · 用时 " & _taskClock.Elapsed.ToString("mm\:ss")
         RefreshTaskResultActions()
+        If Not _closing AndAlso _downloadView = DownloadView.Progress AndAlso _categoryMotion.Transition Is Nothing AndAlso Not _categoryMotion.ApplyingContent AndAlso
+            (DownloadProgress.Visibility <> Visibility.Visible OrElse ModpackPage.Visibility <> Visibility.Collapsed OrElse VersionPage.Visibility <> Visibility.Collapsed OrElse
+             InstallPage.Visibility <> Visibility.Collapsed OrElse DownloadSidebar.Visibility <> Visibility.Collapsed OrElse DownloadToolbar.Visibility <> Visibility.Collapsed) Then
+            ' A visibility callback can fault after publishing only half a page.
+            ' Like PCL PageOnForceExit, finish explicit visibility cleanup without
+            ' interrupting a live transition or taking over another accepted view.
+            Try
+                ApplyDownloadView(DownloadView.Progress, DownloadView.Progress)
+            Catch ex As Exception
+                If Not _preview Then Log(ex)
+            End Try
+        End If
     End Sub
     Private Sub MarkComplete(row As TaskPhaseView)
         row.Complete = True : row.State.Visibility = Visibility.Collapsed

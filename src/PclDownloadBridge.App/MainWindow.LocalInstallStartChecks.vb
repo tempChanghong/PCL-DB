@@ -26,7 +26,7 @@ Partial Public Class MainWindow
         Try
             Using surface = PreviewSurface.Attach(host, 900, 700)
                 SynchronizationContext.SetSynchronizationContext(New DispatcherSynchronizationContext(owner.Dispatcher))
-                Dim work = owner.CheckLocalInstallStartAsync(directory, layout, check, faults)
+                Dim work = owner.CheckLocalInstallStartAsync(directory, layout, check, faults, host)
                 If Not PumpMotionUntil(Function() work.IsCompleted, 180000) Then Throw New TimeoutException("Local installation startup checks did not settle.")
                 work.GetAwaiter().GetResult()
             End Using
@@ -44,9 +44,11 @@ Partial Public Class MainWindow
         End Try
     End Sub
 
-    Private Async Function CheckLocalInstallStartAsync(directory As String, layout As Action, check As Action(Of Boolean, String), faults As List(Of Exception)) As Task
+    Private Async Function CheckLocalInstallStartAsync(directory As String, layout As Action, check As Action(Of Boolean, String), faults As List(Of Exception), host As Border) As Task
         Dim settle As Action = Sub()
-                                   _surfaceMotion.Finish() : _managementMotion.Finish() : _categoryMotion.Finish() : _pageSwitch.Finish() : FinishPackContentMotion() : layout()
+                                   _surfaceMotion.Finish() : _managementMotion.Finish() : _categoryMotion.Finish()
+                                   If _downloadView = DownloadView.Versions OrElse _downloadView = DownloadView.Install Then _pageSwitch.Finish()
+                                   FinishPackContentMotion() : _titleNavigation.Finish() : layout()
                                End Sub
         Dim number = 0
         For launcher = 0 To 2
@@ -131,9 +133,13 @@ Partial Public Class MainWindow
                             Dim expected = If(scenario = 1, TaskOutcome.Cancelled, If(scenario = 2, TaskOutcome.Failed, TaskOutcome.Succeeded))
                             check(_taskFinished AndAlso _taskOutcome = expected AndAlso Not _busy AndAlso _cancellation Is Nothing AndAlso faults.Count = beforeFaults AndAlso _taskGeneration = generation + 1 AndAlso
                                 _taskName = name AndAlso If(terminal, _taskInstancePath Is Nothing, _taskInstancePath = Path.Combine(target.Root, "versions", name) AndAlso Not tokenUsed.IsCancellationRequested) AndAlso
-                                If(scenario = 3, ManagementPage.IsVisible, DownloadProgress.IsVisible) AndAlso
+                                If(scenario = 3, ManagementPage.IsVisible, DownloadProgress.IsVisible AndAlso ModpackPage.Visibility = System.Windows.Visibility.Collapsed AndAlso
+                                    VersionPage.Visibility = System.Windows.Visibility.Collapsed AndAlso InstallPage.Visibility = System.Windows.Visibility.Collapsed AndAlso
+                                    DownloadSidebar.Visibility = System.Windows.Visibility.Collapsed AndAlso DownloadToolbar.Visibility = System.Windows.Visibility.Collapsed AndAlso
+                                    InnerTitle.Text = "任务管理" AndAlso TaskResultActions.IsVisible AndAlso PageSurface.IsHitTestVisible AndAlso DownloadViewHost.IsHitTestVisible) AndAlso
                                 files.All(Function(item) File.ReadAllBytes(item.Key).SequenceEqual(item.Value)),
                                 "startup cancellation or UI failure settles locally without Dispatcher faults or changing existing native files" & label)
+                            If launcher = 0 AndAlso source = 1 AndAlso scenario = 2 Then SaveControlVisual(host, Path.Combine(directory, "task-fault-layout-" & packFormat & ".png"))
                             RemoveHandler TaskPanel.IsVisibleChanged, visibility : registration.Dispose()
                             If _packReadCancellation Is retired Then _packReadCancellation = Nothing
                         End Using
