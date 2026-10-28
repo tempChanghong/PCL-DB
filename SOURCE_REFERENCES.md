@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 资源安装结果与本地列表通知的结束边界（2026-10-28）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadCompDetail.Save_Click`：下载加载器的终态提示／后续动作属于状态回调；`PageInstanceMod` 按加载器终态提示结果并独立处理缓存清理；`ModLoader.State` 先更新状态再发送取消／状态通知。
+- PCL-DB 的指定实例资源安装在写入结束后保留其终态，仅在结束清理中使本地列表失效一次。列表取消观察者的异常单独记日志，不能改写文件安装结果或跳过忙碌状态释放；复用本地读取已有的退役顺序，通知后不再覆盖新读取状态。[复现与验证](docs/reviews/resource-completion-handoff-2026-10-28.md)，三份 Git 原始文件与摘要见 `artifacts/resource-completion-handoff/source/manifest.json`。
+
 ## 管理目录切换的取消通知与新页面归属（2026-10-28）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModLoader.State`：先改变加载状态，再通知取消；以及 `PageInstanceMod` 的列表刷新／页面退出和 `FormMain.PageChangeAnim` 的旧页面清理、新页面进入顺序。

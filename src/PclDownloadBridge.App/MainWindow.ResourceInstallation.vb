@@ -222,7 +222,6 @@ Partial Public Class MainWindow
         _managementDirty = True
         If _localModInstance IsNot Nothing AndAlso SameGameRoot(_localModInstance.RunDirectory, plan.RunDirectory) Then
             CancelLocalModRequest()
-            _localModReadSucceeded = False
         End If
     End Sub
 End Class

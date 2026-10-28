@@ -30,6 +30,7 @@ Partial Public Class MainWindow
         VerifyOnlinePackStartUi(artifactDirectory, checks)
         VerifyLocalInstallStartUi(artifactDirectory, checks)
         VerifyTaskFeedbackUi(artifactDirectory, checks)
+        VerifyResourceCompletionUi(artifactDirectory, checks)
         VerifyModEntryRefreshUi(artifactDirectory, checks)
         VerifyLocalModNavigationUi(artifactDirectory, checks)
         VerifySurfaceNavigationUi(artifactDirectory, checks)

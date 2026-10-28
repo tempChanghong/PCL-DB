@@ -523,7 +523,6 @@ Partial Public Class MainWindow
                 Else
                     Await installation.InstallAsync(cache, policySnapshot, CreateTaskProgress(), request.Token, connections, CLng(limit * 1024 * 1024))
                 End If
-                InvalidateResourceManagement(installation)
             ElseIf _resourceSaveRunner IsNot Nothing Then
                 Await _resourceSaveRunner(release, destination, CreateTaskProgress(), request.Token)
             ElseIf _preview Then
@@ -541,8 +540,16 @@ Partial Public Class MainWindow
             TaskTitle.Text = If(installation Is Nothing, "下载", "安装") & "未完成，可重试" : StatusText.Text = ex.GetBaseException().Message
             FinishTaskView(False, StatusText.Text, cancelled:=request.IsCancellationRequested)
         Finally
-            If installation IsNot Nothing Then InvalidateResourceManagement(installation)
-            _busy = False : _cancellation = Nothing : request.Dispose() : SetBusy(False)
+            Try
+                ' The writer result is final before notifying local readers.
+                ' Like PCL's finished-loader resource callbacks, notification
+                ' is separate from publication and must not strand the task gate.
+                If installation IsNot Nothing Then InvalidateResourceManagement(installation)
+            Catch ex As Exception
+                If Not _preview Then Log(ex)
+            Finally
+                _busy = False : _cancellation = Nothing : request.Dispose() : SetBusy(False)
+            End Try
         End Try
     End Function
 End Class
