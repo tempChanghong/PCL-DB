@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 管理目录切换的取消通知与新页面归属（2026-10-28）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModLoader.State`：先改变加载状态，再通知取消；以及 `PageInstanceMod` 的列表刷新／页面退出和 `FormMain.PageChangeAnim` 的旧页面清理、新页面进入顺序。
+- 管理目录切换先退役管理及 Mod 两组请求，完成旧目录列表与页面状态清理，再通知捕获的取消回调；回调中新接受的实例页、启动器绑定与动画不会再被旧清理覆盖。取消观察者异常纳入切换边界，反馈校验目录、请求代次和主页面导航代次。[复现与验证](docs/reviews/management-target-handoff-2026-10-28.md)，三份 Git 原始文件与摘要见 `artifacts/management-target-handoff/source/manifest.json`。
+
 ## 任务页入场失败后的显示恢复（2026-10-28）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MyPageRight.PageOnForceExit`、`FormMain.PageChange` 的任务管理分支与标题层切换，以及 `PageSpeedLeft.TaskRefresh`：退役页面需明确隐藏内容，任务页和标题属于已接受的页面状态。

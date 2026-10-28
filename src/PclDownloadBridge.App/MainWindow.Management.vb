@@ -86,19 +86,43 @@ Partial Public Class MainWindow
         End Try
         Dim target = If(_selectedFolder Is Nothing, Nothing, CurrentInstallTarget())
         If Not SameManagementTarget(target, _managementTarget) Then
-            CancelManagementRequest()
-            CancelLocalModRequest()
-            _managementReturnName = Nothing
-            _managementProblem = Nothing
-            _managementDirty = True
-            _managementTarget = Nothing : _managedInstance = Nothing : _managementInstances.Clear()
-            ChangeManagementContent(Sub()
-                                        ManagementListPage.Visibility = Visibility.Visible
-                                        ManagementDetailPage.Visibility = Visibility.Collapsed
-                                        LocalModsPage.Visibility = Visibility.Collapsed
-                                        RenderManagementRows()
-                                        RefreshManagementStatus()
-                                    End Sub, ManagementListPage)
+            Dim folder = _selectedFolder, generation = _managementGeneration + 1, localGeneration = _localModGeneration + 1, surfaceGeneration = _surfaceNavigationGeneration
+            Dim notifications As New List(Of Action), failure As Exception = Nothing
+            Try
+                ' As in PCL ModLoader.State, publish retirement before notifying.
+                ' Both old readers must be detached before either callback can
+                ' enter another instance or create a replacement page clock.
+                notifications.Add(RetireManagementRequest())
+                notifications.Add(RetireLocalModRequest())
+                _managementReturnName = Nothing
+                _managementProblem = Nothing
+                _managementDirty = True
+                _managementTarget = Nothing : _managedInstance = Nothing : _managementInstances.Clear()
+                ChangeManagementContent(Sub()
+                                            ManagementListPage.Visibility = Visibility.Visible
+                                            ManagementDetailPage.Visibility = Visibility.Collapsed
+                                            LocalModsPage.Visibility = Visibility.Collapsed
+                                            RenderManagementRows()
+                                            RefreshManagementStatus()
+                                        End Sub, ManagementListPage)
+                RefreshManagementAvailability()
+            Catch ex As Exception
+                failure = ex
+            End Try
+            Try
+                NotifyResourceRetirements(notifications)
+            Catch ex As Exception
+                failure = If(failure Is Nothing, ex, New AggregateException(failure, ex))
+            End Try
+            If failure IsNot Nothing Then
+                If Not _closing AndAlso _selectedFolder Is folder AndAlso generation = _managementGeneration AndAlso localGeneration = _localModGeneration AndAlso
+                    surfaceGeneration = _surfaceNavigationGeneration AndAlso ManagementPage.Visibility = Visibility.Visible Then
+                    ShowManagementNavigationFailure(failure, "切换游戏目录失败，请重试：")
+                ElseIf Not _preview Then
+                    Log(failure)
+                End If
+            End If
+            Return
         End If
         RefreshManagementAvailability()
     End Sub

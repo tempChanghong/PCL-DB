@@ -80,6 +80,7 @@ Partial Public Class MainWindow
         VerifySurfaceNavigationUi(directory, localModSelectionChecks)
         VerifyManagementPublicationUi(directory, localModSelectionChecks)
         VerifyManagementEntryErrorsUi(directory, localModSelectionChecks)
+        VerifyManagementTargetUi(directory, localModSelectionChecks)
         VerifyResourcePromptLifecycleUi(directory, localModSelectionChecks)
         VerifyResourceInputReentrancyUi(directory, localModSelectionChecks)
         VerifyDependencyHandoffUi(directory, localModSelectionChecks)
