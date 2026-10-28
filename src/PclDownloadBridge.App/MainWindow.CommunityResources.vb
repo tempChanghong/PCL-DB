@@ -12,6 +12,8 @@ Partial Public Class MainWindow
     Private ReadOnly _resourceBack As New Stack(Of ResourceDetailState)
     Private _dependencyRequest As CancellationTokenSource
     Private _resourceDetailGeneration As Long
+    Private _resourceCategoryGeneration As Long
+    Private _resourceRetirementNotifications As List(Of Action)
     Private _resourceNamesRequest As CancellationTokenSource
     Private ReadOnly _resourceNameSlots As New SemaphoreSlim(4)
     Private ReadOnly _resourceDependencyNames As New Dictionary(Of String, String)(StringComparer.Ordinal)
@@ -39,14 +41,51 @@ Partial Public Class MainWindow
             .Expanded = CapturePackVersionExpansions()}
     End Function
     Private Sub CancelResourceRequests()
-        _dependencyRequest?.Cancel()
-        ResetResourceNames()
-        _packSearchRequest?.Cancel() : _packDetailRequest?.Cancel() : _packArtworkRequest?.Cancel()
-        _packArtworkRequest?.Dispose() : _packArtworkRequest = Nothing
-        RetirePackDetailArtwork()
-        _packSearchRequest = Nothing : _packDetailRequest = Nothing
+        Dim notify = RetireResourceRequests()
+        If _resourceRetirementNotifications Is Nothing Then notify() Else _resourceRetirementNotifications.Add(notify)
+    End Sub
+    Private Function RetireResourceRequests() As Action
+        Dim dependency = _dependencyRequest, names = _resourceNamesRequest, search = _packSearchRequest, detail = _packDetailRequest
+        Dim artwork = _packArtworkRequest, header = _packDetailArtworkRequest
+        _resourceDetailGeneration += 1
+        _dependencyRequest = Nothing : _packSearchRequest = Nothing : _packDetailRequest = Nothing : _packArtworkRequest = Nothing
+        _packDetailArtworkRequest = Nothing : _packDetailArtworkRow = Nothing
+        _resourceDependencyNameLoads.Clear()
+        _resourceNamesRequest = If(_closing, Nothing, New CancellationTokenSource())
         _packSearchLoading?.Reset() : _packDetailLoading?.Reset()
-        FinishPackContentMotion()
+        ' PCL PageOnForceExit stops retired animation without firing entry completion.
+        ' All old owners are detached before a notification can start newer work.
+        _packResultMotion?.Cancel() : _packDetailMotion?.Cancel()
+        Dim captured = {dependency, names, search, detail, artwork, header}.Where(Function(source) source IsNot Nothing).Distinct().ToArray()
+        Dim disposable As New HashSet(Of CancellationTokenSource) From {names, artwork, header}, pending = True
+        Return Sub()
+                   If Not pending Then Return
+                   pending = False
+                   Dim errors As New List(Of Exception)
+                   For Each source In captured
+                       Try
+                           Try
+                               CancelSubmittedSearchRequest(source)
+                           Finally
+                               If disposable.Contains(source) Then source.Dispose()
+                           End Try
+                       Catch ex As Exception
+                           errors.Add(ex)
+                       End Try
+                   Next
+                   If errors.Count > 0 Then Throw New AggregateException("取消旧资源读取失败。", errors)
+               End Sub
+    End Function
+    Private Shared Sub NotifyResourceRetirements(notifications As IEnumerable(Of Action))
+        Dim errors As New List(Of Exception)
+        For Each notify In notifications
+            Try
+                notify()
+            Catch ex As Exception
+                errors.Add(ex)
+            End Try
+        Next
+        If errors.Count > 0 Then Throw New AggregateException("取消旧资源读取失败。", errors)
     End Sub
     Private Sub ResetResourceNames(Optional afterRetire As Action = Nothing)
         Dim previous = _resourceNamesRequest
@@ -91,51 +130,91 @@ Partial Public Class MainWindow
     End Sub
     Private Sub SelectResourceKind(kind As CommunityResourceKind, Optional configure As Action = Nothing)
         If _busy OrElse _choosingOnline OrElse _closing Then Return
-        If kind = _resourceKind Then
-            configure?.Invoke()
-            SetDownloadView(DownloadView.Modpacks) : EnsurePackSearch() : Return
-        End If
-        RetirePromptFocus() : ClearDownloadFocus() : _surfaceMotion.Finish()
-        _pendingSurfaceFocus = Nothing : _restorePackViewportFocus = False
-        Dim previous = _downloadView
-        _categoryMotion.Change(DownloadContent(previous), ModpackPage,
-            Sub()
-                SaveResourceBrowser() : CancelResourceRequests()
-                _packFiltersPending = False : _packSearchValidation = False
-                _resourceKind = kind
-                Dim state As ResourceBrowserState = Nothing
-                If Not _resourceBrowsers.TryGetValue(kind, state) Then state = New ResourceBrowserState()
-                ConfigureResourceSearch()
-                PackSearchText.Text = state.Text : PackSearchGame.Text = state.GameText
-                PackSearchSource.SelectedIndex = state.Source
-                PackSearchCategory.SelectedIndex = Math.Max(0, Math.Min(state.Category, PackSearchCategory.Items.Count - 1))
-                ResourceLoader.SelectedIndex = state.Loader
-                _packSearchSession = state.Session : _packLastQuery = state.LastQuery : _packLastSearch = state.LastSearch
-                _packSearchPage = state.Page : _packSearchScroll = state.Scroll : _packMode = state.Mode
-                _resourceBack.Clear()
-                For Each frame In state.Back : _resourceBack.Push(frame) : Next
-                _packProject = Nothing : _packVerifiedProject = Nothing : _packDetailCompletedProject = Nothing
-                _packReleases = New List(Of ModpackRelease) : _packVersionCache.Clear()
-                PackProjectRows.Children.Clear() : PackVersionCards.Children.Clear() : PackVersionFilters.Children.Clear()
-                PackSearchHint.Visibility = Visibility.Collapsed : PackSearchInputHint.Visibility = Visibility.Collapsed
-                PackPagingCard.Visibility = Visibility.Collapsed : PackResultsCard.Title = CommunityResources.Name(kind)
-                PackResultsCard.HorizontalAlignment = HorizontalAlignment.Stretch
-                PackResultsCard.Visibility = Visibility.Visible
-                PackDetailRetry.Visibility = Visibility.Collapsed : PackDetailHint.Visibility = Visibility.Collapsed
-                PackVersionFilterCard.Visibility = Visibility.Collapsed
-                PackSearchSurface.Visibility = If(state.Mode = PackBrowserMode.Search, Visibility.Visible, Visibility.Collapsed)
-                PackDetailSurface.Visibility = If(state.Mode = PackBrowserMode.Detail, Visibility.Visible, Visibility.Collapsed)
-                PackLocalSurface.Visibility = If(state.Mode = PackBrowserMode.Local AndAlso kind = CommunityResourceKind.Modpack, Visibility.Visible, Visibility.Collapsed)
-                ApplyDownloadView(DownloadView.Modpacks, previous)
-                If state.Mode = PackBrowserMode.Detail AndAlso state.Detail?.Project IsNot Nothing Then
-                    RestoreResourceDetail(state.Detail)
-                ElseIf state.Session IsNot Nothing Then
-                    RestoreResourceSearchAsync(state.Page)
-                End If
-                ModpackPage.UpdateLayout() : ModpackPage.ScrollToVerticalOffset(If(state.Mode = PackBrowserMode.Search, state.Scroll, _packDetailScroll))
+        _resourceCategoryGeneration += 1
+        Dim generation = _resourceCategoryGeneration, main = ActiveSurface(), previousView = _downloadView
+        Dim notifications As New List(Of Action), inherited = _resourceRetirementNotifications, failure As Exception = Nothing, applied = False
+        _resourceRetirementNotifications = notifications
+        Try
+            If kind = _resourceKind Then
                 configure?.Invoke()
-            End Sub, contentRefresh:=previous = DownloadView.Modpacks, compositeExit:=HasPackContentMotion() OrElse _pageSwitch.HasMotion)
-        EnsurePackSearch()
+                SetDownloadView(DownloadView.Modpacks)
+            Else
+                RetirePromptFocus() : ClearDownloadFocus() : _surfaceMotion.Finish()
+                _pendingSurfaceFocus = Nothing : _restorePackViewportFocus = False
+                _categoryMotion.Change(DownloadContent(previousView), ModpackPage,
+                    Sub()
+                        SaveResourceBrowser() : CancelResourceRequests()
+                        _packFiltersPending = False : _packSearchValidation = False
+                        _resourceKind = kind
+                        Dim state As ResourceBrowserState = Nothing
+                        If Not _resourceBrowsers.TryGetValue(kind, state) Then state = New ResourceBrowserState()
+                        ConfigureResourceSearch()
+                        PackSearchText.Text = state.Text : PackSearchGame.Text = state.GameText
+                        PackSearchSource.SelectedIndex = state.Source
+                        PackSearchCategory.SelectedIndex = Math.Max(0, Math.Min(state.Category, PackSearchCategory.Items.Count - 1))
+                        ResourceLoader.SelectedIndex = state.Loader
+                        _packSearchSession = state.Session : _packLastQuery = state.LastQuery : _packLastSearch = state.LastSearch
+                        _packSearchPage = state.Page : _packSearchScroll = state.Scroll : _packMode = state.Mode
+                        _resourceBack.Clear()
+                        For Each frame In state.Back : _resourceBack.Push(frame) : Next
+                        _packProject = Nothing : _packVerifiedProject = Nothing : _packDetailCompletedProject = Nothing
+                        _packReleases = New List(Of ModpackRelease) : _packVersionCache.Clear()
+                        PackProjectRows.Children.Clear() : PackVersionCards.Children.Clear() : PackVersionFilters.Children.Clear()
+                        PackSearchHint.Visibility = Visibility.Collapsed : PackSearchInputHint.Visibility = Visibility.Collapsed
+                        PackPagingCard.Visibility = Visibility.Collapsed : PackResultsCard.Title = CommunityResources.Name(kind)
+                        PackResultsCard.HorizontalAlignment = HorizontalAlignment.Stretch
+                        PackResultsCard.Visibility = Visibility.Visible
+                        PackDetailRetry.Visibility = Visibility.Collapsed : PackDetailHint.Visibility = Visibility.Collapsed
+                        PackVersionFilterCard.Visibility = Visibility.Collapsed
+                        PackSearchSurface.Visibility = If(state.Mode = PackBrowserMode.Search, Visibility.Visible, Visibility.Collapsed)
+                        PackDetailSurface.Visibility = If(state.Mode = PackBrowserMode.Detail, Visibility.Visible, Visibility.Collapsed)
+                        PackLocalSurface.Visibility = If(state.Mode = PackBrowserMode.Local AndAlso kind = CommunityResourceKind.Modpack, Visibility.Visible, Visibility.Collapsed)
+                        ApplyDownloadView(DownloadView.Modpacks, previousView)
+                        If state.Mode = PackBrowserMode.Detail AndAlso state.Detail?.Project IsNot Nothing Then
+                            RestoreResourceDetail(state.Detail)
+                        ElseIf state.Session IsNot Nothing Then
+                            RestoreResourceSearchAsync(state.Page)
+                        End If
+                        ModpackPage.UpdateLayout() : ModpackPage.ScrollToVerticalOffset(If(state.Mode = PackBrowserMode.Search, state.Scroll, _packDetailScroll))
+                        configure?.Invoke()
+                    End Sub, contentRefresh:=previousView = DownloadView.Modpacks, compositeExit:=HasPackContentMotion() OrElse _pageSwitch.HasMotion)
+            End If
+            applied = True
+        Catch ex As Exception
+            failure = ex
+        Finally
+            _resourceRetirementNotifications = inherited
+        End Try
+        ' Bind the category's final content and animation before any old token
+        ' can synchronously navigate, query or open another instance's Mod search.
+        Dim detailGeneration = _resourceDetailGeneration, names = _resourceNamesRequest, session = _packSearchSession, project = _packProject
+        Dim mode = _packMode, view = _downloadView, artwork = _packArtworkRequest
+        Dim current As Func(Of Boolean) = Function() Not _closing AndAlso Not _busy AndAlso Not _choosingOnline AndAlso generation = _resourceCategoryGeneration AndAlso
+            ActiveSurface() Is main AndAlso detailGeneration = _resourceDetailGeneration AndAlso _resourceNamesRequest Is names AndAlso _packSearchSession Is session AndAlso
+            _packProject Is project AndAlso _packMode = mode AndAlso _downloadView = view AndAlso _packArtworkRequest Is artwork
+        If inherited IsNot Nothing Then
+            inherited.AddRange(notifications)
+        Else
+            Try
+                NotifyResourceRetirements(notifications)
+            Catch ex As Exception
+                failure = If(failure Is Nothing, ex, New AggregateException(failure, ex))
+            End Try
+        End If
+        If failure IsNot Nothing Then
+            If Not _preview Then Log(failure)
+            If current() Then ShowResourceRetirementFailure(failure)
+        End If
+        If applied AndAlso current() Then EnsurePackSearch()
+    End Sub
+    Private Sub ShowResourceRetirementFailure(ex As Exception)
+        If _packMode = PackBrowserMode.Detail Then
+            PackProjectActionStatus.Text = "旧资源读取取消失败，请重试。" : PackProjectActionStatus.ToolTip = ex.GetBaseException().Message : PackProjectActionStatus.Visibility = Visibility.Visible
+        ElseIf _packMode = PackBrowserMode.Local Then
+            PackReadStatus.Text = "旧资源读取取消失败，请重试。"
+        Else
+            PackSearchInputHint.Theme = PclHintTheme.Red : PackSearchInputHint.Text = "旧资源读取取消失败，请重试。" : PackSearchInputHint.ToolTip = ex.GetBaseException().Message : PackSearchInputHint.Visibility = Visibility.Visible
+        End If
     End Sub
     Private Async Sub RestoreResourceSearchAsync(page As Integer)
         ' Restore inside the accepted request, after its rows have a real extent.

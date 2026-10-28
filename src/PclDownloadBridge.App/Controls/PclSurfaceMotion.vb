@@ -205,6 +205,9 @@ Namespace Controls
             StopOwnedMotion()
             If notify Then RaiseEvent Settled(Me, EventArgs.Empty)
         End Sub
+        Friend Sub Cancel()
+            StopOwnedMotion()
+        End Sub
         Private Shared Function Wrap(target As FrameworkElement, x As Double, y As Double, Optional entry As Entry = Nothing) As Entry
             entry = If(entry, New Entry())
             entry.Target = target : entry.OriginalTransform = target.RenderTransform : entry.Opacity = target.Opacity

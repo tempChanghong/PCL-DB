@@ -255,11 +255,14 @@ Partial Public Class MainWindow
     End Sub
     Private Sub DownloadNewLocalMod(sender As Object, e As RoutedEventArgs)
         If Not LocalModInputAllowed() OrElse Not LocalModDownload.IsEnabled Then Return
-        Dim owner = _localModInstance
+        Dim owner = _localModInstance, main = ActiveSurface(), generation = _resourceCategoryGeneration + 1
         SelectResourceKind(CommunityResourceKind.Mod, Sub() ConfigureLocalModSearch(owner))
+        If _closing OrElse _busy OrElse generation <> _resourceCategoryGeneration OrElse ActiveSurface() IsNot main OrElse _resourceKind <> CommunityResourceKind.Mod OrElse
+            _downloadView <> DownloadView.Modpacks OrElse _localModInstance IsNot owner OrElse Not SameLocalModContext(owner) OrElse Not LocalModInputAllowed() Then Return
         ShowDownload(Nothing, Nothing)
     End Sub
     Private Sub ConfigureLocalModSearch(instance As InstalledInstance)
+        ' The category transaction defers old notifications until these target filters are bound.
         CancelResourceRequests() : _packSearchSession = Nothing : _packSearchPage = 0 : _packSearchScroll = 0 : _resourceBack.Clear()
         PackSearchText.Text = "" : PackSearchGame.Text = instance.MinecraftVersion : PackSearchCategory.SelectedIndex = 0
         ResourceLoader.SelectedIndex = 0

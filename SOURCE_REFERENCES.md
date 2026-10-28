@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 共享资源读取退役与分类交接（2026-10-28）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadLeft.PageGet/PageChange/PageChangeRun`、`PageResource.StartNewSearch`、`ModLoader.LoaderTask` 和 `MyPageRight.PageOnForceExit`：分类保留独立状态，查询与结果绑定，旧执行和旧动画退役后不能发布新状态或误发入场完成。
+- PCL-DB 捕获并解绑旧资源请求，分类、实例筛选及原有入场动画绑定后才通知旧读取；通知报错继续清理其他旧源，较新查询／页面保持归属。管理页发起 Mod 下载后检查实例与导航是否仍有效。[复现与验证](docs/reviews/resource-retirement-2026-10-28.md)，四份固定 Git 原始字节及摘要见 `artifacts/resource-retirement/source/manifest.json`。
+
 ## 资源详情返回、取消与恢复（2026-10-28）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `FormMain.PageBack/PageChangeActual/PageChangeAnim`、`PageDownloadResourceDetail.LoadPageArguments/ResourceFileLoader`、`ModLoader.LoaderTask.IsCanceledWithThread/Start` 和 `MyPageRight`：返回记录、当前项目与加载结果具有明确归属，页面沿既有状态与动画切换。

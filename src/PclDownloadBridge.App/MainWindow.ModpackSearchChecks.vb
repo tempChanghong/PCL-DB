@@ -48,6 +48,7 @@ Partial Public Class MainWindow
         VerifySearchStartUi(directory, passed)
         VerifySearchSubmissionUi(directory, passed)
         VerifyResourceBackUi(directory, passed)
+        VerifyResourceRetirementUi(directory, passed)
         VerifyProjectRenderUi(directory, passed)
         VerifyResourceSaveDirectoryUi(directory, passed)
         VerifyResourceTaskResultUi(directory, passed)

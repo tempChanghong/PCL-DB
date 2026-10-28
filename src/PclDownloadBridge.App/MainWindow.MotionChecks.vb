@@ -80,6 +80,7 @@ Partial Public Class MainWindow
         VerifySearchStartUi(directory, localModSelectionChecks)
         VerifySearchSubmissionUi(directory, localModSelectionChecks)
         VerifyResourceBackUi(directory, localModSelectionChecks)
+        VerifyResourceRetirementUi(directory, localModSelectionChecks)
         VerifyResourceTaskStartUi(directory, localModSelectionChecks)
         VerifyProjectRenderUi(directory, localModSelectionChecks)
         For Each label In localModSelectionChecks : check(True, label) : Next
