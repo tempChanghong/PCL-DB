@@ -27,7 +27,9 @@ Partial Public Class MainWindow
             Using surface = PreviewSurface.Attach(host, 900, 700)
                 SynchronizationContext.SetSynchronizationContext(New DispatcherSynchronizationContext(owner.Dispatcher))
                 Dim work = owner.CheckLocalModNavigationAsync(directory, layout, check, failures)
-                If Not PumpMotionUntil(Function() work.IsCompleted, 90000) Then Throw New TimeoutException("Mod navigation checks did not settle.")
+                ' Ninety native navigation cases share this total budget; each
+                ' asynchronous read below retains its own bounded wait.
+                If Not PumpMotionUntil(Function() work.IsCompleted, 180000) Then Throw New TimeoutException("Mod navigation checks did not settle.")
                 work.GetAwaiter().GetResult()
             End Using
             Dim failed = observations.Properties().Where(Function(item) Not CBool(item.Value)).Select(Function(item) item.Name).ToArray()
