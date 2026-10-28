@@ -86,11 +86,11 @@ Partial Public Class MainWindow
     End Sub
 
     Private Sub NavigateToSetting(target As FrameworkElement, Optional focus As Boolean = False)
-        SwitchMainPage(True, Sub()
+        If Not SwitchMainPage(True, Sub()
                                  SettingsPage.UpdateLayout()
                                  target.BringIntoView()
                                  SettingsPage.UpdateLayout()
-                             End Sub)
+                             End Sub) Then Return
         If focus Then
             If _surfaceMotion.Transition IsNot Nothing Then
                 _pendingSurfaceFocus = Sub() target.Focus()

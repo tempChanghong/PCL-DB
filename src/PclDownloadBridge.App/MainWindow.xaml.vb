@@ -677,18 +677,18 @@ Partial Public Class MainWindow
     End Sub
 
     Private _settingsReturnManagement As Boolean
-    Private Sub SwitchMainPage(settings As Boolean, Optional prepare As Action = Nothing)
+    Private Function SwitchMainPage(settings As Boolean, Optional prepare As Action = Nothing) As Boolean
         If settings AndAlso SettingsPage.Visibility <> Visibility.Visible AndAlso AboutPage.Visibility <> Visibility.Visible Then _settingsReturnManagement = ManagementPage.Visibility = Visibility.Visible
         If settings Then
             ClearDownloadFocus()
         End If
-        SelectSurface(If(settings, DirectCast(SettingsPage, FrameworkElement), DownloadPage),
+        Return SelectSurface(If(settings, DirectCast(SettingsPage, FrameworkElement), DownloadPage),
             Sub()
                 If settings AndAlso _pageSwitch.HasMotion Then _pageSwitch.Finish()
                 If settings Then _categoryMotion.Finish()
                 prepare?.Invoke()
             End Sub)
-    End Sub
+    End Function
 
     Private Sub SetDownloadView(view As DownloadView)
         If view = _downloadView Then
@@ -778,7 +778,7 @@ Partial Public Class MainWindow
 
     Private Async Sub ShowDownload(sender As Object, e As RoutedEventArgs)
         If _busy Then SetDownloadView(DownloadView.Progress)
-        SwitchMainPage(False)
+        If Not SwitchMainPage(False) Then Return
         Await RefreshCurrentListsIfNeededAsync()
     End Sub
     Private Sub ChooseInstallFolder(sender As Object, e As RoutedEventArgs)

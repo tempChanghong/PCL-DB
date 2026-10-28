@@ -6,6 +6,7 @@ Partial Public Class MainWindow
     Private ReadOnly _surfaceMotion As PclSurfaceMotion
     Private _motionPreview As Boolean
     Private _pendingSurfaceFocus As Action
+    Private _surfaceNavigationGeneration As Long
 
     Private Function AllowPageMotion() As Boolean
         Return Not _closing AndAlso (Not _preview OrElse _motionPreview) AndAlso (SystemParameters.ClientAreaAnimation OrElse _motionPreview)
@@ -50,8 +51,11 @@ Partial Public Class MainWindow
         If surface Is ManagementPage Then Return PclSurfaceMotion.Units(ManagementContent())
         Return PclSurfaceMotion.Units(surface)
     End Function
-    Private Sub SelectSurface(target As FrameworkElement, Optional prepare As Action = Nothing)
+    Private Function SelectSurface(target As FrameworkElement, Optional prepare As Action = Nothing) As Boolean
+        _surfaceNavigationGeneration += 1
+        Dim generation = _surfaceNavigationGeneration
         Dim previous = ActiveSurface()
+        Dim notifications As New List(Of Action), failure As Exception = Nothing
         If previous IsNot target Then
             RetirePromptFocus()
             _installActionEntryOwner = If(target Is DownloadPage AndAlso _downloadView = DownloadView.Install, _surfaceMotion, Nothing)
@@ -61,7 +65,8 @@ Partial Public Class MainWindow
                 viewer.StopScrolling()
             Next
         End If
-        _surfaceMotion.Change(previous, target,
+        Try
+            _surfaceMotion.Change(previous, target,
             Sub()
                 ' Capture the composited category frame before releasing its
                 ' clocks; settling first would flash the fully entered page.
@@ -70,8 +75,10 @@ Partial Public Class MainWindow
                     FinishPackContentMotion()
                     _managementMotion?.Finish()
                     If previous Is ManagementPage Then
-                        CancelManagementRequest()
-                        CancelLocalModRequest()
+                        ' PCL binds the target page before entry notifications.
+                        ' Capture both groups now; notify after this clock exists.
+                        notifications.Add(RetireLocalModRequest())
+                        notifications.Add(RetireManagementRequest())
                         _managementReturnName = Nothing
                     End If
                     If target IsNot DownloadPage AndAlso _pageSwitch.HasMotion Then _pageSwitch.Finish()
@@ -86,6 +93,25 @@ Partial Public Class MainWindow
                 prepare?.Invoke()
                 RefreshTitleNavigation()
             End Sub, compositeExit:=previous IsNot target AndAlso (_pageSwitch.HasMotion OrElse _categoryMotion.Transition IsNot Nothing OrElse HasPackContentMotion() OrElse (_managementMotion IsNot Nothing AndAlso _managementMotion.Transition IsNot Nothing)))
-        If _surfaceMotion.Transition Is Nothing Then ReleaseInstallActionEntry(_surfaceMotion, False)
-    End Sub
+            If _surfaceMotion.Transition Is Nothing Then ReleaseInstallActionEntry(_surfaceMotion, False)
+        Catch ex As Exception
+            failure = ex
+        End Try
+        Try
+            NotifyResourceRetirements(notifications)
+        Catch ex As Exception
+            failure = If(failure Is Nothing, ex, New AggregateException(failure, ex))
+        End Try
+        If failure IsNot Nothing Then
+            If Not _preview Then Log(failure)
+            If Not _closing AndAlso generation = _surfaceNavigationGeneration Then
+                If ActiveSurface() Is ManagementPage Then
+                    ShowManagementNavigationFailure(failure, "切换页面失败，请重试：")
+                ElseIf Not _busy Then
+                    ReportSettingsSave("切换页面失败，请重试：" & failure.GetBaseException().Message, True)
+                End If
+            End If
+        End If
+        Return Not _closing AndAlso generation = _surfaceNavigationGeneration AndAlso ActiveSurface() Is target
+    End Function
 End Class

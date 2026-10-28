@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 管理页退出与主页面切换交接（2026-10-28）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `FormMain.PageChangeActual/PageBack/PageChangeAnim`、`ModLoader.LoaderTask.IsCanceledWithThread/Cancel` 和 `MyPageRight.PageOnForceExit`：先绑定当前页面与目标框架，再沿既有退场／入场进入，旧执行不发布，异常与冲突动画统一处理。
+- PCL-DB 在主页面和动画绑定后通知已解绑的管理／Mod 旧源，继续设置定位、关于焦点、管理扫描或下载列表刷新前确认导航仍有效；保留较新页面、返回目标与时钟，通知报错继续清理并提供当前页重试。[复现与验证](docs/reviews/surface-navigation-2026-10-28.md)，三份固定 Git 原始字节及摘要见 `artifacts/surface-navigation/source/manifest.json`。
+
 ## 本地 Mod 管理进入、返回与取消交接（2026-10-28）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceLeft.PageChange/PageChangeRun`、`PageInstanceMod.PageOther_Loaded/ReloadModList/LoaderRun`、`ModLoader.LoaderTask` 和 `MyPageRight.PageOnForceExit`：当前实例决定 Mod 目录和页面，旧执行不再发布，切页清理冲突动画并统一处理异常。

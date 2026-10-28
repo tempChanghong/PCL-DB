@@ -21,20 +21,20 @@ Partial Public Class MainWindow
         If AboutPage.Visibility = Visibility.Visible Then Return
         _settingsOffsetBeforeAbout = SettingsPage.VerticalOffset
         ClearDownloadFocus()
-        SelectSurface(AboutPage, Sub()
+        If Not SelectSurface(AboutPage, Sub()
                                      If _pageSwitch.HasMotion Then _pageSwitch.Finish()
                                      AboutPage.ScrollToTop()
                                      AboutPage.UpdateLayout()
-                                 End Sub)
+                                 End Sub) Then Return
         FocusAboutTarget(AboutBack)
     End Sub
 
     Private Sub BackFromAbout(sender As Object, e As RoutedEventArgs)
         If AboutPage.Visibility <> Visibility.Visible Then Return
-        SwitchMainPage(True, Sub()
+        If Not SwitchMainPage(True, Sub()
                                  SettingsPage.ScrollToVerticalOffset(_settingsOffsetBeforeAbout)
                                  SettingsPage.UpdateLayout()
-                             End Sub)
+                             End Sub) Then Return
         ' A programmatic visit may originate below the entry button. Focusing
         ' that offscreen button would undo the settings scroll restoration.
         Dim entryVisible = AboutEntry.ActualHeight > 0 AndAlso

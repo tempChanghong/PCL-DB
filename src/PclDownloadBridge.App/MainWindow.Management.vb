@@ -55,6 +55,10 @@ Partial Public Class MainWindow
             String.Equals(a.ConfigPath, b.ConfigPath, StringComparison.OrdinalIgnoreCase) AndAlso String.Equals(a.SharedConfigPath, b.SharedConfigPath, StringComparison.OrdinalIgnoreCase)
     End Function
     Private Sub CancelManagementRequest()
+        Dim notify = RetireManagementRequest()
+        notify()
+    End Sub
+    Private Function RetireManagementRequest() As Action
         Dim request = _managementRequest
         _managementGeneration += 1
         _managementRequest = Nothing
@@ -63,12 +67,13 @@ Partial Public Class MainWindow
         RefreshManagementStatus()
         ' Like PCL ModLoader.State, retire ownership before notifying a token.
         ' A cancellation callback can synchronously start a newer scan/action.
-        Try
-            folderRequest?.Cancel()
-        Finally
-            request?.Cancel()
-        End Try
-    End Sub
+        Dim pending = True
+        Return Sub()
+                   If Not pending Then Return
+                   pending = False
+                   NotifyResourceRetirements({Sub() CancelSubmittedSearchRequest(folderRequest), Sub() CancelSubmittedSearchRequest(request)})
+               End Sub
+    End Function
     Private Sub RefreshManagementFolders()
         If ManagementFolders Is Nothing Then Return
         _managementRestoringFolders = True
@@ -109,7 +114,7 @@ Partial Public Class MainWindow
         If _closing OrElse _choosingOnline Then Return
         Dim target = If(_selectedFolder Is Nothing, Nothing, CurrentInstallTarget())
         RefreshManagementFolders()
-        SelectSurface(ManagementPage)
+        If Not SelectSurface(ManagementPage) Then Return
         Dim scan = ScanManagementAsync(False), generation = _managementGeneration
         Await scan
         If _closing OrElse generation <> _managementGeneration OrElse _selectedFolder Is Nothing OrElse Not SameManagementTarget(target, CurrentInstallTarget()) Then Return
