@@ -224,17 +224,20 @@ try {
         Assert-Rejected { Test-PclDbPackage -ProjectRoot $root -PackagePath $path } $case.Error ("historical archive rejects " + $case.Name + ' entries')
     }
 
-    # Reproduce a complete receipt whose whitespace alone breaks the archive's
-    # 1 MiB guard. These remain synthetic parser fixtures, never app acceptance.
+    # Beta 8's full evidence outgrew the legacy 1 MiB boundary. Keep the
+    # new 4 MiB boundary explicit here, independent of the implementation.
+    # These remain synthetic parser fixtures, never app acceptance.
+    $manifestLimit = 4194304
+    $compactTarget = $manifestLimit - 8576
     $large = Copy-Object $manifest
     $large.Verification.Reports[0].Passed[0] += " Unicode label: $([char]0x6D4B)$([char]0x8BD5) `"quoted`"`nnext line "
     $encoding = [Text.UTF8Encoding]::new($false)
     $compact = $large | ConvertTo-Json -Depth 12 -Compress
-    $padding = 1040000 - $encoding.GetByteCount($compact)
+    $padding = $compactTarget - $encoding.GetByteCount($compact)
     if ($padding -le 0) { throw 'Large manifest fixture needs a larger bounded receipt target.' }
     $large.Verification.Reports[0].Passed[0] += 'x' * $padding
     $compact = $large | ConvertTo-Json -Depth 12 -Compress
-    Assert-Case ($encoding.GetByteCount($compact) -eq 1040000 -and $encoding.GetByteCount(($large | ConvertTo-Json -Depth 12)) -gt 1048576) 'complete receipt fits the archive limit only when formatting whitespace is removed'
+    Assert-Case ($encoding.GetByteCount($compact) -eq $compactTarget -and $encoding.GetByteCount($compact) -gt 1048576 -and $encoding.GetByteCount(($large | ConvertTo-Json -Depth 12)) -gt $manifestLimit) 'complete evidence exceeds the legacy limit and fits the bounded archive only with compact formatting'
     $serialized = Join-Path $fixture 'complete-manifest.json'
     & $packageModule { param($value,$path) Write-PclDbBuildManifest $value $path } $large $serialized
     $serializedBytes = [IO.File]::ReadAllBytes($serialized)
@@ -253,7 +256,7 @@ try {
     $boundary.Verification.Reports[0].Passed[0] += 'x' * 8576
     $atLimit = Join-Path $fixture 'boundary-manifest.json'
     & $packageModule { param($value,$path) Write-PclDbBuildManifest $value $path } $boundary $atLimit
-    Assert-Case ((Get-Item -LiteralPath $atLimit).Length -eq 1048576) 'writer accepts a manifest exactly at the original 1 MiB byte limit'
+    Assert-Case ((Get-Item -LiteralPath $atLimit).Length -eq $manifestLimit) 'writer accepts a manifest exactly at the declared 4 MiB byte limit'
     $path = Join-Path $fixture 'boundary.zip'
     Write-FixtureZip $path $boundary $null ([IO.File]::ReadAllBytes($atLimit))
     $null = Test-PclDbPackage -ProjectRoot $root -PackagePath $path
@@ -265,7 +268,7 @@ try {
     $label = $oversized.Verification.Reports[0].Passed[0]
     $oversized.Verification.Reports[0].Passed[0] = $label.Substring(0, $label.Length - 1) + [char]0x6D4B
     $oversizedJson = $oversized | ConvertTo-Json -Depth 12 -Compress
-    Assert-Case ($oversizedJson.Length -lt 1048576 -and $encoding.GetByteCount($oversizedJson) -eq 1048578) 'size enforcement uses UTF-8 bytes rather than JSON character count'
+    Assert-Case ($oversizedJson.Length -lt $manifestLimit -and $encoding.GetByteCount($oversizedJson) -eq ($manifestLimit + 2)) 'size enforcement uses UTF-8 bytes rather than JSON character count'
     $oldHash = (Get-FileHash -LiteralPath $atLimit -Algorithm SHA256).Hash
     Assert-Rejected { & $packageModule { param($value,$path) Write-PclDbBuildManifest $value $path } $oversized $atLimit } 'Oversized build manifest' 'oversized compact receipts fail before overwriting an existing manifest'
     Assert-Case ((Get-FileHash -LiteralPath $atLimit -Algorithm SHA256).Hash -ceq $oldHash) 'rejected serialization preserves the prior manifest byte for byte'

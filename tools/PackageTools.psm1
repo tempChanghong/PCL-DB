@@ -4,7 +4,9 @@ Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
 Import-Module (Join-Path $PSScriptRoot 'PackageCandidateTools.psm1')
 Import-Module (Join-Path $PSScriptRoot 'VerificationTools.psm1')
 $script:PayloadNames = @('PCL-DB.exe','LICENCE','README.md','SOURCE_REFERENCES.md','THIRD_PARTY_NOTICES.md','VALIDATION.md','PATCH_MECHANISMS.md','VS2026_DEBUG.md')
-$script:BuildManifestLimit = 1048576
+# Full UI, motion and search evidence grows with the registered suites. Keep
+# every assertion while bounding both serialization and archive reads to 4 MiB.
+$script:BuildManifestLimit = 4194304
 
 function Get-StreamHash([IO.Stream]$Stream) {
     $algorithm = [Security.Cryptography.SHA256]::Create()
