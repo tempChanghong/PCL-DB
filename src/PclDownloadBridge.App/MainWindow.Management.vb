@@ -168,14 +168,17 @@ Partial Public Class MainWindow
         Dim target = CurrentInstallTarget()
         If Not force AndAlso (_managementScanning OrElse (Not _managementDirty AndAlso SameManagementTarget(_managementTarget, target))) Then Return
         Dim generation = _managementGeneration + 1, folderGeneration = _managementFolderGeneration + 1
-        CancelManagementRequest()
-        If generation <> _managementGeneration OrElse folderGeneration <> _managementFolderGeneration OrElse _closing OrElse ManagementPage.Visibility <> Visibility.Visible OrElse Not SameManagementTarget(target, CurrentInstallTarget()) Then Return
-        Dim request As New CancellationTokenSource()
-        _managementRequest = request : _managementScanning = True
-        _managementProblem = Nothing
-        RefreshManagementStatus()
-        RefreshManagementAvailability()
+        Dim request As CancellationTokenSource = Nothing
         Try
+            ' Cancellation can notify synchronously before a replacement exists.
+            ' Keep retirement inside the same owned failure/retry path as I/O.
+            CancelManagementRequest()
+            If generation <> _managementGeneration OrElse folderGeneration <> _managementFolderGeneration OrElse _closing OrElse ManagementPage.Visibility <> Visibility.Visible OrElse Not SameManagementTarget(target, CurrentInstallTarget()) Then Return
+            request = New CancellationTokenSource()
+            _managementRequest = request : _managementScanning = True
+            _managementProblem = Nothing
+            RefreshManagementStatus()
+            RefreshManagementAvailability()
             Dim instances = Await _managementProvider(target, request.Token)
             If request.IsCancellationRequested OrElse generation <> _managementGeneration OrElse _closing OrElse
                 ManagementPage.Visibility <> Visibility.Visible OrElse Not SameManagementTarget(target, CurrentInstallTarget()) Then Return
@@ -202,20 +205,29 @@ Partial Public Class MainWindow
                 ' notify a replacement scan or navigate to another main page.
                 notify?.Invoke()
             End Try
-        Catch ex As OperationCanceledException When request.IsCancellationRequested
+        Catch ex As OperationCanceledException When request IsNot Nothing AndAlso request.IsCancellationRequested
         Catch ex As Exception
-            If generation = _managementGeneration AndAlso ManagementPage.Visibility = Visibility.Visible AndAlso Not _closing Then
+            If generation = _managementGeneration AndAlso folderGeneration = _managementFolderGeneration AndAlso ManagementPage.Visibility = Visibility.Visible AndAlso Not _closing AndAlso
+                _selectedFolder IsNot Nothing AndAlso SameManagementTarget(target, CurrentInstallTarget()) Then
                 If Not _preview Then Log(ex)
                 _managementProblem = ex.GetBaseException().Message
                 _managementDirty = True
+                If request Is Nothing Then
+                    Dim message = "无法刷新版本列表，请重试：" & _managementProblem
+                    If ManagementDetailPage.Visibility = Visibility.Visible Then
+                        ManagedRepairStatus.Text = message
+                    ElseIf LocalModsPage.Visibility = Visibility.Visible AndAlso Not _localModScanning Then
+                        LocalModStatus.Text = message
+                    End If
+                End If
             End If
         Finally
-            If generation = _managementGeneration Then
+            If generation = _managementGeneration AndAlso _managementRequest Is request Then
                 _managementRequest = Nothing : _managementScanning = False
                 RefreshManagementStatus()
                 RefreshManagementAvailability()
             End If
-            request.Dispose()
+            request?.Dispose()
         End Try
     End Function
 
@@ -427,7 +439,7 @@ Partial Public Class MainWindow
     End Function
     Private Sub CancelManagementFolderRequest()
         Dim retired = RetireManagementFolderRequest()
-        retired?.Cancel()
+        CancelSubmittedSearchRequest(retired)
     End Sub
     Private Function RetireManagementFolderRequest() As CancellationTokenSource
         _managementFolderGeneration += 1
@@ -442,17 +454,18 @@ Partial Public Class MainWindow
         Dim button = TryCast(sender, FrameworkElement), kind = TryCast(button?.Tag, String)
         If Not {"instance", "mods", "saves", "resourcepacks", "screenshots"}.Contains(kind) Then Return
         Dim actionGeneration = _managementFolderGeneration + 1
-        CancelManagementFolderRequest()
-        If actionGeneration <> _managementFolderGeneration OrElse _closing Then Return
         Dim owner = _managedInstance, generation = _managementGeneration
-        Dim request As New CancellationTokenSource(TimeSpan.FromSeconds(100))
-        _managementFolderRequest = request
+        Dim request As CancellationTokenSource = Nothing
         Dim current As Func(Of Boolean) = Function() Not _closing AndAlso
             _managementFolderRequest Is request AndAlso _managementFolderGeneration = actionGeneration AndAlso _managementGeneration = generation AndAlso
             _managedInstance Is owner AndAlso _selectedFolder IsNot Nothing AndAlso SameManagementTarget(owner.Target, CurrentInstallTarget()) AndAlso
             ManagementPage.Visibility = Visibility.Visible AndAlso ManagementDetailPage.Visibility = Visibility.Visible
-        ManagedFolderStatus.Text = "正在读取文件夹…"
         Try
+            CancelManagementFolderRequest()
+            If Not current() Then Return
+            request = New CancellationTokenSource(TimeSpan.FromSeconds(100))
+            _managementFolderRequest = request
+            ManagedFolderStatus.Text = "正在读取文件夹…"
             ' Native isolation can change while this cached detail stays open.
             ' Resolve it read-only, then retain FolderPath's unchanged/link checks.
             Dim refreshed = Await _managementFolderReader(owner, request.Token)
@@ -471,14 +484,14 @@ Partial Public Class MainWindow
             RenderManagementRows() : RenderManagedInstance() : ManagedRepairStatus.Text = repairStatus
             _managementOpenFolder(folder)
             ManagedFolderStatus.Text = ""
-        Catch ex As OperationCanceledException When request.IsCancellationRequested
+        Catch ex As OperationCanceledException When request IsNot Nothing AndAlso request.IsCancellationRequested
             ' Navigation and a newer click silently retire this read-only action.
             If current() Then ManagedFolderStatus.Text = "读取文件夹超时，请重试。"
         Catch ex As Exception
             If current() Then ManagedFolderStatus.Text = "无法打开文件夹：" & ex.GetBaseException().Message
         Finally
             If _managementFolderRequest Is request Then _managementFolderRequest = Nothing
-            request.Dispose()
+            request?.Dispose()
         End Try
     End Sub
     Private Async Sub RepairManagedInstance(sender As Object, e As RoutedEventArgs)
@@ -489,17 +502,18 @@ Partial Public Class MainWindow
             Not _managedInstance.IsVanillaRepairCandidate OrElse ManagementPage.Visibility <> Visibility.Visible OrElse ManagementDetailPage.Visibility <> Visibility.Visible OrElse
             Not PageSurface.IsHitTestVisible OrElse Not ManagementViewHost.IsHitTestVisible Then Return
         Dim owner = _managedInstance, generation = _managementGeneration + 1, folderGeneration = _managementFolderGeneration + 1
-        CancelManagementRequest()
-        ' Cancellation can select another instance or start a newer folder action.
-        ' Bind this click before notifying, then recheck its intent and input gates.
-        If folderGeneration <> _managementFolderGeneration OrElse Not OwnsManagedRepairPreparation(owner, generation) OrElse
-            _busy OrElse _choosingOnline OrElse _localModWriting OrElse _managementPreparing OrElse _managementScanning OrElse
-            Not PageSurface.IsHitTestVisible OrElse Not ManagementViewHost.IsHitTestVisible Then Return
-        Dim instance = owner, request As New CancellationTokenSource(TimeSpan.FromSeconds(100))
-        _managementRequest = request : _managementPreparing = True
-        RefreshManagementAvailability()
-        ManagedRepairStatus.Text = "正在核对原版下载信息…"
+        Dim instance = owner, request As CancellationTokenSource = Nothing
         Try
+            CancelManagementRequest()
+            ' A newer folder action or selection accepted by retirement owns
+            ' its input state; even a throwing notification cannot reclaim it.
+            If folderGeneration <> _managementFolderGeneration OrElse Not OwnsManagedRepairPreparation(owner, generation) OrElse
+                _busy OrElse _choosingOnline OrElse _localModWriting OrElse _managementPreparing OrElse _managementScanning OrElse
+                Not PageSurface.IsHitTestVisible OrElse Not ManagementViewHost.IsHitTestVisible Then Return
+            request = New CancellationTokenSource(TimeSpan.FromSeconds(100))
+            _managementRequest = request : _managementPreparing = True
+            RefreshManagementAvailability()
+            ManagedRepairStatus.Text = "正在核对原版下载信息…"
             ' PCL's repair loader uses the current instance. External launchers
             ' can change native isolation after our detail snapshot was cached.
             instance = Await _managementRepairReader(owner, request.Token)
@@ -543,13 +557,13 @@ Partial Public Class MainWindow
             RefreshInstallAvailability()
             FocusDownloadPage()
             StatusText.Text = "已选择原版校验补全：" & instance.Name
-        Catch ex As OperationCanceledException When request.IsCancellationRequested
+        Catch ex As OperationCanceledException When request IsNot Nothing AndAlso request.IsCancellationRequested
             If OwnsManagedRepairPreparation(owner, generation) Then ManagedRepairStatus.Text = "读取已取消，请重试。"
         Catch ex As Exception
-            If OwnsManagedRepairPreparation(owner, generation) Then ManagedRepairStatus.Text = ex.GetBaseException().Message
+            If folderGeneration = _managementFolderGeneration AndAlso OwnsManagedRepairPreparation(owner, generation) Then ManagedRepairStatus.Text = ex.GetBaseException().Message
         Finally
-            If generation = _managementGeneration Then _managementRequest = Nothing : _managementPreparing = False
-            request.Dispose()
+            If generation = _managementGeneration AndAlso _managementRequest Is request Then _managementRequest = Nothing : _managementPreparing = False
+            request?.Dispose()
             RefreshManagementAvailability()
         End Try
     End Function

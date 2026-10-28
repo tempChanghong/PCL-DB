@@ -161,7 +161,18 @@ Partial Public Class MainWindow
         Dim instance = _managedInstance, beforeGeneration = _localModGeneration, folderRequest = _localModFolderRequest
         If refreshInstance Then
             Dim parentGeneration = _managementGeneration + 1, folderGeneration = _managementFolderGeneration + 1
-            CancelManagementRequest()
+            Try
+                CancelManagementRequest()
+            Catch ex As Exception
+                If Not _preview Then Log(ex)
+                If parentGeneration = _managementGeneration AndAlso folderGeneration = _managementFolderGeneration AndAlso beforeGeneration = _localModGeneration AndAlso
+                    _localModFolderRequest Is folderRequest AndAlso _managedInstance Is instance AndAlso Not _closing AndAlso SameLocalModIdentity(instance) AndAlso
+                    ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible Then
+                    LocalModStatus.Text = "无法刷新 Mod 列表，请重试：" & ex.GetBaseException().Message
+                    RefreshLocalModAvailability() : RefreshManagementAvailability()
+                End If
+                Return
+            End Try
             If parentGeneration <> _managementGeneration OrElse folderGeneration <> _managementFolderGeneration OrElse beforeGeneration <> _localModGeneration OrElse
                 _localModFolderRequest IsNot folderRequest OrElse _managedInstance IsNot instance OrElse Not SameLocalModIdentity(instance) OrElse _closing OrElse
                 ManagementPage.Visibility <> Visibility.Visible OrElse LocalModsPage.Visibility <> Visibility.Visible Then Return

@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 管理读取入口的取消异常与重试（2026-10-28）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageSelectRight` 实例设置入口、`PageInstanceMod.LoaderInit/LoaderRun/Load_Click`、`ModLoader.LoaderTask.Start/Failed/Cancel/IsCanceledWithThread` 和 `MyPageRight.PageOnForceExit`：读取、失败与重试属于当前实例及执行，旧状态与冲突时钟须退役。
+- PCL-DB 将管理扫描、目录打开、补全及 Mod 原生重读的旧请求取消纳入已有错误边界；错误、请求清理和提示都验证当前归属，保留新目录操作、原列表及动画。[复现与验证](docs/reviews/management-entry-errors-2026-10-28.md)，四份 Git 原始文件与摘要见 `artifacts/management-entry-errors/source/manifest.json`。
+
 ## 管理扫描结果、目录失效与动画交接（2026-10-28）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageSelectRight.McInstanceListUI/McInstanceListContent/Item_Click`、`PageInstanceMod.ReloadModList/LoaderRun`、`ModLoader.LoaderTask.IsCanceledWithThread` 和 `MyPageRight.PageOnForceExit`：列表与 Mod 目录属于当前实例和执行，旧输出与冲突动画须退役。
