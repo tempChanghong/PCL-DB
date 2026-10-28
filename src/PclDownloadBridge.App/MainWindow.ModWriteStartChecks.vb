@@ -15,13 +15,16 @@ Partial Public Class MainWindow
         Dim check As Action(Of Boolean, String) = Sub(ok, label)
                                                      observations(label) = ok
                                                      If ok Then passed.Add(label)
+                                                     File.WriteAllText(Path.Combine(directory, "mod-write-start.json"), observations.ToString())
                                                  End Sub
         owner.Content = Nothing : host.Child = DirectCast(original, UIElement)
         Try
             Using surface = PreviewSurface.Attach(host, 900, 700)
                 SynchronizationContext.SetSynchronizationContext(New DispatcherSynchronizationContext(owner.Dispatcher))
                 Dim work = owner.CheckModWriteStartAsync(directory, layout, check)
-                If Not PumpMotionUntil(Function() work.IsCompleted, 60000) Then Throw New TimeoutException("Mod write startup checks did not settle.")
+                ' This complete native matrix has 36 cases and 144 assertions.
+                ' Retain progress if the bounded total budget is ever exhausted.
+                If Not PumpMotionUntil(Function() work.IsCompleted, 180000) Then Throw New TimeoutException("Mod write startup checks did not settle.")
                 work.GetAwaiter().GetResult()
             End Using
             File.WriteAllText(Path.Combine(directory, "mod-write-start.json"), observations.ToString())
