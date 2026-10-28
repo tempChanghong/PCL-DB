@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 本地 Mod 管理进入、返回与取消交接（2026-10-28）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceLeft.PageChange/PageChangeRun`、`PageInstanceMod.PageOther_Loaded/ReloadModList/LoaderRun`、`ModLoader.LoaderTask` 和 `MyPageRight.PageOnForceExit`：当前实例决定 Mod 目录和页面，旧执行不再发布，切页清理冲突动画并统一处理异常。
+- PCL-DB 先解绑旧 Mod 读取、再通知管理与 Mod 旧源，进入和返回确认代次、实例及目录归属；较新读取、返回、页面与时钟保留，通知失败复用原提示重试。[复现与验证](docs/reviews/local-mod-navigation-2026-10-28.md)，四份固定 Git 原始字节及摘要见 `artifacts/local-mod-navigation/source/manifest.json`。
+
 ## 资源详情进入、前置交接与取消重试（2026-10-28）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `FormMain.PageChangeActual/PageBack/PageChangeAnim`、`PageDownloadResourceDetail.LoadPageArguments/ResourceFileLoader`、`ModLoader.LoaderTask.IsCanceledWithThread` 和 `MyPageRight.PageOnForceExit`：当前页面、参数、历史与加载器属于同一次导航，旧执行不再发布，切页处理异常并停止冲突动画。

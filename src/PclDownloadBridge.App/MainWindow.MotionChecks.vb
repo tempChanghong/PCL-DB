@@ -71,6 +71,7 @@ Partial Public Class MainWindow
         VerifyLocalModFolderIntentUi(directory, localModSelectionChecks)
         VerifyModWriteStartUi(directory, localModSelectionChecks)
         VerifyLocalModReadStartUi(directory, localModSelectionChecks)
+        VerifyLocalModNavigationUi(directory, localModSelectionChecks)
         VerifyResourcePromptLifecycleUi(directory, localModSelectionChecks)
         VerifyResourceInputReentrancyUi(directory, localModSelectionChecks)
         VerifyDependencyHandoffUi(directory, localModSelectionChecks)

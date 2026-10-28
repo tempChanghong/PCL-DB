@@ -70,6 +70,10 @@ Partial Public Class MainWindow
         RefreshLocalModAvailability()
     End Sub
     Private Sub CancelLocalModRequest(Optional afterRetire As Action = Nothing)
+        Dim notify = RetireLocalModRequest(afterRetire)
+        notify()
+    End Sub
+    Private Function RetireLocalModRequest(Optional afterRetire As Action = Nothing) As Action
         Dim folderRequest = _localModFolderRequest, request = _localModRequest
         ' PCL ModLoader changes state before notifying cancellation. A token
         ' callback may synchronously restart a read, so retire all old ownership
@@ -79,31 +83,68 @@ Partial Public Class MainWindow
         _localModReadSucceeded = False
         _localModWaitingForWrite = False
         _localModFocusRestore = Nothing : _localModFilterPending = False
-        RetireLocalModUpdates(afterRetire)
-        folderRequest?.Cancel() : request?.Cancel()
-    End Sub
+        Dim updates As Action
+        Try
+            updates = RetireLocalModUpdates(afterRetire)
+        Catch
+            Try
+                CancelSubmittedSearchRequest(folderRequest)
+            Finally
+                CancelSubmittedSearchRequest(request)
+            End Try
+            Throw
+        End Try
+        Dim pending = True
+        ' Notify every captured reader without touching the replacement fields.
+        Return Sub()
+                   If Not pending Then Return
+                   pending = False
+                   NotifyResourceRetirements({updates, Sub() CancelSubmittedSearchRequest(folderRequest), Sub() CancelSubmittedSearchRequest(request)})
+               End Sub
+    End Function
     Private Async Sub ShowLocalMods(sender As Object, e As RoutedEventArgs)
-        If _closing OrElse _managedInstance Is Nothing OrElse _managedInstance.Problem IsNot Nothing OrElse _managedInstance.RunDirectory Is Nothing OrElse
+        If _closing OrElse _selectedFolder Is Nothing OrElse _managedInstance Is Nothing OrElse _managedInstance.Problem IsNot Nothing OrElse _managedInstance.RunDirectory Is Nothing OrElse
             ManagementPage.Visibility <> Visibility.Visible OrElse ManagementDetailPage.Visibility <> Visibility.Visible OrElse
             Not PageSurface.IsHitTestVisible OrElse Not ManagementViewHost.IsHitTestVisible Then Return
-        CancelManagementRequest() : CancelLocalModRequest()
-        _localModDetailOffset = ManagementDetailPage.VerticalOffset
-        If Not SameLocalModContext(_localModInstance) Then
-            _localMods = New List(Of LocalModEntry)()
-            LocalModSearch.Text = "" : _localModFilter = "all"
-        End If
-        _localModInstance = _managedInstance
-        ChangeManagementContent(Sub()
-                                    ManagementDetailPage.Visibility = Visibility.Collapsed
-                                    ManagementListPage.Visibility = Visibility.Collapsed
-                                    LocalModsPage.Visibility = Visibility.Visible
-                                    LocalModsPage.ScrollToHome()
-                                    RenderLocalMods()
-                                    RefreshTitleNavigation()
-                                End Sub, LocalModsPage)
-        ' A cached detail can outlive an external launcher's isolation setting.
-        Await LoadLocalModsAsync(True, refreshInstance:=True)
-        If LocalModInputAllowed() Then FocusManagementViewport()
+        Dim instance = _managedInstance, target = CurrentInstallTarget()
+        Dim generation = _managementGeneration + 1, folderGeneration = _managementFolderGeneration + 1, localGeneration = _localModGeneration + 1
+        Dim current As Func(Of Boolean) = Function() Not _closing AndAlso ManagementPage.Visibility = Visibility.Visible AndAlso _selectedFolder IsNot Nothing AndAlso
+            generation = _managementGeneration AndAlso folderGeneration = _managementFolderGeneration AndAlso localGeneration = _localModGeneration AndAlso
+            _managedInstance Is instance AndAlso SameManagementTarget(target, CurrentInstallTarget())
+        Try
+            ' PCL binds its selected instance before entering the Mod page.
+            ' A later navigation or read accepted by cancellation owns that page.
+            Dim notify = RetireLocalModRequest()
+            Try
+                If generation - 1 <> _managementGeneration OrElse folderGeneration - 1 <> _managementFolderGeneration OrElse localGeneration <> _localModGeneration OrElse
+                    _managedInstance IsNot instance OrElse ManagementDetailPage.Visibility <> Visibility.Visible Then Return
+                CancelManagementRequest()
+            Finally
+                notify()
+            End Try
+            If Not current() OrElse ManagementDetailPage.Visibility <> Visibility.Visible Then Return
+            _localModDetailOffset = ManagementDetailPage.VerticalOffset
+            If Not SameLocalModContext(_localModInstance) Then
+                _localMods = New List(Of LocalModEntry)()
+                LocalModSearch.Text = "" : _localModFilter = "all"
+            End If
+            _localModInstance = instance
+            ChangeManagementContent(Sub()
+                                        ManagementDetailPage.Visibility = Visibility.Collapsed
+                                        ManagementListPage.Visibility = Visibility.Collapsed
+                                        LocalModsPage.Visibility = Visibility.Visible
+                                        LocalModsPage.ScrollToHome()
+                                        RenderLocalMods()
+                                        RefreshTitleNavigation()
+                                    End Sub, LocalModsPage)
+            ' A cached detail can outlive an external launcher's isolation setting.
+            generation += 1 : folderGeneration += 1 : localGeneration += 1
+            Await LoadLocalModsAsync(True, refreshInstance:=True)
+            If generation = _managementGeneration AndAlso folderGeneration = _managementFolderGeneration AndAlso localGeneration = _localModGeneration AndAlso
+                LocalModInputAllowed() AndAlso _localModInstance.Name = instance.Name AndAlso SameManagementTarget(target, _localModInstance.Target) Then FocusManagementViewport()
+        Catch ex As Exception
+            If current() Then ShowManagementNavigationFailure(ex, "打开 Mod 管理失败，请重试：")
+        End Try
     End Sub
     Private Async Sub RefreshLocalMods(sender As Object, e As RoutedEventArgs)
         If Not LocalModRefreshAllowed() OrElse _localModWriting Then Return
@@ -334,16 +375,26 @@ Partial Public Class MainWindow
         RenderLocalMods()
     End Sub
     Private Sub BackFromLocalMods()
-        If LocalModsPage.Visibility <> Visibility.Visible Then Return
-        CancelLocalModRequest()
-        ChangeManagementContent(Sub()
-                                    LocalModsPage.Visibility = Visibility.Collapsed
-                                    ManagementDetailPage.Visibility = Visibility.Visible
-                                    RenderManagedInstance()
-                                    ManagementDetailPage.ScrollToVerticalOffset(_localModDetailOffset)
-                                    RefreshTitleNavigation()
-                                End Sub, ManagementDetailPage)
-        FocusManagementViewport()
+        If _closing OrElse LocalModsPage.Visibility <> Visibility.Visible Then Return
+        Dim instance = _managedInstance, local = _localModInstance, folder = _selectedFolder
+        Dim generation = _managementGeneration, folderGeneration = _managementFolderGeneration, localGeneration = _localModGeneration + 1
+        Dim current As Func(Of Boolean) = Function() Not _closing AndAlso ManagementPage.Visibility = Visibility.Visible AndAlso LocalModsPage.Visibility = Visibility.Visible AndAlso
+            generation = _managementGeneration AndAlso folderGeneration = _managementFolderGeneration AndAlso localGeneration = _localModGeneration AndAlso
+            _managedInstance Is instance AndAlso _localModInstance Is local AndAlso _selectedFolder Is folder
+        Try
+            CancelLocalModRequest()
+            If Not current() Then Return
+            ChangeManagementContent(Sub()
+                                        LocalModsPage.Visibility = Visibility.Collapsed
+                                        ManagementDetailPage.Visibility = Visibility.Visible
+                                        RenderManagedInstance()
+                                        ManagementDetailPage.ScrollToVerticalOffset(_localModDetailOffset)
+                                        RefreshTitleNavigation()
+                                    End Sub, ManagementDetailPage)
+            FocusManagementViewport()
+        Catch ex As Exception
+            If current() Then ShowManagementNavigationFailure(ex, "返回失败，请重试：")
+        End Try
     End Sub
     Private Sub RefreshLocalModAvailability()
         If LocalModRows Is Nothing Then Return

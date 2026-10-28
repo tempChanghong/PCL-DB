@@ -142,15 +142,20 @@ Partial Public Class MainWindow
         ' owns its fade until completion. Availability still follows current input.
         RefreshLocalModSelectionAvailability(LocalModRows.IsEnabled AndAlso _localModReadSucceeded AndAlso Not _localModWriting)
     End Sub
-    Private Sub RetireLocalModUpdates(Optional afterRetire As Action = Nothing)
+    Private Function RetireLocalModUpdates(Optional afterRetire As Action = Nothing) As Action
         Dim previous = _localModUpdatesRequest
         _localModUpdatesRequest = Nothing
-        _localModUpdates.Clear() : _localModSelection.Clear()
-        If LocalModUpdateStatus IsNot Nothing Then LocalModUpdateStatus.Text = "" : LocalModUpdateStatus.ToolTip = Nothing
-        RefreshLocalModSelection(False)
-        afterRetire?.Invoke()
-        previous?.Cancel()
-    End Sub
+        Try
+            _localModUpdates.Clear() : _localModSelection.Clear()
+            If LocalModUpdateStatus IsNot Nothing Then LocalModUpdateStatus.Text = "" : LocalModUpdateStatus.ToolTip = Nothing
+            RefreshLocalModSelection(False)
+            afterRetire?.Invoke()
+        Catch
+            CancelSubmittedSearchRequest(previous)
+            Throw
+        End Try
+        Return Sub() CancelSubmittedSearchRequest(previous)
+    End Function
     Private Async Sub StartLocalModUpdates()
         Await CheckLocalModUpdatesAsync()
     End Sub
