@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 原版清单刷新、切源与取消交接（2026-10-28）
+
+- 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadInstall.LoaderInit/LoadMinecraft_OnFinish`、`ModLoader.LoaderTask.Start/IsCanceledWithThread/Failed` 与 `MyPageRight.PageOnEnter`：清单和组件分别加载，执行身份约束输出与错误，加载表现沿原状态进入。
+- PCL-DB 在取消通知前绑定新清单，通知后验证归属再查询；切源先解绑清单与组件旧组，继续 UI 更新前确认代次与修订，保留原加载等待、缓存、组件选择和动画。[复现与验证](docs/reviews/version-catalogue-handoff-2026-10-28.md)，三份固定 Git 原始文件见 `artifacts/version-catalogue-handoff/source/manifest.json`。
+
 ## 管理页退出与主页面切换交接（2026-10-28）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `FormMain.PageChangeActual/PageBack/PageChangeAnim`、`ModLoader.LoaderTask.IsCanceledWithThread/Cancel` 和 `MyPageRight.PageOnForceExit`：先绑定当前页面与目标框架，再沿既有退场／入场进入，旧执行不发布，异常与冲突动画统一处理。

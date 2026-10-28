@@ -320,6 +320,7 @@ Partial Public Class MainWindow
         VerifyRefreshRebinding(check)
         VerifyRefreshWorkflow(check, artifactDirectory)
         VerifyVersionLoading(check, artifactDirectory)
+        VerifyVersionHandoffUi(artifactDirectory, checks)
         VerifyComponentLoading(check, artifactDirectory)
         VerifyComponentRetryUi(artifactDirectory, checks)
         VerifyComponentRetirementUi(artifactDirectory, checks)
@@ -421,16 +422,21 @@ Partial Public Class MainWindow
         If _closing OrElse _busy OrElse (_loading AndAlso Not restart) Then Return
         _versionGeneration += 1
         Dim generation = _versionGeneration
-        _versionCancellation?.Cancel()
+        Dim previous = _versionCancellation
         Dim request As New CancellationTokenSource(TimeSpan.FromSeconds(100))
         _versionCancellation = request
         _loading = True
-        StatusText.Text = "正在读取 Minecraft 版本列表…"
-        _versionLoading.Reset()
-        ' Refreshes keep the usable catalogue, its rows and scroll position.
-        ' PCL's page loader is needed only before the first accepted catalogue.
-        If _versions.Count = 0 Then _versionLoading.Start(request, request.Token, AddressOf PrepareVersionLoading, AddressOf ShowVersionLoading)
         Try
+            ' PCL binds its current execution before accepting output. An old
+            ' cancellation observer may already have accepted a newer refresh.
+            _versionLoading.Reset()
+            CancelSubmittedSearchRequest(previous)
+            If Not CurrentVersionRequest(generation, request) Then Return
+            If _busy Then _versionsDirty = True : Return
+            StatusText.Text = "正在读取 Minecraft 版本列表…"
+            ' Refreshes keep usable rows and scroll; only an initial catalogue
+            ' needs PCL's loading presentation and minimum-stay timing.
+            If _versions.Count = 0 Then _versionLoading.Start(request, request.Token, AddressOf PrepareVersionLoading, AddressOf ShowVersionLoading)
             Dim versions As List(Of VersionEntry)
             If _versionProvider IsNot Nothing Then
                 versions = Await _versionProvider(Policy(), request.Token)
@@ -530,15 +536,26 @@ Partial Public Class MainWindow
         If _restoringSettings OrElse _busy OrElse _closing Then Return
         _versionsDirty = True
         _versionGeneration += 1
-        _versionCancellation?.Cancel()
+        Dim generation = _versionGeneration, previous = _versionCancellation
+        _versionCancellation = Nothing : _loading = False
         _versionLoading.Reset()
         ClearVersionLoadingVisual()
         If _versions.Count = 0 Then EmptyVersions.Text = "点击刷新读取版本列表"
         RefreshDownloadChrome()
         _componentsDirty = _selectedEntry IsNot Nothing
-        Dim revision = CancelComponentRequests()
-        If revision <> _componentRefreshRevision OrElse _closing Then Return
-        If _selectedEntry IsNot Nothing Then RefreshComponents()
+        Dim revision = _componentRefreshRevision + 1
+        Try
+            ' Detach both catalogues before notifying either old group. Later
+            ' callbacks must never retire replacement component requests.
+            CancelComponentRequests(Sub() CancelSubmittedSearchRequest(previous))
+            If generation <> _versionGeneration OrElse revision <> _componentRefreshRevision OrElse _closing OrElse _busy Then Return
+            If _selectedEntry IsNot Nothing Then RefreshComponents()
+        Catch ex As Exception
+            If Not _preview Then Log(ex)
+            If generation = _versionGeneration AndAlso revision = _componentRefreshRevision AndAlso Not _closing AndAlso Not _busy Then
+                StatusText.Text = "刷新失败：" & ex.GetBaseException().Message & "；请刷新重试。"
+            End If
+        End Try
     End Sub
 
     Private Async Function RefreshCurrentListsIfNeededAsync() As Task
