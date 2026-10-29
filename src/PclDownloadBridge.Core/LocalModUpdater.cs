@@ -35,7 +35,7 @@ namespace PclDownloadBridge.Core
                         }
                         catch
                         {
-                            stopAll.Cancel();
+                            InstallCleanup.NotifyCancellation(stopAll.Cancel, cache);
                             throw;
                         }
                         finally

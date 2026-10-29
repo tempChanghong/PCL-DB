@@ -153,7 +153,7 @@ namespace PclDownloadBridge.Core
                         InstallLog.Failure(_cacheRoot, "下载批次失败", workers.Select(task => (Exception)task.Exception));
                         var failure = workers.Where(t => t.Exception is not null).SelectMany(t => t.Exception.Flatten().InnerExceptions).FirstOrDefault(e => !(e is OperationCanceledException));
                         if (failure is not null)
-                            throw failure;
+                            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
                         throw;
                     }
                 }
@@ -184,7 +184,7 @@ namespace PclDownloadBridge.Core
                 }
                 catch
                 {
-                    linked.Cancel();
+                    InstallCleanup.NotifyCancellation(linked.Cancel, _cacheRoot);
                     throw;
                 }
             }
@@ -586,7 +586,7 @@ namespace PclDownloadBridge.Core
                                     // Body deadline measures inactivity, not total file length.
                                     timeout.CancelAfter(TimeSpan.FromSeconds(45d));
                                     // Pass the deadline to reads through cancellation closing the response.
-                                    using (var registration = timeout.Token.Register(() => response.Dispose()))
+                                    using (var registration = timeout.Token.Register(() => InstallCleanup.NotifyCancellation(response.Dispose, _cacheRoot)))
                                     {
                                         var previous = _responseState.Value;
                                         _responseState.Value = new ResponseState() { Deadline = timeout, AllowFallback = _canFallback.Value };

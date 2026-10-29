@@ -171,7 +171,7 @@ namespace PclDownloadBridge.Core
                 {
                     failure = ex;
                 }
-                linked.Cancel();
+                InstallCleanup.NotifyCancellation(linked.Cancel);
                 Task[] workers = _parts.Where(p => p.Work is not null).Select(p => p.Work).ToArray();
                 try
                 {
@@ -184,7 +184,7 @@ namespace PclDownloadBridge.Core
                 }
                 token.ThrowIfCancellationRequested();
                 if (failure is not null)
-                    throw failure;
+                    System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
             }
             using (var output = new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None))
             {

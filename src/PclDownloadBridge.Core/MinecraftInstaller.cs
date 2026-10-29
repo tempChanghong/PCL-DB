@@ -279,7 +279,7 @@ namespace PclDownloadBridge.Core
                                     InstallLog.Failure(root, "安装失败", branches.Select(task => (Exception)task.Exception));
                                     var failure = branches.Where(t => t.Exception is not null).SelectMany(t => t.Exception.Flatten().InnerExceptions).FirstOrDefault(e => !(e is OperationCanceledException));
                                     if (failure is not null)
-                                        throw failure;
+                                        System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
                                     throw;
                                 }
                                 networkBytes = clientEngine.NetworkBytes + supportEngine.NetworkBytes + assetsEngine.NetworkBytes + mappedEngine.NetworkBytes + packEngine.NetworkBytes;
@@ -405,7 +405,7 @@ namespace PclDownloadBridge.Core
             }
             catch (Exception ex)
             {
-                linked.Cancel();
+                InstallCleanup.NotifyCancellation(linked.Cancel);
                 if (!(ex is OperationCanceledException))
                     failed?.Invoke();
                 throw;

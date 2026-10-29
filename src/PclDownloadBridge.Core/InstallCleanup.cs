@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
 
@@ -11,6 +12,37 @@ namespace PclDownloadBridge.Core
     {
         private InstallCleanup()
         {
+        }
+
+        // Cancel invokes all registrations synchronously and can throw their errors.
+        // A cleanup notification must not replace the operation's failure/winner or
+        // skip its worker join. The same rule applies to response-disposal callbacks
+        // running on CancellationTokenSource's deadline timer.
+        internal static void NotifyCancellation(Action notification, string root = null)
+        {
+            try
+            {
+                notification();
+            }
+            catch (Exception failure)
+            {
+                try
+                {
+                    InstallLog.Failure(root, "取消收尾通知失败", new[] { failure });
+                }
+                catch
+                {
+                    // Cancellation still owns its original outcome if logging fails.
+                }
+                try
+                {
+                    Trace.TraceWarning("PCL-DB cancellation cleanup: {0}", failure);
+                }
+                catch
+                {
+                    // Diagnostic listeners must not make cancellation throw either.
+                }
+            }
         }
 
         internal static void DeleteOwnedDirectory(string root, string relative)

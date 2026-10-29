@@ -92,6 +92,10 @@ Module Program
                     run = ModpackCatalogChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "archive-cancellation" Then
                     run = ArchiveCancellationChecks.RunAsync(TestRoot)
+                ElseIf args(1) = "core-cancellation-cleanup" Then
+                    run = CancellationCleanupChecks.RunAsync(TestRoot)
+                ElseIf args(1) = "catalog-cancellation" Then
+                    run = CatalogCancellationChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "modpack-paths" Then
                     run = ModpackPathChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "component-file-names" Then
@@ -186,6 +190,12 @@ Module Program
                 Check(True, label)
             Next
             For Each label In ArchiveCancellationChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
+                Check(True, label)
+            Next
+            For Each label In CancellationCleanupChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
+                Check(True, label)
+            Next
+            For Each label In CatalogCancellationChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
                 Check(True, label)
             Next
             For Each label In ModpackPathChecks.RunAsync(TestRoot).GetAwaiter().GetResult()

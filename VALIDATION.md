@@ -1,5 +1,10 @@
 # 本地验证记录
 
+## Beta 8 后续：Core 取消收尾与查询重试（2026-10-29，尚未发行）
+
+基线 `675c1f5`。复现取消回调异常覆盖原始故障、跳过分片 worker join，以及响应关闭异常传播至调用方 Cancel 的问题；真实 HTTP 另复现目录查询取消后仍为 Faulted IOException。问题在旧 VB 路径中也存在，不标作迁移新引入的回归。仅保护取消收尾通知，保留原 join／释放／校验／发布顺序，平台查询保留原 token，三个首因重抛位置改用 EDI 保留堆栈。以固定 PCL2 生命周期为核心，C# 结构重点参考 PCL-CE，界面和 net48 保持。
+
+新增 VB 回归 15＋30 项均通过，旧 Core 的相同测试负控制失败；既有测试与断言继续保留。完整 7350 项、新旧宿主兼容、单 EXE／搜索回执和提交绑定以 `artifacts/core-migration-followup/validation.json` 为准。公开接口、资源与配置格式保持，仅新增一个内部取消收尾方法并精确核对该友元契约差异。详见 [检查说明](docs/reviews/core-cancellation-followup-2026-10-29.md)。使用本地 HTTP、临时缓存、受控故障及隐藏 WPF，不作为真实平台完整安装、游戏启动或帧率验收；不打包、推送、发版。
 ## Beta 8 后续：Core 迁移到 C#（2026-10-29，尚未发行）
 
 基线 `872220b0f7a8303530c5cddaa74af5aafe04c499`。Core 的 60 份手写 VB 文件迁为 C#，UI、动画与原 VB 测试实现不变，目标保持 net48，程序集名称／版本、配置格式与资源名称保持兼容。重点参考固定 PCL2 行为及 PCL-CE 的 C# 取消、重启、资源释放和原子写入逻辑；保留 VB Module 标记、必要转换调用、整数溢出检查和 Newtonsoft.Json。解决方案 Release 零警告／零错误；VS 2026 实际 MSBuild Debug 与三个 Portable PDB 验证通过，未人工 F5 验证。原 VB 测试源码重新编译后完整 7305 项通过。

@@ -285,7 +285,7 @@ namespace PclDownloadBridge.Core
                             throw new System.IO.InvalidDataException("元数据超过 32 MiB 大小限制。");
                         // net48 stream reads may surface disposal/IO errors on cancellation;
                         // close the response and normalize the caller's cancellation below.
-                        using (var registration = deadline.Token.Register(() => response.Dispose()))
+                        using (var registration = deadline.Token.Register(() => InstallCleanup.NotifyCancellation(response.Dispose)))
                         using (var input = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
                         using (var output = new System.IO.MemoryStream())
                         {
@@ -358,7 +358,7 @@ namespace PclDownloadBridge.Core
                             break;
                     }
                 }
-                linked.Cancel();
+                InstallCleanup.NotifyCancellation(linked.Cancel);
                 // Observe and join losing requests, including streaming cancellation.
                 try
                 {

@@ -566,37 +566,46 @@ namespace PclDownloadBridge.Core
         }
         private async Task<JToken> FetchTokenAsync(string address, int seconds, CancellationToken token, JObject body = null)
         {
-            using (var deadline = CancellationTokenSource.CreateLinkedTokenSource(token))
-            using (var request = new HttpRequestMessage(body is null ? HttpMethod.Get : HttpMethod.Post, address))
+            try
             {
-                if (body is not null)
-                    request.Content = new StringContent(body.ToString(Newtonsoft.Json.Formatting.None), System.Text.Encoding.UTF8, "application/json");
-                deadline.CancelAfter(TimeSpan.FromSeconds(seconds));
-                if (new Uri(address).Host == "api.curseforge.com" && !string.IsNullOrWhiteSpace(_key))
-                    request.Headers.TryAddWithoutValidation("x-api-key", _key);
-                using (var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(false))
+                using (var deadline = CancellationTokenSource.CreateLinkedTokenSource(token))
+                using (var request = new HttpRequestMessage(body is null ? HttpMethod.Get : HttpMethod.Post, address))
                 {
-                    if (!response.IsSuccessStatusCode)
-                        throw new CatalogueHttpException((int)response.StatusCode, response.ReasonPhrase);
-                    using (var registration = deadline.Token.Register(() => response.Dispose()))
-                    using (var input = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
-                    using (var buffer = new MemoryStream())
+                    if (body is not null)
+                        request.Content = new StringContent(body.ToString(Newtonsoft.Json.Formatting.None), System.Text.Encoding.UTF8, "application/json");
+                    deadline.CancelAfter(TimeSpan.FromSeconds(seconds));
+                    if (new Uri(address).Host == "api.curseforge.com" && !string.IsNullOrWhiteSpace(_key))
+                        request.Headers.TryAddWithoutValidation("x-api-key", _key);
+                    using (var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(false))
                     {
-                        var block = new byte[8192];
-                        do
+                        if (!response.IsSuccessStatusCode)
+                            throw new CatalogueHttpException((int)response.StatusCode, response.ReasonPhrase);
+                        using (var registration = deadline.Token.Register(() => InstallCleanup.NotifyCancellation(response.Dispose)))
+                        using (var input = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
+                        using (var buffer = new MemoryStream())
                         {
-                            int read = await input.ReadAsync(block, 0, block.Length, deadline.Token).ConfigureAwait(false);
-                            if (read == 0)
-                                break;
-                            if (buffer.Length + read > 16L * 1024L * 1024L)
-                                throw new InvalidDataException("平台响应超过大小限制。");
-                            buffer.Write(block, 0, read);
+                            var block = new byte[8192];
+                            do
+                            {
+                                int read = await input.ReadAsync(block, 0, block.Length, deadline.Token).ConfigureAwait(false);
+                                if (read == 0)
+                                    break;
+                                if (buffer.Length + read > 16L * 1024L * 1024L)
+                                    throw new InvalidDataException("平台响应超过大小限制。");
+                                buffer.Write(block, 0, read);
+                            }
+                            while (true);
+                            token.ThrowIfCancellationRequested();
+                            return JToken.Parse(System.Text.Encoding.UTF8.GetString(buffer.ToArray()), new JsonLoadSettings() { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error });
                         }
-                        while (true);
-                        token.ThrowIfCancellationRequested();
-                        return JToken.Parse(System.Text.Encoding.UTF8.GetString(buffer.ToArray()), new JsonLoadSettings() { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error });
                     }
                 }
+            }
+            catch (Exception ex) when (token.IsCancellationRequested)
+            {
+                // Closing a net48 response may interrupt reads with an IO/disposal
+                // exception. Keep the caller's cancellation identity across platforms.
+                throw new OperationCanceledException("平台请求已取消。", ex, token);
             }
         }
         private static void ValidateId(ModpackPlatform platform, string id)

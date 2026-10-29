@@ -95,7 +95,7 @@ namespace PclDownloadBridge.Core
                         }
                         catch
                         {
-                            linked.Cancel();
+                            InstallCleanup.NotifyCancellation(linked.Cancel);
                             throw;
                         }
                         finally
@@ -241,7 +241,7 @@ namespace PclDownloadBridge.Core
                 using (var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false))
                 {
                     response.EnsureSuccessStatusCode();
-                    using (var registration = token.Register(() => response.Dispose()))
+                    using (var registration = token.Register(() => InstallCleanup.NotifyCancellation(response.Dispose)))
                     using (var input = await response.Content.ReadAsStreamAsync().ConfigureAwait(false))
                     using (var output = new MemoryStream())
                     {
