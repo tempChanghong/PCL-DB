@@ -145,6 +145,18 @@ Partial Public Class MainWindow
             changes = DownloadSettingsFile.ChangedValues(_preferenceBaseline, values)
         End If
         If _launcherMigrationPending Then changes("externalLaunchers") = LauncherSettingsJson()
+        Dim launcherChanges = TryCast(changes("externalLaunchers"), JObject)
+        If Not _launcherState.ReadOnlyFormat AndAlso (changes.Property("gameRoot") IsNot Nothing OrElse
+            launcherChanges?.Property("targetRoot") IsNot Nothing OrElse launcherChanges?.Property("targetBindingId") IsNot Nothing) Then
+            ' These fields identify one destination. A stale window must never
+            ' combine its edited launcher ID with another window's game root.
+            If launcherChanges Is Nothing Then
+                launcherChanges = New JObject : changes("externalLaunchers") = launcherChanges
+            End If
+            changes("gameRoot") = values("gameRoot").DeepClone()
+            launcherChanges("targetRoot") = values("externalLaunchers")("targetRoot").DeepClone()
+            launcherChanges("targetBindingId") = values("externalLaunchers")("targetBindingId").DeepClone()
+        End If
         If changes.HasValues Then DownloadSettingsFile.SaveChanges(target, legacyPath, changes, explicitSave)
         _launcherMigrationPending = False
         _preferenceBaseline = values

@@ -1,5 +1,7 @@
 # PCL-DB · PCL Download Bridge
 
+多窗口保存安装目标时，目录与启动器身份现作为一组提交，避免旧窗口拼接出错误目标；其他独立偏好和未知字段继续合并保留。[修复与验证](docs/reviews/install-target-save-conflicts-2026-10-30.md)。
+
 启动器绑定恢复现按字段隔离异常：保留有效绑定与未知选择字段，缺少格式号时保护原数据，损坏的目标不会自动变成其他启动器的目录。[修复与验证](docs/reviews/launcher-binding-recovery-2026-10-29.md)。
 
 外部启动器的可选目录配置损坏时，继续显示有效本地目录并给出提示；重复 JSON 键会被明确拒绝，避免目录发现与安装校验选择不同路径。配置修好后可直接重试。[修复与验证](docs/reviews/launcher-directory-read-errors-2026-10-29.md)。

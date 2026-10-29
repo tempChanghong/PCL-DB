@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 多窗口安装目标保存（2026-10-30）
+
+- PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 ModMinecraft.vb:17–21 以单一 LaunchFolderSelect 提交目录，Settings.vb:248–272 在保存前取得当前缓存值。C# 配置边界参考 CE 915ac29795efbdf6373417389e181e1504117048 的 JsonFileProvider.Set:85–88 按逻辑键序列化，以及 FileConfigStorage:142–145 对待写值作局部捕获。
+- 三字段安装目标是本工具自身协议；本轮只在既有跨进程锁和原子发布内补齐一组差量，不照搬上游的配置写入、队列或格式迁移。固定 Git 字节见 artifacts/target-save-conflicts/source/manifest.json，[复现与边界](docs/reviews/install-target-save-conflicts-2026-10-30.md)。
+
 ## 启动器绑定恢复与未知字段（2026-10-29）
 
 - PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 Settings.vb 按设置项读取、类型转换和默认值恢复为主要依据；C# 重点参考 CE 915ac29795efbdf6373417389e181e1504117048 的 ConfigItem.GetValue 与 FileConfigStorage:106–135 的坏项隔离。这里只借鉴错误边界，不移入 CE 的坏项删除、同步写入或格式迁移。
