@@ -163,5 +163,6 @@ Partial Public Class MainWindow
         End Try
         VerifyInstallTargetSaveConflicts(check, root)
         VerifySettingsFormatConflicts(check, root)
+        VerifySettingsDuplicateKeys(check, root)
     End Sub
 End Class

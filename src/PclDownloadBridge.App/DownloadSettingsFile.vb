@@ -29,14 +29,14 @@ Friend Module DownloadSettingsFile
     End Function
 
     Private Function LoadUnlocked(target As String, legacyPath As String, Optional report As Action(Of String) = Nothing) As JObject
-        If File.Exists(target) Then Return JObject.Parse(File.ReadAllText(target))
+        If File.Exists(target) Then Return ParseSettings(File.ReadAllText(target))
         If IO.Directory.Exists(legacyPath) Then Throw New InvalidDataException("旧设置文件路径被文件夹占用。")
         If Not File.Exists(legacyPath) Then Return Nothing
         ' Read once, validate before publishing, and retain unknown settings and the original bytes.
         Dim bytes = File.ReadAllBytes(legacyPath)
         Dim settings As JObject
         Using reader As New StreamReader(New MemoryStream(bytes), Encoding.UTF8, True)
-            settings = JObject.Parse(reader.ReadToEnd())
+            settings = ParseSettings(reader.ReadToEnd())
         End Using
         Dim directory = IO.Path.GetDirectoryName(target)
         Dim temp = IO.Path.Combine(directory, ".settings-migrate-" & Guid.NewGuid().ToString("N") & ".tmp")
@@ -46,12 +46,18 @@ Friend Module DownloadSettingsFile
             ' Move publishes atomically and refuses to replace a settings file created concurrently.
             File.Move(temp, target)
         Catch ex As Exception When TypeOf ex Is IOException OrElse TypeOf ex Is UnauthorizedAccessException
-            If File.Exists(target) Then Return JObject.Parse(File.ReadAllText(target))
+            If File.Exists(target) Then Return ParseSettings(File.ReadAllText(target))
             report?.Invoke("已读取旧版偏好，但无法迁移到 PCL-DB 目录：" & ex.Message)
         Finally
             DeleteTemporary(temp)
         End Try
         Return settings
+    End Function
+
+    Private Function ParseSettings(text As String) As JObject
+        ' Match external configuration snapshots: never choose a silent winner
+        ' for ambiguous directory, format, binding or future preference keys.
+        Return JObject.Parse(text, New JsonLoadSettings With {.DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error})
     End Function
 
     Friend Sub Save(path As String, settings As JObject)

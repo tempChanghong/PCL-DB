@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 偏好文件的重复字段边界（2026-10-30）
+
+- PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 Settings.vb:278–294 按设置键转换、保存后通知，ModMinecraft.vb:17–21 保持目录逻辑值完整。C# 参考 CE 915ac29795efbdf6373417389e181e1504117048 的 JsonFileProvider:32–60 对根对象与解析失败的边界处理；不移入其格式转换、坏项删除或配置重建。
+- 重复键严格策略直接对齐本工具 C# LauncherDirectoryReader.ParseConfiguration 与实例配置快照，使用既有 Newtonsoft.Json API；不声称上游 PCL／CE 的配置格式等同于本工具偏好文件。九份固定 Git 字节见 artifacts/settings-duplicate-keys/source/manifest.json，[复现与验证](docs/reviews/settings-duplicate-keys-2026-10-30.md)。
+
 ## 保存时检查最新绑定格式（2026-10-30）
 
 - PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 Settings.vb:278–294 明确先保存后通知，ModMinecraft.vb:17–21 通过单一逻辑设置保存目录。参考 CE 915ac29795efbdf6373417389e181e1504117048 的 JsonFileProvider.Set:85–88 和 FileConfigStorage 的类型边界；不采用 CE 的坏项删除或配置迁移。
