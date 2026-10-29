@@ -99,9 +99,24 @@ Friend Module DownloadSettingsFile
                                 Catch ex As Newtonsoft.Json.JsonException When replaceMalformed
                                     ' Only an explicit settings-button action may replace malformed JSON.
                                 End Try
-                                Save(target, MergeValues(existing, changes))
+                                Dim merged = MergeValues(existing, changes)
+                                ' Recheck under the gate: another version may have upgraded
+                                ' the binding format after this window loaded its settings.
+                                Dim bindings = existing?("externalLaunchers")
+                                If bindings IsNot Nothing AndAlso Not KnownLauncherFormat(bindings) AndAlso
+                                    Not JToken.DeepEquals(bindings, merged("externalLaunchers")) Then
+                                    Throw New InvalidDataException("启动器绑定格式已变更或无法识别，请重新打开 PCL-DB 后再保存。原配置已保留。")
+                                End If
+                                Save(target, merged)
                             End Sub)
     End Sub
+
+    Private Function KnownLauncherFormat(value As JToken) As Boolean
+        ' Keep the same format boundary as LauncherBindingsState.Restore.
+        Dim document = TryCast(value, JObject), format = document?("format")
+        Return format IsNot Nothing AndAlso format.Type = JTokenType.Integer AndAlso format.ToString() = "1" AndAlso
+            TypeOf document("bindings") Is JObject
+    End Function
 
     Private Sub RunWithGate(target As String, work As Action)
         ' Migration and every new PCL-DB save coordinate through this per-path, cross-process gate.

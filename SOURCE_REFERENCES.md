@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 保存时检查最新绑定格式（2026-10-30）
+
+- PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 Settings.vb:278–294 明确先保存后通知，ModMinecraft.vb:17–21 通过单一逻辑设置保存目录。参考 CE 915ac29795efbdf6373417389e181e1504117048 的 JsonFileProvider.Set:85–88 和 FileConfigStorage 的类型边界；不采用 CE 的坏项删除或配置迁移。
+- 绑定格式与未知字段保护为本工具自己的协议，检测边界与 LauncherBindingsState.Restore 一致；新保护放在原有保存锁内，不改 UI、动画和安装目标快照。固定 Git 字节见 artifacts/settings-format-conflicts/source/manifest.json，[复现、写入范围与验证](docs/reviews/settings-format-conflicts-2026-10-30.md)。
+
 ## 多窗口安装目标保存（2026-10-30）
 
 - PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 ModMinecraft.vb:17–21 以单一 LaunchFolderSelect 提交目录，Settings.vb:248–272 在保存前取得当前缓存值。C# 配置边界参考 CE 915ac29795efbdf6373417389e181e1504117048 的 JsonFileProvider.Set:85–88 按逻辑键序列化，以及 FileConfigStorage:142–145 对待写值作局部捕获。

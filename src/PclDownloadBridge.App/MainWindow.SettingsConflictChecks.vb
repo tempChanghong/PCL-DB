@@ -162,5 +162,6 @@ Partial Public Class MainWindow
             SpeedLimitBox.Text = oldSpeed
         End Try
         VerifyInstallTargetSaveConflicts(check, root)
+        VerifySettingsFormatConflicts(check, root)
     End Sub
 End Class

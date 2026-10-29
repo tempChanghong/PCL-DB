@@ -1,5 +1,7 @@
 # PCL-DB · PCL Download Bridge
 
+配置在窗口打开后升级为未知绑定格式时，旧窗口的冲突写入现会被拒绝并提示重新打开；外观等独立设置仍可保存，原数据保留。[修复与验证](docs/reviews/settings-format-conflicts-2026-10-30.md)。
+
 多窗口保存安装目标时，目录与启动器身份现作为一组提交，避免旧窗口拼接出错误目标；其他独立偏好和未知字段继续合并保留。[修复与验证](docs/reviews/install-target-save-conflicts-2026-10-30.md)。
 
 启动器绑定恢复现按字段隔离异常：保留有效绑定与未知选择字段，缺少格式号时保护原数据，损坏的目标不会自动变成其他启动器的目录。[修复与验证](docs/reviews/launcher-binding-recovery-2026-10-29.md)。
