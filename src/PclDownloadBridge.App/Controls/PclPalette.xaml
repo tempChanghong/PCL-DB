@@ -20,6 +20,7 @@
 <Color x:Key="ColorObjectBg0" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#96c0f9</Color>
 <Color x:Key="ColorObjectBg1" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#bee0eafd</Color>
 <SolidColorBrush x:Key="ColorBrushGray1" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#404040</SolidColorBrush>
+<SolidColorBrush x:Key="PclResourceSubtitleInk" Color="#404040" Opacity="0.4"/>
 <SolidColorBrush x:Key="ColorBrushGray2" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#737373</SolidColorBrush>
 <SolidColorBrush x:Key="ColorBrushGray3" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#8c8c8c</SolidColorBrush>
 <SolidColorBrush x:Key="ColorBrushGray4" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">#a6a6a6</SolidColorBrush>

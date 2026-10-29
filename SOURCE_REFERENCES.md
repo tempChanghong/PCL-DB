@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 资源副标题视觉权重（2026-10-29）
+
+- 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 MyResourceItem.xaml:31-33：14／12 号标题层级，副标题 Gray1×0.4、17 DIP 标题带。CE `915ac29795efbdf6373417389e181e1504117048` 的 MyCompItem.xaml:36-42 同样采用 Gray1×0.4，但其 20 DIP 居中布局未移入。
+- 独立动态画刷适配既有 Run 与明暗调色板，不修改共享 Gray1、文本、裁切、动画或资源项目身份。旧 VB 版已有的 Gray4 差异与首轮夹具误期望分别记录。[复现及验证](docs/reviews/resource-subtitle-fidelity-2026-10-29.md)，固定原始字节见 `artifacts/ui-resource-fidelity/source/manifest.json`。
+
 ## 共享组件运行库与最终实例发布（2026-10-29）
 
 - 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 McInstallLoadersGet／ModDownload 支持库迁移与校验为阶段依据；C# 参考 CE `915ac29795efbdf6373417389e181e1504117048` 对应组件／支持库及 HashProvider 的取消语义。PCL-DB 的并行安装、完整性快照和最终读租约属于本工具自身的冲突处理，不声称是上游同名实现。

@@ -117,6 +117,9 @@ Namespace Controls
                 Application.Current.Resources("ColorBrushGray" & (index + 1)) = New SolidColorBrush(color)
                 Application.Current.Resources("ColorObjectGray" & (index + 1)) = color
             Next
+            ' PCL MyResourceItem uses Gray1 at forty-percent opacity for its subtitle.
+            ' A separate brush preserves that hierarchy without fading the main title.
+            Application.Current.Resources("PclResourceSubtitleInk") = New SolidColorBrush(DirectCast(Application.Current.Resources("ColorBrushGray1"), SolidColorBrush).Color) With {.Opacity = 0.4}
             If appearance.DarkMode Then Application.Current.Resources("ColorBrush1") = New SolidColorBrush(Color.FromRgb(228, 234, 242))
             Application.Current.Resources("PclIconButtonInk") = New SolidColorBrush(If(appearance.DarkMode, DirectCast(Application.Current.Resources("ColorBrushGray1"), SolidColorBrush).Color, Colors.Black))
             ' PCL MyResourceItem.Tags: #11000000 plate / #868686 text in light mode.

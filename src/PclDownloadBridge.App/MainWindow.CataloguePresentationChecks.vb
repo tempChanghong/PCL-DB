@@ -10,9 +10,15 @@ Imports PclDownloadBridge.Controls
 Imports PclDownloadBridge.Core
 
 Partial Public Class MainWindow
+    Private Shared Function ResourceSubtitleMatchesSourceForChecks(row As PclResourceItem) As Boolean
+        Dim actual = TryCast(row.SubtitleRun.Foreground, SolidColorBrush), source = DirectCast(row.FindResource("ColorBrushGray1"), SolidColorBrush)
+        Return actual IsNot Nothing AndAlso actual.Color.R = source.Color.R AndAlso actual.Color.G = source.Color.G AndAlso actual.Color.B = source.Color.B AndAlso
+            Math.Abs(actual.Color.A * actual.Opacity - source.Color.A * source.Opacity * 0.4) < 0.6
+    End Function
     Public Sub VerifyCataloguePresentationUi(directory As String, passed As List(Of String))
-        Dim owner As New MainWindow(True), original = owner.Content, appearance = _appearance.ToJson()
+        Dim owner As New MainWindow(True), original = owner.Content, appearance = _appearance.ToJson(), nativeFocus = LocalModCheckGetNativeFocus()
         Dim host As New Border With {.Width = 960, .Height = 740}, layout = ControlLayout(host)
+        FocusManager.SetIsFocusScope(host, True)
         Dim check As Action(Of Boolean, String) = Sub(ok, label)
                                                      If Not ok Then Throw New InvalidOperationException(label)
                                                      passed.Add(label)
@@ -29,6 +35,7 @@ Partial Public Class MainWindow
             owner._closing = True : owner.CancelManagementRequest() : owner.CancelResourceRequests() : owner._pclThemeMonitor.Dispose()
             owner._surfaceMotion.Finish() : owner._managementMotion.Finish() : owner._categoryMotion.Finish() : owner.FinishPackContentMotion()
             owner.RestoreAppearance(appearance) : host.Child = Nothing : owner.Content = original
+            LocalModCheckSetNativeFocus(nativeFocus)
         End Try
     End Sub
     Private Async Function CheckCataloguePresentationAsync(directory As String, host As Border, layout As Action, check As Action(Of Boolean, String)) As Task
@@ -69,11 +76,50 @@ Partial Public Class MainWindow
             "compact compatibility text receives space before weighted gaps while source statistics stay within the row")
         ControlKey(row, Key.Enter, True) : ControlKey(row, Key.Enter, False)
         check(clicks = 1 AndAlso row.Tag Is project AndAlso project.Name = "Sodium" AndAlso project.Key = "Modrinth:AANobbMI:Mod", "localized row activation retains exact platform identity and unmodified original name")
+        Dim title = row.TitleLabel, subtitle = row.SubtitleRun, taskGeneration = _taskGeneration
+        row.MotionPolicy.EnabledForChecks = False
         For Each dark In {False, True}
             RestoreAppearance(New JObject From {{"theme", "blue"}, {"darkMode", dark}}) : layout()
-            check(DirectCast(row.SubtitleRun.Foreground, SolidColorBrush).Color = DirectCast(FindResource("ColorBrushGray4"), SolidColorBrush).Color AndAlso row.TitleLabel.ActualHeight <= 17,
+            Dim actual = DirectCast(row.SubtitleRun.Foreground, SolidColorBrush), source = DirectCast(FindResource("ColorBrushGray1"), SolidColorBrush)
+            File.WriteAllText(IO.Path.Combine(directory, "resource-subtitle-rgba-" & If(dark, "dark", "light") & ".json"),
+                New JObject From {{"actualColor", actual.Color.ToString()}, {"actualBrushOpacity", actual.Opacity}, {"sourceGray1", source.Color.ToString()},
+                    {"sourceBrushOpacity", source.Opacity}, {"expectedEffectiveAlpha", source.Color.A * source.Opacity * 0.4}}.ToString())
+            check(ResourceSubtitleMatchesSourceForChecks(row) AndAlso row.TitleLabel.ActualHeight <= 17,
                 "translated title and subdued subtitle fit their PCL title band and adapt to dark mode: " & dark)
+            FocusLocalModElementForChecks(row) : ControlPointer(row, True) : layout()
+            Dim liveMatches = True
+            For Each theme In AppearancePreferences.PublicThemes
+                RestoreAppearance(New JObject From {{"theme", theme}, {"darkMode", dark}}) : layout()
+                liveMatches = liveMatches AndAlso ResourceSubtitleMatchesSourceForChecks(row) AndAlso row.TitleLabel Is title AndAlso row.SubtitleRun Is subtitle AndAlso
+                    New TextRange(title.ContentStart, title.ContentEnd).Text = "钠 | Sodium" AndAlso title.FontSize = 14 AndAlso subtitle.FontSize = 12 AndAlso
+                    Keyboard.FocusedElement Is row AndAlso row.HoverTransition Is Nothing
+            Next
+            check(liveMatches, "live public-theme changes update actual subtitle RGBA while retaining title Run text font hierarchy and row focus in dark mode " & dark)
+            RestoreAppearance(New JObject From {{"theme", "blue"}, {"darkMode", dark}}) : ControlPointer(row, False) : layout()
             SaveControlVisual(host, IO.Path.Combine(directory, "localized-resource-" & If(dark, "dark", "blue") & ".png"))
+            ' Exercise the public untranslated-title split without replacing a
+            ' dictionary project's deliberately curated English name.
+            Dim longTitle = "长中文标题 MixedCaseTitle", longSubtitle = String.Join(" ", Enumerable.Repeat("EXTENDED ENGLISH SUBTITLE", 12))
+            Dim longProject As New ModpackProject With {.Kind = project.Kind, .Platform = project.Platform, .Id = "long-subtitle-fixture", .Slug = "pcldb-unknown-subtitle-fixture",
+                .Name = longTitle & " | " & longSubtitle, .Summary = project.Summary}
+            Dim names = ResourceProjectNames.GetTitle(longProject)
+            Dim narrow As New PclResourceItem(longProject) With {.Tag = longProject, .Width = 300, .CanInteract = False}, narrowRun = narrow.SubtitleRun
+            PackProjectRows.Children.Add(narrow) : host.Width = 810 : layout()
+            Dim full = longTitle & " | " & longSubtitle, natural As New TextBlock With {.FontFamily = narrow.TitleLabel.FontFamily, .FontSize = 14}
+            natural.Inlines.Add(New Run(longTitle)) : natural.Inlines.Add(New Run(" | " & longSubtitle) With {.FontSize = 12})
+            natural.Measure(New Size(Double.PositiveInfinity, Double.PositiveInfinity))
+            check(ResourceSubtitleMatchesSourceForChecks(narrow) AndAlso narrow.SubtitleRun Is narrowRun AndAlso narrowRun.FontSize = 12 AndAlso
+                names.Title = longTitle AndAlso names.Subtitle = longSubtitle AndAlso names.Subtitle.Length >= 60 AndAlso
+                New TextRange(narrow.TitleLabel.ContentStart, narrow.TitleLabel.ContentEnd).Text = full AndAlso narrow.ToolTip.ToString().Contains(longProject.Name),
+                "narrow bilingual resource text keeps the complete English Run and source-derived subtitle RGBA in dark mode " & dark)
+            check(natural.DesiredSize.Width > narrow.TitleLabel.ActualWidth AndAlso narrow.TitleLabel.ActualWidth > 0 AndAlso narrow.TitleLabel.ActualWidth <= narrow.ActualWidth - 65 AndAlso
+                narrow.TitleLabel.TextTrimming = TextTrimming.CharacterEllipsis AndAlso narrow.TitleLabel.TextWrapping = TextWrapping.NoWrap AndAlso narrow.TitleLabel.ActualHeight <= 17 AndAlso narrow.Height = 64,
+                "long bilingual titles retain bounded ellipsis and the original resource-row height at minimum window width in dark mode " & dark)
+            SaveControlVisual(host, IO.Path.Combine(directory, "resource-subtitle-narrow-" & If(dark, "dark", "light") & ".png"))
+            PackProjectRows.Children.Remove(narrow) : host.Width = 960 : layout()
+            check(PackProjectRows.Children.Count = 1 AndAlso PackProjectRows.Children(0) Is row AndAlso row.TitleLabel Is title AndAlso row.SubtitleRun Is subtitle AndAlso
+                Keyboard.FocusedElement Is row AndAlso clicks = 1 AndAlso _taskGeneration = taskGeneration AndAlso row.Tag Is project,
+                "subtitle palette and narrow-layout checks preserve the original focused row project identity and action ownership in dark mode " & dark)
         Next
         Dim before = _taskGeneration
         _packProject = project : ChangePackMode(PackBrowserMode.Detail) : RenderPackProject(project) : FinishPackContentMotion() : layout()

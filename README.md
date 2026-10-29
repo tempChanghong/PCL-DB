@@ -6,6 +6,8 @@ C# Core + VB.NET WPF + .NET Framework 4.8 的 Minecraft Java 下载与本地实�
 
 UI 对照旧 VB 版及 PCL2／PCL-CE，修正本地 Mod 页卡片与列表边距、筛选顺序，并让下拉菜单跟随所属窗口的不透明度；保留换行、明暗模式与原动画。[对照与验证](docs/reviews/ui-fidelity-2026-10-29.md)。
 
+资源英文副标题按 PCL 的 Gray1×40% 权重区分主次，随明暗和主题更新，保留完整文本、裁切及原交互。[对照与验证](docs/reviews/resource-subtitle-fidelity-2026-10-29.md)。
+
 组件运行库在新实例发布前统一按原摘要复验并保持短期读保护，外部改写或占用会停止发布；独立快照防止后续对象修改改变校验依据，取消后可重试。[冲突修复与验证](docs/reviews/runtime-publication-conflict-2026-10-29.md)。
 
 Core 已进入第二轮结构整理，首批将平台目录按模型、查询编排、HTTP 传输和严格元数据解析拆分；原有接口与行为保持。[结构说明与验证](docs/reviews/core-refactor-round2-catalog-2026-10-29.md)。

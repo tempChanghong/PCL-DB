@@ -72,7 +72,7 @@ Namespace Controls
             Dim title As New TextBlock With {.Text = names.Title, .FontSize = 14, .TextTrimming = TextTrimming.CharacterEllipsis}
             TitleLabel = title
             SubtitleRun = New Run(If(names.Subtitle = "", "", " | " & names.Subtitle)) With {.FontSize = 12}
-            SubtitleRun.SetResourceReference(TextElement.ForegroundProperty, "ColorBrushGray4")
+            SubtitleRun.SetResourceReference(TextElement.ForegroundProperty, "PclResourceSubtitleInk")
             If names.Subtitle <> "" Then
                 title.Inlines.Add(SubtitleRun)
             End If
