@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 整合包覆盖文件最终校验的取消（2026-10-29）
+
+- 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `Modules/Minecraft/ModModpack.vb:112-115,209,405` 将任务取消令牌传入文件处理；C# 参考 CE `915ac29795efbdf6373417389e181e1504117048` 的 `PCL.Core/Utils/Hash/SHA256Provider.cs:36-38` 与 `IHashProvider.cs:11` 的可取消流哈希。
+- net48 上仅为共用 `ValidatePayload` 的 overrides 复校验加入 64 KiB 分块、块间／EOF 后取消检查；不移植现代 HashDataAsync，不改变摘要表示或发布边界。固定原始字节见 `artifacts/pack-payload-cancellation/source/manifest.json`，[问题、修复和验证](docs/reviews/pack-payload-cancellation-2026-10-29.md)。
+
 ## 第二轮第四批：私有安装规划器（2026-10-29）
 
 - 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModDownload.vb:19-63`、`ModMinecraft.vb:1554-1594,1653-1730,1904-1912,1967-1982,2012-2038`，与 CE `915ac29795efbdf6373417389e181e1504117048` 的 `ModDownload.cs`、`ModLibrary.cs`、`ModAssets.cs`，提供下载声明／规则／库路径和执行发布的职责边界。

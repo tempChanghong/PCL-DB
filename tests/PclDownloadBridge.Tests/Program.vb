@@ -104,6 +104,8 @@ Module Program
                     run = CurseForgeCancellationIdentityChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "install-failure-notification" Then
                     run = InstallFailureNotificationChecks.RunAsync(TestRoot)
+                ElseIf args(1).StartsWith("pack-payload-cancellation", StringComparison.Ordinal) Then
+                    run = PackPayloadCancellationChecks.RunAsync(TestRoot, args(1))
                 ElseIf args(1) = "modpack-paths" Then
                     run = ModpackPathChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "component-file-names" Then
@@ -216,6 +218,9 @@ Module Program
                 Check(True, label)
             Next
             For Each label In InstallFailureNotificationChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
+                Check(True, label)
+            Next
+            For Each label In PackPayloadCancellationChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
                 Check(True, label)
             Next
             For Each label In ModpackPathChecks.RunAsync(TestRoot).GetAwaiter().GetResult()

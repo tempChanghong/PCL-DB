@@ -153,7 +153,22 @@ namespace PclDownloadBridge.Core
                 using (var stream = File.OpenRead(SafeFiles.UnderRoot(stage, pair.Key)))
                 using (var sha = System.Security.Cryptography.SHA256.Create())
                 {
-                    if ((BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "") ?? "") != (pair.Value ?? ""))
+                    // PCL passes cancellation through pack file work; CE's stream hash
+                    // also observes its token. Keep that behavior on net48, including
+                    // the last override, without waiting for a whole large file.
+                    var buffer = new byte[65536];
+                    do
+                    {
+                        token.ThrowIfCancellationRequested();
+                        int count = stream.Read(buffer, 0, buffer.Length);
+                        if (count == 0)
+                            break;
+                        sha.TransformBlock(buffer, 0, count, buffer, 0);
+                    }
+                    while (true);
+                    token.ThrowIfCancellationRequested();
+                    sha.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+                    if ((BitConverter.ToString(sha.Hash).Replace("-", "") ?? "") != (pair.Value ?? ""))
                         throw new InvalidDataException("整合包覆盖文件在发布前发生变化：" + pair.Key);
                 }
             }
