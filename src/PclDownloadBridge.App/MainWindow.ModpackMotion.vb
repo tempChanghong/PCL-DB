@@ -22,7 +22,10 @@ Partial Public Class MainWindow
         ' transaction, before its entry clock exists. Let that parent collect the
         ' final cards; two controllers must never save each other's opacity zero.
         If _surfaceMotion.ApplyingContent OrElse _categoryMotion.ApplyingContent OrElse _packResultMotion.ApplyingContent OrElse _packDetailMotion.ApplyingContent Then
-            FinishPackContentMotion() : update() : Return
+            ' Compose into the binding parent without explicitly retiring it.
+            If Not _packResultMotion.ApplyingContent Then _packResultMotion.Finish()
+            If Not _packDetailMotion.ApplyingContent Then _packDetailMotion.Finish()
+            update() : Return
         End If
         If _packMode <> mode OrElse _downloadView <> DownloadView.Modpacks OrElse Not DownloadPage.IsVisible Then
             update() : Return

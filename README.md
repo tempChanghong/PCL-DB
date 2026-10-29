@@ -1,5 +1,7 @@
 # PCL-DB · PCL Download Bridge
 
+页面切换在内容绑定或布局期间接受新操作后，旧入场不再覆盖新时钟、透明度或变换；资源缓存内容继续合成到父级入场。[修复与验证](docs/reviews/surface-entry-reentry-2026-10-29.md)。
+
 从本地 Mod 管理进入下载时，先绑定当前实例的版本／加载器，再恢复仍有效的搜索缓存；布局期间的新导航会使旧配置停止。[修复与验证](docs/reviews/search-restore-entry-2026-10-29.md)。
 
 C# Core + VB.NET WPF + .NET Framework 4.8 的 Minecraft Java 下载与本地实例管理工具，简称 PCL-DB。最新发布为 **Beta 8.0**（`8.0.0-beta.1`）。[发布说明](docs/releases/8.0.0-beta.1.md)。

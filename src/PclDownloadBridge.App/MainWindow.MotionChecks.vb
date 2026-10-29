@@ -30,6 +30,7 @@ Partial Public Class MainWindow
         End Sub)
         VerifyPreviewFixture(Sub() VerifyWheelMotion(directory, check))
         VerifyPreviewFixture(Sub() VerifyMotionOwnership(check))
+        VerifyPreviewFixture(Sub() VerifySurfaceReentryUi(directory, passed))
         VerifyPreviewFixture(Sub()
             Dim secondRound As New MainWindow(True)
             secondRound.VerifyExitAndBarMotion(directory, check)

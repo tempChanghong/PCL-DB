@@ -19,6 +19,7 @@ Namespace Controls
         Private _surfaceOpacity As Double
         Private _clock As ClockGroup
         Private _applying As Integer
+        Private _generation As Long
         Friend ReadOnly Property ApplyingContent As Boolean
             Get
                 Return _applying > 0
@@ -46,7 +47,9 @@ Namespace Controls
             _host = host : _overlay = overlay : _enabled = enabled : _units = units
             AddHandler host.Unloaded, Sub() Finish()
             AddHandler host.IsVisibleChanged, Sub() If Not host.IsVisible Then Finish()
-            AddHandler host.SizeChanged, Sub() Finish()
+            ' The incoming layout may resize its host before entry has a clock.
+            ' Only a running animation needs to settle on that notification.
+            AddHandler host.SizeChanged, Sub() If _clock IsNot Nothing Then Finish()
         End Sub
         Friend ReadOnly Property Transition As ClockGroup
             Get
@@ -60,11 +63,14 @@ Namespace Controls
         End Property
 
         Friend Sub Change(outgoing As FrameworkElement, incoming As FrameworkElement, changePage As Action, Optional contentRefresh As Boolean = False, Optional compositeExit As Boolean = False)
+            _generation += 1
+            Dim generation = _generation
             If outgoing Is incoming AndAlso Not contentRefresh Then
                 ApplyContent(changePage)
                 Return
             End If
             Dim animate = _enabled() AndAlso _host.IsLoaded AndAlso _host.IsVisible AndAlso _host.ActualWidth > 0 AndAlso _host.ActualHeight > 0
+            If generation <> _generation Then Return
             ' On reversal, use one composited image: slicing a running transition
             ' by the logical incoming layout would split unrelated outgoing pixels.
             Dim snapshot As PclExitSnapshot = Nothing
@@ -73,15 +79,21 @@ Namespace Controls
                 snapshot = PclExitSnapshot.Capture(_host, If(segmented, _units(outgoing), Enumerable.Empty(Of FrameworkElement)()),
                     If(segmented, VisibleBar(outgoing), Nothing))
             End If
+            If generation <> _generation Then Return
             StopOwnedMotion()
+            If generation <> _generation Then Return
             Dim previousOrigin = If(snapshot Is Nothing, New Point(), _host.TranslatePoint(New Point(), Nothing))
             ApplyContent(changePage)
-            If Not animate Then Return
+            ' Binding and layout may synchronously accept a new page or a stop.
+            ' A retired caller must never attach clocks to that accepted content.
+            If generation <> _generation OrElse Not animate Then Return
             Try
                 incoming.UpdateLayout()
+                If generation <> _generation Then Return
                 Dim currentOrigin = If(snapshot Is Nothing, previousOrigin, _host.TranslatePoint(New Point(), Nothing))
                 Dim visible = _units(incoming).Where(Function(unit) Not PclExitSnapshot.VisibleBounds(unit, _host).IsEmpty).Take(16).ToList()
                 Dim bar = VisibleBar(incoming)
+                If generation <> _generation Then Return
                 If snapshot Is Nothing AndAlso visible.Count = 0 AndAlso bar Is Nothing Then Return
                 Dim plan As New ParallelTimeline
                 Dim bindings As New List(Of Action(Of AnimationClock))
@@ -186,7 +198,7 @@ Namespace Controls
                     entry.Target.SetCurrentValue(UIElement.OpacityProperty, 0.0)
                 Next
             Catch
-                StopOwnedMotion()
+                If generation = _generation Then StopOwnedMotion()
                 Throw
             End Try
         End Sub
@@ -201,11 +213,13 @@ Namespace Controls
         End Sub
 
         Friend Sub Finish()
+            _generation += 1
             Dim notify = _clock IsNot Nothing
             StopOwnedMotion()
             If notify Then RaiseEvent Settled(Me, EventArgs.Empty)
         End Sub
         Friend Sub Cancel()
+            _generation += 1
             StopOwnedMotion()
         End Sub
         Private Shared Function Wrap(target As FrameworkElement, x As Double, y As Double, Optional entry As Entry = Nothing) As Entry

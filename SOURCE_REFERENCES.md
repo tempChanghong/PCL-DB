@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 共享入场动画的同步重入（2026-10-29）
+
+- 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 ModAnimation.vb:753–783 对同名动画先停止再替换；MyPageRight.vb:236 起先发布 Empty 状态再停止页面组，FormMain 先更新 PageCurrent 再改变框架。CE `915ac29795efbdf6373417389e181e1504117048` 的 ModAnimation.cs:1497–1526、MyPageRight.cs:287 起及 FormMain 为对应 C# 参考。
+- 本工具在绑定／布局交接处检查动画代次，过期入场不覆盖新控制器；明确停止可撤销未挂钟入场，而嵌套缓存内容仍合成给绑定父级。保留原曲线、时间和错峰。10 份固定原字节见 `artifacts/surface-entry-reentry/source/manifest.json`，[复现与验证](docs/reviews/surface-entry-reentry-2026-10-29.md)。不声称上游存在同名实现。
+
 ## 缓存搜索与实例入口顺序（2026-10-29）
 
 - PCL2 固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 PageInstanceMod.xaml.vb:335–340 在 PageChange 前设置 TargetInstance／TargetName；FormMain:1453–1461 在改变框架前发布 PageCurrent，MyPageRight:76–85 保持完成 UI 的通知顺序。CE 固定 `915ac29795efbdf6373417389e181e1504117048` 的 PageInstanceCompResource.xaml.cs:1435–1456 同样联动实例筛选，但赋值位于 PageChange 之后，本轮仍以 PCL2 的预绑定顺序为主。
