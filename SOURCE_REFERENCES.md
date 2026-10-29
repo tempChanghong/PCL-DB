@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 组件缓存校验取消与发布边界（2026-10-29）
+
+- 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModNet.vb:1474-1506,1531-1537` 和 CE `915ac29795efbdf6373417389e181e1504117048` 的三种 HashProvider／IHashProvider，提供复用中断、先大小后摘要与流哈希传 token 的依据。仅给 VerifiedComponentCache 三处已有调用传 token，保持 net48、S3 复位、原异常过滤、临时文件清理与提交边界。[修复报告](docs/reviews/component-cache-hash-cancellation-2026-10-29.md)。
+- ReleasePublishedClient 位于实例发布完成之后，按当前安装器的明确语义保持不可取消，不能把迟到取消变为发布失败。本地 8cf52a0 基线与上游 11 份固定 Git 原始字节见 `artifacts/component-cache-hash-cancellation/source/manifest.json`。第三轮仍未启动，剩余发布路径单独审查。
+
 ## 下载器校验取消收尾与后续门槛（2026-10-29）
 
 - 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModNet.vb:1474-1506,1531-1537`：复用中断、先大小后摘要和复制回退；C# 参考 CE `915ac29795efbdf6373417389e181e1504117048` 的 `SHA1Provider`／`SHA512Provider`／`MD5Provider` 令牌语义。下载器仅六处原调用接入已有可取消重载，不改预算、锁、重试和发布顺序。[修复与验证](docs/reviews/download-hash-cancellation-2026-10-29.md)。

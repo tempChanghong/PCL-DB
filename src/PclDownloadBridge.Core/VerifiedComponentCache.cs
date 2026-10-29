@@ -75,7 +75,7 @@ namespace PclDownloadBridge.Core
                     try
                     {
                         string candidate = SafeFiles.UnderRoot(readRoot, relative);
-                        if (!SafeFiles.Matches(candidate, item))
+                        if (!SafeFiles.Matches(candidate, item, token))
                             continue;
                         temporary = Path.Combine(Path.GetDirectoryName(target), ".pcldb.cache-" + Guid.NewGuid().ToString("N") + ".tmp");
                         CopyChecked(candidate, temporary, item, token);
@@ -107,7 +107,7 @@ namespace PclDownloadBridge.Core
             {
                 token.ThrowIfCancellationRequested();
                 string target = SafeFiles.UnderRoot(_root, relative);
-                if (SafeFiles.Matches(target, item))
+                if (SafeFiles.Matches(target, item, token))
                     return;
                 Directory.CreateDirectory(Path.GetDirectoryName(target));
                 temporary = target + ".cache-" + Guid.NewGuid().ToString("N");
@@ -160,7 +160,7 @@ namespace PclDownloadBridge.Core
                 while (true);
             }
             token.ThrowIfCancellationRequested();
-            if (!SafeFiles.Matches(temporary, item))
+            if (!SafeFiles.Matches(temporary, item, token))
                 throw new InvalidDataException("组件缓存副本校验失败。");
             token.ThrowIfCancellationRequested();
         }

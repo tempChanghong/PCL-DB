@@ -1,5 +1,11 @@
 # 本地验证记录
 
+## Beta 8 后续：组件缓存校验取消（2026-10-29，尚未发行）
+
+基线 `8cf52a0`。VerifiedComponentCache 仅三处 Matches 接入已有 token，覆盖恢复候选、已有缓存和保存／恢复两种副本复校验。旧实现四处均继续读完整文件，Save 已有缓存还正常返回；候选首 64 KiB 早停并保留原 token、原目标、源和缓存、清理副本并支持 fresh-token 重试。发布完成后的 ReleasePublishedClient 和原 catch／finally 不改。
+
+37 项专项、同 EXE 仅替换旧 Core 的四处预期失败、完整 VB 7687、旧宿主 7305、严格 API 零差异（979／1245）、两资源／15 个 JSON、VS 2026 Debug、串行单 EXE 冷启动 25／搜索 3240、内嵌文档和提交树绑定，以 `artifacts/component-cache-hash-cancellation/validation.json` 为准。[报告与限度](docs/reviews/component-cache-hash-cancellation-2026-10-29.md)。单次 Read 不能抢占，其他发布路径继续审查，第三轮未启动。未打包、推送、发版。
+
 ## Beta 8 后续：下载器校验取消收尾（2026-10-29，尚未发行）
 
 基线 `f8be3c3`。仅给下载器六处原 Matches 调用传入已有 token，API、供体、共享预算、缓存与发布顺序保持。六条真实路径旧实现首块取消后仍读完，cache／HEAD 还会重复校验，旧 target 误计 Reused=1；候选首 64 KiB 早停且 Reused=0。53 项新增 VB 专项、冻结同 EXE 的六处旧 Core 预期失败与 fresh-token 重试均保留。
