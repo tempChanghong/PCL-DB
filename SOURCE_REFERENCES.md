@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 分类缓存详情的后续配置（2026-10-29）
+
+- 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 FormMain.xaml.vb:1453–1461 在改变框架 UI 前更新 PageCurrent，MyPageRight:76–85 在 UI 完成通知后派发 loader 状态。CE `915ac29795efbdf6373417389e181e1504117048` 的 FormMain.xaml.cs:1842 及 MyPageRight.cs:96–105 提供对应 C# 参考。
+- 本工具将分类恢复的配置委托交回仍有效的详情恢复执行，不再在旧恢复退出后无条件滚动和配置；异常留在既有分类错误通道，配置后的归属复查阻止多余的旧详情读取。搜索缓存与同分类分支保持。固定 Git 原始字节共 15 份见 `artifacts/category-restore-continuation/source/manifest.json`，[复现与验证](docs/reviews/category-restore-continuation-2026-10-29.md)。
+
 ## 父详情恢复与资源子动画事务（2026-10-29）
 
 - 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 FormMain 历史／PageCurrent 交接、详情 loader 的取消检查、MyPageRight 完成顺序和 ModLoader 发布归属作为依据；CE `915ac29795efbdf6373417389e181e1504117048` 的对应 C# 历史、详情、页面和 loader 仅作参考。原始 Git 字节共 16 份见 `artifacts/detail-restore-ownership/source/manifest.json`。

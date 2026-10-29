@@ -104,6 +104,139 @@ Partial Public Class MainWindow
             "the accepted cache restore still restores its saved viewport after laying out returned rows")
         check(ActivePackProject() Is project AndAlso _packReleases.Count = 2,
             "search restoration does not mutate the retained detail or its installable release identities")
+        Await CheckCategoryRestoreContinuationAsync(directory, layout, check)
+    End Function
+    Private Async Function CheckCategoryRestoreContinuationAsync(directory As String, layout As Action, check As Action(Of Boolean, String)) As Task
+        Dim settle As Action = Sub()
+                                   _surfaceMotion.Finish() : _categoryMotion.Finish() : FinishPackContentMotion() : layout()
+                               End Sub
+        Dim observations As New JArray
+        For Each dark In {False, True}
+            For Each animated In {False, True}
+                _motionPreview = False : CancelResourceRequests() : _resourceBrowsers.Clear() : _resourceBack.Clear()
+                _packCatalogFactory = Function() FailingPackCatalog(New IOException("Offline category restore fixture"))
+                ShowDownload(Nothing, Nothing) : SelectResourceKind(CommunityResourceKind.Mod) : settle()
+                Dim parent As New ModpackProject With {.Platform = ModpackPlatform.Modrinth, .Kind = CommunityResourceKind.Mod, .Id = "categoryparent", .Name = "Cached parent"}
+                PrepareResourceBackDetail(parent) : PackSearchText.Text = "cached target"
+                _packTargetGame = "" : _packGameFilter = ""
+                _packReleases = Enumerable.Range(0, 40).Select(Function(index) New ModpackRelease With {.Platform = parent.Platform, .Kind = parent.Kind,
+                    .ProjectId = parent.Id, .Id = "parent-" & index, .Name = "Parent " & index, .GameVersions = {"1.20.1"}}).ToList()
+                InitializePackVersions() : settle() : ModpackPage.ScrollToVerticalOffset(240) : layout()
+                SelectResourceKind(CommunityResourceKind.Shader) : settle() : PackSearchText.Text = "away context"
+                Dim winner As New ModpackProject With {.Platform = parent.Platform, .Kind = parent.Kind, .Id = "categorywinner", .Name = "Newer accepted project"}
+                Dim armed = 0, callbacks = 0, configured = 0, reads = 0, versions = 0, savedScroll As Double
+                Dim acceptedRows As UIElement() = {}, acceptedFilters As UIElement() = {}, acceptedReleases As List(Of ModpackRelease) = Nothing, acceptedText As String = Nothing
+                Dim generation = _taskGeneration, registration As CancellationTokenRegistration
+                Dim arm As TextChangedEventHandler =
+                    Sub()
+                        If armed <> 0 OrElse _resourceKind <> CommunityResourceKind.Mod OrElse PackSearchText.Text <> "cached target" Then Return
+                        armed += 1
+                        registration = _resourceNamesRequest.Token.Register(
+                            Sub()
+                                callbacks += 1
+                                _packCatalogFactory = Function() New ModpackCatalogClient(New PackSearchFixtureHandler With {
+                                    .ProjectPage = Function(uri)
+                                                       reads += 1
+                                                       Return CommunityProjectFixture(winner.Kind, winner.Id)
+                                                   End Function,
+                                    .VersionPage = Function(uri)
+                                                       versions += 1
+                                                       Return New JArray(Enumerable.Range(0, 40).Select(Function(index) CommunityReleaseFixture(winner.Kind, winner.Id, "winner" & index.ToString("D2"))))
+                                                   End Function}, "", 0)
+                                OpenPackDetails(winner)
+                                If Not PumpMotionUntil(Function() _packDetailCompletedProject Is winner AndAlso _packDetailRequest Is Nothing) Then Throw New TimeoutException("Newer category project did not complete.")
+                                layout() : ModpackPage.ScrollToVerticalOffset(150) : layout()
+                                savedScroll = ModpackPage.VerticalOffset : acceptedText = PackSearchText.Text : acceptedReleases = _packReleases
+                                acceptedRows = PackVersionCards.Children.Cast(Of UIElement)().ToArray() : acceptedFilters = PackVersionFilters.Children.Cast(Of UIElement)().ToArray()
+                            End Sub)
+                    End Sub
+                RestoreAppearance(New JObject From {{"darkMode", dark}}) : _motionPreview = animated : settle()
+                AddHandler PackSearchText.TextChanged, arm
+                Try
+                    SelectResourceKind(CommunityResourceKind.Mod, Sub()
+                                                                     configured += 1
+                                                                     PackSearchText.Text = "obsolete instance configuration"
+                                                                 End Sub)
+                    settle()
+                    Dim label = "/category-restore/dark=" & dark & "/motion=" & animated
+                    check(armed = 1 AndAlso callbacks = 1 AndAlso reads = 1 AndAlso versions = 1 AndAlso savedScroll > 100,
+                        "the actual category restore publishes its new names source before a newer completed project is opened" & label)
+                    check(_packProject Is winner AndAlso _packDetailCompletedProject Is winner AndAlso _packReleases Is acceptedReleases AndAlso
+                        PackVersionCards.Children.Cast(Of UIElement)().SequenceEqual(acceptedRows) AndAlso PackVersionFilters.Children.Cast(Of UIElement)().SequenceEqual(acceptedFilters),
+                        "the category caller keeps the newer project's exact completed release cards and filters" & label)
+                    check(configured = 0 AndAlso PackSearchText.Text = acceptedText AndAlso Math.Abs(ModpackPage.VerticalOffset - savedScroll) < 0.5,
+                        "an abandoned cached-detail restore cannot run its old configuration delegate or rewind the newer viewport" & label)
+                    check(_taskGeneration = generation AndAlso Not _busy AndAlso Not _choosingOnline AndAlso _resourceBack.Count = 0 AndAlso
+                        PageSurface.IsHitTestVisible AndAlso DownloadViewHost.IsHitTestVisible AndAlso PackDetailResultsHost.IsHitTestVisible AndAlso
+                        _surfaceMotion.Transition Is Nothing AndAlso _categoryMotion.Transition Is Nothing AndAlso _packDetailMotion.Transition Is Nothing AndAlso
+                        Math.Abs(PackDetailResultsSurface.Opacity - 1) < 0.0001,
+                        "the accepted category project settles without task ownership changes or stranded content gates" & label)
+                    observations.Add(New JObject From {{"case", label}, {"configured", configured}, {"beforeScroll", savedScroll}, {"afterScroll", ModpackPage.VerticalOffset},
+                        {"inputBefore", acceptedText}, {"inputAfter", PackSearchText.Text}, {"metadataReads", reads}, {"versionReads", versions}, {"armed", armed}, {"callbacks", callbacks}})
+                Finally
+                    RemoveHandler PackSearchText.TextChanged, arm : registration.Dispose()
+                End Try
+            Next
+        Next
+        File.WriteAllText(Path.Combine(directory, "category-restore-continuation.json"), observations.ToString())
+
+        ' A valid incomplete cached frame must still configure once, load, fail,
+        ' and retry through the same public detail controls.
+        _motionPreview = False : CancelResourceRequests() : _resourceBrowsers.Clear() : _resourceBack.Clear()
+        _packCatalogFactory = Function() FailingPackCatalog(New IOException("Offline positive restore fixture"))
+        SelectResourceKind(CommunityResourceKind.Mod) : settle()
+        Dim pending As New ModpackProject With {.Platform = ModpackPlatform.Modrinth, .Kind = CommunityResourceKind.Mod, .Id = "categorypending", .Name = "Pending cached parent"}
+        PrepareResourceBackDetail(pending) : _packDetailCompletedProject = Nothing : settle()
+        SelectResourceKind(CommunityResourceKind.Shader) : settle()
+        Dim metadata As New DetailStartState(pending.Kind, "Restored cached project", "restored1") With {.Fail = True}, calls = 0
+        _packCatalogFactory = Function() New ModpackCatalogClient(New DetailStartHandler(metadata), "", 0)
+        SelectResourceKind(CommunityResourceKind.Mod, Sub() calls += 1) : settle()
+        check(calls = 1 AndAlso metadata.Calls = 1 AndAlso _packProject Is pending AndAlso _packDetailRequest IsNot Nothing,
+            "an accepted incomplete category frame configures once and starts exactly one metadata reader")
+        metadata.Gate.TrySetResult(True)
+        Await WaitPackUiAsync(Function() _packDetailRequest Is Nothing) : settle()
+        File.WriteAllText(Path.Combine(directory, "category-restore-failure.json"), New JObject From {{"metadataAttempts", metadata.Calls},
+            {"retryVisible", PackDetailRetry.IsVisible}, {"hintVisible", PackDetailHint.IsVisible}, {"sameProject", _packProject Is pending}, {"hint", PackDetailHint.Text}}.ToString())
+        ' One submitted reader may try more than one metadata endpoint on failure.
+        check(PackDetailRetry.IsVisible AndAlso PackDetailHint.IsVisible AndAlso _packProject Is pending AndAlso _packDetailCompletedProject Is Nothing,
+            "a failed incomplete category restore remains on its own retryable detail")
+        Dim retry As New DetailStartState(pending.Kind, "Retried cached project", "retried1")
+        retry.Gate.TrySetResult(True) : _packCatalogFactory = Function() New ModpackCatalogClient(New DetailStartHandler(retry), "", 0)
+        RetryPackDetails(Nothing, Nothing)
+        Await WaitPackUiAsync(Function() _packDetailRequest Is Nothing) : settle()
+        check(calls = 1 AndAlso retry.Calls = 1 AndAlso _packDetailCompletedProject Is pending AndAlso _packReleases.Single().Id = retry.VersionId AndAlso Not PackDetailRetry.IsVisible,
+            "an explicit retry completes the accepted category frame without rerunning configuration")
+        Dim completed = _packReleases
+        SelectResourceKind(CommunityResourceKind.Shader) : settle()
+        SelectResourceKind(CommunityResourceKind.Mod, Sub() calls += 1) : settle()
+        check(calls = 2 AndAlso retry.Calls = 1 AndAlso _packReleases Is completed AndAlso _packDetailCompletedProject Is pending,
+            "a completed category frame reuses its exact cached releases while configuring once per accepted entry")
+        _packDetailCompletedProject = Nothing
+        SelectResourceKind(CommunityResourceKind.Shader) : settle()
+        Dim blocked As New DetailStartState(pending.Kind, "Blocked obsolete read", "blocked1")
+        _packCatalogFactory = Function() New ModpackCatalogClient(New DetailStartHandler(blocked), "", 0)
+        SelectResourceKind(CommunityResourceKind.Mod, Sub() Throw New IOException("Controlled restore configuration failure")) : settle()
+        check(PackProjectActionStatus.IsVisible AndAlso PackProjectActionStatus.ToolTip.ToString().Contains("Controlled restore configuration failure") AndAlso _packProject Is pending,
+            "a cached-detail configuration exception stays in the category error path without escaping its async restore")
+        check(blocked.Calls = 0 AndAlso _packDetailRequest Is Nothing,
+            "a failed category continuation does not submit an unnecessary cached-detail metadata reader")
+        blocked.Gate.TrySetResult(True)
+        Await WaitPackUiAsync(Function() _packDetailRequest Is Nothing) : settle()
+        _packDetailCompletedProject = Nothing
+        SelectResourceKind(CommunityResourceKind.Shader) : settle()
+        Dim redirected As New DetailStartState(pending.Kind, "Unneeded detail after search configuration", "redirect1"), redirects = 0, task = _taskGeneration
+        _packCatalogFactory = Function() New ModpackCatalogClient(New DetailStartHandler(redirected), "", 0)
+        SelectResourceKind(CommunityResourceKind.Mod,
+            Sub()
+                redirects += 1 : CancelResourceRequests() : _packSearchSession = Nothing
+                ChangePackMode(PackBrowserMode.Search)
+            End Sub) : settle()
+        check(redirects = 1 AndAlso _packMode = PackBrowserMode.Search AndAlso redirected.Calls = 0 AndAlso _packDetailRequest Is Nothing,
+            "an accepted search configuration supersedes the cached detail without fetching metadata that it immediately cancels")
+        check(_taskGeneration = task AndAlso PageSurface.IsHitTestVisible AndAlso DownloadViewHost.IsHitTestVisible AndAlso PackSearchResultsHost.IsHitTestVisible AndAlso
+            _categoryMotion.Transition Is Nothing AndAlso _packDetailMotion.Transition Is Nothing,
+            "a configuration that changes view retains settled search input and the existing installation owner")
+        redirected.Gate.TrySetResult(True) : FlushControlLayout() : settle()
     End Function
     Private Sub SetRestoreSearchRows(layout As Action)
         PackResultsCard.Visibility = Visibility.Visible : PackResultsCard.HorizontalAlignment = HorizontalAlignment.Stretch

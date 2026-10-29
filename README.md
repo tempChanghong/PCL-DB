@@ -14,6 +14,8 @@ UI 对照旧 VB 版及 PCL2／PCL-CE，修正本地 Mod 页卡片与列表边距
 
 从前置资源返回父详情时，旧请求的取消通知若打开新项目，旧恢复不再覆盖新页面；嵌套详情更新共用当前入场事务，避免内容区收尾后仍透明。[返回交接检查](docs/reviews/detail-restore-ownership-2026-10-29.md)。
 
+分类切回缓存详情时，旧恢复的后续配置和滚动也绑定当前归属；配置失败或已切入搜索时，不再先启动多余的旧详情读取。[分类恢复检查](docs/reviews/category-restore-continuation-2026-10-29.md)。
+
 组件运行库在新实例发布前统一按原摘要复验并保持短期读保护，外部改写或占用会停止发布；独立快照防止后续对象修改改变校验依据，取消后可重试。[冲突修复与验证](docs/reviews/runtime-publication-conflict-2026-10-29.md)。
 
 Core 已进入第二轮结构整理，首批将平台目录按模型、查询编排、HTTP 传输和严格元数据解析拆分；原有接口与行为保持。[结构说明与验证](docs/reviews/core-refactor-round2-catalog-2026-10-29.md)。

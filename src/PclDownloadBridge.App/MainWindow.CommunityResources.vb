@@ -220,12 +220,22 @@ Partial Public Class MainWindow
                         PackLocalSurface.Visibility = If(state.Mode = PackBrowserMode.Local AndAlso kind = CommunityResourceKind.Modpack, Visibility.Visible, Visibility.Collapsed)
                         ApplyDownloadView(DownloadView.Modpacks, previousView)
                         If state.Mode = PackBrowserMode.Detail AndAlso state.Detail?.Project IsNot Nothing Then
-                            RestoreResourceDetail(state.Detail)
-                        ElseIf state.Session IsNot Nothing Then
-                            RestoreResourceSearchAsync(state.Page)
+                            ' Keep the continuation with the restore's accepted owner.
+                            RestoreResourceDetail(state.Detail,
+                                Function()
+                                    Try
+                                        configure?.Invoke()
+                                        Return True
+                                    Catch ex As Exception
+                                        failure = ex
+                                        Return False
+                                    End Try
+                                End Function)
+                        Else
+                            If state.Session IsNot Nothing Then RestoreResourceSearchAsync(state.Page)
+                            ModpackPage.UpdateLayout() : ModpackPage.ScrollToVerticalOffset(If(state.Mode = PackBrowserMode.Search, state.Scroll, _packDetailScroll))
+                            configure?.Invoke()
                         End If
-                        ModpackPage.UpdateLayout() : ModpackPage.ScrollToVerticalOffset(If(state.Mode = PackBrowserMode.Search, state.Scroll, _packDetailScroll))
-                        configure?.Invoke()
                     End Sub, contentRefresh:=previousView = DownloadView.Modpacks, compositeExit:=HasPackContentMotion() OrElse _pageSwitch.HasMotion)
             End If
             applied = True
@@ -271,7 +281,7 @@ Partial Public Class MainWindow
         ' overwrite that page's reading position despite sharing the same session.
         Await LoadPackSearchPageAsync(page, _packSearchScroll)
     End Sub
-    Private Async Sub RestoreResourceDetail(state As ResourceDetailState)
+    Private Async Sub RestoreResourceDetail(state As ResourceDetailState, Optional finishEntry As Func(Of Boolean) = Nothing)
         Dim generation = _resourceDetailGeneration, category = _resourceCategoryGeneration, navigation = _surfaceNavigationGeneration
         Dim main = ActiveSurface(), kind = _resourceKind, mode = _packMode, view = _downloadView, session = _packSearchSession
         Dim project = _packProject, verified = _packVerifiedProject, releases = _packReleases, names As CancellationTokenSource = Nothing
@@ -297,6 +307,8 @@ Partial Public Class MainWindow
         ModpackPage.UpdateLayout()
         If Not current() Then Return
         ModpackPage.ScrollToVerticalOffset(state.Scroll)
+        If Not current() Then Return
+        If finishEntry IsNot Nothing AndAlso Not finishEntry() Then Return
         If Not current() Then Return
         If state.Completed IsNot state.Project Then Await LoadPackDetailsAsync(state.Project)
     End Sub
