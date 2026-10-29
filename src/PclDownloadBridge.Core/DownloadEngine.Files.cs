@@ -37,7 +37,7 @@ namespace PclDownloadBridge.Core
         private async Task DownloadOneExclusiveAsync(string root, DownloadFile item, string cacheKey, CancellationToken token)
         {
             string target = SafeFiles.UnderRoot(root, item.RelativePath);
-            if (SafeFiles.Matches(target, item))
+            if (SafeFiles.Matches(target, item, token))
             {
                 _componentCache?.Save(target, item, token);
                 Interlocked.Increment(ref _reused);
@@ -59,7 +59,7 @@ namespace PclDownloadBridge.Core
                 bool reusable;
                 try
                 {
-                    reusable = SafeFiles.Matches(candidate, item);
+                    reusable = SafeFiles.Matches(candidate, item, token);
                 }
                 catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
                 {
@@ -75,7 +75,7 @@ namespace PclDownloadBridge.Core
                             token.ThrowIfCancellationRequested();
                             File.Copy(candidate, copyTemp);
                             token.ThrowIfCancellationRequested();
-                            if (!SafeFiles.Matches(copyTemp, item))
+                            if (!SafeFiles.Matches(copyTemp, item, token))
                                 throw new IOException("复用文件在复制期间发生变化。");
                             token.ThrowIfCancellationRequested();
                         }
@@ -113,7 +113,7 @@ namespace PclDownloadBridge.Core
                     string merged = SafeFiles.UnderRoot(cache, "complete.tmp");
                     try
                     {
-                        bool completeCached = (CanResumeSingle(item) || _modrinthTransfer.Value) && SafeFiles.Matches(merged, item);
+                        bool completeCached = (CanResumeSingle(item) || _modrinthTransfer.Value) && SafeFiles.Matches(merged, item, token);
                         if (completeCached)
                         {
                             _source = "本地已校验续传缓存";
@@ -154,10 +154,10 @@ namespace PclDownloadBridge.Core
                                 // A misleading HEAD length must not reject valid hashed bytes.
                                 retryWithoutLength = true;
                             }
-                            if (retryWithoutLength && !SafeFiles.Matches(merged, item))
+                            if (retryWithoutLength && !SafeFiles.Matches(merged, item, token))
                                 await SingleAsync(source, merged, item, token).ConfigureAwait(false);
                         }
-                        if (!SafeFiles.Matches(merged, item))
+                        if (!SafeFiles.Matches(merged, item, token))
                             throw new InvalidDataException("大小或哈希校验失败：" + item.RelativePath);
                         token.ThrowIfCancellationRequested();
                         SafeFiles.CommitFile(merged, target);

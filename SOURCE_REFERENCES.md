@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 下载器校验取消收尾与后续门槛（2026-10-29）
+
+- 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModNet.vb:1474-1506,1531-1537`：复用中断、先大小后摘要和复制回退；C# 参考 CE `915ac29795efbdf6373417389e181e1504117048` 的 `SHA1Provider`／`SHA512Provider`／`MD5Provider` 令牌语义。下载器仅六处原调用接入已有可取消重载，不改预算、锁、重试和发布顺序。[修复与验证](docs/reviews/download-hash-cancellation-2026-10-29.md)。
+- 第三轮尚未启动。候选职责边界参照 PCL 的 `LocalResourceFile`／`LocalResourceLoaders` 和 CE 的 `ModLocalComp.Load/LoadCore`；本项目严格解析、外部配置只读、VB UI／测试及 net48 保留。[收尾清单与进入条件](docs/reviews/core-refactor-round2-closeout-2026-10-29.md)。固定原始字节见 `artifacts/download-hash-cancellation/source/manifest.json`。
+
 ## 归档与非覆盖文件最终校验取消（2026-10-29）
 
 - 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModModpack.vb:112-115,209,405,435-436`、`ModNet.vb:1474-1506,1531-1537`，保持任务取消、先大小后摘要及文件状态检查。CE `915ac29795efbdf6373417389e181e1504117048` 的 `PCL.Core/Utils/Hash/{SHA1Provider,SHA512Provider,MD5Provider,IHashProvider}.cs` 作为 C# 流哈希传 token 的依据。

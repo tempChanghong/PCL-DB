@@ -1,5 +1,11 @@
 # 本地验证记录
 
+## Beta 8 后续：下载器校验取消收尾（2026-10-29，尚未发行）
+
+基线 `f8be3c3`。仅给下载器六处原 Matches 调用传入已有 token，API、供体、共享预算、缓存与发布顺序保持。六条真实路径旧实现首块取消后仍读完，cache／HEAD 还会重复校验，旧 target 误计 Reused=1；候选首 64 KiB 早停且 Reused=0。53 项新增 VB 专项、冻结同 EXE 的六处旧 Core 预期失败与 fresh-token 重试均保留。
+
+最终 Core 专项 53、完整 VB 7650、旧宿主 7305、严格零增量 API（979 public／1245 友元）、资源／JSON、Debug 和串行冷启动／完整搜索及提交绑定，以 `artifacts/download-hash-cancellation/validation.json` 为准。[本批报告](docs/reviews/download-hash-cancellation-2026-10-29.md)。组件缓存等剩余路径有明确审查清单，第三轮未启动；[进入条件与路线候选](docs/reviews/core-refactor-round2-closeout-2026-10-29.md)。单次同步 Read／File.Copy 不能抢占，未打包、推送、发版。
+
 ## Beta 8 后续：归档与非覆盖文件最终校验取消（2026-10-29，尚未发行）
 
 基线 `1a85a30`。新增 internal 三参数 Matches，原 public 两参数 None 路径、摘要／大小规则保持；仅接入归档缓存最终校验和非 override 文件终验。四条旧路径均在首块取消后继续读完，两个平台的 AcquireAsync 还返回成功路径。冻结同测试 EXE 的原入口 integration 对照为 31 项候选通过、四处旧 Core 预期失败；全部专项 87 项，完整 VB 预期 7597。
