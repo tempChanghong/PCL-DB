@@ -272,15 +272,32 @@ Partial Public Class MainWindow
         Await LoadPackSearchPageAsync(page, _packSearchScroll)
     End Sub
     Private Async Sub RestoreResourceDetail(state As ResourceDetailState)
-        ResetResourceNames()
-        _packProject = state.Project : _packVerifiedProject = state.Verified : _packDetailCompletedProject = state.Completed
-        _packReleases = state.Releases : _packDetailScroll = state.Scroll : _packTargetGame = state.Game : _resourceTargetLoader = state.Loader
+        Dim generation = _resourceDetailGeneration, category = _resourceCategoryGeneration, navigation = _surfaceNavigationGeneration
+        Dim main = ActiveSurface(), kind = _resourceKind, mode = _packMode, view = _downloadView, session = _packSearchSession
+        Dim project = _packProject, verified = _packVerifiedProject, releases = _packReleases, names As CancellationTokenSource = Nothing
+        Dim current As Func(Of Boolean) = Function() Not _closing AndAlso Not _busy AndAlso Not _choosingOnline AndAlso
+            generation = _resourceDetailGeneration AndAlso category = _resourceCategoryGeneration AndAlso navigation = _surfaceNavigationGeneration AndAlso
+            ActiveSurface() Is main AndAlso _resourceKind = kind AndAlso _packMode = mode AndAlso _downloadView = view AndAlso _packSearchSession Is session AndAlso
+            _resourceNamesRequest Is names AndAlso _packProject Is project AndAlso _packVerifiedProject Is verified AndAlso _packReleases Is releases
+        ' Capture this reset's new source before its old cancellation can navigate.
+        ResetResourceNames(Sub() names = _resourceNamesRequest)
+        If Not current() Then Return
+        project = state.Project : verified = state.Verified : releases = state.Releases
+        _packProject = project : _packVerifiedProject = verified : _packDetailCompletedProject = state.Completed
+        _packReleases = releases : _packDetailScroll = state.Scroll : _packTargetGame = state.Game : _resourceTargetLoader = state.Loader
         PackDetailRetry.Visibility = Visibility.Collapsed
+        If Not current() Then Return
         _packVersionCache.Clear() : RenderPackProject(ActivePackProject())
+        If Not current() Then Return
         InitializePackVersions(state.Expanded)
+        If Not current() Then Return
         ' Empty is PCL's explicit All choice, not an absent saved selection.
         _packGameFilter = If(state.Filter, "") : RenderPackVersions()
-        ModpackPage.UpdateLayout() : ModpackPage.ScrollToVerticalOffset(state.Scroll)
+        If Not current() Then Return
+        ModpackPage.UpdateLayout()
+        If Not current() Then Return
+        ModpackPage.ScrollToVerticalOffset(state.Scroll)
+        If Not current() Then Return
         If state.Completed IsNot state.Project Then Await LoadPackDetailsAsync(state.Project)
     End Sub
     Private Sub AddResourceDependencies(rows As StackPanel, releases As List(Of ModpackRelease))

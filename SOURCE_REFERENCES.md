@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 父详情恢复与资源子动画事务（2026-10-29）
+
+- 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 FormMain 历史／PageCurrent 交接、详情 loader 的取消检查、MyPageRight 完成顺序和 ModLoader 发布归属作为依据；CE `915ac29795efbdf6373417389e181e1504117048` 的对应 C# 历史、详情、页面和 loader 仅作参考。原始 Git 字节共 16 份见 `artifacts/detail-restore-ownership/source/manifest.json`。
+- 本工具在恢复前后绑定实际名称请求源与既有页面／详情代次，原展开、筛选、滚动及缓存引用保持。两个资源子动画的 ApplyingContent 纳入已有同步合成分支，沿用现有时长和通用控制器；不是照搬上游线程终止或新增锁。[分阶段复现与修复](docs/reviews/detail-restore-ownership-2026-10-29.md)。
+
 ## 资源统计栏度量（2026-10-29）
 
 - 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MyResourceItem.xaml:58,62,71,75-81`：下载列 55 DIP、时间列 Auto／MinWidth 57、版本标签左距 4、其余标签左距 5、时间图标右距 1。CE `915ac29795efbdf6373417389e181e1504117048` 的 `MyCompItem.xaml` 保留时间最小值与间距，但下载列采用 Auto／共享组，本轮以 PCL 的固定槽位为准。

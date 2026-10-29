@@ -93,6 +93,7 @@ Partial Public Class MainWindow
             Next
         Next
         Await CheckProjectCompletionRenderAsync(png, layout, check)
+        Await CheckProjectBackRestoreAsync(png, layout, check)
     End Function
     Private Async Function CheckProjectCompletionRenderAsync(png As Byte(), layout As Action, check As Action(Of Boolean, String)) As Task
         Dim settle As Action = Sub()
@@ -186,6 +187,108 @@ Partial Public Class MainWindow
             Next
         Next
     End Function
+    Private Async Function CheckProjectBackRestoreAsync(png As Byte(), layout As Action, check As Action(Of Boolean, String)) As Task
+        Dim settle As Action = Sub()
+                                   _surfaceMotion.Finish() : _categoryMotion.Finish() : FinishPackContentMotion() : layout()
+                               End Sub
+        For Each dark In {False, True}
+            For Each animated In {False, True}
+                For Each names In {False, True}
+                    _motionPreview = False : CancelResourceRequests()
+                    ShowDownload(Nothing, Nothing) : SelectResourceKind(CommunityResourceKind.Mod) : ChangePackMode(PackBrowserMode.Search) : settle()
+                    Dim grand As New ModpackProject With {.Platform = ModpackPlatform.Modrinth, .Kind = CommunityResourceKind.Mod, .Id = "restoregrand", .Name = "Grandparent"}
+                    Dim parent As New ModpackProject With {.Platform = grand.Platform, .Kind = grand.Kind, .Id = "restoreparent", .Name = "Completed parent"}
+                    Dim grandFrame = PrepareResourceBackDetail(grand)
+                    PrepareResourceBackDetail(parent)
+                    _packTargetGame = ""
+                    _packReleases = Enumerable.Range(0, 40).Select(Function(index) New ModpackRelease With {.Platform = parent.Platform, .Kind = parent.Kind, .ProjectId = parent.Id,
+                        .Id = "parent-" & index, .Name = "Parent release " & index, .GameVersions = {If(index Mod 2 = 0, "1.20.1", "1.21.1")}}).ToList()
+                    InitializePackVersions() : settle()
+                    SelectPackVersionFilter(PackVersionFilters.Children.OfType(Of PclRadioButton)().Single(Function(button) CStr(button.Tag) = "1.20.1")) : settle()
+                    ModpackPage.ScrollToVerticalOffset(240) : layout()
+                    Dim parentFrame = CaptureResourceDetail()
+                    Dim artwork As New ArtworkFixtureState, child = ArtworkProject("restorechild")
+                    PrepareArtworkProject(child, artwork, settle)
+                    Dim retiredArtwork = _packDetailArtworkRequest, firstImage = artwork.Calls.ToArray().Single()
+                    _resourceBack.Push(grandFrame) : _resourceBack.Push(parentFrame)
+                    Dim session = _packSearchSession, generation = _taskGeneration, originalTransform = PackDetailResultsSurface.RenderTransform
+                    Dim other = ArtworkProject("restorenewer"), newer As New DetailStartState(other.Kind, "Verified newer restore owner", "restored1")
+                    Dim callbacks = 0, armed = 0, framesBeforeOpen As ResourceDetailState() = {}, acceptedFrames As ResourceDetailState() = {}
+                    Dim acceptedRequest As CancellationTokenSource = Nothing, acceptedNames As CancellationTokenSource = Nothing, acceptedToken As CancellationToken
+                    Dim header As PclResourceItem = Nothing, cards As UIElement() = {}, filters As UIElement() = {}, expanded As String() = {}
+                    Dim filter As String = Nothing, scroll As Double, hintText As String = Nothing, hintTip As Object = Nothing, hintTheme As PclHintTheme
+                    Dim hintVisibility As Visibility, retryVisibility As Visibility, filterVisibility As Visibility
+                    Dim label = "/restore-back/dark=" & dark & "/motion=" & animated & "/origin=" & If(names, "second-names-reset", "artwork")
+                    Dim visual As New JObject From {{"case", label}, {"savedParentScroll", parentFrame.Scroll}, {"savedParentFilter", parentFrame.Filter}}
+                    Dim openNewer As Action = Sub()
+                                                 callbacks += 1 : framesBeforeOpen = _resourceBack.ToArray()
+                                                 _packCatalogFactory = Function() New ModpackCatalogClient(New DetailStartHandler(newer), "", 0)
+                                                 OpenPackDetails(other)
+                                                 acceptedRequest = _packDetailRequest : acceptedNames = _resourceNamesRequest : acceptedToken = acceptedNames.Token
+                                                 header = ArtworkHeader() : acceptedFrames = _resourceBack.ToArray()
+                                                 cards = PackVersionCards.Children.Cast(Of UIElement)().ToArray() : filters = PackVersionFilters.Children.Cast(Of UIElement)().ToArray()
+                                                 expanded = CapturePackVersionExpansions() : filter = _packGameFilter : scroll = ModpackPage.VerticalOffset
+                                                 hintText = PackDetailHint.Text : hintTip = PackDetailHint.ToolTip : hintTheme = PackDetailHint.Theme
+                                                 hintVisibility = PackDetailHint.Visibility : retryVisibility = PackDetailRetry.Visibility : filterVisibility = PackVersionFilterCard.Visibility
+                                                 visual("callbackOpacity") = PackDetailResultsSurface.Opacity : visual("callbackScroll") = scroll
+                                                 visual("callbackCards") = cards.Length : visual("callbackFilter") = filter
+                                             End Sub
+                    RestoreAppearance(New JObject From {{"darkMode", dark}}) : _motionPreview = animated : settle()
+                    Dim second As CancellationTokenRegistration
+                    Dim token = If(names, _resourceNamesRequest.Token, retiredArtwork.Token)
+                    Using registration = token.Register(Sub()
+                                                            If names Then
+                                                                ' Back's first reset must accept its own transition. The
+                                                                ' next source is retired only inside RestoreResourceDetail.
+                                                                armed += 1 : second = _resourceNamesRequest.Token.Register(openNewer)
+                                                            Else
+                                                                openNewer()
+                                                            End If
+                                                        End Sub)
+                        Try
+                            Dim navigated = NavigateTitleBack() : settle()
+                            check(navigated AndAlso callbacks = 1 AndAlso armed = If(names, 1, 0) AndAlso token.IsCancellationRequested AndAlso
+                                framesBeforeOpen.Length = 1 AndAlso framesBeforeOpen(0) Is grandFrame AndAlso acceptedFrames.Length = 0 AndAlso parentFrame.Completed Is parent AndAlso
+                                parentFrame.Filter = "1.20.1" AndAlso parentFrame.Scroll > 100 AndAlso parentFrame.Expanded.Length > 0,
+                                "actual title Back consumes only its accepted parent before a newer direct project opening deliberately clears history" & label)
+                            check(_packProject Is other AndAlso ActivePackProject() Is other AndAlso _packDetailCompletedProject Is Nothing AndAlso _packDetailRequest Is acceptedRequest AndAlso
+                                acceptedRequest IsNot Nothing AndAlso Not acceptedRequest.IsCancellationRequested AndAlso _resourceNamesRequest Is acceptedNames AndAlso Not acceptedToken.IsCancellationRequested AndAlso
+                                ArtworkHeader() Is header AndAlso header IsNot Nothing AndAlso header.Tag Is other AndAlso _packReleases.Count = 0 AndAlso newer.Calls = 1 AndAlso _resourceBack.SequenceEqual(acceptedFrames),
+                                "obsolete parent restoration retains the newer pending project's reader header names and explicit navigation ownership" & label)
+                            check(PackVersionCards.Children.Cast(Of UIElement)().SequenceEqual(cards) AndAlso PackVersionFilters.Children.Cast(Of UIElement)().SequenceEqual(filters) AndAlso
+                                CapturePackVersionExpansions().OrderBy(Function(value) value).SequenceEqual(expanded.OrderBy(Function(value) value)) AndAlso _packGameFilter = filter AndAlso
+                                Math.Abs(ModpackPage.VerticalOffset - scroll) < 0.1 AndAlso PackVersionFilterCard.Visibility = filterVisibility AndAlso PackDetailHint.Text = hintText AndAlso
+                                PackDetailHint.ToolTip Is hintTip AndAlso PackDetailHint.Theme = hintTheme AndAlso PackDetailHint.Visibility = hintVisibility AndAlso PackDetailRetry.Visibility = retryVisibility AndAlso
+                                cards.Length = 1 AndAlso TypeOf DirectCast(cards(0), PclCard).Body Is PclLoadingView,
+                                "retired parent expansion filter viewport and neutral rendering cannot replace the newer loading cards filters hint or retry state" & label)
+                            visual("afterRestoreOpacity") = PackDetailResultsSurface.Opacity : visual("afterRestoreScroll") = ModpackPage.VerticalOffset
+                            visual("afterRestoreCards") = PackVersionCards.Children.Count : visual("afterRestoreFilter") = _packGameFilter
+                        Finally
+                            second.Dispose()
+                        End Try
+                    End Using
+                    newer.Gate.TrySetResult(True)
+                    Await WaitPackUiAsync(Function() _packDetailRequest Is Nothing) : settle()
+                    artwork.CompleteAll(png)
+                    Await WaitPackUiAsync(Function() _packIconSlots.CurrentCount = 4) : FlushControlLayout() : settle()
+                    check(_packProject Is other AndAlso _packDetailCompletedProject Is other AndAlso ActivePackProject().Name = newer.Name AndAlso _packReleases.Count = 1 AndAlso
+                        _packReleases(0).Id = newer.VersionId AndAlso _packReleases(0).ProjectId = other.Id AndAlso newer.Calls = 1 AndAlso firstImage.Returned AndAlso firstImage.Token.IsCancellationRequested AndAlso
+                        _resourceBack.Count = 0 AndAlso Not PackDetailRetry.IsVisible AndAlso _taskGeneration = generation AndAlso _packSearchSession Is session,
+                        "the newer metadata completes once while the late retired child image drains and completed parent restoration causes no metadata reload" & label)
+                    Dim detailSettled = ProjectCompletionVisualsSettledForChecks(originalTransform)
+                    Dim returned = NavigateTitleBack() : settle()
+                    visual("finalSearchOpacity") = PackSearchSurface.Opacity : visual("detailVisualsSettled") = detailSettled
+                    Console.WriteLine("DETAIL_RESTORE_OBSERVATION " & visual.ToString(Newtonsoft.Json.Formatting.None))
+                    check(returned AndAlso detailSettled AndAlso _packMode = PackBrowserMode.Search AndAlso _resourceBack.Count = 0 AndAlso _packSearchSession Is session AndAlso newer.Calls = 1 AndAlso
+                        _taskGeneration = generation AndAlso Not _busy AndAlso Not _choosingOnline AndAlso PageSurface.IsHitTestVisible AndAlso DownloadViewHost.IsHitTestVisible AndAlso PackSearchResultsHost.IsHitTestVisible AndAlso
+                        Math.Abs(PackSearchSurface.Opacity - 1) < 0.0001 AndAlso _surfaceMotion.Transition Is Nothing AndAlso _categoryMotion.Transition Is Nothing AndAlso
+                        _packDetailMotion.Transition Is Nothing AndAlso _packResultMotion.Transition Is Nothing AndAlso PackDetailGhost.Children.Count = 0 AndAlso PackSearchGhost.Children.Count = 0,
+                        "the next explicit Back reaches cached search with no duplicate load ghost clock transform or input gate after reentrant parent restoration" & label)
+                Next
+            Next
+        Next
+    End Function
+
     Private Function ProjectCompletionVisualsSettledForChecks(originalTransform As Transform) As Boolean
         Return Math.Abs(PackDetailResultsSurface.Opacity - 1) < 0.0001 AndAlso PackDetailResultsSurface.RenderTransform Is originalTransform AndAlso
             Not PackDetailResultsSurface.HasAnimatedProperties AndAlso PclSurfaceMotion.Units(PackDetailResultsSurface).All(Function(item) Not TypeOf item.RenderTransform Is TransformGroup AndAlso Math.Abs(item.Opacity - 1) < 0.0001) AndAlso
