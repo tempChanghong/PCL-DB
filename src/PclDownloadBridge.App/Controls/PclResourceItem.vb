@@ -96,10 +96,11 @@ Namespace Controls
             StatisticsGrid = details
             ' Source MyResourceItem: icon/text pairs separated by weighted gaps.
             For Each columnWidth In {GridLength.Auto, New GridLength(1.3, GridUnitType.Star), New GridLength(0.7, GridUnitType.Star),
-                GridLength.Auto, GridLength.Auto, New GridLength(1, GridUnitType.Star), GridLength.Auto, GridLength.Auto,
+                GridLength.Auto, New GridLength(55), New GridLength(1, GridUnitType.Star), GridLength.Auto, GridLength.Auto,
                 New GridLength(1, GridUnitType.Star), GridLength.Auto, GridLength.Auto, New GridLength(1.7, GridUnitType.Star)}
                 details.ColumnDefinitions.Add(New ColumnDefinition With {.Width = columnWidth})
             Next
+            details.ColumnDefinitions(7).MinWidth = 57
             Dim now = DateTimeOffset.UtcNow
             Dim loaderText = ModpackProjectMetadata.LoaderText(project.Loaders)
             Dim shortLoaders = ModpackProjectMetadata.CompactLoaderText(project.Loaders, project.GameVersions)
@@ -109,9 +110,9 @@ Namespace Controls
             Dim labels As New List(Of TextBlock)
             For i = 0 To values.Length - 1
                 Dim resource = If(i = 0, "ColorBrushGray3", "ColorBrushGray4")
-                Dim glyph As New Shapes.Path With {.Data = StatisticGlyphs.Value(i), .Stretch = Stretch.Uniform, .Height = heights(i), .VerticalAlignment = VerticalAlignment.Center}
+                Dim glyph As New Shapes.Path With {.Data = StatisticGlyphs.Value(i), .Stretch = Stretch.Uniform, .Height = heights(i), .VerticalAlignment = VerticalAlignment.Center, .Margin = New Thickness(0, 0, If(i = 2, 1, 0), 0)}
                 glyph.SetResourceReference(Shapes.Path.FillProperty, resource) : SetColumn(glyph, i * 3) : details.Children.Add(glyph)
-                Dim label As New TextBlock With {.Text = values(i), .FontSize = 12, .TextTrimming = TextTrimming.CharacterEllipsis, .VerticalAlignment = VerticalAlignment.Center, .Margin = New Thickness(4, 0, 2, 0)}
+                Dim label As New TextBlock With {.Text = values(i), .FontSize = 12, .TextTrimming = TextTrimming.CharacterEllipsis, .VerticalAlignment = VerticalAlignment.Center, .Margin = New Thickness(If(i = 0, 4, 5), 0, 2, 0)}
                 label.SetResourceReference(TextBlock.ForegroundProperty, resource) : SetColumn(label, i * 3 + 1) : details.Children.Add(label) : labels.Add(label)
             Next
             VersionLabel = labels(0) : DownloadLabel = labels(1) : UpdatedLabel = labels(2) : SourceLabel = labels(3)

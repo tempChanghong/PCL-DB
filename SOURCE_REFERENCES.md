@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 资源统计栏度量（2026-10-29）
+
+- 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `MyResourceItem.xaml:58,62,71,75-81`：下载列 55 DIP、时间列 Auto／MinWidth 57、版本标签左距 4、其余标签左距 5、时间图标右距 1。CE `915ac29795efbdf6373417389e181e1504117048` 的 `MyCompItem.xaml` 保留时间最小值与间距，但下载列采用 Auto／共享组，本轮以 PCL 的固定槽位为准。
+- Beta 8 对照使用标签实际提交 `872220b0f7a8303530c5cddaa74af5aafe04c499`；统计差异在旧 VB 版中已存在，不归因于 C# 迁移。保留本工具兼容版本宽度保护及现有交互，不引入新的共享尺寸组。原始 Git 字节见 `artifacts/resource-statistics-fidelity/source/manifest.json`，[对照与验证](docs/reviews/resource-statistics-fidelity-2026-10-29.md)。
+
 ## 详情完成提交与请求归属（2026-10-29）
 
 - 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadCompDetail.xaml.vb:25-36` 在发布 Output 前检查取消；`ModLoader.vb:349-368` 在 delegate 返回后复查当前运行，`MyPageRight.vb:76-85,272-274` 保持 UI 完成顺序与离页后的后台完成。C# 逻辑参考 CE `915ac29795efbdf6373417389e181e1504117048` 的 `MyPageRight.cs:96-105` 和详情／loader 的取消边界。

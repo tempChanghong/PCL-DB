@@ -61,11 +61,13 @@ Partial Public Class MainWindow
                 _motionPreview = animate : RestoreAppearance(New JObject From {{"theme", "blue"}, {"darkMode", animate}}) : layout()
                 ModpackPage.ScrollToVerticalOffset(420) : layout()
                 FocusManager.SetFocusedElement(host, PackProjectWebsite)
-                origin.Activate() : layout()
+                ' Verify entry ownership before layout can pump natural completion.
+                origin.Activate() : _onlinePromptMotion?.Controller.Pause() : layout()
                 check(_onlinePrompt IsNot Nothing AndAlso _choosingOnline AndAlso Not PageSurface.IsEnabled AndAlso
                     If(animate, _onlinePromptMotion IsNot Nothing, _onlinePromptMotion Is Nothing),
                     "the real version-row action opens naming with its caller and the requested motion mode: " & animate)
-                _onlinePromptMotion?.Controller.Pause() : FocusManager.SetFocusedElement(host, OnlinePackName)
+                _onlinePromptMotion?.Controller.SeekAlignedToLastTick(TimeSpan.FromMilliseconds(180), TimeSeekOrigin.BeginTime)
+                FocusManager.SetFocusedElement(host, OnlinePackName)
                 SaveControlVisual(host, IO.Path.Combine(directory, "prompt-focus-" & If(animate, "dark", "light") & ".png"))
                 Await close()
                 check(FocusManager.GetFocusedElement(host) Is origin AndAlso Math.Abs(ModpackPage.VerticalOffset - 420) < 0.1,

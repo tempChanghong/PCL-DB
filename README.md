@@ -8,6 +8,8 @@ UI 对照旧 VB 版及 PCL2／PCL-CE，修正本地 Mod 页卡片与列表边距
 
 资源英文副标题按 PCL 的 Gray1×40% 权重区分主次，随明暗和主题更新，保留完整文本、裁切及原交互。[对照与验证](docs/reviews/resource-subtitle-fidelity-2026-10-29.md)。
 
+资源列表和详情头部的下载量、更新时间槽位及图标间距进一步对齐 PCL2；兼容版本继续保留现有宽度保护，超长统计可缩略并在提示中查看全文。[布局检查](docs/reviews/resource-statistics-fidelity-2026-10-29.md)。
+
 详情完成期间切换项目时，旧请求不再覆盖新项目的版本卡片、加载或错误提示；新项目可继续加载和重试，返回搜索后的同一请求仍可完成缓存。[修复与验证](docs/reviews/detail-completion-ownership-2026-10-29.md)。
 
 组件运行库在新实例发布前统一按原摘要复验并保持短期读保护，外部改写或占用会停止发布；独立快照防止后续对象修改改变校验依据，取消后可重试。[冲突修复与验证](docs/reviews/runtime-publication-conflict-2026-10-29.md)。
