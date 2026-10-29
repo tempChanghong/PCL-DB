@@ -1,5 +1,11 @@
 # 本地验证记录
 
+## Beta 8 后续：第二轮首批目录结构重构（2026-10-29，尚未发行）
+
+基线 `d3c2443`。开始第二轮结构整理，将目录客户端按数据模型、查询编排、传输生命周期和严格元数据解析拆分。原成员体搬迁到同一 partial 类型，LocalMods、VB 界面／测试、net48、配置与资源保持。使用独立 Roslyn 成员等价探针及负控制核对搬迁，原有业务测试和断言不变。
+
+完整 VB 7468、旧 Beta 8 已编译宿主 7305、公开／友元 API、资源／JSON、最终单 EXE 冷启动及搜索，以及 VS 2026 Debug／Portable PDB 和源码／二进制／提交绑定，统一见 `artifacts/catalog-refactor/validation.json`。各构建与初步专项分别记录，不累计重叠套件；不声称原始 DLL／PDB／metadata token 字节相同。[结构说明](docs/reviews/core-refactor-round2-catalog-2026-10-29.md)。仅受控请求、临时实例和隐藏 WPF，不作为完整在线安装、游戏启动、人工 F5 或帧率验收；不重复完整 UI／motion，不打包、推送、发版。
+
 ## Beta 8 后续：搜索状态的并发读取（2026-10-29，尚未发行）
 
 基线 `5e83f8a`。公开多线程 Core 探针复现状态 getter 在来源提交时枚举 Dictionary 抛错；未证明正常桌面交互因此崩溃。保持原异步 gate 单写，构造和完整轮次末尾原子发布私有状态快照，Count／HasMore／错误与失败来源读取不再访问可变集合；HasNext 单次使用同一快照，失败来源数组返回副本。预览、原 offset、部分失败、取消重试、已有有效轮次和 VB UI／动画门控保持。

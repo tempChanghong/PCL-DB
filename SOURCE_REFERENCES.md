@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 第二轮首批：目录客户端职责拆分（2026-10-29）
+
+- 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModDownload.vb:1176-1208,1305-1313`、`ResourceProject.vb:123,391-422` 和 `ResourceVersion.vb:115,227-259` 分别提供传输、项目及文件元数据的职责依据。C# 重点参考 CE `dev` `915ac29795efbdf6373417389e181e1504117048` 的 `ModDownload.cs:2008-2064,2251-2254`、`ModComp.cs` 项目／文件解析及 `PCL.Core/Minecraft/ResourceProject` 平台 DTO 分区。
+- 按职责搬迁原成员到 Models、主 Catalog、Transport 和 Parsing，同一 partial 类型、原方法体及 LocalMods 保持；不引入上游的新 JSON 库或运行时。独立成员等价探针和原测试继续验证取消、平台身份、摘要、分页与单 EXE。[结构与验证](docs/reviews/core-refactor-round2-catalog-2026-10-29.md)。
+
 ## 搜索状态的并发读取与完整轮次发布（2026-10-29）
 
 - 以固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ResourceSearcher.vb:407-449` 核对来源完成、部分失败及分页存储顺序；C# 重点参考 CE `dev` `915ac29795efbdf6373417389e181e1504117048` 的 `ModComp.cs:2595-2628`，短锁合并来源列表，等待／检查中止后处理结果。
