@@ -17,6 +17,8 @@ Core 迁移后引用路径为 `src/PclDownloadBridge.Core/PclDownloadBridge.Core
 
 第二轮首批已拆分目录客户端：`ModpackCatalog.cs` 保留查询编排，`ModpackCatalog.Transport.cs` 对应 HTTP、源回退和取消，`ModpackCatalog.Parsing.cs` 对应平台元数据校验，`ModpackModels.cs` 对应数据类型。它们仍在同一 Core 项目／命名空间内，`ModpackCatalog.LocalMods.cs` 保持原样；无需新建项目或修改启动设置。旧断点若绑定原文件物理行，可按原方法名重新定位。[结构说明](docs/reviews/core-refactor-round2-catalog-2026-10-29.md)。
 
+组件安装按同样方式拆分：主 `ComponentInstaller.cs` 保留状态与安装编排，`.Forgelike.cs`、`.Downloads.cs`、`.Profiles.cs` 分别定位处理器执行、下载与配置逻辑；Java 探测／进程取消断点移到 `JavaRuntime.cs`，同步进度回调位于 `InlineProgress.cs`。公开类型名称与项目引用保持。[组件结构说明](docs/reviews/core-refactor-round2-components-2026-10-29.md)。
+
 另附 `PclDownloadBridge.slnLaunch`，提供 **PCL-DB** 和 **Offline Checks** 两种可共享的解决方案启动方案，分别只启动主应用或控制台回归项目。若 VS 没有显示这些方案，可在「配置启动项目」中选择；部分安装需在「工具 → 选项 → 预览功能」启用多项目启动配置。普通的单启动项目方式仍可直接使用。
 
 正常的 **PCL-DB** 配置读取现有用户偏好和真实版本列表；点击开始下载会写入所选游戏目录。调试下载引擎时，可先使用下面的本地回归配置。

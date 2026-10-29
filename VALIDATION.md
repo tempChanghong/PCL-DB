@@ -1,5 +1,11 @@
 # 本地验证记录
 
+## Beta 8 后续：第二轮第二批组件结构重构（2026-10-29，尚未发行）
+
+基线 `c9ebc45`。组件安装按主编排／Forge 执行／下载校验／配置辅助拆分同一 partial，JavaRuntime 和 InlineProgress 整类移动。状态字段与初始化顺序留主文件；public 非 sealed、VB Module、同步委托和原方法体保持。独立证明 3 类型、48 成员、26 私有依赖零差异，六个负控制均检出。原 VB 测试及 UI／动画源码不变。
+
+完整 VB 7468、旧宿主 7305、接口／资源／JSON、Debug／Portable PDB、最终单 EXE 冷启动和搜索，以及源码／二进制／提交绑定以 `artifacts/component-refactor/validation.json` 为准；构建与 Core 测试收尾后再串行执行 WPF 检查，保留上轮动画断言未知原因的边界。[结构说明](docs/reviews/core-refactor-round2-components-2026-10-29.md)。各套件重叠不累加；不作为完整在线安装、游戏启动、人工 F5 或帧率验收。未打包、推送、发版。
+
 ## Beta 8 后续：第二轮首批目录结构重构（2026-10-29，尚未发行）
 
 基线 `d3c2443`。开始第二轮结构整理，将目录客户端按数据模型、查询编排、传输生命周期和严格元数据解析拆分。原成员体搬迁到同一 partial 类型，LocalMods、VB 界面／测试、net48、配置与资源保持。使用独立 Roslyn 成员等价探针及负控制核对搬迁，原有业务测试和断言不变。

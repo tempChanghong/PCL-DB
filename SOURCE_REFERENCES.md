@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 第二轮第二批：组件安装与 Java 职责（2026-10-29）
+
+- 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModDownloadLib.vb:1733,1813-1846,1896` 及 `PCLCS/Java.cs:34,41,99` 提供安装编排、合并和 Java 领域边界；C# 重点参考 CE `915ac29795efbdf6373417389e181e1504117048` 的 `ModDownloadLib.cs:715,1750-1785,1963,3795,4057-4073,4144` 和 `JavaManager.cs:19,109,286`。
+- 原成员整块搬入同类型 partial，JavaRuntime／InlineProgress 整类独立；字段初始化顺序、处理器共用节流、下载计数、取消与双流收尾、Module 契约和逻辑资源名保持。[结构与验证](docs/reviews/core-refactor-round2-components-2026-10-29.md)。
+
 ## 第二轮首批：目录客户端职责拆分（2026-10-29）
 
 - 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModDownload.vb:1176-1208,1305-1313`、`ResourceProject.vb:123,391-422` 和 `ResourceVersion.vb:115,227-259` 分别提供传输、项目及文件元数据的职责依据。C# 重点参考 CE `dev` `915ac29795efbdf6373417389e181e1504117048` 的 `ModDownload.cs:2008-2064,2251-2254`、`ModComp.cs` 项目／文件解析及 `PCL.Core/Minecraft/ResourceProject` 平台 DTO 分区。
