@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 第二轮第三批：下载引擎职责（2026-10-29）
+
+- 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModNet.vb:579,902,1163,1311,1474-1515` 和 `ModDownload.vb:1219-1242` 提供批次、文件事务、传输与来源选择依据；C# 重点参考 CE `915ac29795efbdf6373417389e181e1504117048` 的 `LoaderDownload.cs`、`FileDownloader.cs`、`AdaptiveRangeDownloader.cs` 与 `DownloadResourceManager.cs` 所有权边界。
+- 原 DownloadEngine 按主状态／批次、Files、Transport 搬迁同类型完整成员；AsyncLocal、初始化顺序、预算与响应生命周期、文件缓存锁、续传校验和原子发布保持。[结构与验证](docs/reviews/core-refactor-round2-download-engine-2026-10-29.md)。
+
 ## 第二轮第二批：组件安装与 Java 职责（2026-10-29）
 
 - 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModDownloadLib.vb:1733,1813-1846,1896` 及 `PCLCS/Java.cs:34,41,99` 提供安装编排、合并和 Java 领域边界；C# 重点参考 CE `915ac29795efbdf6373417389e181e1504117048` 的 `ModDownloadLib.cs:715,1750-1785,1963,3795,4057-4073,4144` 和 `JavaManager.cs:19,109,286`。

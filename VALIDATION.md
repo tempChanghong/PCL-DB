@@ -1,5 +1,11 @@
 # 本地验证记录
 
+## Beta 8 后续：第二轮第三批下载引擎结构（2026-10-29，尚未发行）
+
+基线 `b894a2a`。DownloadEngine 拆为主状态／批次、Files 单文件事务、Transport 请求与流；原方法体搬迁同类型 partial，四个 AsyncLocal、全部状态初始化、预算所有权、响应与 gate finally、校验发布顺序保持。独立证明 3 类型／62 成员／24 私有依赖零差异，七个负控制均检出；App 和原 VB 测试不变。
+
+完整 VB 7468、旧宿主 7305、接口／资源／JSON、Debug／Portable PDB、构建和 Core 收尾后的串行单 EXE 冷启动／搜索及源码／二进制／提交绑定，以 `artifacts/download-engine-refactor/validation.json` 为准。各套件重叠不累加；上轮动画复合断言未知原因的边界保留。[结构说明](docs/reviews/core-refactor-round2-download-engine-2026-10-29.md)。不作为完整在线安装、游戏启动、人工 F5 或帧率验收；未打包、推送、发版。
+
 ## Beta 8 后续：第二轮第二批组件结构重构（2026-10-29，尚未发行）
 
 基线 `c9ebc45`。组件安装按主编排／Forge 执行／下载校验／配置辅助拆分同一 partial，JavaRuntime 和 InlineProgress 整类移动。状态字段与初始化顺序留主文件；public 非 sealed、VB Module、同步委托和原方法体保持。独立证明 3 类型、48 成员、26 私有依赖零差异，六个负控制均检出。原 VB 测试及 UI／动画源码不变。

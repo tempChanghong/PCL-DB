@@ -19,6 +19,8 @@ Core 迁移后引用路径为 `src/PclDownloadBridge.Core/PclDownloadBridge.Core
 
 组件安装按同样方式拆分：主 `ComponentInstaller.cs` 保留状态与安装编排，`.Forgelike.cs`、`.Downloads.cs`、`.Profiles.cs` 分别定位处理器执行、下载与配置逻辑；Java 探测／进程取消断点移到 `JavaRuntime.cs`，同步进度回调位于 `InlineProgress.cs`。公开类型名称与项目引用保持。[组件结构说明](docs/reviews/core-refactor-round2-components-2026-10-29.md)。
 
+下载引擎状态、批次、报告和 Dispose 位于 `DownloadEngine.cs`；缓存复用、来源重试、校验与发布在 `DownloadEngine.Files.cs`；HTTP／Range、流复制、限速及响应收尾在 `DownloadEngine.Transport.cs`。三个文件合成原类型，私有字段、共享预算与调试设置保持。[下载引擎结构说明](docs/reviews/core-refactor-round2-download-engine-2026-10-29.md)。
+
 另附 `PclDownloadBridge.slnLaunch`，提供 **PCL-DB** 和 **Offline Checks** 两种可共享的解决方案启动方案，分别只启动主应用或控制台回归项目。若 VS 没有显示这些方案，可在「配置启动项目」中选择；部分安装需在「工具 → 选项 → 预览功能」启用多项目启动配置。普通的单启动项目方式仍可直接使用。
 
 正常的 **PCL-DB** 配置读取现有用户偏好和真实版本列表；点击开始下载会写入所选游戏目录。调试下载引擎时，可先使用下面的本地回归配置。
