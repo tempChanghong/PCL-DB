@@ -1,5 +1,7 @@
 # PCL-DB · PCL Download Bridge
 
+第三轮第三批提炼原生隔离配置的私有值解释器，将布尔值、策略数字、HMCL 模式与配置版本检查和文件读取分开；沿用三种启动器的配置、隔离与发布保护。[职责映射与验证口径](docs/reviews/core-refactor-round3-native-config-2026-10-29.md)。
+
 第三轮第二批将已安装实例的版本号／加载器解释提炼为私有 MetadataInterpreter，配置读取、继承合并、隔离与路径保护继续由原读取器负责。[职责映射与验证口径](docs/reviews/core-refactor-round3-instance-metadata-2026-10-29.md)。
 
 第三轮已开始：本地 Mod 的格式解释提炼为私有、无状态 MetadataParser；Read／Scan、ZIP／流、取消和图标字节仍留在原边界，VB 界面与测试继续保留。[职责拆分与验证](docs/reviews/core-refactor-round3-local-mod-parser-2026-10-29.md)。

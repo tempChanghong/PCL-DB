@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 第三轮第三批：原生隔离配置值解释（2026-10-29）
+
+- PCL2 固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 ModMinecraft.vb:240–277 和 Pages/PageSetup/Settings.vb:95、188 是旧实例优先、五种默认策略及默认值的依据。C# 重点参考 CE `915ac29795efbdf6373417389e181e1504117048` 的 McInstance.cs:65–114 和 CatIniFileProvider／JsonFileProvider／YamlFileProvider 的格式边界；其配置初始化和格式迁移行为不移入本工具。
+- HMCL `63207affc6a73127cea19e64272a0401fde4b7a4` 的 GameSettings 与 LegacyGameSettingsMigrator 用于核对原生枚举和继承运行目录语义。只提炼本工具原有八个值解释方法，共 99 行、34 个调用限定名；JSON／YAML／INI 的读取选择、快照、锁、路径与暂存写入仍在原处。12 份固定 Git 字节见 `artifacts/native-config-refactor/source/manifest.json`，[边界和验证](docs/reviews/core-refactor-round3-native-config-2026-10-29.md)。
+
 ## 第三轮第二批：已安装实例的私有元数据解释器（2026-10-29）
 
 - PCL2 固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 ModMinecraft.vb:427 起用于核对 HMCL patches 与原实例 JSON 的关系；同提交 PCLCS/Minecraft/McVersion.cs:140–169 的加载器与 clientVersion／game patch 优先级提供对照。C# 重点参考 CE `915ac29795efbdf6373417389e181e1504117048` 的 McInstance.cs:185–201、755 起的原版／加载器解释；HMCL `63207affc6a73127cea19e64272a0401fde4b7a4` 的持久化表示注释用于确认继承与 patches 不应在只读扫描中被改写。

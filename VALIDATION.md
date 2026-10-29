@@ -1,5 +1,13 @@
 # 本地验证记录
 
+## 第三轮第三批：原生隔离配置值解释（2026-10-29，尚未发行）
+
+基线 `349f9f4121a72be9b63aa464a476b384227c7056`。NativeInstanceIsolation 的八个纯值解释方法共 99 行提炼为私有 ConfigurationInterpreter，34 处外层调用加限定名。原方法正文和外层配置读取、策略选择、目录、快照、fingerprint／guard、暂存写入、取消与校验边界由精确逆向和原始文件清单保护。
+
+同一探针的 440 个输入在四种文化下得到 1760 条一致结果／异常，输入不改写。最终提交门槛：最终 DLL 重跑差分；现有 VB 7814、原 Beta 8 编译宿主 7305；相对本批当前 C# 基线的原始／规范 API 零差异，公开／Friend 979／1245、资源 2、JSON 15；VS2026 Debug 三 Portable PDB、同一单 EXE 冷启动 25／搜索 3444，以及两内嵌依赖和七根文档匹配。最终完成状态与源码／DLL／提交树绑定见 `artifacts/native-config-refactor/validation.json`。
+
+本批不修改 VB 界面／测试、项目、工具、资源或其他 Core 文件，不调整验证计数或比较规则。完整 UI／动画专项未重跑，既有结果只作历史证据；旧 VB 宿主兼容与原 Beta 8 精确元数据并非同一检查。主代理自查及受控临时夹具不代表真实用户验收，不修改外部启动器配置，不打包、推送或发版。[第三批报告](docs/reviews/core-refactor-round3-native-config-2026-10-29.md)。
+
 ## 第三轮第二批：已安装实例元数据解释（2026-10-29，尚未发行）
 
 基线 `e05f7a25792034ea0a328411ba343e287d782b75`。InstalledInstanceCatalog 的 GameVersion／IsVersionId／DetectLoaders 共 165 行原样移入私有 MetadataInterpreter；外层 Read／Scan、配置快照、继承合并、原生隔离、路径与 fingerprint、取消和结果发布不变。精确逆向还原和原始文件清单用于约束改动范围。

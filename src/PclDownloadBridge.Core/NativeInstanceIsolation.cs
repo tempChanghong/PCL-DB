@@ -13,7 +13,7 @@ namespace PclDownloadBridge.Core
 
     // HMCL HMCLGameRepository.computeRunDirectory / LegacyGameSettingsMigrator and
     // CE McInstance.PathIndie. Existing instance bytes are never initialized by repair.
-    internal sealed class NativeInstanceIsolation : IInstanceIsolationPlan
+    internal sealed partial class NativeInstanceIsolation : IInstanceIsolationPlan
     {
         private readonly LauncherInstallTarget _target;
         private readonly string _root;
@@ -56,14 +56,14 @@ namespace PclDownloadBridge.Core
                     // an undecided existing instance. Installation Resolve keeps its
                     // established input semantics; this addition is read-only Inspect.
                     if (inputs is not null)
-                        modable = modable || ParseInt(read("DisplayType"), 0, -1, 6) == 2;
+                        modable = modable || ConfigurationInterpreter.ParseInt(read("DisplayType"), 0, -1, 6) == 2;
                     if (value is not null)
                     {
-                        choice = ParseBool(value);
+                        choice = ConfigurationInterpreter.ParseBool(value);
                     }
                     else
                     {
-                        int old = ParseInt(read("VersionArgumentIndie"), -1, -1, 2);
+                        int old = ConfigurationInterpreter.ParseInt(read("VersionArgumentIndie"), -1, -1, 2);
                         if (old > 0)
                         {
                             choice = old == 1;
@@ -79,7 +79,7 @@ namespace PclDownloadBridge.Core
                 if (!choice.HasValue)
                 {
                     bool nonRelease = entry.IsSupplemental || (string)metadata["type"] == "old_alpha" || (string)metadata["type"] == "old_beta" || !components && !string.Equals((string)metadata["type"], "release", StringComparison.OrdinalIgnoreCase);
-                    choice = !repair && mode != InstanceIsolationMode.FollowPcl ? mode == InstanceIsolationMode.Enabled : StrategyValue(!repair && strategy.HasValue ? strategy.Value : ParseInt(local("LaunchArgumentIndieV2"), 4, 0, 4), modable, nonRelease);
+                    choice = !repair && mode != InstanceIsolationMode.FollowPcl ? mode == InstanceIsolationMode.Enabled : ConfigurationInterpreter.StrategyValue(!repair && strategy.HasValue ? strategy.Value : ConfigurationInterpreter.ParseInt(local("LaunchArgumentIndieV2"), 4, 0, 4), modable, nonRelease);
                 }
             }
             else if (target.Kind == ExternalLauncherKind.Hmcl)
@@ -98,19 +98,19 @@ namespace PclDownloadBridge.Core
                         newDirectories = ReadJson(primary);
                     var launcher = ReadJson(Path.Combine(configDirectory, "launcher-settings.json"));
                     var presets = ReadJson(Path.Combine(configDirectory, "game-settings.json"));
-                    CheckSchema(presets, "game-settings");
+                    ConfigurationInterpreter.CheckSchema(presets, "game-settings");
                     if (repair)
                     {
                         instanceSettings = ReadJson(Path.Combine(_instance, ".hmcl/config/instance-game-settings.json"));
-                        CheckSchema(instanceSettings, "instance-game-settings");
+                        ConfigurationInterpreter.CheckSchema(instanceSettings, "instance-game-settings");
                     }
                     JArray values = presets?["presets"] as JArray;
                     if (presets?["presets"] is not null && values is null)
                         throw new InvalidDataException("HMCL 预设列表格式无效。");
-                    if (values is not null && values.OfType<JObject>().Select(item => Scalar(item["id"])).GroupBy(id => id).Any(@group => @group.Count() > 1))
+                    if (values is not null && values.OfType<JObject>().Select(item => ConfigurationInterpreter.Scalar(item["id"])).GroupBy(id => id).Any(@group => @group.Count() > 1))
                         throw new InvalidDataException("HMCL 预设标识不唯一。");
-                    string parent = Scalar(instanceSettings?["parent"]);
-                    string defaultParent = Scalar(launcher?["defaultGameSettingsPreset"]);
+                    string parent = ConfigurationInterpreter.Scalar(instanceSettings?["parent"]);
+                    string defaultParent = ConfigurationInterpreter.Scalar(launcher?["defaultGameSettingsPreset"]);
                     string legacyParent = null;
                     if (repair && instanceSettings is null)
                     {
@@ -126,13 +126,13 @@ namespace PclDownloadBridge.Core
                             {
                                 foreach (var item in directories.OfType<JObject>())
                                 {
-                                    string id = Scalar(item["id"]);
+                                    string id = ConfigurationInterpreter.Scalar(item["id"]);
                                     if (id is not null && !seenIds.Add(id))
                                         continue;
-                                    string directory = Scalar(item["path"]);
+                                    string directory = ConfigurationInterpreter.Scalar(item["path"]);
                                     if (directory is null || !Same(LauncherDirectoryReader.AbsolutePath(directory, target.Workspace), _root))
                                         continue;
-                                    string value = Scalar(item["legacyGameSettings"]);
+                                    string value = ConfigurationInterpreter.Scalar(item["legacyGameSettings"]);
                                     if (matchedParent && (legacyParent ?? "") != (value ?? ""))
                                         throw new InvalidDataException("HMCL 同目录的历史设置来源不唯一。");
                                     legacyParent = value;
@@ -145,10 +145,10 @@ namespace PclDownloadBridge.Core
                     bool legacyPresetResolved = false;
                     if (values is not null)
                     {
-                        globalSettings = values.OfType<JObject>().FirstOrDefault(item => (Scalar(item["id"]) ?? "") == (parent ?? "") && parent is not null);
+                        globalSettings = values.OfType<JObject>().FirstOrDefault(item => (ConfigurationInterpreter.Scalar(item["id"]) ?? "") == (parent ?? "") && parent is not null);
                         legacyPresetResolved = legacyParent is not null && globalSettings is not null;
                         if (globalSettings is null)
-                            globalSettings = values.OfType<JObject>().FirstOrDefault(item => (Scalar(item["id"]) ?? "") == (defaultParent ?? "") && defaultParent is not null);
+                            globalSettings = values.OfType<JObject>().FirstOrDefault(item => (ConfigurationInterpreter.Scalar(item["id"]) ?? "") == (defaultParent ?? "") && defaultParent is not null);
                         if (globalSettings is null)
                             globalSettings = values.OfType<JObject>().FirstOrDefault();
                     }
@@ -161,7 +161,7 @@ namespace PclDownloadBridge.Core
                                 throw new InvalidDataException("HMCL 实例覆盖属性格式无效。");
                             if (overrideNames is not null && overrideNames.Values<string>().Contains("runningDirectory", StringComparer.Ordinal))
                             {
-                                custom = Scalar(instanceSettings["runningDirectory"]);
+                                custom = ConfigurationInterpreter.Scalar(instanceSettings["runningDirectory"]);
                                 choice = string.IsNullOrWhiteSpace(custom);
                             }
                         }
@@ -170,17 +170,17 @@ namespace PclDownloadBridge.Core
                             var old = ReadJson(Path.Combine(_instance, "hmclversion.cfg"));
                             if (old is not null && _inputs.Read(Path.Combine(_instance, ".hmcl/state/instance-game-settings.migration-receipt.json")) is not null)
                                 throw new InvalidDataException("HMCL 旧配置迁移状态不明确，请先用 HMCL 保存实例设置后重试。");
-                            if (old is not null && !BooleanValue(old["usesGlobal"], false))
+                            if (old is not null && !ConfigurationInterpreter.BooleanValue(old["usesGlobal"], false))
                             {
-                                int oldMode = HmclMode(old["gameDirType"]);
+                                int oldMode = ConfigurationInterpreter.HmclMode(old["gameDirType"]);
                                 choice = oldMode == 1;
                                 if (oldMode == 2)
                                 {
-                                    custom = Scalar(old["gameDir"]);
+                                    custom = ConfigurationInterpreter.Scalar(old["gameDir"]);
                                     choice = string.IsNullOrWhiteSpace(custom);
                                 }
                             }
-                            else if (old is not null && legacyPresetResolved && Scalar(globalSettings?["defaultIsolationType"]) == "ALWAYS" && string.IsNullOrWhiteSpace(Scalar(globalSettings?["runningDirectory"])))
+                            else if (old is not null && legacyPresetResolved && ConfigurationInterpreter.Scalar(globalSettings?["defaultIsolationType"]) == "ALWAYS" && string.IsNullOrWhiteSpace(ConfigurationInterpreter.Scalar(globalSettings?["runningDirectory"])))
                             {
                                 choice = true;
                             }
@@ -191,12 +191,12 @@ namespace PclDownloadBridge.Core
                         if (!choice.HasValue)
                         {
                             choice = false;
-                            custom = Scalar(globalSettings?["runningDirectory"]);
+                            custom = ConfigurationInterpreter.Scalar(globalSettings?["runningDirectory"]);
                         }
                     }
                     else
                     {
-                        string policy = Scalar(globalSettings?["defaultIsolationType"]) ?? "MODDED";
+                        string policy = ConfigurationInterpreter.Scalar(globalSettings?["defaultIsolationType"]) ?? "MODDED";
                         if (strategy.HasValue || mode != InstanceIsolationMode.FollowPcl)
                             policy = "NEVER";
                         switch (policy ?? "")
@@ -223,7 +223,7 @@ namespace PclDownloadBridge.Core
                                 }
                         }
                         if (!choice.Value)
-                            custom = Scalar(globalSettings?["runningDirectory"]);
+                            custom = ConfigurationInterpreter.Scalar(globalSettings?["runningDirectory"]);
                     }
                 }
                 else
@@ -238,7 +238,7 @@ namespace PclDownloadBridge.Core
                         bool matchedProfile = false;
                         foreach (var profile in profiles.Properties().Select(item => item.Value as JObject).Where(item => item is not null))
                         {
-                            string directory = Scalar(profile["gameDir"]);
+                            string directory = ConfigurationInterpreter.Scalar(profile["gameDir"]);
                             if (directory is null || !Same(LauncherDirectoryReader.AbsolutePath(directory, target.Workspace), _root))
                                 continue;
                             JObject value = profile["global"] as JObject;
@@ -253,17 +253,17 @@ namespace PclDownloadBridge.Core
                     if (repair)
                     {
                         instanceSettings = ReadJson(Path.Combine(_instance, "hmclversion.cfg"));
-                        if (instanceSettings is not null && !BooleanValue(instanceSettings["usesGlobal"], false))
+                        if (instanceSettings is not null && !ConfigurationInterpreter.BooleanValue(instanceSettings["usesGlobal"], false))
                             effective = instanceSettings;
                     }
-                    int directoryType = HmclMode(effective?["gameDirType"]);
+                    int directoryType = ConfigurationInterpreter.HmclMode(effective?["gameDirType"]);
                     choice = directoryType == 1;
                     if (directoryType == 2)
-                        custom = Scalar(effective?["gameDir"]);
+                        custom = ConfigurationInterpreter.Scalar(effective?["gameDir"]);
                 }
                 if (!repair && strategy.HasValue)
                 {
-                    choice = StrategyValue(strategy.Value, modable, entry.IsSupplemental || !string.Equals((string)metadata["type"], "release", StringComparison.OrdinalIgnoreCase));
+                    choice = ConfigurationInterpreter.StrategyValue(strategy.Value, modable, entry.IsSupplemental || !string.Equals((string)metadata["type"], "release", StringComparison.OrdinalIgnoreCase));
                     custom = null;
                 }
                 if (repair && _inputs.Read(Path.Combine(_instance, "modpack.cfg")) is not null)
@@ -329,120 +329,21 @@ namespace PclDownloadBridge.Core
                 if (ext == ".json")
                 {
                     var json = JObject.Parse(text, new JsonLoadSettings() { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error });
-                    return new Func<string, string>(key => Scalar(json[key]));
+                    return new Func<string, string>(key => ConfigurationInterpreter.Scalar(json[key]));
                 }
-                return new Func<string, string>(key => IniValue(text, key));
+                return new Func<string, string>(key => ConfigurationInterpreter.IniValue(text, key));
             }
             if (ext == ".yml" || ext == ".yaml")
             {
                 string jsonPath = Path.ChangeExtension(preferred, ".json");
                 var json = ReadJson(jsonPath);
                 if (json is not null)
-                    return new Func<string, string>(key => Scalar(json[key]));
+                    return new Func<string, string>(key => ConfigurationInterpreter.Scalar(json[key]));
                 string ini = InstanceConfigurationInputs.Text(_inputs.Read(Path.Combine(Path.GetDirectoryName(preferred), "Setup.ini")));
                 if (ini is not null)
-                    return new Func<string, string>(key => IniValue(ini, key));
+                    return new Func<string, string>(key => ConfigurationInterpreter.IniValue(ini, key));
             }
             return new Func<string, string>(key => null);
-        }
-        private static string IniValue(string text, string key)
-        {
-            string value = null;
-            foreach (var line in text.Replace(Constants.vbCrLf, Constants.vbLf).Split('\n'))
-            {
-                int split = line.IndexOf(':');
-                if (split > 0 && (line.Substring(0, split) ?? "") == (key ?? ""))
-                    value = line.Substring(split + 1).Trim();
-            }
-            return value;
-        }
-        private static string Scalar(JToken value)
-        {
-            if (value is null || value.Type == JTokenType.Null)
-                return null;
-            if (value.Type != JTokenType.String && value.Type != JTokenType.Boolean && value.Type != JTokenType.Integer)
-                throw new InvalidDataException("实例配置值类型无效。");
-            return (string)value;
-        }
-        private static bool ParseBool(string value)
-        {
-            if (string.Equals(value, "true", StringComparison.OrdinalIgnoreCase) || value == "1")
-                return true;
-            if (string.Equals(value, "false", StringComparison.OrdinalIgnoreCase) || value == "0")
-                return false;
-            throw new InvalidDataException("实例隔离开关无效。");
-        }
-        private static bool BooleanValue(JToken value, bool fallback)
-        {
-            return value is null ? fallback : ParseBool(Scalar(value));
-        }
-        private static int ParseInt(string value, int fallback, int minimum, int maximum)
-        {
-            if (value is null)
-                return fallback;
-            int result;
-            if (!int.TryParse(value, out result) || result < minimum || result > maximum)
-                throw new InvalidDataException("实例隔离策略无效。");
-            return result;
-        }
-        private static int HmclMode(JToken value)
-        {
-            string text = Scalar(value);
-            switch (text ?? "")
-            {
-                case var @case when @case == "":
-                case "ROOT_FOLDER":
-                    {
-                        return 0;
-                    }
-                case "VERSION_FOLDER":
-                    {
-                        return 1;
-                    }
-                case "CUSTOM":
-                    {
-                        return 2;
-                    }
-
-                default:
-                    {
-                        return ParseInt(text, 0, 0, 2);
-                    }
-            }
-        }
-        private static bool StrategyValue(int value, bool modable, bool nonRelease)
-        {
-            switch (value)
-            {
-                case 0:
-                    {
-                        return false;
-                    }
-                case 1:
-                    {
-                        return modable;
-                    }
-                case 2:
-                    {
-                        return nonRelease;
-                    }
-                case 3:
-                    {
-                        return modable || nonRelease;
-                    }
-
-                default:
-                    {
-                        return true;
-                    }
-            }
-        }
-        private static void CheckSchema(JObject json, string name)
-        {
-            if (json is null || json["$schema"] is null)
-                return;
-            if (!Regex.IsMatch(Scalar(json["$schema"]), @"\Ahttps://schemas\.glavo\.site/hmcl/" + name + @"/1\.\d+(?:\.\d+)?\z"))
-                throw new InvalidDataException("HMCL 实例配置版本暂不支持。");
         }
         private static bool Same(string a, string b)
         {
@@ -488,7 +389,7 @@ namespace PclDownloadBridge.Core
                 string relative = ".hmcl/config/instance-game-settings.json";
                 string filePath = SafeFiles.UnderRoot(stage, relative);
                 var json = File.Exists(filePath) ? JObject.Parse(StageText(filePath), new JsonLoadSettings() { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error }) : new JObject();
-                CheckSchema(json, "instance-game-settings");
+                ConfigurationInterpreter.CheckSchema(json, "instance-game-settings");
                 json["$schema"] = "https://schemas.glavo.site/hmcl/instance-game-settings/1.0.1";
                 JArray overrideNames = json["overrideProperties"] as JArray;
                 if (json["overrideProperties"] is not null && overrideNames is null)
