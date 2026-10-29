@@ -5,6 +5,7 @@ Imports System.Windows.Controls
 Imports System.Windows.Documents
 Imports System.Windows.Input
 Imports System.Windows.Media.Animation
+Imports Newtonsoft.Json.Linq
 Imports PclDownloadBridge.Controls
 Imports PclDownloadBridge.Core
 
@@ -15,6 +16,34 @@ Partial Public Class MainWindow
         SelectManagedInstance(_managementInstances.Single(Function(item) item.Name = "Fabric 实例")) : layout()
         ShowLocalMods(Nothing, Nothing) : LoadLocalModsAsync(False).GetAwaiter().GetResult() : layout()
     End Sub
+    Private Shared Function LocalModCardMetricsForChecks(owner As MainWindow) As JObject
+        Dim filters = DirectCast(owner.LocalModAll.Parent, FrameworkElement), list = DirectCast(owner.LocalModRows.Parent, FrameworkElement)
+        Dim filterOrigin = filters.TranslatePoint(New Point(), owner.LocalModListCard), listOrigin = list.TranslatePoint(New Point(), owner.LocalModListCard)
+        Dim rowsOrigin = owner.LocalModRows.TranslatePoint(New Point(), owner.LocalModListCard)
+        Return New JObject From {{"actionsHeight", owner.LocalModActionsCard.ActualHeight},
+            {"firstActionY", owner.LocalModOpen.TranslatePoint(New Point(), owner.LocalModActionsCard).Y},
+            {"filterX", filterOrigin.X}, {"filterY", filterOrigin.Y}, {"filterHeight", filters.ActualHeight},
+            {"rowsX", rowsOrigin.X}, {"rowsY", rowsOrigin.Y},
+            {"listRight", owner.LocalModListCard.ActualWidth - listOrigin.X - list.ActualWidth},
+            {"listBottom", owner.LocalModListCard.ActualHeight - listOrigin.Y - list.ActualHeight}}
+    End Function
+    Private Shared Sub VerifyLocalModCardMetricsForChecks(owner As MainWindow, stage As String, check As Action(Of Boolean, String))
+        Dim metrics = LocalModCardMetricsForChecks(owner), close As Func(Of String, Double, Boolean) = Function(key, target) Math.Abs(CDbl(metrics(key)) - target) < 0.1
+        check(close("actionsHeight", 65) AndAlso close("firstActionY", 15),
+            "local Mod actions retain PCL's sixty-five-DIP card and fifteen-DIP top inset: " & stage)
+        check(close("filterX", 15) AndAlso close("filterY", 13) AndAlso close("filterHeight", 28),
+            "local Mod filters retain PCL's actual fifteen-thirteen origin and twenty-eight-DIP height: " & stage)
+        check(close("rowsX", 20) AndAlso close("rowsY", 48) AndAlso close("listRight", 18) AndAlso close("listBottom", 22),
+            "local Mod list retains PCL's actual twenty-forty-eight-eighteen-twenty-two insets: " & stage)
+        Dim filters = DirectCast(owner.LocalModAll.Parent, Panel), expected = {owner.LocalModAll, owner.LocalModEnabled, owner.LocalModDisabled, owner.LocalModUpdatable}
+        check(filters.Children.OfType(Of PclRadioButton)().SequenceEqual(expected),
+            "local Mod filters retain PCL's all enabled disabled update order: " & stage)
+        Dim first = owner.LocalModRows.Children.OfType(Of PclLocalModItem)().FirstOrDefault()
+        If first IsNot Nothing Then
+            check(Math.Abs(first.TitleLabel.TranslatePoint(New Point(), owner.LocalModListCard).X - 67) < 0.1 AndAlso first.ActualHeight = 44,
+                "local Mod text combines the original card inset with the forty-seven-DIP row origin: " & stage)
+        End If
+    End Sub
     Private Sub VerifyLocalModStyleUi(directory As String, check As Action(Of Boolean, String))
         Dim nativeFocus = LocalModCheckGetNativeFocus(), owner As New MainWindow(True), original = owner.Content
         Dim host As New Border With {.Width = 850, .Height = 700}, layout = ControlLayout(host)
@@ -24,6 +53,15 @@ Partial Public Class MainWindow
             Using source = PreviewSurface.Attach(host, 850, 700)
                 layout() : owner.PrepareLocalModStylePage(directory, layout)
                 owner._localModSearchClearPolicy.EnabledForChecks = False
+                ' Save both old and new layouts before a geometry assertion can fail.
+                For Each dark In {False, True}
+                    owner.RestoreAppearance(New JObject From {{"theme", "blue"}, {"darkMode", dark}}) : layout()
+                    Dim name = "local-mod-card-geometry-" & If(dark, "dark", "light")
+                    SaveControlVisual(host, Path.Combine(directory, name & ".png"))
+                    File.WriteAllText(Path.Combine(directory, name & ".json"), LocalModCardMetricsForChecks(owner).ToString())
+                Next
+                owner.RestoreAppearance(New JObject From {{"theme", "blue"}, {"darkMode", False}}) : layout()
+                VerifyLocalModCardMetricsForChecks(owner, "initial", check)
                 Dim contentHost = DirectCast(owner.LocalModSearch.Template.FindName("PART_ContentHost", owner.LocalModSearch), ScrollViewer)
                 Dim placeholder = DirectCast(owner.LocalModSearch.Template.FindName("Placeholder", owner.LocalModSearch), TextBlock)
                 check(owner.LocalModSearchCard.ActualHeight = 40 AndAlso owner.LocalModSearch.ActualHeight = 40 AndAlso
@@ -112,10 +150,48 @@ Partial Public Class MainWindow
                     Dim actions = DirectCast(owner.LocalModOpen.Parent, WrapPanel)
                     Dim mainActions = {owner.LocalModOpen, owner.LocalModImport, owner.LocalModDownload, owner.LocalModSelectAll}
                     check(owner.LocalModSearchCard.ActualHeight = 40 AndAlso owner.LocalModSearch.ActualWidth > 600 AndAlso actions.ActualWidth > 500 AndAlso
-                        mainActions.All(Function(button) button.TranslatePoint(New Point(), actions).Y = 0 AndAlso button.TranslatePoint(New Point(), actions).X + button.ActualWidth <= actions.ActualWidth + 1) AndAlso
+                        mainActions.All(Function(button) Math.Abs(button.TranslatePoint(New Point(), owner.LocalModActionsCard).Y - 15) < 0.1 AndAlso button.TranslatePoint(New Point(), actions).X + button.ActualWidth <= actions.ActualWidth + 1) AndAlso
                         owner.LocalModRefresh.TranslatePoint(New Point(), owner.LocalModActionsCard).X + owner.LocalModRefresh.ActualWidth <= owner.LocalModActionsCard.ActualWidth - 14,
                         "compact local search and wrapping actions fit the minimum window in dark mode " & dark)
+                    VerifyLocalModCardMetricsForChecks(owner, "minimum width dark=" & dark, check)
+                    owner.FilterLocalMods(owner.LocalModDisabled, Nothing) : layout()
+                    Dim disabledRow = owner.LocalModRows.Children.OfType(Of PclLocalModItem)().Single()
+                    owner.FocusLocalModElementForChecks(owner.LocalModSearch)
+                    check(Not DirectCast(disabledRow.Tag, LocalModEntry).Enabled AndAlso owner.LocalModDisabled.Checked AndAlso Keyboard.FocusedElement Is owner.LocalModSearch,
+                        "filtering the inset local list retains its physical disabled file and search focus in dark mode " & dark)
+                    VerifyLocalModCardMetricsForChecks(owner, "disabled filter dark=" & dark, check)
+                    owner.FilterLocalMods(owner.LocalModAll, Nothing) : layout()
+                    Dim updateEntry = owner._localMods.Single(Function(item) item.FileName = "first.jar")
+                    Dim project As New ModpackProject With {.Kind = CommunityResourceKind.Mod, .Platform = ModpackPlatform.Modrinth, .Id = "geometry"}
+                    Dim current As New ModpackRelease With {.Kind = project.Kind, .Platform = project.Platform, .ProjectId = project.Id, .Id = "before01", .Name = "before", .FileName = updateEntry.FileName}
+                    Dim release = current.Copy() : release.Id = "after001" : release.Name = "geometry update"
+                    owner._localModUpdates(updateEntry.FilePath) = New LocalModUpdate(updateEntry, project, current, release)
+                    owner.RenderLocalMods() : layout()
+                    Dim updateRow = owner._localModRowViews(updateEntry)
+                    Dim visibleFilters = DirectCast(owner.LocalModAll.Parent, Panel).Children.OfType(Of PclRadioButton)().Where(Function(button) button.IsVisible).ToArray()
+                    check(visibleFilters.SequenceEqual({owner.LocalModAll, owner.LocalModEnabled, owner.LocalModDisabled, owner.LocalModUpdatable}) AndAlso
+                        visibleFilters.Zip(visibleFilters.Skip(1), Function(left, right) left.TranslatePoint(New Point(), owner.LocalModListCard).X + left.ActualWidth <= right.TranslatePoint(New Point(), owner.LocalModListCard).X + 0.1).All(Function(value) value),
+                        "all four visible local filters follow PCL order without overlap in dark mode " & dark)
+                    owner.FilterLocalMods(owner.LocalModUpdatable, Nothing) : layout()
+                    check(owner.LocalModRows.Children.Count = 1 AndAlso owner.LocalModRows.Children(0) Is updateRow AndAlso owner.LocalModUpdatable.Checked AndAlso Keyboard.FocusedElement Is owner.LocalModSearch,
+                        "the reordered update selector retains the attached eligible row and editor focus in dark mode " & dark)
+                    VerifyLocalModCardMetricsForChecks(owner, "update filter dark=" & dark, check)
+                    owner._localModUpdates.Clear() : owner.FilterLocalMods(owner.LocalModAll, Nothing) : layout()
                     SaveControlVisual(host, Path.Combine(directory, "local-mod-style-" & If(dark, "dark", "light") & ".png"))
+                    owner.LocalModActionsCard.Width = 520 : owner.LocalModCancel.Visibility = Visibility.Visible : layout()
+                    Dim selectOrigin = owner.LocalModSelectAll.TranslatePoint(New Point(), actions), downloadOrigin = owner.LocalModDownload.TranslatePoint(New Point(), actions)
+                    Dim bottom = mainActions.Concat({owner.LocalModCancel}).Max(Function(button) button.TranslatePoint(New Point(), owner.LocalModActionsCard).Y + button.ActualHeight)
+                    check(selectOrigin.Y > downloadOrigin.Y AndAlso Math.Abs(selectOrigin.Y - downloadOrigin.Y - owner.LocalModDownload.ActualHeight - 7) < 0.1 AndAlso
+                        Math.Abs(owner.LocalModActionsCard.ActualHeight - bottom - 15) < 0.1 AndAlso mainActions.Concat({owner.LocalModCancel}).All(Function(button) button.TranslatePoint(New Point(), actions).X + button.ActualWidth <= actions.ActualWidth + 0.1),
+                        "wrapped local actions preserve seven-DIP row gaps and fifteen-DIP card clearance in dark mode " & dark)
+                    Dim wrappedHeight = owner.LocalModActionsCard.ActualHeight
+                    owner.LocalModStatus.Text = "操作已取消，可重新尝试。" : layout()
+                    check(owner.LocalModStatus.IsVisible AndAlso owner.LocalModStatus.TranslatePoint(New Point(), owner.LocalModActionsCard).Y >= bottom + 4.9 AndAlso
+                        owner.LocalModActionsCard.ActualHeight >= wrappedHeight + owner.LocalModStatus.ActualHeight + 4.9,
+                        "wrapped local actions leave a measured feedback row after cancellation in dark mode " & dark)
+                    owner.LocalModStatus.Text = "" : owner.LocalModCancel.Visibility = Visibility.Collapsed : owner.LocalModActionsCard.Width = Double.NaN
+                    host.Width = 1050 : layout()
+                    VerifyLocalModCardMetricsForChecks(owner, "wide width dark=" & dark, check)
                 Next
             End Using
         Finally

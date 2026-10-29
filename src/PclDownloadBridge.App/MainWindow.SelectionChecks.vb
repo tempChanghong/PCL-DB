@@ -5,6 +5,7 @@ Imports System.Windows.Automation.Peers
 Imports System.Windows.Automation.Provider
 Imports System.Windows.Controls
 Imports System.Windows.Controls.Primitives
+Imports System.Windows.Data
 Imports System.Windows.Input
 Imports System.Windows.Media
 Imports System.Windows.Media.Imaging
@@ -59,6 +60,7 @@ Partial Public Class MainWindow
             folders.SelectedIndex = 1
             folders.IsDropDownOpen = False
             check(DirectCast(folders.SelectedItem, GameFolder).Name = "中文与空格路径", "two-line directory selection retains the underlying game folder")
+            VerifyPopupOpacitySynchronization(selector, host, panel, check)
             Dim checkBorder = DirectCast(flag.Template.FindName("ShapeBorder", flag), Border)
             check(checkBorder.Width = 18 AndAlso checkBorder.CornerRadius.TopLeft = 3 AndAlso flag.Template.FindName("ShapeCheck", flag) IsNot Nothing, "PCL checkbox uses its original 18 DIP outline and check geometry")
             Dim peer = UIElementAutomationPeer.CreatePeerForElement(flag)
@@ -103,6 +105,88 @@ Partial Public Class MainWindow
             End Try
         End Using
         check(failed AndAlso IO.File.ReadAllBytes(file).SequenceEqual(original) AndAlso IO.Directory.GetFiles(directory, "*.tmp").Length = 0, "failed settings replacement preserves the old file and removes its temporary write")
+    End Sub
+
+    Private Shared Sub VerifyPopupOpacitySynchronization(selector As PclComboBox, host As Window, panel As Panel, check As Action(Of Boolean, String))
+        Dim popupPanel = DirectCast(selector.Template.FindName("PanPopup", selector), Grid)
+        Dim originalTemplate = selector.Template
+        Dim secondHost As Window = Nothing
+        ' Windows may reposition an off-screen popup onto a visible monitor.
+        ' Hide only its pixels while exercising real opening and owner bindings.
+        popupPanel.Visibility = Visibility.Hidden
+        Try
+            host.Opacity = 0.7
+            selector.IsDropDownOpen = True : FlushControlLayout()
+            Dim firstBinding = BindingOperations.GetBindingExpressionBase(popupPanel, UIElement.OpacityProperty)
+            check(firstBinding IsNot Nothing AndAlso Math.Abs(popupPanel.Opacity - 0.7) < 0.00001,
+                "the real selector popup follows its own seventy-percent owner rather than the global main window")
+            host.Opacity = 0.4 : FlushControlLayout()
+            check(Math.Abs(popupPanel.Opacity - 0.4) < 0.00001 AndAlso BindingOperations.GetBindingExpressionBase(popupPanel, UIElement.OpacityProperty) Is firstBinding,
+                "changing owner opacity updates an open popup without replacing its binding")
+            For index = 0 To 2
+                selector.IsDropDownOpen = False : selector.IsDropDownOpen = True : FlushControlLayout()
+            Next
+            check(BindingOperations.GetBindingExpressionBase(popupPanel, UIElement.OpacityProperty) Is firstBinding AndAlso selector.SelectedIndex = 1,
+                "rapid popup reopening retains a single opacity binding and the selected source")
+            selector.IsDropDownOpen = False
+            host.Opacity = 1 : FlushControlLayout()
+            check(popupPanel.Opacity = 1, "restoring full owner opacity also restores the closed popup")
+
+            host.Opacity = 0.4 : FlushControlLayout()
+            Dim retiredPanel = popupPanel
+            selector.Template = Nothing : selector.ApplyTemplate()
+            selector.Template = originalTemplate : selector.ApplyTemplate()
+            popupPanel = DirectCast(selector.Template.FindName("PanPopup", selector), Grid)
+            popupPanel.Visibility = Visibility.Hidden
+            check(popupPanel IsNot retiredPanel AndAlso BindingOperations.GetBindingExpressionBase(retiredPanel, UIElement.OpacityProperty) Is Nothing AndAlso
+                Math.Abs(retiredPanel.Opacity - 0.4) < 0.00001 AndAlso Math.Abs(popupPanel.Opacity - 0.4) < 0.00001,
+                "retemplating releases only the retired popup binding and preserves its last opacity during fade-out")
+
+            selector.IsDropDownOpen = True : FlushControlLayout() : selector.IsDropDownOpen = False
+            panel.Children.Remove(selector)
+            secondHost = New Window With {.Content = selector, .Width = 380, .Height = 100, .Left = -32000, .Top = -32000, .Opacity = 0,
+                .AllowsTransparency = True, .WindowStyle = WindowStyle.None, .WindowStartupLocation = WindowStartupLocation.Manual, .ShowInTaskbar = False, .ShowActivated = False}
+            secondHost.Show() : secondHost.UpdateLayout()
+            selector.IsDropDownOpen = True : FlushControlLayout()
+            Dim secondBinding = TryCast(BindingOperations.GetBindingExpressionBase(popupPanel, UIElement.OpacityProperty), BindingExpression)
+            check(secondBinding IsNot Nothing AndAlso secondBinding.ParentBinding.Source Is secondHost AndAlso popupPanel.Opacity = 0,
+                "moving a selector to another real window replaces its opacity source without inheriting the previous owner")
+            secondHost.Opacity = 0.6 : FlushControlLayout()
+            check(Math.Abs(popupPanel.Opacity - 0.6) < 0.00001, "the second window controls its own open popup opacity")
+            selector.IsDropDownOpen = False : secondHost.Content = Nothing : secondHost.Close() : secondHost = Nothing : FlushControlLayout()
+            check(BindingOperations.GetBindingExpressionBase(popupPanel, UIElement.OpacityProperty) Is Nothing AndAlso Math.Abs(popupPanel.Opacity - 0.6) < 0.00001,
+                "unloading releases the owner binding while preserving the popup's displayed opacity")
+            panel.Children.Insert(0, selector) : host.UpdateLayout()
+
+            Dim explicitSource As New Border With {.Opacity = 0.25}
+            Dim explicitBinding = BindingOperations.SetBinding(popupPanel, UIElement.OpacityProperty, New Binding("Opacity") With {.Source = explicitSource})
+            selector.IsDropDownOpen = True : FlushControlLayout()
+            check(BindingOperations.GetBindingExpressionBase(popupPanel, UIElement.OpacityProperty) Is explicitBinding AndAlso popupPanel.Opacity = 0.25,
+                "opening never replaces a caller-owned popup opacity binding")
+            selector.IsDropDownOpen = False
+            BindingOperations.ClearBinding(popupPanel, UIElement.OpacityProperty)
+            popupPanel.BeginAnimation(UIElement.OpacityProperty, New System.Windows.Media.Animation.DoubleAnimation(0.2, 0.2, TimeSpan.FromMilliseconds(100)))
+            check(popupPanel.HasAnimatedProperties AndAlso Not BindingOperations.IsDataBound(popupPanel, UIElement.OpacityProperty),
+                "the caller animation is assigned without an opacity binding before the popup opens or receives its first tick")
+            selector.IsDropDownOpen = True : FlushControlLayout()
+            check(DependencyPropertyHelper.GetValueSource(popupPanel, UIElement.OpacityProperty).IsAnimated AndAlso Not BindingOperations.IsDataBound(popupPanel, UIElement.OpacityProperty),
+                "opening leaves caller-owned popup opacity animation in place")
+            selector.IsDropDownOpen = False : popupPanel.BeginAnimation(UIElement.OpacityProperty, Nothing)
+
+            Dim preview As New PclComboBox With {.Template = originalTemplate}
+            preview.ApplyTemplate()
+            Dim previewPopup = DirectCast(preview.Template.FindName("PanPopup", preview), Grid)
+            previewPopup.Opacity = 0.35
+            preview.RaiseEvent(New RoutedEventArgs(FrameworkElement.LoadedEvent, preview))
+            check(Window.GetWindow(preview) Is Nothing AndAlso Not BindingOperations.IsDataBound(previewPopup, UIElement.OpacityProperty) AndAlso previewPopup.Opacity = 0.35,
+                "a windowless preview keeps its local popup opacity without binding to an unrelated application window")
+            preview.RaiseEvent(New RoutedEventArgs(FrameworkElement.UnloadedEvent, preview))
+        Finally
+            selector.IsDropDownOpen = False
+            If secondHost IsNot Nothing Then secondHost.Content = Nothing : secondHost.Close()
+            If Not panel.Children.Contains(selector) Then panel.Children.Insert(0, selector)
+            host.Opacity = 0
+        End Try
     End Sub
 
     Private Shared Sub PressControlKey(control As UIElement, key As Key)

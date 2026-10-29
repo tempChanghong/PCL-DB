@@ -4,6 +4,8 @@ C# Core + VB.NET WPF + .NET Framework 4.8 的 Minecraft Java 下载与本地实�
 
 当前源码以 Beta 8 为基线迁移 Core 到 C#，界面和测试继续使用 VB，公开接口、配置与资源名称保持兼容。这项迁移尚未发行，现有 Beta 8 发布工件不变。[迁移说明与验证](docs/reviews/core-csharp-migration-2026-10-29.md)。
 
+UI 对照旧 VB 版及 PCL2／PCL-CE，修正本地 Mod 页卡片与列表边距、筛选顺序，并让下拉菜单跟随所属窗口的不透明度；保留换行、明暗模式与原动画。[对照与验证](docs/reviews/ui-fidelity-2026-10-29.md)。
+
 Core 已进入第二轮结构整理，首批将平台目录按模型、查询编排、HTTP 传输和严格元数据解析拆分；原有接口与行为保持。[结构说明与验证](docs/reviews/core-refactor-round2-catalog-2026-10-29.md)。
 
 第二批拆分组件安装、Forge 处理器、下载校验与配置解析，并独立放置原 JavaRuntime 和 InlineProgress；初始化顺序、取消与进程收尾保持。[组件结构与验证](docs/reviews/core-refactor-round2-components-2026-10-29.md)。

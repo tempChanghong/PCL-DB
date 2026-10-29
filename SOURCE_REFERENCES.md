@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## UI 还原度：本地 Mod 卡片与下拉菜单（2026-10-29）
+
+- 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.xaml:13,28-34` 为 65 DIP 操作卡片、筛选 (15,13)、列表 (20,48,18,22) 及筛选顺序的依据；CE `915ac29795efbdf6373417389e181e1504117048` 的 `PageInstanceCompResource.xaml:39-59` 只提供 Top 8／7 的换行间距参考，正常首行仍以 PCL 为准。
+- PCL `MyComboBox.vb:109` 与 CE `MyComboBox.cs:192-193` 在打开时同步主窗透明度；本工具适配为所属 Window 的实时绑定，按所有权回收，保留外部绑定／动画与独立预览。准确旧 VB 基线为 `872220b0f7a8303530c5cddaa74af5aafe04c499`，业务 UI 与本批基线相同，不将原有还原差异误称迁移回归。[报告](docs/reviews/ui-fidelity-2026-10-29.md)，固定原始字节见 `artifacts/ui-fidelity-review/fixed-ui-source/manifest.json`。
+
 ## 组件缓存校验取消与发布边界（2026-10-29）
 
 - 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModNet.vb:1474-1506,1531-1537` 和 CE `915ac29795efbdf6373417389e181e1504117048` 的三种 HashProvider／IHashProvider，提供复用中断、先大小后摘要与流哈希传 token 的依据。仅给 VerifiedComponentCache 三处已有调用传 token，保持 net48、S3 复位、原异常过滤、临时文件清理与提交边界。[修复报告](docs/reviews/component-cache-hash-cancellation-2026-10-29.md)。
