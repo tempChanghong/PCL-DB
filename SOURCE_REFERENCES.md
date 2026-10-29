@@ -1,5 +1,12 @@
 # PCL2 代码依据
 
+## Core 迁移到 C#（2026-10-29）
+
+- 以 PCL-DB Beta 8 `872220b0f7a8303530c5cddaa74af5aafe04c499` 为行为和二进制接口基线。UI、控件与动画继续以固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 为核心；今后的 C# 逻辑重点参考 PCL-CE，不能因语言转换改变既有下载／安装语义。
+- 本轮固定 PCL-CE `dev` `915ac29795efbdf6373417389e181e1504117048`，核对 `Plain Craft Launcher 2/Modules/Base/ModLoader.cs:577-626` 的输入绑定与重启、`Modules/Network/Loaders/LoaderDownload.cs:64-97` 的信号量所有权、`Modules/Network/Downloader/FileDownloader.cs` 的响应与取消清理，以及 `PCL.Core/App/Configuration/Storage/CommonFileProvider.cs:17-29` 的同目录原子写入。
+- CE 的 `ModLoader.cs:582,621,1013` 和 `ModBase.cs:1856-1860` 仍保留必要的 Visual Basic 转换调用；因此本轮保留 CLR Module 兼容标记和必要的 VB runtime 转换。CE 的 `JsonCompat.cs:16-46,107-145,189-224` 说明替换 JSON 库会改变接受范围，本轮继续使用 Newtonsoft.Json 13.0.3 和既有严格字段检查。
+- CE 自身使用较新的 .NET/C#，仅借鉴逻辑，不引入其新运行时 API。PCL-DB 保持 .NET Framework 4.8，C# 语法版本明确为 9.0，整数运算保留 VB 的溢出检查。历史说明中的 `.vb` 路径继续指向当时提交，当前 Core 实现为同名 `.cs`。[迁移说明与验证](docs/reviews/core-csharp-migration-2026-10-29.md)。
+
 ## 资源安装结果与本地列表通知的结束边界（2026-10-28）
 
 - 重读固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadCompDetail.Save_Click`：下载加载器的终态提示／后续动作属于状态回调；`PageInstanceMod` 按加载器终态提示结果并独立处理缓存清理；`ModLoader.State` 先更新状态再发送取消／状态通知。

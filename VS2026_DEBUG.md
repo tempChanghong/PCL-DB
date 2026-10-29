@@ -1,6 +1,8 @@
 # 在 Visual Studio 2026 中开发 PCL-DB
 
-在完整源码目录中打开 `PclDownloadBridge.sln`。项目已经是 SDK 格式的 VB.NET / WPF / .NET Framework 4.8，三个项目都可加载；无需从现有代码创建新项目。解决方案中的主应用显示为 **PCL-DB**，源码文件夹和程序集名为 `PclDownloadBridge.App` / `PclDownloadBridge.exe`。便携包附带本说明供查阅。
+在完整源码目录中打开 `PclDownloadBridge.sln`。三个项目均使用 SDK 格式和 .NET Framework 4.8：**C# Core 类库、VB.NET WPF 主应用、原有 VB.NET 控制台测试**。无需从现有代码创建新项目。解决方案中的主应用显示为 **PCL-DB**，源码文件夹和程序集名为 `PclDownloadBridge.App` / `PclDownloadBridge.exe`；Core 仍输出 `PclDownloadBridge.Core.dll`。便携包附带本说明供查阅。
+
+本文件后半部保留了逐批新增专项的历史说明。当前要求以 `tools/VerificationTools.psm1` 为准，实际通过数量以对应运行回执和控制台汇总为准，不将旧批次的计数相加作为本轮执行数。
 
 本机已检测到 Visual Studio Community 2026 18.10.3，安装目录为 `C:\Program Files\Microsoft Visual Studio\18\Community`，并具备 .NET 桌面开发工作负载及 .NET Framework 4.8 目标包。项目通过 `global.json` 使用 .NET SDK 10.0.4xx；这台机器使用 10.0.401。项目路径与启动配置没有写死这台机器的目录。
 
@@ -10,6 +12,8 @@
 2. 工具栏选择 **Debug / Any CPU**。
 3. 右键 **PCL-DB → 设为启动项目**，启动配置选择 **PCL-DB**，按 **F5**；**Ctrl+F5** 为不附加调试器运行。
 4. 若此前打开过同名解决方案，VS 可能保留旧的启动选择，按第 3 步重新指定即可，无需删除 `.vs`。
+
+Core 迁移后引用路径为 `src/PclDownloadBridge.Core/PclDownloadBridge.Core.csproj`，保留原解决方案项目 GUID，并以 C# SDK 工程类型加载。首次打开迁移后的源码时，先停止旧调试会话，接受项目重新加载，再重新生成解决方案；已加载的 VB Core DLL 不会因文件转换而在进程内变成新 C# DLL。Core 是类库，不作为 F5 启动项目；从 VB 主应用或原 VB 测试入口使用 F11 可进入对应 `.cs` 源码。
 
 另附 `PclDownloadBridge.slnLaunch`，提供 **PCL-DB** 和 **Offline Checks** 两种可共享的解决方案启动方案，分别只启动主应用或控制台回归项目。若 VS 没有显示这些方案，可在「配置启动项目」中选择；部分安装需在「工具 → 选项 → 预览功能」启用多项目启动配置。普通的单启动项目方式仍可直接使用。
 
@@ -34,7 +38,7 @@
 
 所有检查与预览配置沿用应用已有的预览隔离：不读取或保存用户偏好，不执行真实安装，也不触发 Shell 或剪贴板动作。它们仍会在构建输出目录和系统临时目录写入检查样本。
 
-Debug 构建输出为 `src/PclDownloadBridge.App/bin/Debug/net48/`。启动配置使用 VS 支持的 `$(ProjectDir)` 和 `$(TargetDir)` 宏，工作目录设为对应项目目录，输出目录始终已由构建创建。
+Debug 构建输出为 `src/PclDownloadBridge.App/bin/Debug/net48/`。启动配置使用 VS 支持的 `$(ProjectDir)` 和 `$(TargetDir)` 宏，工作目录设为对应项目目录，输出目录始终已由构建创建。手动 F5 的诊断输出采用配置中的路径，重复执行同一诊断配置时应选择新的输出子目录，避免复用旧夹具；自动验证脚本会为每次配置执行创建独立目录。
 
 ## 下载与组件调试配置
 
@@ -42,7 +46,7 @@ Debug 构建输出为 `src/PclDownloadBridge.App/bin/Debug/net48/`。启动配�
 
 | 配置 | 覆盖的流程 |
 |---|---|
-| Offline All | 全部本地下载、安装与处理器回归；当前 2175 项检查，处理器样本需要本机 Java 8 或更高版本 |
+| Offline All | 全部现有本地下载、安装与处理器回归；精确执行数量见控制台汇总，处理器样本需要本机 Java 8 或更高版本 |
 | Modrinth Import | 128 项 MRPACK 清单、双哈希、多地址/重定向、覆盖层、隔离、路径冲突及取消重试检查；使用回环 HTTP，不连接真实 CDN |
 | CurseForge Import | 135 项 ZIP 清单、文件查询/身份/远端校验、可选项、隔离、路径冲突、取消与缓存重试检查；使用回环载荷和受控 HTTP 元数据，不连接真实 CDN |
 | Install Inputs | 71 项安装参数检查：组件标量/嵌套 JSON 复制、安装中修改文件名/校验/加载器/版本与来源、一次性或变化的复用目录、损坏源回退、直接组件构造、取消后更新参数重试、已有实例补全及非法参数无副作用；仅使用临时文件、回环 HTTP 与同步进度回调 |
@@ -88,16 +92,16 @@ Debug 构建输出为 `src/PclDownloadBridge.App/bin/Debug/net48/`。启动配�
 | 页面切换、旧时钟与输入门控 | `src/PclDownloadBridge.App/Controls/PclPageSwitch.vb`：`SelectInstall`、`Finish` |
 | 启动、预览参数 | `src/PclDownloadBridge.App/App.xaml.vb`：`OnStartup` |
 | 点击开始下载 | `src/PclDownloadBridge.App/MainWindow.xaml.vb`：`StartInstall` |
-| 安装分支、最终写入 | `src/PclDownloadBridge.Core/MinecraftInstaller.vb`：`InstallAsync` |
-| 计划、复用、重试与分段 | `src/PclDownloadBridge.Core/DownloadEngine.vb`：`DownloadAsync`、`DownloadOneExclusiveAsync` |
-| 自动选源与列表 | `src/PclDownloadBridge.Core/SourcePolicy.vb`：`GetVersionManifestAsync` |
-| 加载器配置与 Java | `src/PclDownloadBridge.Core/ComponentInstaller.vb`：`MergeProfile`、`ApplyAsync`、`JavaRuntime.RunAsync` |
-| Java 版本检测 | `src/PclDownloadBridge.Core/ComponentInstaller.vb`：`JavaRuntime.Major`、`ReadMajorAsync`、`ParseMajor` |
-| 处理器日志不可写 | `src/PclDownloadBridge.Core/ComponentInstaller.vb`：`ProcessorLine`；预期的 IO/访问异常不会阻止安装及进度 |
-| 完整失败诊断 | `src/PclDownloadBridge.Core/InstallLog.vb`：`Failure` / `Append`；汇总异常在展开前记录，日志不可写不改变返回的具体异常 |
+| 安装分支、最终写入 | `src/PclDownloadBridge.Core/MinecraftInstaller.cs`：`InstallAsync` |
+| 计划、复用、重试与分段 | `src/PclDownloadBridge.Core/DownloadEngine.cs`：`DownloadAsync`、`DownloadOneExclusiveAsync` |
+| 自动选源与列表 | `src/PclDownloadBridge.Core/SourcePolicy.cs`：`GetVersionManifestAsync` |
+| 加载器配置与 Java | `src/PclDownloadBridge.Core/ComponentInstaller.cs`：`MergeProfile`、`ApplyAsync`、`JavaRuntime.RunAsync` |
+| Java 版本检测 | `src/PclDownloadBridge.Core/ComponentInstaller.cs`：`JavaRuntime.Major`、`ReadMajorAsync`、`ParseMajor` |
+| 处理器日志不可写 | `src/PclDownloadBridge.Core/ComponentInstaller.cs`：`ProcessorLine`；预期的 IO/访问异常不会阻止安装及进度 |
+| 完整失败诊断 | `src/PclDownloadBridge.Core/InstallLog.cs`：`Failure` / `Append`；汇总异常在展开前记录，日志不可写不改变返回的具体异常 |
 | 任务结果路径变化 | `src/PclDownloadBridge.App/MainWindow.TaskResults.vb`：`TaskLogPath` / `TaskFolderPath`；UI Checks 用隔离 NTFS 目录联接检查路径失效、恢复及未结束任务，不实际打开 Shell |
-| 清理异常与日志 | `src/PclDownloadBridge.Core/InstallCleanup.vb`：`DeleteOwnedDirectory` |
-| 下载成功后的分片清理 | `src/PclDownloadBridge.Core/TransferCleanup.vb`：`DeleteCommitted` |
+| 清理异常与日志 | `src/PclDownloadBridge.Core/InstallCleanup.cs`：`DeleteOwnedDirectory` |
+| 下载成功后的分片清理 | `src/PclDownloadBridge.Core/TransferCleanup.cs`：`DeleteCommitted` |
 
 F9 切换断点，F10 逐过程，F11 逐语句。`Directory.Build.props` 明确为 Debug 启用 Portable PDB 并关闭优化，三个项目都会生成对应 `.pdb`；本机 CLI 构建已经核对这些实际设置。断点灰色时先确认当前是 Debug，并在「调试 → 窗口 → 模块」检查加载路径和符号，避免误运行 `dist` 中的 Release 程序。
 
@@ -155,7 +159,9 @@ Copy Fallback 的文件占用样本使用 Windows NTFS 辅助数据流，默认�
 
 Motion Checks 现含 913 项，其中 263 项覆盖标题栏、滚动条本体、个性化单选框与加载动画生命周期。需要只调试这一组时，可将启动参数改为 `--control-motion-checks "$(TargetDir)vs-control-motion-checks.json"`；使用隔离预览与隐藏呈现源，不改用户设置。它包含蓝/深色、快速反向、模板重建、输入与辅助功能门控、系统减少动画分支、源曲线采样和父容器布局计数。加载动画额外模拟本次检查进程的 WPF 偏好缓存及通知，核对运行中关闭/恢复、隐藏、输入门控、反复卸载和静态事件解绑；不更改 Windows 的持久偏好。该组已包含在完整 Motion Checks 内，不单独触发打包或发行。
 
-构建、VS 验证和单 EXE 验证脚本共用 `VerificationProcessTools.psm1`：只清除本次明确要求的旧回执/预览，要求进程成功退出并重新生成非空输出，保留两路日志，核对执行前后 EXE 摘要。App 每个配置限时 180 秒，核心检查限时 900 秒；超时只终止本次创建的进程，不按名称清理其他应用。`verify-vs2026.ps1` 开始时还会移除旧的总报告，失败不会留下上次的成功总报告。以上时限只用于验证脚本，IDE F5 调试及正常下载/安装不增加时限。`tools/verify-verification-process.ps1` 可单独检查这些边界。
+构建、VS 验证和单 EXE 验证脚本共用 `VerificationProcessTools.psm1`：只清除本次明确要求的旧回执/预览，要求进程成功退出并重新生成非空输出，保留两路日志，核对执行前后 EXE 摘要。`verify-vs2026.ps1` 按 `VerificationTools.psm1` 的实际 scope 读取 App 检查期限；预览为 180 秒、核心检查为 900 秒。每次 App 检查或预览通过 `New-PclDbVerificationDirectory` 创建新工作目录，保留配置模式、其它参数和工作目录，仅将诊断输出明确重定位到该目录；回执分别记录 `OriginalArguments`、实际 `Arguments`、原配置输出和实际 `OutputPath`。后续断言只读取本次实际输出，不复用构建输出目录中的旧 JSON 或旧图像。
+
+超时只终止本次创建的进程，不按名称清理其他应用。`verify-vs2026.ps1` 开始时还会移除旧的总报告，失败不会留下上次的成功总报告。脚本另核对 C# Core 的 `net48`、`PclDownloadBridge.Core` 程序集名和命名空间，以及三个项目的未优化 Debug 与 Portable PDB。以上时限和诊断输出重定位只用于自动验证，IDE F5 调试及正常下载/安装不增加时限。`tools/verify-verification-process.ps1` 可单独检查进程边界。
 
 原版安装按钮独立动效另含 79 项检查（已计入 Motion Checks），参照 MyExtraTextButton.Show 验证回弹、快速反向、输入门控及页面接管；输出 install-action-090/250/hide-075/dark-250.png 四张采样图。
 

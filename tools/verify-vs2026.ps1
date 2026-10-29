@@ -15,8 +15,9 @@ if (!$installation) { throw 'VS 2026 needs .NET desktop development and the .NET
 $msbuild = Join-Path $installation.installationPath 'MSBuild\Current\Bin\amd64\MSBuild.exe'
 if (!(Test-Path -LiteralPath $msbuild)) { throw 'VS 2026 MSBuild.exe was not found.' }
 $appProject = 'src\PclDownloadBridge.App\PclDownloadBridge.App.vbproj'
+$coreProject = 'src\PclDownloadBridge.Core\PclDownloadBridge.Core.csproj'
 $testProject = 'tests\PclDownloadBridge.Tests\PclDownloadBridge.Tests.vbproj'
-$projects = @($appProject, 'src\PclDownloadBridge.Core\PclDownloadBridge.Core.vbproj', $testProject)
+$projects = @($appProject, $coreProject, $testProject)
 $properties = @{}
 
 function Expand-ProfileValue([string]$value, $evaluated) {
@@ -31,6 +32,7 @@ function Invoke-OfflineProfile([string]$project, [string]$name) {
     $profile = $settings.profiles.PSObject.Properties[$name].Value
     if (!$profile -or $profile.commandName -ne 'Project') { throw "Missing Project launch profile: $name" }
     $arguments = Expand-ProfileValue $profile.commandLineArgs $evaluated
+    $originalArguments = $arguments
     $working = Expand-ProfileValue $profile.workingDirectory $evaluated
     if ($arguments -match '--live') { throw 'This verifier only runs offline launch profiles.' }
     if (!(Test-Path -LiteralPath $working -PathType Container)) { throw "Invalid profile working directory: $working" }
@@ -39,15 +41,32 @@ function Invoke-OfflineProfile([string]$project, [string]$name) {
     $stdout = Join-Path $output ($stem + '.stdout.log')
     $stderr = Join-Path $output ($stem + '.stderr.log')
     $expected = @()
+    $sourceProfileOutput = $null
+    $reportPath = $null
+    $scope = 'core'
+    $policy = [pscustomobject]@{TimeoutSeconds=900}
     if ($project -eq $appProject) {
-        # Read the output from the actual launch profile; do not silently change
-        # its arguments or accept a stale JSON/image from an earlier F5 run.
-        if ($arguments -notmatch '^--(?:[a-z-]+-checks|snapshot) "([^"]+)"(?: |$)') { throw "No diagnostic output in App profile: $name" }
-        $expected = @($Matches[1])
+        # Retain the profile's mode and remaining arguments, but run each set of
+        # native fixtures in a fresh directory. Record both forms explicitly.
+        if ($arguments -notmatch '^--(?<Mode>[a-z-]+-checks|snapshot) "(?<Output>[^"]+)"(?<Tail>(?: .*)?)$') { throw "No diagnostic output in App profile: $name" }
+        $mode = $Matches['Mode']; $sourceProfileOutput = $Matches['Output']; $tail = $Matches['Tail']
+        $scope = if ($mode -ceq 'ui-checks') { 'all' } elseif ($mode -ceq 'card-checks') { 'cards' } elseif ($mode -ceq 'snapshot') { 'snapshot' } else { $mode.Substring(0, $mode.Length - '-checks'.Length) }
+        $policy = if ($scope -ceq 'snapshot') { [pscustomobject]@{TimeoutSeconds=180} } else { Get-PclDbCheckPolicy $scope }
+        $scopeDirectory = New-PclDbVerificationDirectory -Root $output -Scope ('vs-' + $scope)
+        $fileName = [IO.Path]::GetFileName($sourceProfileOutput)
+        if ([string]::IsNullOrWhiteSpace($fileName)) { throw "Invalid profile output: $sourceProfileOutput" }
+        $reportPath = Join-Path $scopeDirectory $fileName
+        $arguments = '--' + $mode + ' "' + $reportPath + '"' + $tail
+        $expected = @($reportPath)
     }
-    $timeout = if ($project -eq $appProject) { 180 } else { 900 }
-    $run = Invoke-PclDbVerificationProcess -Name $name -FilePath $evaluated.TargetPath -Arguments $arguments -WorkingDirectory $working -StdoutPath $stdout -StderrPath $stderr -ExpectedOutputPaths $expected -TimeoutSeconds $timeout
-    return [pscustomobject]@{Project=$project; Profile=$name; ExitCode=$run.ExitCode; DurationMilliseconds=$run.DurationMilliseconds; ExecutableSHA256=$run.ExecutableSHA256; WorkingDirectory=$working; Arguments=$arguments; Stdout=$stdout; Stderr=$stderr}
+    $run = Invoke-PclDbVerificationProcess -Name $name -FilePath $evaluated.TargetPath -Arguments $arguments -WorkingDirectory $working -StdoutPath $stdout -StderrPath $stderr -ExpectedOutputPaths $expected -TimeoutSeconds $policy.TimeoutSeconds
+    return [pscustomobject]@{Project=$project; Profile=$name; Scope=$scope; ExitCode=$run.ExitCode; DurationMilliseconds=$run.DurationMilliseconds; ExecutableSHA256=$run.ExecutableSHA256; WorkingDirectory=$working; OriginalArguments=$originalArguments; Arguments=$arguments; SourceProfileOutputPath=$sourceProfileOutput; OutputPath=$reportPath; TimeoutSeconds=$policy.TimeoutSeconds; Stdout=$stdout; Stderr=$stderr}
+}
+
+function Get-AppProfileOutput([string]$name) {
+    $matching = @($runs | Where-Object { $_.Project -ceq $appProject -and $_.Profile -ceq $name })
+    if ($matching.Count -ne 1 -or [string]::IsNullOrWhiteSpace($matching[0].OutputPath)) { throw "Missing diagnostic run: $name" }
+    return $matching[0].OutputPath
 }
 
 Push-Location -LiteralPath $root
@@ -56,9 +75,10 @@ try {
     & $msbuild PclDownloadBridge.sln -restore -t:Build -p:Configuration=Debug '-p:Platform=Any CPU' -nologo -v:minimal *> $buildLog
     if ($LASTEXITCODE -ne 0) { Get-Content -LiteralPath $buildLog -Tail 30; throw 'VS 2026 Debug build failed.' }
     foreach ($project in $projects) {
-        $json = (& $msbuild $project -nologo -p:Configuration=Debug -p:Platform=AnyCPU -getProperty:TargetPath,TargetDir,ProjectDir,DebugType,DebugSymbols,Optimize,LaunchSettingsFilePath) -join "`n"
+        $json = (& $msbuild $project -nologo -p:Configuration=Debug -p:Platform=AnyCPU -getProperty:TargetPath,TargetDir,ProjectDir,DebugType,DebugSymbols,Optimize,LaunchSettingsFilePath,TargetFramework,AssemblyName,RootNamespace) -join "`n"
         if ($LASTEXITCODE -ne 0) { throw "Cannot evaluate project: $project" }
         $evaluated = ($json | ConvertFrom-Json).Properties
+        if ($project -ceq $coreProject -and ($evaluated.TargetFramework -cne 'net48' -or $evaluated.AssemblyName -cne 'PclDownloadBridge.Core' -or $evaluated.RootNamespace -cne 'PclDownloadBridge.Core')) { throw 'C# Core must retain its .NET Framework target and assembly/namespace identity.' }
         if ($evaluated.DebugType -ne 'portable' -or $evaluated.DebugSymbols -ne 'true' -or $evaluated.Optimize -ne 'false') { throw "Invalid Debug symbol/optimization settings: $project" }
         $pdb = [IO.Path]::ChangeExtension($evaluated.TargetPath, '.pdb')
         if (!(Test-Path -LiteralPath $pdb)) { throw "Missing PDB: $pdb" }
@@ -91,32 +111,32 @@ try {
     $runs += Invoke-OfflineProfile $appProject 'Pack Search Checks'
     $runs += Invoke-OfflineProfile $appProject 'Settings Compatibility'
     $runs += Invoke-OfflineProfile $appProject 'Preview Components'
-    $uiPath = Join-Path $properties[$appProject].TargetDir 'vs-ui-checks.json'
+    $uiPath = Get-AppProfileOutput 'UI Checks'
     $appHash = (Get-FileHash -LiteralPath $properties[$appProject].TargetPath -Algorithm SHA256).Hash
     $ui = Get-Content -LiteralPath $uiPath -Raw | ConvertFrom-Json
     Assert-PclDbCheckReport $ui 'all' -ExecutableSHA256 $appHash
-    $appearancePath = Join-Path $properties[$appProject].TargetDir 'vs-appearance-checks.json'
+    $appearancePath = Get-AppProfileOutput 'Appearance Checks'
     $appearance = Get-Content -LiteralPath $appearancePath -Raw | ConvertFrom-Json
     Assert-PclDbCheckReport $appearance 'appearance' -ExecutableSHA256 $appHash
-    $developerPath = Join-Path $properties[$appProject].TargetDir 'vs-developer-checks.json'
+    $developerPath = Get-AppProfileOutput 'Developer Checks'
     $developer = Get-Content -LiteralPath $developerPath -Raw | ConvertFrom-Json
     Assert-PclDbCheckReport $developer 'developer' -ExecutableSHA256 $appHash
-    $cardPath = Join-Path $properties[$appProject].TargetDir 'vs-card-checks.json'
+    $cardPath = Get-AppProfileOutput 'Card Checks'
     $cardChecks = Get-Content -LiteralPath $cardPath -Raw | ConvertFrom-Json
     Assert-PclDbCheckReport $cardChecks 'cards' -ExecutableSHA256 $appHash
-    $navigationPath = Join-Path $properties[$appProject].TargetDir 'vs-navigation-checks.json'
+    $navigationPath = Get-AppProfileOutput 'Navigation Checks'
     $navigation = Get-Content -LiteralPath $navigationPath -Raw | ConvertFrom-Json
     Assert-PclDbCheckReport $navigation 'navigation' -ExecutableSHA256 $appHash
-    $motionPath = Join-Path $properties[$appProject].TargetDir 'vs-motion-checks.json'
+    $motionPath = Get-AppProfileOutput 'Motion Checks'
     $motion = Get-Content -LiteralPath $motionPath -Raw | ConvertFrom-Json
     Assert-PclDbCheckReport $motion 'motion' -ExecutableSHA256 $appHash
-    $packSearchPath = Join-Path $properties[$appProject].TargetDir 'vs-pack-search-checks.json'
+    $packSearchPath = Get-AppProfileOutput 'Pack Search Checks'
     $packSearch = Get-Content -LiteralPath $packSearchPath -Raw | ConvertFrom-Json
     Assert-PclDbCheckReport $packSearch 'pack-search' -ExecutableSHA256 $appHash
-    $compatibilityPath = Join-Path $properties[$appProject].TargetDir 'vs-compatibility-checks.json'
+    $compatibilityPath = Get-AppProfileOutput 'Settings Compatibility'
     $compatibility = Get-Content -LiteralPath $compatibilityPath -Raw | ConvertFrom-Json
     Assert-PclDbCheckReport $compatibility 'compatibility' -ExecutableSHA256 $appHash
-    $snapshot = Join-Path $properties[$appProject].TargetDir 'vs-components.png'
+    $snapshot = Get-AppProfileOutput 'Preview Components'
     if (!(Test-Path -LiteralPath $snapshot)) { throw 'The preview profile did not produce its image.' }
     $consoleCount = 0
     foreach ($run in $runs | Where-Object Project -eq $testProject) {

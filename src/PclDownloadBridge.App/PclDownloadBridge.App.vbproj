@@ -24,7 +24,7 @@
     <Reference Include="System.Net.Http" />
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />
-    <ProjectReference Include="../PclDownloadBridge.Core/PclDownloadBridge.Core.vbproj" />
+    <ProjectReference Include="../PclDownloadBridge.Core/PclDownloadBridge.Core.csproj" />
   </ItemGroup>
   <ItemGroup><Resource Include="Images/Blocks/*.png"/><Resource Include="Images/Icons/*.png"/><Resource Include="Images/Themes/*.png"/><Resource Include="Images/Heads/*.png;Images/Heads/*.jpg"/><Resource Include="Resources/Font.ttf"/></ItemGroup>
   <ItemGroup>

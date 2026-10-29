@@ -1,6 +1,8 @@
 # PCL-DB · PCL Download Bridge
 
-VB.NET + WPF + .NET Framework 4.8 的 Minecraft Java 下载与本地实例管理工具，简称 PCL-DB。最新发布为 **Beta 8.0**（`8.0.0-beta.1`）。[发布说明](docs/releases/8.0.0-beta.1.md)。
+C# Core + VB.NET WPF + .NET Framework 4.8 的 Minecraft Java 下载与本地实例管理工具，简称 PCL-DB。最新发布为 **Beta 8.0**（`8.0.0-beta.1`）。[发布说明](docs/releases/8.0.0-beta.1.md)。
+
+当前源码以 Beta 8 为基线迁移 Core 到 C#，界面和测试继续使用 VB，公开接口、配置与资源名称保持兼容。这项迁移尚未发行，现有 Beta 8 发布工件不变。[迁移说明与验证](docs/reviews/core-csharp-migration-2026-10-29.md)。
 
 Beta 8.0 完善快速切换、搜索返回、安装任务与本地管理的交接：旧请求和取消通知不再覆盖新操作，任务页和返回标题保持一致；资源已成功安装后，列表刷新异常不再将其误报为失败或阻止重试。打包直接保留完整验证回执并压缩 JSON 格式，无需环境覆盖。
 
@@ -32,7 +34,7 @@ Mod 操作结束后重新读取所选实例配置，外部隔离设置变化无�
 
 版本列表刷新失败时，当前 Mod 页也会显示错误；可直接刷新本地列表继续操作。读取中的提示和迟到结果仍按各自请求处理，下载任务结果单独保留。[刷新失败反馈检查](docs/reviews/management-failure-feedback-2026-10-26.md)。
 
-界面、控件与动画以 PCL2 限制前源码为核心，PCL-CE 仅作补充参考。独立读取 PCL、HMCL、PCL-CE 的游戏目录与原生隔离配置；外部配置只读，已有实例设置保留。安装后的游戏继续使用所选启动器启动。
+界面、控件与动画以 PCL2 限制前源码为核心；C# 逻辑重点参考 PCL-CE，并以现有行为和 net48 兼容为约束。独立读取 PCL、HMCL、PCL-CE 的游戏目录与原生隔离配置；外部配置只读，已有实例设置保留。安装后的游戏继续使用所选启动器启动。
 
 ## 当前功能
 
