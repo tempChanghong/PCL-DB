@@ -119,6 +119,36 @@ Partial Public Class MainWindow
         delayed.SetResult(obsolete) : Await manualRead : layout()
         check(manualReads = 1 AndAlso _launcherFolders(selectedBinding.Id) Is prior AndAlso _selectedFolder Is accepted,
             "manual launcher discovery still retires when the settings page is left")
+        _launcherDirectoryLoader = Function(item) Task.FromResult(result(item))
+        _selectedFolder = Nothing : _folders.Clear() : FolderList.ItemsSource = Nothing
+        _restoringSettings = True
+        Dim corruptTarget = DirectCast(settings.DeepClone(), JObject)
+        corruptTarget("externalLaunchers")("targetRoot") = New JArray()
+        Await RestoreLauncherBindingsAsync(corruptTarget) : layout()
+        check(_launcherState.Bindings.Count = 3 AndAlso _folders.Count = 3 AndAlso _selectedFolder Is Nothing AndAlso FolderList.SelectedItem Is Nothing,
+            "corrupt saved target metadata preserves launcher discovery without automatically choosing another launcher")
+        Dim targetBlocked = False
+        Try
+            CurrentInstallTarget()
+        Catch ex As ArgumentException
+            targetBlocked = True
+        End Try
+        check(targetBlocked AndAlso SelectedPath.Text = "请选择 .minecraft 游戏目录",
+            "a rejected saved target cannot become a provisional installation destination")
+        Await RestoreLauncherBindingsAsync(settings) : layout()
+        check(_selectedFolder IsNot Nothing AndAlso _selectedFolder.LauncherKind.GetValueOrDefault() = ExternalLauncherKind.Hmcl AndAlso
+            _launcherState.Warnings.Count = 0 AndAlso SameGameRoot(CurrentInstallTarget().Root, game),
+            "corrected target metadata restores the saved native identity and clears recovery warnings")
+        delayed = New TaskCompletionSource(Of LauncherDirectoryResult)(TaskCreationOptions.RunContinuationsAsynchronously)
+        _launcherDirectoryLoader = Function(item) delayed.Task
+        Dim obsoleteRecovery = RestoreLauncherBindingsAsync(corruptTarget)
+        _launcherDirectoryLoader = Function(item) Task.FromResult(result(item))
+        Await RestoreLauncherBindingsAsync(replacement) : layout()
+        accepted = _selectedFolder
+        delayed.SetResult(result(state.Bindings(0))) : Await obsoleteRecovery : layout()
+        check(_selectedFolder Is accepted AndAlso accepted.LauncherKind.GetValueOrDefault() = ExternalLauncherKind.PclCe AndAlso _launcherState.Warnings.Count = 0,
+            "a late corrupt-target recovery cannot replace a newer corrected restore or replay its warning")
+        _restoringSettings = False
         check(originals.All(Function(item) File.ReadAllBytes(item.Key).SequenceEqual(item.Value)), "startup and manual directory selection keep all launcher configurations byte-identical")
     End Function
 End Class

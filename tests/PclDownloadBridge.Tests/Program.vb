@@ -90,6 +90,8 @@ Module Program
                     run = ExternalLauncherChecks.RunAsync(TestRoot)
                 ElseIf args(1).StartsWith("launcher-config-", StringComparison.Ordinal) Then
                     run = LauncherDirectoryConfigurationChecks.RunAsync(TestRoot, args(1))
+                ElseIf args(1).StartsWith("binding-recovery-", StringComparison.Ordinal) Then
+                    run = LauncherBindingRecoveryChecks.RunAsync(TestRoot, args(1))
                 ElseIf args(1) = "modpack-catalogue" Then
                     run = ModpackCatalogChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "archive-cancellation" Then
@@ -278,6 +280,9 @@ Module Program
                 Check(True, label)
             Next
             For Each label In LauncherDirectoryConfigurationChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
+                Check(True, label)
+            Next
+            For Each label In LauncherBindingRecoveryChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
                 Check(True, label)
             Next
             For Each label In InstalledInstanceChecks.RunAsync(TestRoot).GetAwaiter().GetResult()

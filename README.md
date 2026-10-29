@@ -1,5 +1,7 @@
 # PCL-DB · PCL Download Bridge
 
+启动器绑定恢复现按字段隔离异常：保留有效绑定与未知选择字段，缺少格式号时保护原数据，损坏的目标不会自动变成其他启动器的目录。[修复与验证](docs/reviews/launcher-binding-recovery-2026-10-29.md)。
+
 外部启动器的可选目录配置损坏时，继续显示有效本地目录并给出提示；重复 JSON 键会被明确拒绝，避免目录发现与安装校验选择不同路径。配置修好后可直接重试。[修复与验证](docs/reviews/launcher-directory-read-errors-2026-10-29.md)。
 
 第三轮第三批提炼原生隔离配置的私有值解释器，将布尔值、策略数字、HMCL 模式与配置版本检查和文件读取分开；沿用三种启动器的配置、隔离与发布保护。[职责映射与验证口径](docs/reviews/core-refactor-round3-native-config-2026-10-29.md)。

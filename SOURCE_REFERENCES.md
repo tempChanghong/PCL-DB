@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 启动器绑定恢复与未知字段（2026-10-29）
+
+- PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 Settings.vb 按设置项读取、类型转换和默认值恢复为主要依据；C# 重点参考 CE 915ac29795efbdf6373417389e181e1504117048 的 ConfigItem.GetValue 与 FileConfigStorage:106–135 的坏项隔离。这里只借鉴错误边界，不移入 CE 的坏项删除、同步写入或格式迁移。
+- 本工具独有的启动器绑定格式按现有规则保护未知版本；恢复坏选择不影响其他绑定，未知 selectedRows 字段随原始快照保存。损坏目标清空后，启动恢复停止自动选择第一项。原 VB Beta 8 的同接口探针复现了同样问题，不将其误归因为 C# 迁移新增。17 份固定 Git 字节见 artifacts/launcher-binding-recovery/source/manifest.json，[对照和验证](docs/reviews/launcher-binding-recovery-2026-10-29.md)。
+
 ## 外部目录配置错误边界（2026-10-29）
 
 - PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 ModMinecraft.vb:58–115 按来源／条目保留可用目录；C# 重点参考 CE 915ac29795efbdf6373417389e181e1504117048 的 ModFolder.cs 目录加载及 JsonFileProvider／YamlFileProvider 的格式边界。HMCL 固定 63207affc6a73127cea19e64272a0401fde4b7a4 的 GameDirectoryManager:184 起将选中 ID 与合并目录分开处理。只读适配保留本工具的错误提示、来源优先级和目标冻结，不照搬上游配置迁移或创建目录。

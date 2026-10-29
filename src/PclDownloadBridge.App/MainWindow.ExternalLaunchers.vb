@@ -63,7 +63,8 @@ Partial Public Class MainWindow
         Dim saved = _launcherState.Bindings.FirstOrDefault(Function(binding) binding.Id = _launcherState.TargetBindingId)
         _selectedFolder = Nothing
         If Not _launcherState.ReadOnlyFormat Then GameFolderFromSavedTarget(saved)
-        RebuildLauncherFolders(True)
+        ' Corrupt saved preferences require an explicit target choice when no trusted target remains.
+        RebuildLauncherFolders(_launcherState.Warnings.Count = 0)
         If _launcherState.Warnings.Count > 0 Then LauncherReadStatus.Text = String.Join("；", _launcherState.Warnings)
     End Function
 

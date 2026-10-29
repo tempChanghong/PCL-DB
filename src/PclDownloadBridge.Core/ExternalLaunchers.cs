@@ -473,17 +473,40 @@ namespace PclDownloadBridge.Core
         public string TargetRoot { get; set; }
         public bool ReadOnlyFormat { get; set; }
 
+        private static bool TryPreferenceText(JToken value, out string text)
+        {
+            try
+            {
+                text = (string)value;
+                return true;
+            }
+            catch (Exception ex) when (ex is ArgumentException || ex is InvalidCastException || ex is FormatException)
+            {
+                text = null;
+                return false;
+            }
+        }
+
         public static LauncherBindingsState Restore(JObject settings, string fallbackPcl)
         {
-            var result = new LauncherBindingsState() { TargetRoot = (string)settings?["gameRoot"] ?? "" };
+            var result = new LauncherBindingsState();
+            bool legacyRootValid = TryPreferenceText(settings?["gameRoot"], out string legacyRoot);
+            result.TargetRoot = legacyRoot ?? "";
+            if (!legacyRootValid)
+                result.Warnings.Add("已忽略无效的游戏目录设置，请重新选择。");
             var raw = settings?["externalLaunchers"];
             if (raw is null)
             {
+                if (!TryPreferenceText(settings?["pclBase"], out string workspace))
+                {
+                    result.TargetRoot = "";
+                    result.Warnings.Add("已忽略无效的 PCL 位置，请重新选择游戏目录。");
+                }
                 var binding = new ExternalLauncherBinding()
                 {
                     Id = "legacy-pcl",
                     Kind = ExternalLauncherKind.Pcl,
-                    Workspace = LauncherDirectoryReader.AbsolutePath((string)settings?["pclBase"] ?? fallbackPcl, null)
+                    Workspace = LauncherDirectoryReader.AbsolutePath(workspace ?? fallbackPcl, null)
                 };
                 result.Bindings.Add(binding);
                 result.SelectedRows[binding.Kind] = binding.Id;
@@ -491,14 +514,27 @@ namespace PclDownloadBridge.Core
                 return result;
             }
             result._original = raw.DeepClone();
-            if ((bool)(((!(result._original is JObject) ? true : (result._original["format"]?.Type) is { } arg5 ? arg5 != JTokenType.Integer : (bool?)null) is var arg6 && arg6.GetValueOrDefault() ? (bool?)true : result._original["format"].ToString() != "1" ? (bool?)true : arg6).GetValueOrDefault() || !(result._original["bindings"] is JObject)))
+            if (result._original is not JObject document || document["format"]?.Type != JTokenType.Integer ||
+                document["format"].ToString() != "1" || document["bindings"] is not JObject)
             {
                 result.ReadOnlyFormat = true;
                 result.Warnings.Add("启动器绑定格式无法识别，已保留原设置，请手动选择游戏目录。");
                 return result;
             }
-            result.TargetRoot = (string)result._original["targetRoot"] ?? result.TargetRoot;
-            result.TargetBindingId = (string)result._original["targetBindingId"];
+            bool rootValid = TryPreferenceText(document["targetRoot"], out string targetRoot);
+            bool bindingValid = TryPreferenceText(document["targetBindingId"], out string targetBinding);
+            if (!rootValid || !bindingValid || targetRoot is null && !legacyRootValid)
+            {
+                // A corrupt half must not attach another launcher's saved root to this ID.
+                result.TargetRoot = "";
+                result.TargetBindingId = null;
+                result.Warnings.Add("安装目标信息无效，请重新选择游戏目录。");
+            }
+            else
+            {
+                result.TargetRoot = targetRoot ?? result.TargetRoot;
+                result.TargetBindingId = targetBinding;
+            }
             foreach (var @record in ((JObject)result._original["bindings"]).Properties())
             {
                 try
@@ -510,10 +546,13 @@ namespace PclDownloadBridge.Core
                     result.Warnings.Add("保留但跳过无效的启动器绑定：" + @record.Name);
                 }
             }
-            JObject rows = result._original["selectedRows"] as JObject;
+            JObject rows = document["selectedRows"] as JObject;
+            if (document["selectedRows"] is not null && document["selectedRows"].Type != JTokenType.Null && rows is null)
+                result.Warnings.Add("启动器选择信息无效，使用各类首个有效绑定。");
             foreach (ExternalLauncherKind kind in Enum.GetValues(typeof(ExternalLauncherKind)))
             {
-                string id = (string)rows?[kind.ToString()];
+                if (!TryPreferenceText(rows?[kind.ToString()], out string id))
+                    result.Warnings.Add("已忽略无效的启动器选择：" + kind);
                 var selected = result.Bindings.FirstOrDefault(binding => binding.Kind == kind && (binding.Id ?? "") == (id ?? ""));
                 if (selected is null)
                     selected = result.Bindings.FirstOrDefault(binding => binding.Kind == kind);
@@ -543,7 +582,7 @@ namespace PclDownloadBridge.Core
                 item.Merge(binding.ToJson());
                 records[binding.Id] = item;
             }
-            var rows = new JObject();
+            var rows = result["selectedRows"] as JObject ?? new JObject();
             foreach (var row in SelectedRows)
                 rows[row.Key.ToString()] = row.Value;
             result["selectedRows"] = rows;
