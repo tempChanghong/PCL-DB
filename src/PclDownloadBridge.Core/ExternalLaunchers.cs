@@ -150,6 +150,13 @@ namespace PclDownloadBridge.Core
             return result;
         }
 
+        private static JObject ParseConfiguration(string text)
+        {
+            // Match install-time configuration snapshots: ambiguous duplicate keys
+            // must not silently choose a different game directory.
+            return JObject.Parse(text, new JsonLoadSettings() { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error });
+        }
+
         private static string ReadText(string path)
         {
             using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
@@ -217,16 +224,16 @@ namespace PclDownloadBridge.Core
             {
                 try
                 {
-                    selectedId = (string)JObject.Parse(ReadText(localSettings))["selectedGameDirectory"];
+                    selectedId = (string)ParseConfiguration(ReadText(localSettings))["selectedGameDirectory"];
                 }
-                catch (Exception ex) when (ex is InvalidDataException || ex is IOException || ex is UnauthorizedAccessException || ex is Newtonsoft.Json.JsonException)
+                catch (Exception ex) when (ex is InvalidDataException || ex is IOException || ex is UnauthorizedAccessException || ex is Newtonsoft.Json.JsonException || ex is ArgumentException || ex is InvalidCastException || ex is FormatException)
                 {
                     result.Warnings.Add("无法读取 HMCL 当前目录选择。");
                 }
             }
             if (primary is not null)
             {
-                var json = JObject.Parse(ReadText(primary));
+                var json = ParseConfiguration(ReadText(primary));
                 if (json["directories"] is JArray)
                 {
                     ReadHmclDirectories(json, binding, result, primary, selectedId, ids);
@@ -258,9 +265,9 @@ namespace PclDownloadBridge.Core
             {
                 try
                 {
-                    ReadHmclDirectories(JObject.Parse(ReadText(sharedFile)), binding, result, sharedFile, selectedId, ids);
+                    ReadHmclDirectories(ParseConfiguration(ReadText(sharedFile)), binding, result, sharedFile, selectedId, ids);
                 }
-                catch (Exception ex) when (ex is InvalidDataException || ex is IOException || ex is UnauthorizedAccessException || ex is Newtonsoft.Json.JsonException)
+                catch (Exception ex) when (ex is InvalidDataException || ex is IOException || ex is UnauthorizedAccessException || ex is Newtonsoft.Json.JsonException || ex is ArgumentException || ex is InvalidCastException || ex is FormatException)
                 {
                     result.Warnings.Add("HMCL 共享目录配置读取失败：" + ex.Message);
                 }
@@ -313,7 +320,7 @@ namespace PclDownloadBridge.Core
                         }
                     case ".json":
                         {
-                            var json = JObject.Parse(content);
+                            var json = ParseConfiguration(content);
                             if (json["LocalFileVersion"] is not null && (string)json["LocalFileVersion"] != "1")
                                 throw new InvalidDataException("PCL-CE 本地配置版本暂不支持。");
                             selected = (string)json["LaunchFolderSelect"];
@@ -343,7 +350,7 @@ namespace PclDownloadBridge.Core
             {
                 try
                 {
-                    var json = JObject.Parse(ReadText(sharedFile));
+                    var json = ParseConfiguration(ReadText(sharedFile));
                     if (json["FileVersion"] is not null && (string)json["FileVersion"] != "1")
                         throw new InvalidDataException("PCL-CE 共享配置版本暂不支持。");
                     string raw = (string)json["LaunchFolders"];
@@ -360,7 +367,7 @@ namespace PclDownloadBridge.Core
                         }
                     }
                 }
-                catch (Exception ex) when (ex is InvalidDataException || ex is IOException || ex is UnauthorizedAccessException || ex is Newtonsoft.Json.JsonException)
+                catch (Exception ex) when (ex is InvalidDataException || ex is IOException || ex is UnauthorizedAccessException || ex is Newtonsoft.Json.JsonException || ex is ArgumentException || ex is InvalidCastException || ex is FormatException)
                 {
                     result.Warnings.Add("PCL-CE 共享目录配置读取失败：" + ex.Message);
                 }

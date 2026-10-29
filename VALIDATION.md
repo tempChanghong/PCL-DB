@@ -1,5 +1,13 @@
 # 本地验证记录
 
+## 外部目录配置错误边界（2026-10-29，尚未发行）
+
+基线 1a52fd60933699a692e1c520875b4de8def746c2。已在受控配置中复现 HMCL 当前目录选择值、CE 共享配置值类型错误导致整个扫描失败，以及重复键静默采用最后一个路径。LauncherDirectoryReader 的五个 JSON 入口改用私有严格解析，三处可选配置 catch 补齐 ArgumentException／InvalidCastException／FormatException；保留主配置失败、读取优先级、PCL INI、外部配置只读和安装目标绑定。
+
+新增 VB 70 项检查，不修改既有检查正文。同一新编译宿主分别加载旧／新 Core：14 组旧代码均按预期失败，修复后通过 70 项，涵盖本地目录保留、可选／必需来源、无配置改写／副文件、修复后重试与目标冻结。最终提交门槛：最终宿主重跑同一对照，VB 全量 7884、原 Beta 8 编译宿主 7305、当前 C# 基线原始／规范 API 零差异、资源 2／JSON 15、VS2026 Debug 三 Portable PDB、同一单 EXE 的冷启动 25／搜索 3444及内嵌两依赖／七根文档。实际完成状态及源码／DLL／提交绑定见 artifacts/launcher-directory-read-errors/validation.json。
+
+VB 界面、现有测试正文、其他 Core、工具、项目与资源按基线保护；UI 计数策略仍为 2026-10-29.12。本批未重跑完整 UI／动画专项，不将旧结果作为本轮新验证。受控夹具不代表真实外部启动器或用户游戏目录验收，未打包、推送、发版。[修复报告](docs/reviews/launcher-directory-read-errors-2026-10-29.md)。
+
 ## 第三轮第三批：原生隔离配置值解释（2026-10-29，尚未发行）
 
 基线 `349f9f4121a72be9b63aa464a476b384227c7056`。NativeInstanceIsolation 的八个纯值解释方法共 99 行提炼为私有 ConfigurationInterpreter，34 处外层调用加限定名。原方法正文和外层配置读取、策略选择、目录、快照、fingerprint／guard、暂存写入、取消与校验边界由精确逆向和原始文件清单保护。

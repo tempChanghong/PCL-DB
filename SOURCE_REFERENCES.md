@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 外部目录配置错误边界（2026-10-29）
+
+- PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 ModMinecraft.vb:58–115 按来源／条目保留可用目录；C# 重点参考 CE 915ac29795efbdf6373417389e181e1504117048 的 ModFolder.cs 目录加载及 JsonFileProvider／YamlFileProvider 的格式边界。HMCL 固定 63207affc6a73127cea19e64272a0401fde4b7a4 的 GameDirectoryManager:184 起将选中 ID 与合并目录分开处理。只读适配保留本工具的错误提示、来源优先级和目标冻结，不照搬上游配置迁移或创建目录。
+- 本工具的五个外部 JSON 读取统一使用与 NativeInstanceIsolation.ReadJson 相同的重复键拒绝规则；三处可选来源的既有 catch 补齐类型转换异常，主配置错误仍失败。13 份固定 Git 原字节见 artifacts/launcher-directory-read-errors/source/manifest.json，[旧／新复现与验证](docs/reviews/launcher-directory-read-errors-2026-10-29.md)。
+
 ## 第三轮第三批：原生隔离配置值解释（2026-10-29）
 
 - PCL2 固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 ModMinecraft.vb:240–277 和 Pages/PageSetup/Settings.vb:95、188 是旧实例优先、五种默认策略及默认值的依据。C# 重点参考 CE `915ac29795efbdf6373417389e181e1504117048` 的 McInstance.cs:65–114 和 CatIniFileProvider／JsonFileProvider／YamlFileProvider 的格式边界；其配置初始化和格式迁移行为不移入本工具。

@@ -88,6 +88,8 @@ Module Program
                     run = NativeIsolationChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "external-launchers" Then
                     run = ExternalLauncherChecks.RunAsync(TestRoot)
+                ElseIf args(1).StartsWith("launcher-config-", StringComparison.Ordinal) Then
+                    run = LauncherDirectoryConfigurationChecks.RunAsync(TestRoot, args(1))
                 ElseIf args(1) = "modpack-catalogue" Then
                     run = ModpackCatalogChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "archive-cancellation" Then
@@ -273,6 +275,9 @@ Module Program
             Next
             FolderTests()
             For Each label In ExternalLauncherChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
+                Check(True, label)
+            Next
+            For Each label In LauncherDirectoryConfigurationChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
                 Check(True, label)
             Next
             For Each label In InstalledInstanceChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
