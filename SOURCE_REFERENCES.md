@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 第二轮第四批：私有安装规划器（2026-10-29）
+
+- 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModDownload.vb:19-63`、`ModMinecraft.vb:1554-1594,1653-1730,1904-1912,1967-1982,2012-2038`，与 CE `915ac29795efbdf6373417389e181e1504117048` 的 `ModDownload.cs`、`ModLibrary.cs`、`ModAssets.cs`，提供下载声明／规则／库路径和执行发布的职责边界。
+- 八个原规划实现收进 private static PlanBuilder，六个原 public/internal 入口保留兼容直接转发；共享 ToFile、主交易与取消通知原体不变。保留运行时 OS context、已有 Maven／旧资源兼容，不引入新 JSON 或运行时实现。[结构、源码映射与真实差分](docs/reviews/core-refactor-round2-installer-planning-2026-10-29.md)。
+
 ## 第二轮第三批：下载引擎职责（2026-10-29）
 
 - 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModNet.vb:579,902,1163,1311,1474-1515` 和 `ModDownload.vb:1219-1242` 提供批次、文件事务、传输与来源选择依据；C# 重点参考 CE `915ac29795efbdf6373417389e181e1504117048` 的 `LoaderDownload.cs`、`FileDownloader.cs`、`AdaptiveRangeDownloader.cs` 与 `DownloadResourceManager.cs` 所有权边界。

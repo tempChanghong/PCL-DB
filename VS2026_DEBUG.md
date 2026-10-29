@@ -21,6 +21,8 @@ Core 迁移后引用路径为 `src/PclDownloadBridge.Core/PclDownloadBridge.Core
 
 下载引擎状态、批次、报告和 Dispose 位于 `DownloadEngine.cs`；缓存复用、来源重试、校验与发布在 `DownloadEngine.Files.cs`；HTTP／Range、流复制、限速及响应收尾在 `DownloadEngine.Transport.cs`。三个文件合成原类型，私有字段、共享预算与调试设置保持。[下载引擎结构说明](docs/reviews/core-refactor-round2-download-engine-2026-10-29.md)。
 
+安装主交易和取消／错误通知仍在 `MinecraftInstaller.cs`；六个原规划入口位于 `MinecraftInstaller.Planning.cs`，F11 可从直接转发进入同文件的 private PlanBuilder；HMCL／补充索引适配和共用 ToFile 在 `MinecraftInstaller.Metadata.cs`。原公开／内部调用方式不变。[安装规划说明](docs/reviews/core-refactor-round2-installer-planning-2026-10-29.md)。
+
 另附 `PclDownloadBridge.slnLaunch`，提供 **PCL-DB** 和 **Offline Checks** 两种可共享的解决方案启动方案，分别只启动主应用或控制台回归项目。若 VS 没有显示这些方案，可在「配置启动项目」中选择；部分安装需在「工具 → 选项 → 预览功能」启用多项目启动配置。普通的单启动项目方式仍可直接使用。
 
 正常的 **PCL-DB** 配置读取现有用户偏好和真实版本列表；点击开始下载会写入所选游戏目录。调试下载引擎时，可先使用下面的本地回归配置。

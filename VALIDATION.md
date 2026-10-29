@@ -1,5 +1,11 @@
 # 本地验证记录
 
+## Beta 8 后续：第二轮第四批安装规划器（2026-10-29，尚未发行）
+
+基线 `6f18c9a`。八个静态规划实现移入 private PlanBuilder，六个原入口保留签名／默认值并只作同序直接转发；ToFile、主交易、状态与取消／失败通知保持原 owner/body。独立逐项核对 24 原成员、八个实现映射、六个 facade，十个负控制检出；87 个真实边界样本在独立 net48 进程差分一致。不是仅比较成员数量，也不宣称所有私有 owner／栈帧不变。
+
+最终 DLL 差分、完整 VB 7468、旧宿主 7305、接口／资源／JSON、Debug／Portable PDB、串行单 EXE 冷启动／搜索及提交绑定，以 `artifacts/installer-planning-refactor/validation.json` 为准。原测试／UI不变，套件重叠不累加。[结构说明](docs/reviews/core-refactor-round2-installer-planning-2026-10-29.md)。保留历史动画复合断言未知原因的边界；不作为完整在线安装、游戏启动、人工 F5 或帧率验收。未打包、推送、发版。
+
 ## Beta 8 后续：第二轮第三批下载引擎结构（2026-10-29，尚未发行）
 
 基线 `b894a2a`。DownloadEngine 拆为主状态／批次、Files 单文件事务、Transport 请求与流；原方法体搬迁同类型 partial，四个 AsyncLocal、全部状态初始化、预算所有权、响应与 gate finally、校验发布顺序保持。独立证明 3 类型／62 成员／24 私有依赖零差异，七个负控制均检出；App 和原 VB 测试不变。
