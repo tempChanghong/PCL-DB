@@ -20,6 +20,21 @@ namespace PclDownloadBridge.Core
         {
             _root = root;
         }
+        private static DownloadFile Snapshot(DownloadFile item)
+        {
+            // Final publication owns its target and integrity declaration, not
+            // a caller's mutable plan. No URL or other download state is needed.
+            return new DownloadFile()
+            {
+                RelativePath = item.RelativePath,
+                Size = item.Size,
+                Sha1 = item.Sha1,
+                Sha512 = item.Sha512,
+                Md5 = item.Md5,
+                S3SinglePartETag = item.S3SinglePartETag,
+                Category = item.Category
+            };
+        }
         internal static bool HasDigest(DownloadFile item)
         {
             return !string.IsNullOrWhiteSpace(item.Sha1) || !string.IsNullOrWhiteSpace(item.Sha512) || !string.IsNullOrWhiteSpace(item.Md5) || !string.IsNullOrWhiteSpace(item.S3SinglePartETag);
@@ -28,14 +43,15 @@ namespace PclDownloadBridge.Core
         {
             get
             {
-                return _frozen.ToList();
+                return _frozen.Select(Snapshot).ToList();
             }
         }
         internal void Publish(string work, IEnumerable<DownloadFile> files, CancellationToken token)
         {
-            foreach (var item in files)
+            foreach (var supplied in files)
             {
                 token.ThrowIfCancellationRequested();
+                var item = Snapshot(supplied);
                 string source = SafeFiles.UnderRoot(work, item.RelativePath);
                 string destination = SafeFiles.UnderRoot(_root, item.RelativePath);
                 bool hashless = !HasDigest(item);
@@ -56,8 +72,7 @@ namespace PclDownloadBridge.Core
                                 token.ThrowIfCancellationRequested();
                                 _held.Add(held);
                                 held = null;
-                                if (hashless)
-                                    _frozen.Add(expected);
+                                _frozen.Add(expected);
                                 continue;
                             }
                             if (hashless)
@@ -107,8 +122,7 @@ namespace PclDownloadBridge.Core
                             token.ThrowIfCancellationRequested();
                             _held.Add(held);
                             held = null;
-                            if (hashless)
-                                _frozen.Add(expected);
+                            _frozen.Add(expected);
                         }
                         finally
                         {
@@ -156,8 +170,9 @@ namespace PclDownloadBridge.Core
             _held.Clear();
         }
 
-        // Work was removed after Apply. Only its frozen content expectations survive;
-        // reacquiring a lease must compare them, never bless current shared bytes anew.
+        // Work was removed after Apply. Every checked runtime must retain its
+        // original expectation, whether declared upstream or computed locally;
+        // reacquiring a lease must never bless current shared bytes anew.
         internal sealed class PublishedLease : IDisposable
         {
             private readonly string _root;
@@ -166,7 +181,7 @@ namespace PclDownloadBridge.Core
             internal PublishedLease(string root, IEnumerable<DownloadFile> files, CancellationToken token)
             {
                 _root = root;
-                _files = files.ToList();
+                _files = files.Select(Snapshot).ToList();
                 try
                 {
                     foreach (var item in _files)
@@ -188,7 +203,7 @@ namespace PclDownloadBridge.Core
                 foreach (var item in _files)
                 {
                     token.ThrowIfCancellationRequested();
-                    if (!SafeFiles.Matches(SafeFiles.UnderRoot(_root, item.RelativePath), item))
+                    if (!SafeFiles.Matches(SafeFiles.UnderRoot(_root, item.RelativePath), item, token))
                         throw new IOException("组件支持库在实例发布前发生变化：" + item.RelativePath);
                     token.ThrowIfCancellationRequested();
                 }

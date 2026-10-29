@@ -77,6 +77,7 @@ Friend Module RuntimeLibraryChecks
         If onlyCase Is Nothing OrElse onlyCase = "install-runtime-final-lease" Then Await FinalLeaseAsync(root, passed, False)
         If onlyCase Is Nothing OrElse onlyCase = "install-runtime-final-cancel" Then Await FinalLeaseAsync(root, passed, True)
         If onlyCase Is Nothing OrElse onlyCase = "install-runtime-source-lease" Then Await SourceLeaseAsync(root, passed)
+        If onlyCase Is Nothing OrElse onlyCase = "install-runtime-hashed-final-all" Then Await HashedFinalAsync(root, passed)
         If passed.Count = 0 Then Throw New ArgumentException(onlyCase)
         Return passed
     End Function
@@ -284,6 +285,298 @@ Friend Module RuntimeLibraryChecks
             End If
         End Using
     End Function
+    Private Async Function HashedFinalAsync(root As String, passed As List(Of String)) As Task
+        Dim failures As New List(Of Exception)
+        Dim mappings As New Dictionary(Of String, Type), blockBefore = FileMatchHashProbe.OnBlock, finalBefore = RuntimePublicationSha512.OnHash
+        For Each name In {"SHA1", "System.Security.Cryptography.SHA1", "SHA512", "System.Security.Cryptography.SHA512", "MD5", "System.Security.Cryptography.MD5"}
+            Using hash = DirectCast(CryptoConfig.CreateFromName(name), HashAlgorithm)
+                mappings.Add(name, hash.GetType())
+            End Using
+        Next
+        For Each existed In {False, True}
+            For Each afterComponents In {True, False}
+                For Each mutation In {"changed", "missing", "directory"}
+                    Dim label = "existing=" & existed & ";components=" & afterComponents & ";mutation=" & mutation
+                    Try
+                        Await HashedFinalChangeAsync(root, existed, afterComponents, mutation, passed)
+                    Catch ex As Exception
+                        failures.Add(New InvalidOperationException("Hashed runtime final conflict: " & label, ex))
+                    End Try
+                Next
+            Next
+        Next
+        For Each digest In {"sha1", "sha512", "md5", "etag"}
+            For Each existed In {False, True}
+                Try
+                    HashedSnapshot(root, digest, existed, passed)
+                Catch ex As Exception
+                    failures.Add(New InvalidOperationException("Hashed runtime snapshot: " & digest & ";existing=" & existed, ex))
+                End Try
+            Next
+        Next
+        For Each boundary In {"incoming-new", "incoming-existing", "getter", "lease"}
+            Try
+                HashedOwnership(root, boundary, passed)
+            Catch ex As Exception
+                failures.Add(New InvalidOperationException("Runtime metadata ownership: " & boundary, ex))
+            End Try
+        Next
+        For Each phase In {"constructor", "verify"}
+            Try
+                RuntimeLeaseCancellation(root, phase, passed)
+            Catch ex As Exception
+                failures.Add(New InvalidOperationException("Runtime final lease cancellation: " & phase, ex))
+            End Try
+        Next
+        For Each pair In mappings
+            Using hash = DirectCast(CryptoConfig.CreateFromName(pair.Key), HashAlgorithm)
+                Check(hash.GetType() Is pair.Value, "runtime publication probes restore the original algorithm mapping: " & pair.Key, passed)
+            End Using
+        Next
+        Check(blockBefore Is Nothing AndAlso finalBefore Is Nothing AndAlso Object.ReferenceEquals(FileMatchHashProbe.OnBlock, blockBefore) AndAlso Object.ReferenceEquals(RuntimePublicationSha512.OnHash, finalBefore),
+            "runtime publication probes restore both process-local callbacks to their empty original state", passed)
+        If failures.Count > 0 Then Throw New AggregateException("Hashed runtime final publication regressions", failures)
+    End Function
+    Private Async Function HashedFinalChangeAsync(root As String, existed As Boolean, afterComponents As Boolean, mutation As String, passed As List(Of String)) As Task
+        Dim label = "existing=" & existed & ";components=" & afterComponents & ";mutation=" & mutation
+        Using fixture As New InstallationChecks.InstallFixture(root, "runtime-hashed-final-" & existed & afterComponents & mutation, "1.12.2"), gate As New ManualResetEventSlim(), timeout As New CancellationTokenSource(TimeSpan.FromSeconds(20))
+            Dim selection = CreateSelection(fixture, True, True), path = Target(fixture), reached = False, failure As Exception = Nothing
+            If existed Then Seed(path, Correct)
+            Dim existingJson = SafeFiles.UnderRoot(fixture.Root, "versions/kept/kept.json"), existingSettings = SafeFiles.UnderRoot(fixture.Root, "versions/kept/PCL/Setup.ini")
+            Seed(existingJson, Encoding.UTF8.GetBytes("{""id"":""kept"",""userSetting"":true}"))
+            Seed(existingSettings, Encoding.UTF8.GetBytes("VersionArgumentIndieV2:False" & vbCrLf & "keep:用户设置"))
+            Dim jsonBytes = File.ReadAllBytes(existingJson), settingsBytes = File.ReadAllBytes(existingSettings)
+            If afterComponents Then GateAsset(fixture, gate)
+            Dim progress As New InlineProgress(Sub(value)
+                                                    If reached OrElse If(afterComponents, value.Stage <> "组件安装完成", value.Phase <> "commit") Then Return
+                                                    reached = True
+                                                    If mutation = "changed" Then
+                                                        File.WriteAllBytes(path, Wrong)
+                                                    Else
+                                                        File.Delete(path)
+                                                        If mutation = "directory" Then
+                                                            Directory.CreateDirectory(path) : File.WriteAllText(IO.Path.Combine(path, "keep.txt"), "external folder")
+                                                        End If
+                                                    End If
+                                                    gate.Set()
+                                                End Sub)
+            Try
+                Await fixture.InstallAsync("changed", selection, progress:=progress, token:=timeout.Token)
+            Catch ex As Exception
+                failure = ex
+            Finally
+                gate.Set()
+            End Try
+            Console.WriteLine("RUNTIME_HASHED_FINAL " & label & ";reached=" & reached & ";failure=" & If(failure?.GetType().FullName, "none") & ";published=" & Directory.Exists(IO.Path.Combine(fixture.Root, "versions", "changed")))
+            Check(reached AndAlso (TypeOf failure Is IOException OrElse TypeOf failure Is UnauthorizedAccessException) AndAlso Not timeout.IsCancellationRequested,
+                "declared runtime digest rejects external final-stage mutation: " & label, passed)
+            Dim preserved = If(mutation = "changed", File.Exists(path) AndAlso File.ReadAllBytes(path).SequenceEqual(Wrong),
+                If(mutation = "missing", Not File.Exists(path) AndAlso Not Directory.Exists(path), Directory.Exists(path) AndAlso File.ReadAllText(IO.Path.Combine(path, "keep.txt")) = "external folder"))
+            Check(preserved AndAlso Not Directory.Exists(IO.Path.Combine(fixture.Root, "versions", "changed")) AndAlso Clean(fixture),
+                "late declared-digest conflict preserves external state and cleans the unpublished instance: " & label, passed)
+            Check(File.ReadAllBytes(existingJson).SequenceEqual(jsonBytes) AndAlso File.ReadAllBytes(existingSettings).SequenceEqual(settingsBytes),
+                "declared-digest conflict retains existing instance metadata and isolation settings: " & label, passed)
+            If mutation = "directory" Then
+                File.Delete(IO.Path.Combine(path, "keep.txt")) : Directory.Delete(path)
+            End If
+            Seed(path, Correct)
+            Dim installerRequests = fixture.Server.Requests("/runtime-installer"), retry = Await fixture.InstallAsync("changed", selection)
+            Check(retry.NetworkBytes = 0 AndAlso fixture.Server.Requests("/runtime-installer") = installerRequests AndAlso
+                File.ReadAllBytes(path).SequenceEqual(Correct) AndAlso File.Exists(IO.Path.Combine(retry.InstancePath, "changed.json")) AndAlso Clean(fixture),
+                "retry after declared-digest conflict reuses checked installer content: " & label, passed)
+        End Using
+    End Function
+    Private Sub HashedSnapshot(root As String, digest As String, existed As Boolean, passed As List(Of String))
+        Dim area = IO.Path.Combine(root, "runtime-hashed-snapshot-" & digest & existed), work = IO.Path.Combine(area, "work"), destination = IO.Path.Combine(area, "root")
+        Dim source = SafeFiles.UnderRoot(work, Relative), targetPath = SafeFiles.UnderRoot(destination, Relative), item As New DownloadFile With {.RelativePath = Relative, .Size = Correct.Length, .Category = "library"}
+        Using hash As HashAlgorithm = If(digest = "sha512", DirectCast(New SHA512CryptoServiceProvider(), HashAlgorithm), If(digest = "md5" OrElse digest = "etag", DirectCast(New MD5CryptoServiceProvider(), HashAlgorithm), New SHA1CryptoServiceProvider()))
+            Dim bytes = hash.ComputeHash(Correct)
+            If digest = "etag" Then bytes = hash.ComputeHash(bytes)
+            Dim text = BitConverter.ToString(bytes).Replace("-", "").ToLowerInvariant()
+            Select Case digest
+                Case "sha512" : item.Sha512 = text
+                Case "md5" : item.Md5 = text
+                Case "etag" : item.S3SinglePartETag = text & "-1"
+                Case Else : item.Sha1 = text
+            End Select
+        End Using
+        Seed(source, Correct)
+        If existed Then Seed(targetPath, Correct)
+        Dim files As List(Of DownloadFile)
+        Using publication As New ComponentRuntimePublication(destination)
+            publication.Publish(work, {item}, CancellationToken.None)
+            files = publication.FrozenFiles
+        End Using
+        Console.WriteLine("RUNTIME_HASHED_SNAPSHOT digest=" & digest & ";existing=" & existed & ";count=" & files.Count)
+        Dim label = digest & ";existing=" & existed
+        Check(files.Count = 1 AndAlso files(0).RelativePath = Relative, "declared runtime expectations survive work publication in either target branch: " & label, passed)
+        Dim snapshot = files(0), originalSha1 = snapshot.Sha1, originalSha512 = snapshot.Sha512, originalMd5 = snapshot.Md5, originalETag = snapshot.S3SinglePartETag
+        item.Size = Correct.Length + 1 : item.Sha1 = New String("0"c, 40) : item.Sha512 = Nothing : item.Md5 = Nothing : item.S3SinglePartETag = Nothing
+        Check(snapshot.Size = Correct.Length AndAlso snapshot.Sha1 = originalSha1 AndAlso snapshot.Sha512 = originalSha512 AndAlso snapshot.Md5 = originalMd5 AndAlso snapshot.S3SinglePartETag = originalETag,
+            "final runtime snapshot is independent of the caller's mutable metadata: " & label, passed)
+        Dim reached = False, blocked = False, failure As Exception = Nothing, cancelAtLease = digest = "md5" OrElse digest = "etag"
+        Using cancel As New CancellationTokenSource(), probe As New RuntimeFinalDigestProbe(Sub()
+            If reached Then Return
+            reached = True
+            Try
+                File.WriteAllBytes(targetPath, Wrong)
+            Catch ex As IOException
+                blocked = True
+            End Try
+            If cancelAtLease Then cancel.Cancel()
+        End Sub)
+            Try
+                Using guard As New ComponentRuntimePublication.PublishedLease(destination, files, cancel.Token)
+                    guard.Verify(cancel.Token)
+                End Using
+            Catch ex As Exception
+                failure = ex
+            End Try
+            Check(reached AndAlso blocked AndAlso If(cancelAtLease, TypeOf failure Is OperationCanceledException AndAlso DirectCast(failure, OperationCanceledException).CancellationToken = cancel.Token, failure Is Nothing),
+                "declared runtime final read lease blocks a competing writer and preserves cancellation identity: " & label, passed)
+        End Using
+        Check(File.ReadAllBytes(source).SequenceEqual(Correct) AndAlso File.ReadAllBytes(targetPath).SequenceEqual(Correct) AndAlso Not Directory.EnumerateFiles(area, "*.component-*", SearchOption.AllDirectories).Any(),
+            "declared runtime read guard preserves private source and shared bytes without temporary copies: " & label, passed)
+        Using lease As New FileStream(targetPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None)
+            Check(lease.Length = Correct.Length, "declared runtime final read lease releases on success or cancellation: " & label, passed)
+        End Using
+        Using retry As New ComponentRuntimePublication.PublishedLease(destination, files, CancellationToken.None)
+            retry.Verify(CancellationToken.None)
+            Check(True, "declared runtime final guard retries with the original checked snapshot: " & label, passed)
+        End Using
+    End Sub
+    Private Class RuntimeFinalDigestProbe
+        Implements IDisposable
+        Private ReadOnly _previous As New Dictionary(Of String, Type)
+        Friend Sub New(callback As Action, Optional block As Action(Of String, Integer) = Nothing)
+            For Each name In {"SHA1", "System.Security.Cryptography.SHA1", "SHA512", "System.Security.Cryptography.SHA512", "MD5", "System.Security.Cryptography.MD5"}
+                Using hash = DirectCast(CryptoConfig.CreateFromName(name), HashAlgorithm)
+                    _previous.Add(name, hash.GetType())
+                End Using
+            Next
+            FileMatchHashProbe.OnBlock = Sub(algorithm, count)
+                                             If count > 0 Then block?.Invoke(algorithm, count) : callback?.Invoke()
+                                         End Sub
+            CryptoConfig.AddAlgorithm(GetType(FileMatchProbeSha1), {"SHA1", "System.Security.Cryptography.SHA1"})
+            CryptoConfig.AddAlgorithm(GetType(FileMatchProbeSha512), {"SHA512", "System.Security.Cryptography.SHA512"})
+            CryptoConfig.AddAlgorithm(GetType(FileMatchProbeMd5), {"MD5", "System.Security.Cryptography.MD5"})
+        End Sub
+        Public Sub Dispose() Implements IDisposable.Dispose
+            FileMatchHashProbe.OnBlock = Nothing
+            For Each pair In _previous
+                CryptoConfig.AddAlgorithm(pair.Value, {pair.Key})
+            Next
+        End Sub
+    End Class
+    Private Sub HashedOwnership(root As String, boundary As String, passed As List(Of String))
+        Dim area = IO.Path.Combine(root, "runtime-ownership-" & boundary), work = IO.Path.Combine(area, "work"), destination = IO.Path.Combine(area, "root")
+        Dim source = SafeFiles.UnderRoot(work, Relative), targetPath = SafeFiles.UnderRoot(destination, Relative), item As New DownloadFile With {.RelativePath = Relative, .Size = Correct.Length, .Category = "library"}
+        Seed(source, Correct)
+        If boundary = "incoming-existing" Then Seed(targetPath, Correct)
+        Dim files As List(Of DownloadFile), reached = False, failure As Exception = Nothing
+        Using publication As New ComponentRuntimePublication(destination)
+            If boundary.StartsWith("incoming-", StringComparison.Ordinal) Then
+                item.Sha1 = Hash(Correct)
+                Using probe As New RuntimeFinalDigestProbe(Sub()
+                    If reached Then Return
+                    reached = True
+                    item.RelativePath = SecondRelative : item.Size = Correct.Length + 1 : item.Sha1 = Hash(Wrong)
+                    item.Sha512 = New String("a"c, 128) : item.Md5 = New String("b"c, 32) : item.S3SinglePartETag = New String("c"c, 32) & "-1" : item.Category = "changed"
+                End Sub)
+                    Try
+                        publication.Publish(work, {item}, CancellationToken.None)
+                    Catch ex As Exception
+                        failure = ex
+                    End Try
+                End Using
+                files = publication.FrozenFiles
+                Console.WriteLine("RUNTIME_OWNERSHIP boundary=" & boundary & ";reached=" & reached & ";failure=" & If(failure?.GetType().FullName, "none") & ";count=" & files.Count)
+                Check(reached AndAlso failure Is Nothing AndAlso files.Count = 1 AndAlso File.ReadAllBytes(targetPath).SequenceEqual(Correct),
+                    "publication snapshots incoming declared metadata before any hash callback: " & boundary, passed)
+                Dim snapshot = files(0)
+                Check(snapshot.RelativePath = Relative AndAlso snapshot.Size = Correct.Length AndAlso snapshot.Sha1 = Hash(Correct) AndAlso snapshot.Sha512 Is Nothing AndAlso
+                    snapshot.Md5 Is Nothing AndAlso snapshot.S3SinglePartETag Is Nothing AndAlso snapshot.Category = "library",
+                    "incoming mutation cannot change any published integrity field: " & boundary, passed)
+            Else
+                publication.Publish(work, {item}, CancellationToken.None)
+                files = publication.FrozenFiles
+                If boundary = "getter" Then
+                    Dim old = files(0).Sha512
+                    files(0).Sha512 = New String("0"c, 128) : files(0).Size += 1 : files(0).RelativePath = SecondRelative
+                    Dim independent = publication.FrozenFiles
+                    Console.WriteLine("RUNTIME_OWNERSHIP boundary=getter;independent=" & (independent(0).Sha512 = old))
+                    Check(independent.Count = 1 AndAlso independent(0).Sha512 = old AndAlso independent(0).Size = Correct.Length AndAlso independent(0).RelativePath = Relative,
+                        "editing a returned frozen file cannot mutate the publisher's owned integrity metadata", passed)
+                Else
+                    Using guard As New ComponentRuntimePublication.PublishedLease(destination, files, CancellationToken.None)
+                        files(0).Sha512 = New String("0"c, 128) : files(0).Size += 1 : files(0).RelativePath = SecondRelative
+                        Try
+                            guard.Verify(CancellationToken.None)
+                        Catch ex As Exception
+                            failure = ex
+                        End Try
+                    End Using
+                    Console.WriteLine("RUNTIME_OWNERSHIP boundary=lease;failure=" & If(failure?.GetType().FullName, "none"))
+                    Check(failure Is Nothing, "final lease verification owns a copy independent of later constructor-input edits", passed)
+                End If
+            End If
+        End Using
+        Check(File.ReadAllBytes(source).SequenceEqual(Correct) AndAlso File.ReadAllBytes(targetPath).SequenceEqual(Correct) AndAlso
+            Not Directory.EnumerateFiles(area, "*.component-*", SearchOption.AllDirectories).Any(), "metadata ownership checks preserve source shared bytes and private cleanup: " & boundary, passed)
+        Using lease As New FileStream(targetPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None)
+            Check(lease.Length = Correct.Length, "metadata ownership checks release every published read handle: " & boundary, passed)
+        End Using
+    End Sub
+    Private Sub RuntimeLeaseCancellation(root As String, phase As String, passed As List(Of String))
+        Dim area = IO.Path.Combine(root, "runtime-final-lease-cancellation-" & phase), bytes = Enumerable.Range(0, 512 * 1024 + 19).Select(Function(index) CByte(index Mod 251)).ToArray()
+        Dim path = SafeFiles.UnderRoot(area, Relative), digest As String
+        Using hash As New SHA512CryptoServiceProvider()
+            digest = BitConverter.ToString(hash.ComputeHash(bytes)).Replace("-", "").ToLowerInvariant()
+        End Using
+        Seed(path, bytes)
+        Dim item As New DownloadFile With {.RelativePath = Relative, .Size = bytes.Length, .Sha512 = digest, .Category = "library"}
+        Dim guard As ComponentRuntimePublication.PublishedLease = Nothing, failure As Exception = Nothing, blocked = False, hashed As Long = 0, blocks = 0
+        Using cancel As New CancellationTokenSource()
+            Try
+                If phase = "verify" Then guard = New ComponentRuntimePublication.PublishedLease(area, {item}, CancellationToken.None)
+                Using probe As New RuntimeFinalDigestProbe(Nothing, Sub(algorithm, count)
+                    hashed += count : blocks += 1
+                    If blocks <> 1 Then Return
+                    Try
+                        File.WriteAllBytes(path, Wrong)
+                    Catch ex As IOException
+                        blocked = True
+                    End Try
+                    cancel.Cancel()
+                End Sub)
+                    Try
+                        If phase = "constructor" Then
+                            guard = New ComponentRuntimePublication.PublishedLease(area, {item}, cancel.Token)
+                        Else
+                            guard.Verify(cancel.Token)
+                        End If
+                    Catch ex As Exception
+                        failure = ex
+                    End Try
+                End Using
+            Finally
+                guard?.Dispose()
+            End Try
+            Console.WriteLine("RUNTIME_LEASE_CANCEL phase=" & phase & ";bytes=" & hashed & ";length=" & bytes.Length & ";blocks=" & blocks & ";blocked=" & blocked & ";failure=" & If(failure?.GetType().FullName, "none"))
+            Check(TypeOf failure Is OperationCanceledException AndAlso DirectCast(failure, OperationCanceledException).CancellationToken = cancel.Token,
+                "final runtime guard cancellation retains the original caller token: " & phase, passed)
+            Check(hashed > 0 AndAlso hashed < bytes.Length AndAlso blocks > 0 AndAlso blocked,
+                "final runtime guard stops hashing promptly while blocking shared-file replacement: " & phase, passed)
+        End Using
+        Check(File.ReadAllBytes(path).SequenceEqual(bytes), "cancelled final runtime guard preserves the original shared bytes: " & phase, passed)
+        Using released As New FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)
+            Check(released.Length = bytes.Length, "cancelled final runtime guard releases its read lease: " & phase, passed)
+        End Using
+        Using retry As New ComponentRuntimePublication.PublishedLease(area, {item}, CancellationToken.None)
+            retry.Verify(CancellationToken.None)
+            Check(True, "cancelled final runtime guard retries with an unchanged checked file: " & phase, passed)
+        End Using
+    End Sub
     Private Async Function SourceLeaseAsync(root As String, passed As List(Of String)) As Task
         Using fixture As New InstallationChecks.InstallFixture(root, "runtime-source-lease", "1.12.2")
             Dim selection = CreateSelection(fixture, False, False), reached As Boolean = False, blocked As Boolean = False

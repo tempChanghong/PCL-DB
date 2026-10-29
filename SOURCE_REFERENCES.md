@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 共享组件运行库与最终实例发布（2026-10-29）
+
+- 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 McInstallLoadersGet／ModDownload 支持库迁移与校验为阶段依据；C# 参考 CE `915ac29795efbdf6373417389e181e1504117048` 对应组件／支持库及 HashProvider 的取消语义。PCL-DB 的并行安装、完整性快照和最终读租约属于本工具自身的冲突处理，不声称是上游同名实现。
+- 新实例重命名前统一保护有摘要与本地冻结的运行库，快照分离输入、输出和租约所有权；仅最终 guard 接既有 token，成功后清理保持。[复现与修复](docs/reviews/runtime-publication-conflict-2026-10-29.md)，固定原始字节见 `artifacts/runtime-publication-conflict/source/manifest.json`。
+
 ## UI 还原度：本地 Mod 卡片与下拉菜单（2026-10-29）
 
 - 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageInstanceMod.xaml:13,28-34` 为 65 DIP 操作卡片、筛选 (15,13)、列表 (20,48,18,22) 及筛选顺序的依据；CE `915ac29795efbdf6373417389e181e1504117048` 的 `PageInstanceCompResource.xaml:39-59` 只提供 Top 8／7 的换行间距参考，正常首行仍以 PCL 为准。
