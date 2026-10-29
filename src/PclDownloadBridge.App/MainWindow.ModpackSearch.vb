@@ -508,8 +508,11 @@ Partial Public Class MainWindow
                 Await _packDetailLoading.CompleteAsync(request)
                 If Not CurrentPackDetail(project, request) Then Return
                 ChangePackContent(PackBrowserMode.Detail, Sub()
+                                                             If Not CurrentPackDetail(project, request) Then Return
                                                              _packVerifiedProject = verified : _packReleases = releases
                                                              RenderPackProject(verified)
+                                                             ' Retiring header artwork may synchronously open a newer detail.
+                                                             If Not CurrentPackDetail(project, request) Then Return
                                                              PackDetailHint.Visibility = Visibility.Collapsed : InitializePackVersions()
                                                          End Sub)
                 If CurrentPackDetail(project, request) Then
@@ -521,6 +524,7 @@ Partial Public Class MainWindow
                 _packDetailLoading.Cancel(request)
                 _packDetailCompletedProject = Nothing
                 ChangePackContent(PackBrowserMode.Detail, Sub()
+                                                             If Not CurrentPackDetail(project, request) Then Return
                                                              PackVersionCards.Children.Clear()
                                                              PackDetailHint.Theme = PclHintTheme.Red : PackDetailHint.Text = "无法获取可下载的版本，请重试。" : PackDetailHint.ToolTip = ex.GetBaseException().Message : PackDetailHint.Visibility = Visibility.Visible : PackDetailRetry.Visibility = Visibility.Visible
                                                          End Sub)

@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 详情完成提交与请求归属（2026-10-29）
+
+- 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `PageDownloadCompDetail.xaml.vb:25-36` 在发布 Output 前检查取消；`ModLoader.vb:349-368` 在 delegate 返回后复查当前运行，`MyPageRight.vb:76-85,272-274` 保持 UI 完成顺序与离页后的后台完成。C# 逻辑参考 CE `915ac29795efbdf6373417389e181e1504117048` 的 `MyPageRight.cs:96-105` 和详情／loader 的取消边界。
+- 本工具在详情成功／失败的实际更新回调入口和头部渲染后复用 CTS／项目引用检查，防止同步取消通知打开新项目后旧完成仍更新版本列表；不增加可见性限制、不改动画控制器。原始 Git 字节见 `artifacts/detail-completion-ownership/source/manifest.json`，[复现和验证边界](docs/reviews/detail-completion-ownership-2026-10-29.md)。
+
 ## 资源副标题视觉权重（2026-10-29）
 
 - 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 MyResourceItem.xaml:31-33：14／12 号标题层级，副标题 Gray1×0.4、17 DIP 标题带。CE `915ac29795efbdf6373417389e181e1504117048` 的 MyCompItem.xaml:36-42 同样采用 Gray1×0.4，但其 20 DIP 居中布局未移入。

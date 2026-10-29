@@ -3,6 +3,7 @@ Imports System.Net.Http
 Imports System.Threading
 Imports System.Windows
 Imports System.Windows.Controls
+Imports System.Windows.Media
 Imports System.Windows.Media.Imaging
 Imports System.Windows.Threading
 Imports Newtonsoft.Json.Linq
@@ -91,5 +92,104 @@ Partial Public Class MainWindow
                 Next
             Next
         Next
+        Await CheckProjectCompletionRenderAsync(png, layout, check)
+    End Function
+    Private Async Function CheckProjectCompletionRenderAsync(png As Byte(), layout As Action, check As Action(Of Boolean, String)) As Task
+        Dim settle As Action = Sub()
+                                   _surfaceMotion.Finish() : _categoryMotion.Finish() : FinishPackContentMotion() : layout()
+                               End Sub
+        For Each dark In {False, True}
+            For Each animated In {False, True}
+                For Each failed In {False, True}
+                    _motionPreview = False
+                    Dim state As New ArtworkFixtureState, project = ArtworkProject("original")
+                    PrepareArtworkProject(project, state, settle) : _resourceTargetLoader = ""
+                    Dim retired = _packDetailArtworkRequest, other = ArtworkProject("newer001")
+                    other.Name = "Newer completion owner"
+                    Dim newer As New DetailStartState(CommunityResourceKind.Mod, "Verified newer completion owner", "nextvers")
+                    Dim callbacks = 0, projects = 0, versions = 0, oldRequest As CancellationTokenSource = Nothing, acceptedRequest As CancellationTokenSource = Nothing
+                    Dim cards As UIElement() = {}, filters As UIElement() = {}, hintText As String = Nothing, hintTip As Object = Nothing
+                    Dim hintTheme As PclHintTheme, hintVisibility As Visibility, retryVisibility As Visibility, filterVisibility As Visibility
+                    Dim header As PclResourceItem = Nothing, generation = _taskGeneration, originalTransform = PackDetailResultsSurface.RenderTransform, firstVisualSettled = False
+                    Dim label = "/completion/dark=" & dark & "/motion=" & animated & "/newer-failed=" & failed
+                    Dim visual As New JObject From {{"case", label}}
+                    _packCatalogFactory = Function() New ModpackCatalogClient(New PackSearchFixtureHandler With {
+                        .ProjectPage = Function(uri)
+                                           projects += 1
+                                           Dim data = CommunityProjectFixture(project.Kind, project.Id)
+                                           data("title") = "Verified original completion" : data("icon_url") = project.IconUrl
+                                           Return data
+                                       End Function,
+                        .VersionPage = Function(uri)
+                                           versions += 1 : oldRequest = _packDetailRequest
+                                           Dim data = CommunityReleaseFixture(project.Kind, project.Id, "oldvers")
+                                           data("game_versions") = New JArray("1.20.1", "1.21.1")
+                                           Return New JArray(data)
+                                       End Function}, "")
+                    RestoreAppearance(New JObject From {{"darkMode", dark}}) : _motionPreview = animated : settle()
+                    Using registration = retired.Token.Register(Sub()
+                                                                   callbacks += 1
+                                                                   visual("beforeOpenOpacity") = PackDetailResultsSurface.Opacity
+                                                                   visual("beforeOpenClock") = If(_packDetailMotion.Transition Is Nothing, 0, _packDetailMotion.Transition.GetHashCode())
+                                                                   visual("beforeOpenApplyingContent") = _packDetailMotion.ApplyingContent
+                                                                   If failed Then
+                                                                       _packCatalogFactory = Function() FailingPackCatalog(New IOException("Controlled newer completion failure"))
+                                                                   Else
+                                                                       _packCatalogFactory = Function() New ModpackCatalogClient(New DetailStartHandler(newer), "", 0)
+                                                                   End If
+                                                                   OpenPackDetails(other)
+                                                                   If failed AndAlso Not PumpMotionUntil(Function() _packDetailRequest Is Nothing) Then Throw New TimeoutException("Newer detail failure did not settle inside the artwork retirement callback.")
+                                                                   visual("afterOpenOpacity") = PackDetailResultsSurface.Opacity
+                                                                   visual("afterOpenClock") = If(_packDetailMotion.Transition Is Nothing, 0, _packDetailMotion.Transition.GetHashCode())
+                                                                   settle()
+                                                                   visual("callbackSettledOpacity") = PackDetailResultsSurface.Opacity
+                                                                   acceptedRequest = _packDetailRequest : header = ArtworkHeader()
+                                                                   cards = PackVersionCards.Children.Cast(Of UIElement)().ToArray() : filters = PackVersionFilters.Children.Cast(Of UIElement)().ToArray()
+                                                                   hintText = PackDetailHint.Text : hintTip = PackDetailHint.ToolTip : hintTheme = PackDetailHint.Theme
+                                                                   hintVisibility = PackDetailHint.Visibility : retryVisibility = PackDetailRetry.Visibility : filterVisibility = PackVersionFilterCard.Visibility
+                                                               End Sub)
+                        Await LoadPackDetailsAsync(project) : settle()
+                        check(projects = 1 AndAlso versions = 1 AndAlso callbacks = 1 AndAlso oldRequest IsNot Nothing AndAlso oldRequest.IsCancellationRequested,
+                            "real successful project and version responses trigger one reentrant artwork retirement before the obsolete completion returns" & label)
+                        check(_packProject Is other AndAlso ActivePackProject() Is other AndAlso _packDetailCompletedProject Is Nothing AndAlso _packDetailRequest Is acceptedRequest AndAlso
+                            ArtworkHeader() Is header AndAlso header IsNot Nothing AndAlso header.Tag Is other AndAlso _packReleases.Count = 0 AndAlso
+                            If(failed, acceptedRequest Is Nothing, acceptedRequest IsNot Nothing AndAlso Not acceptedRequest.IsCancellationRequested AndAlso newer.Calls = 1),
+                            "the obsolete detail completion retains the newer project's current request header and incomplete metadata state" & label)
+                        check(PackVersionCards.Children.Cast(Of UIElement)().SequenceEqual(cards) AndAlso PackVersionFilters.Children.Cast(Of UIElement)().SequenceEqual(filters) AndAlso
+                            PackVersionFilterCard.Visibility = filterVisibility AndAlso PackDetailHint.Text = hintText AndAlso PackDetailHint.ToolTip Is hintTip AndAlso PackDetailHint.Theme = hintTheme AndAlso
+                            PackDetailHint.Visibility = hintVisibility AndAlso PackDetailRetry.Visibility = retryVisibility AndAlso
+                            If(failed, PackDetailHint.IsVisible AndAlso PackDetailHint.Theme = PclHintTheme.Red AndAlso PackDetailRetry.IsVisible AndAlso cards.Length = 0,
+                                cards.Length = 1 AndAlso DirectCast(cards(0), PclCard).Body IsNot Nothing AndAlso Not PackDetailHint.IsVisible AndAlso Not PackDetailRetry.IsVisible),
+                            "the obsolete completion cannot replace newer error or loading cards version filters hint and retry controls" & label)
+                        firstVisualSettled = ProjectCompletionVisualsSettledForChecks(originalTransform)
+                        visual("obsoleteCompletionSettledOpacity") = PackDetailResultsSurface.Opacity
+                        visual("obsoleteCompletionVisualsSettled") = firstVisualSettled
+                    End Using
+                    _packCatalogFactory = Function() New ModpackCatalogClient(New DetailStartHandler(newer), "", 0)
+                    newer.Gate.TrySetResult(True)
+                    If failed Then RetryPackDetails(Nothing, Nothing)
+                    Await WaitPackUiAsync(Function() _packDetailRequest Is Nothing) : settle()
+                    state.CompleteAll(png)
+                    Await WaitPackUiAsync(Function() _packIconSlots.CurrentCount = 4) : FlushControlLayout() : settle()
+                    check(_packProject Is other AndAlso _packDetailCompletedProject Is other AndAlso ActivePackProject().Id = other.Id AndAlso
+                        _packReleases.Count = 1 AndAlso _packReleases(0).Id = "nextvers" AndAlso _packReleases(0).ProjectId = other.Id AndAlso
+                        PackVersionCards.Children.Count = 1 AndAlso PackVersionFilters.Children.Count = 2 AndAlso Not PackDetailRetry.IsVisible AndAlso
+                        _taskGeneration = generation AndAlso Not _busy AndAlso _resourceBack.Count = 0 AndAlso PackDetailResultsHost.IsHitTestVisible AndAlso PageSurface.IsHitTestVisible,
+                        "the newer pending load or explicit retry completes with only its own release cards and unchanged task ownership" & label)
+                    visual("newerCompletionSettledOpacity") = PackDetailResultsSurface.Opacity
+                    visual("newerCompletionVisualsSettled") = ProjectCompletionVisualsSettledForChecks(originalTransform)
+                    visual("remainingTransformGroups") = PclSurfaceMotion.Units(PackDetailResultsSurface).Count(Function(item) TypeOf item.RenderTransform Is TransformGroup)
+                    Console.WriteLine("DETAIL_COMPLETION_OBSERVATION " & visual.ToString(Newtonsoft.Json.Formatting.None))
+                    check(firstVisualSettled AndAlso CBool(visual("newerCompletionVisualsSettled")),
+                        "reentrant detail completion restores surface opacity original transforms clocks ghosts and input gates before and after recovery" & label)
+                Next
+            Next
+        Next
+    End Function
+    Private Function ProjectCompletionVisualsSettledForChecks(originalTransform As Transform) As Boolean
+        Return Math.Abs(PackDetailResultsSurface.Opacity - 1) < 0.0001 AndAlso PackDetailResultsSurface.RenderTransform Is originalTransform AndAlso
+            Not PackDetailResultsSurface.HasAnimatedProperties AndAlso PclSurfaceMotion.Units(PackDetailResultsSurface).All(Function(item) Not TypeOf item.RenderTransform Is TransformGroup AndAlso Math.Abs(item.Opacity - 1) < 0.0001) AndAlso
+            _packDetailMotion.Transition Is Nothing AndAlso _packResultMotion.Transition Is Nothing AndAlso _surfaceMotion.Transition Is Nothing AndAlso _categoryMotion.Transition Is Nothing AndAlso
+            PackDetailGhost.Children.Count = 0 AndAlso PackSearchGhost.Children.Count = 0 AndAlso PackDetailResultsHost.IsHitTestVisible AndAlso DownloadViewHost.IsHitTestVisible AndAlso PageSurface.IsHitTestVisible
     End Function
 End Class
