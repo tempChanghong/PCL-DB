@@ -1,5 +1,7 @@
 # PCL-DB · PCL Download Bridge
 
+第三轮已开始：本地 Mod 的格式解释提炼为私有、无状态 MetadataParser；Read／Scan、ZIP／流、取消和图标字节仍留在原边界，VB 界面与测试继续保留。[职责拆分与验证](docs/reviews/core-refactor-round3-local-mod-parser-2026-10-29.md)。
+
 页面切换在内容绑定或布局期间接受新操作后，旧入场不再覆盖新时钟、透明度或变换；资源缓存内容继续合成到父级入场。[修复与验证](docs/reviews/surface-entry-reentry-2026-10-29.md)。
 
 从本地 Mod 管理进入下载时，先绑定当前实例的版本／加载器，再恢复仍有效的搜索缓存；布局期间的新导航会使旧配置停止。[修复与验证](docs/reviews/search-restore-entry-2026-10-29.md)。
@@ -36,7 +38,7 @@ Core 已进入第二轮结构整理，首批将平台目录按模型、查询编
 
 搜索动画回归检查改为观察请求及所属时钟的自然完成，保留原可见性和输入断言及有界期限；修正固定时刻采样仍在正常入场的卡片所致误报，不改变运行时动画。
 
-下载器的目标／供体／复制副本、续传缓存、HEAD 长度误报和最终内容校验接入取消令牌，取消保留可重试内容并避免误计复用。[修复与验证](docs/reviews/download-hash-cancellation-2026-10-29.md)。仍在第二轮收尾，[第三轮门槛与候选路线](docs/reviews/core-refactor-round2-closeout-2026-10-29.md)已明确，尚未开始第三轮实现。
+下载器的目标／供体／复制副本、续传缓存、HEAD 长度误报和最终内容校验接入取消令牌，取消保留可重试内容并避免误计复用。[修复与验证](docs/reviews/download-hash-cancellation-2026-10-29.md)。[第二轮收尾边界与第三轮门槛](docs/reviews/core-refactor-round2-closeout-2026-10-29.md)继续保留；第三轮已从本地 Mod 私有文本解析开始，发布编排仍单独收尾。
 
 组件和处理器输出缓存的恢复、保存与副本校验也接入取消令牌，取消保留原文件和缓存并支持重试；实例发布成功后的可选清理保持原语义。[修复与验证](docs/reviews/component-cache-hash-cancellation-2026-10-29.md)。
 

@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 第三轮：本地 Mod 私有解析器（2026-10-29）
+
+- 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 Modules/Resource/LocalResourceFile.vb／LocalResourceLoaders.vb 提供启停状态、目录与加载生命周期依据。C# 重点参考 CE `915ac29795efbdf6373417389e181e1504117048` 的 Modules/Minecraft/ModLocalComp.cs:1257–1280 的 Load／LoadCore，以及 1470 起的 mcmod.info／Fabric／Quilt／TOML 分格式解释边界。
+- 私有 MetadataParser 原样承接文本解释，保留本工具的 Newtonsoft.Json、重复字段、多行 TOML、主清单属性和图标路径严格规则；不照搬 CE 的具体解析算法或其读写外部配置行为。原文件／ZIP／token 边界不变。10 份固定 Git 字节见 `artifacts/local-mod-parser-refactor/source/manifest.json`，[映射与验证](docs/reviews/core-refactor-round3-local-mod-parser-2026-10-29.md)。
+
 ## 共享入场动画的同步重入（2026-10-29）
 
 - 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 ModAnimation.vb:753–783 对同名动画先停止再替换；MyPageRight.vb:236 起先发布 Empty 状态再停止页面组，FormMain 先更新 PageCurrent 再改变框架。CE `915ac29795efbdf6373417389e181e1504117048` 的 ModAnimation.cs:1497–1526、MyPageRight.cs:287 起及 FormMain 为对应 C# 参考。
