@@ -1,5 +1,9 @@
 # PCL2 代码依据
 
+## 多源搜索退出与请求收尾（2026-10-29）
+
+- 核对固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ResourceSearcher.vb:407-449`：结果处理前逐个 Join、Finally 清理存活线程、保留健康来源的部分结果；C# 重点参考 CE `dev` `915ac29795efbdf6373417389e181e1504117048` 的 `ModComp.cs:2624` 附近，等待来源后检查中止再发布。
+- 为搜索会话每轮保留全部已启动任务，异常退出时取消并异步 join 后再交还 gate/client；保留原 token、预览首因、有效轮次、部分失败及原始分页偏移。VB UI 的 Using、身份门控和异步动画保持，不照搬同步 Wait。[复现与验证](docs/reviews/search-session-cleanup-2026-10-29.md)。
 ## Core 迁移后取消收尾复核（2026-10-29）
 
 - 继续核对固定 PCL `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModNet.vb` 下载线程 Finally、`ModDownload.vb` 源调度与 `ModLoader.vb` 取消身份。C# 重点参考 CE `dev` `915ac29795efbdf6373417389e181e1504117048` 的 `LoaderDownload.cs:64-97`、`AdaptiveRangeDownloader.cs` 与 `Requester.cs`：记录首因，取消同伴，再等待全部 worker 和释放已取得的资源。

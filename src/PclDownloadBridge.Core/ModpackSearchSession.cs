@@ -125,42 +125,54 @@ namespace PclDownloadBridge.Core
                     if (_results.Count >= target || !HasMore)
                         break;
                     ModpackPlatform[] active = _offsets.Keys.Where(platform => !_ended.Contains(platform) && !_errors.ContainsKey(platform)).ToArray();
-                    var pending = active.Select(platform => new { Platform = platform, Work = FetchAsync(client, platform, _query, _offsets[platform], token) }).ToList();
                     FetchResult[] batches;
-                    if (progress is not null && pending.Count > 1)
+                    using (var linked = CancellationTokenSource.CreateLinkedTokenSource(token))
                     {
-                        var completed = new List<FetchResult>();
+                        var pending = active.Select(platform => new { Platform = platform, Work = FetchAsync(client, platform, _query, _offsets[platform], linked.Token) }).ToList();
+                        var started = pending.Select(item => item.Work).ToArray();
                         try
                         {
-                            while (pending.Count > 0)
+                            if (progress is not null && pending.Count > 1)
                             {
-                                var work = await Task.WhenAny(pending.Select(item => item.Work)).ConfigureAwait(false);
-                                var batch = await work.ConfigureAwait(false);
-                                pending.RemoveAll(item => ReferenceEquals(item.Work, work));
-                                completed.Add(batch);
-                                token.ThrowIfCancellationRequested();
-                                if (pending.Count > 0)
+                                var completed = new List<FetchResult>();
+                                while (pending.Count > 0)
                                 {
-                                    var freshPreview = completed.Where(item => item.Page is not null).SelectMany(item => item.Page.Projects).GroupBy(item => item.Key, StringComparer.Ordinal).Select(@group => @group.First()).Where(item => !_seen.Contains(item.Key)).OrderByDescending(item => Relevance(item.Name)).ThenByDescending(item => item.Downloads).ThenBy(item => item.Key, StringComparer.Ordinal);
-                                    var preview = _results.Concat(freshPreview).Skip(page * ModpackCatalogClient.PageSize).Take(ModpackCatalogClient.PageSize);
-                                    progress.Report(new ModpackSearchPreview(preview, pending.Select(item => item.Platform)));
+                                    var work = await Task.WhenAny(pending.Select(item => item.Work)).ConfigureAwait(false);
+                                    var batch = await work.ConfigureAwait(false);
+                                    pending.RemoveAll(item => ReferenceEquals(item.Work, work));
+                                    completed.Add(batch);
+                                    token.ThrowIfCancellationRequested();
+                                    if (pending.Count > 0)
+                                    {
+                                        var freshPreview = completed.Where(item => item.Page is not null).SelectMany(item => item.Page.Projects).GroupBy(item => item.Key, StringComparer.Ordinal).Select(@group => @group.First()).Where(item => !_seen.Contains(item.Key)).OrderByDescending(item => Relevance(item.Name)).ThenByDescending(item => item.Downloads).ThenBy(item => item.Key, StringComparer.Ordinal);
+                                        var preview = _results.Concat(freshPreview).Skip(page * ModpackCatalogClient.PageSize).Take(ModpackCatalogClient.PageSize);
+                                        progress.Report(new ModpackSearchPreview(preview, pending.Select(item => item.Platform)));
+                                    }
                                 }
+                                batches = completed.ToArray();
                             }
-                        }
-                        finally
-                        {
-                            // Pending requests own their response/stream cleanup. On
-                            // cancellation observe their eventual faults before disposal.
-                            foreach (var item in pending)
+                            else
                             {
-                                var observer = item.Work.ContinueWith(task => task.Exception, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
+                                batches = await Task.WhenAll(started).ConfigureAwait(false);
                             }
                         }
-                        batches = completed.ToArray();
-                    }
-                    else
-                    {
-                        batches = await Task.WhenAll(pending.Select(item => item.Work)).ConfigureAwait(false);
+                        catch
+                        {
+                            // Keep the client and session gate owned until every source
+                            // has joined, including when publishing a preview fails.
+                            InstallCleanup.NotifyCancellation(linked.Cancel);
+                            try
+                            {
+                                await Task.WhenAll(started).ConfigureAwait(false);
+                            }
+                            catch
+                            {
+                                // Observe cleanup faults without replacing the original
+                                // preview failure or the caller's cancellation identity.
+                            }
+                            token.ThrowIfCancellationRequested();
+                            throw;
+                        }
                     }
                     token.ThrowIfCancellationRequested();
                     var fresh = new List<ModpackProject>();
