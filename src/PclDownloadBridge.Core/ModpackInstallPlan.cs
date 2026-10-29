@@ -177,7 +177,7 @@ namespace PclDownloadBridge.Core
                 token.ThrowIfCancellationRequested();
                 // Deliberately replaced index files were checked before overrides, then
                 // checked above against the winning archive entry, not the old digest.
-                if (!OverrideHashes.ContainsKey(item.RelativePath) && !SafeFiles.Matches(SafeFiles.UnderRoot(stage, item.RelativePath), item))
+                if (!OverrideHashes.ContainsKey(item.RelativePath) && !SafeFiles.Matches(SafeFiles.UnderRoot(stage, item.RelativePath), item, token))
                     throw new InvalidDataException("整合包文件在发布前校验失败：" + item.RelativePath);
             }
         }

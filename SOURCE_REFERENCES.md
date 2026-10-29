@@ -1,5 +1,11 @@
 # PCL2 代码依据
 
+## 归档与非覆盖文件最终校验取消（2026-10-29）
+
+- 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModModpack.vb:112-115,209,405,435-436`、`ModNet.vb:1474-1506,1531-1537`，保持任务取消、先大小后摘要及文件状态检查。CE `915ac29795efbdf6373417389e181e1504117048` 的 `PCL.Core/Utils/Hash/{SHA1Provider,SHA512Provider,MD5Provider,IHashProvider}.cs` 作为 C# 流哈希传 token 的依据。
+- net48 增加一个 internal 可取消 Matches 重载，原 public 两参数路径仍走原 ComputeHash。只接归档最终校验与非 override 终验，保留摘要顺序与 S3 raw MD5 的复位语义。固定原始字节见 `artifacts/file-match-cancellation/source/manifest.json`，[精确内部接口增量与验证](docs/reviews/file-match-cancellation-2026-10-29.md)。
+- 搜索检查采样修正沿用 PCL 风格的父页面入场、加载停留及结果入场链，以实际时钟完成为观察边界；不修改 `PclSurfaceMotion`／`PclLoadingPresentation`。保留原检查谓词、五秒有界等待和首失败／基线对照；不将固定时间采样误报当作性能提升。
+
 ## 整合包覆盖文件最终校验的取消（2026-10-29）
 
 - 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `Modules/Minecraft/ModModpack.vb:112-115,209,405` 将任务取消令牌传入文件处理；C# 参考 CE `915ac29795efbdf6373417389e181e1504117048` 的 `PCL.Core/Utils/Hash/SHA256Provider.cs:36-38` 与 `IHashProvider.cs:11` 的可取消流哈希。

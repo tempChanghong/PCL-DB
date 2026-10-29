@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Threading;
 
 namespace PclDownloadBridge.Core
 {
@@ -178,6 +179,12 @@ namespace PclDownloadBridge.Core
 
         public static bool Matches(string path, DownloadFile item)
         {
+            return Matches(path, item, CancellationToken.None);
+        }
+
+        internal static bool Matches(string path, DownloadFile item, CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
             if (!File.Exists(path))
                 return false;
             var info = new FileInfo(path);
@@ -192,7 +199,7 @@ namespace PclDownloadBridge.Core
                 using (var stream = File.OpenRead(path))
                 using (var sha = SHA512.Create())
                 {
-                    if (!string.Equals(BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", ""), item.Sha512, StringComparison.OrdinalIgnoreCase))
+                    if (!string.Equals(BitConverter.ToString(HashStream(sha, stream, token)).Replace("-", ""), item.Sha512, StringComparison.OrdinalIgnoreCase))
                         return false;
                 }
             }
@@ -201,7 +208,7 @@ namespace PclDownloadBridge.Core
                 using (var stream = File.OpenRead(path))
                 using (var sha = SHA1.Create())
                 {
-                    if (!string.Equals(BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", ""), item.Sha1, StringComparison.OrdinalIgnoreCase))
+                    if (!string.Equals(BitConverter.ToString(HashStream(sha, stream, token)).Replace("-", ""), item.Sha1, StringComparison.OrdinalIgnoreCase))
                         return false;
                 }
             }
@@ -210,7 +217,7 @@ namespace PclDownloadBridge.Core
                 using (var stream = File.OpenRead(path))
                 using (var hash = MD5.Create())
                 {
-                    if (!string.Equals(BitConverter.ToString(hash.ComputeHash(stream)).Replace("-", ""), item.Md5, StringComparison.OrdinalIgnoreCase))
+                    if (!string.Equals(BitConverter.ToString(HashStream(hash, stream, token)).Replace("-", ""), item.Md5, StringComparison.OrdinalIgnoreCase))
                         return false;
                 }
             }
@@ -221,12 +228,41 @@ namespace PclDownloadBridge.Core
                 using (var stream = File.OpenRead(path))
                 using (var hash = MD5.Create())
                 {
-                    byte[] digest = hash.ComputeHash(hash.ComputeHash(stream));
+                    byte[] digest = hash.ComputeHash(HashStream(hash, stream, token));
+                    token.ThrowIfCancellationRequested();
                     if (!string.Equals(BitConverter.ToString(digest).Replace("-", "") + "-1", item.S3SinglePartETag, StringComparison.OrdinalIgnoreCase))
                         return false;
                 }
             }
+            token.ThrowIfCancellationRequested();
             return true;
+        }
+
+        private static byte[] HashStream(HashAlgorithm hash, Stream stream, CancellationToken token)
+        {
+            // Preserve the original non-cancellable entry's provider behavior. PCL
+            // keeps size/hash checks before publication; CE also passes the caller's
+            // token through stream hashing. Use net48-compatible blocks for that path.
+            if (!token.CanBeCanceled)
+                return hash.ComputeHash(stream);
+            var buffer = new byte[65536];
+            do
+            {
+                token.ThrowIfCancellationRequested();
+                int count = stream.Read(buffer, 0, buffer.Length);
+                if (count == 0)
+                    break;
+                hash.TransformBlock(buffer, 0, count, buffer, 0);
+            }
+            while (true);
+            token.ThrowIfCancellationRequested();
+            hash.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+            byte[] digest = hash.Hash;
+            // ComputeHash resets its algorithm before returning. S3's single-part
+            // ETag then reuses this same MD5 instance for the raw inner digest.
+            hash.Initialize();
+            token.ThrowIfCancellationRequested();
+            return digest;
         }
 
         public static void CommitFile(string temp, string target)

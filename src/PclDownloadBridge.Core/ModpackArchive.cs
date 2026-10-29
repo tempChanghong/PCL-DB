@@ -115,7 +115,7 @@ namespace PclDownloadBridge.Core
             }
             token.ThrowIfCancellationRequested();
             string path = SafeFiles.UnderRoot(root, relative);
-            if (!SafeFiles.Matches(path, file))
+            if (!SafeFiles.Matches(path, file, token))
                 throw new InvalidDataException("整合包归档校验未通过。");
             return path;
         }

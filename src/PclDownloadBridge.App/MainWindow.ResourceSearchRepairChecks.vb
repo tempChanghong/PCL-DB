@@ -42,6 +42,14 @@ Partial Public Class MainWindow
         Dim settle As Action = Sub()
                                    _surfaceMotion.Finish() : _categoryMotion.Finish() : FinishPackContentMotion() : layout()
                                End Sub
+        ' Observe the actual parent/loading/result chain rather than sampling a
+        ' fixed delay. The existing bounded wait does not finish or seek any clock;
+        ' visibility, opacity, session and input remain independent assertions below.
+        Dim naturalEntry As Func(Of Task) = Function() WaitPackUiAsync(Function()
+            Return _packSearchRequest Is Nothing AndAlso _packSearchLoading.Phase = PclLoadingPresentation.Phases.Idle AndAlso
+                _categoryMotion.Transition Is Nothing AndAlso _surfaceMotion.Transition Is Nothing AndAlso _packResultMotion.Transition Is Nothing AndAlso
+                Not _categoryMotion.ApplyingContent AndAlso Not _surfaceMotion.ApplyingContent AndAlso Not _packResultMotion.ApplyingContent
+        End Function)
         ShowDownload(Nothing, Nothing) : SetDownloadView(DownloadView.Modpacks) : settle()
         _motionPreview = True : _packLoadingTimingForChecks = True
         _packSearchLoading.NowForChecks = Function() now
@@ -83,28 +91,28 @@ Partial Public Class MainWindow
         _packSearchLoading.NowForChecks = Nothing
         _resourceBrowsers.Clear() : _packAutoSearchForChecks = True
         SelectResourceKind(CommunityResourceKind.Mod)
-        Await Task.Delay(1700) : layout()
+        Await naturalEntry() : layout()
         check(_packSearchRequest Is Nothing AndAlso _packSearchSession IsNot Nothing AndAlso PackResultsCard.IsVisible AndAlso PackResultsCard.Opacity = 1 AndAlso CanUsePackSearchInput(PackSearchButton),
             "automatic category search settles visible content without manually finishing its animation")
         SelectResourceKind(CommunityResourceKind.ResourcePack) : Await Task.Delay(30)
         SelectResourceKind(CommunityResourceKind.Modpack) : Await Task.Delay(30)
         SelectResourceKind(CommunityResourceKind.Shader)
-        Await Task.Delay(2000) : layout()
+        Await naturalEntry() : layout()
         check(_resourceKind = CommunityResourceKind.Shader AndAlso _packSearchRequest Is Nothing AndAlso _packSearchSession IsNot Nothing AndAlso PackResultsCard.IsVisible AndAlso PackResultsCard.Opacity = 1 AndAlso CanUsePackSearchInput(PackSearchButton),
             "rapid animated category reversals settle the final automatic search and release its input gates")
         SelectResourceKind(CommunityResourceKind.Mod)
-        Await Task.Delay(1700) : layout()
+        Await naturalEntry() : layout()
         check(PackResultsCard.IsVisible AndAlso PackResultsCard.Opacity = 1 AndAlso PackSearchResultsSurface.Opacity = 1 AndAlso CanUsePackSearchInput(PackSearchButton),
             "restoring a cached category inside its parent transition never stores a child animation's zero opacity")
         PackSearchText.Text = "after cached restore" : SubmitPackSearch(PackSearchButton, Nothing)
-        Await Task.Delay(1200) : layout()
+        Await naturalEntry() : layout()
         check(_packSearchSession.Query.Text = "after cached restore" AndAlso PackProjectRows.Children.OfType(Of PclResourceItem)().Count() = 1 AndAlso PackResultsCard.Opacity = 1,
             "submitting the real search button after a cached restore displays its accepted replacement results")
         For Each dark In {False, True}
             RestoreAppearance(New JObject From {{"theme", "blue"}, {"darkMode", dark}})
             host.Width = 810 : host.Height = 510 : layout()
-            SelectResourceKind(CommunityResourceKind.Modpack) : Await Task.Delay(1200)
-            SelectResourceKind(CommunityResourceKind.Mod) : Await Task.Delay(1200) : layout()
+            SelectResourceKind(CommunityResourceKind.Modpack) : Await naturalEntry()
+            SelectResourceKind(CommunityResourceKind.Mod) : Await naturalEntry() : layout()
             check(PackResultsCard.Opacity = 1 AndAlso PackSearchResultsSurface.Opacity = 1 AndAlso PackSearchText.ActualWidth > 150 AndAlso CanUsePackSearchInput(PackSearchButton),
                 "cached category restoration retains visible content and input in compact layout: dark=" & dark.ToString())
             SaveControlVisual(host, Path.Combine(directory, "search-compact-" & If(dark, "dark", "light") & ".png"))
