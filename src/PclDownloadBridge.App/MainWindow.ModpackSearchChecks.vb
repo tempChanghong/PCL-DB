@@ -38,6 +38,7 @@ Partial Public Class MainWindow
             SynchronizationContext.SetSynchronizationContext(previous)
         End Try
         VerifyPreviewFixture(Sub() VerifyResourceRestoreUi(directory, passed))
+        VerifyPreviewFixture(Sub() VerifySearchRestoreEntryUi(directory, passed))
         VerifyPreviewFixture(Sub() VerifyDependencyNavigationUi(directory, passed))
         VerifyPreviewFixture(Sub() VerifyDependencyFeedbackUi(directory, passed))
         VerifyPreviewFixture(Sub() VerifyDependencyHandoffUi(directory, passed))

@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 缓存搜索与实例入口顺序（2026-10-29）
+
+- PCL2 固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 PageInstanceMod.xaml.vb:335–340 在 PageChange 前设置 TargetInstance／TargetName；FormMain:1453–1461 在改变框架前发布 PageCurrent，MyPageRight:76–85 保持完成 UI 的通知顺序。CE 固定 `915ac29795efbdf6373417389e181e1504117048` 的 PageInstanceCompResource.xaml.cs:1435–1456 同样联动实例筛选，但赋值位于 PageChange 之后，本轮仍以 PCL2 的预绑定顺序为主。
+- 分类缓存搜索改为布局／配置仍有效后才恢复，避免实例入口发起即取消的旧查询及布局重入后的过期写入。16 份固定原字节见 `artifacts/search-restore-entry/source/manifest.json` 与 `extra-ce-manifest.json`，[修复与对照](docs/reviews/search-restore-entry-2026-10-29.md)。不声称上游有同名补丁。
+
 ## 分类缓存详情的后续配置（2026-10-29）
 
 - 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 FormMain.xaml.vb:1453–1461 在改变框架 UI 前更新 PageCurrent，MyPageRight:76–85 在 UI 完成通知后派发 loader 状态。CE `915ac29795efbdf6373417389e181e1504117048` 的 FormMain.xaml.cs:1842 及 MyPageRight.cs:96–105 提供对应 C# 参考。

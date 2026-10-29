@@ -218,6 +218,8 @@ Partial Public Class MainWindow
                         PackSearchSurface.Visibility = If(state.Mode = PackBrowserMode.Search, Visibility.Visible, Visibility.Collapsed)
                         PackDetailSurface.Visibility = If(state.Mode = PackBrowserMode.Detail, Visibility.Visible, Visibility.Collapsed)
                         PackLocalSurface.Visibility = If(state.Mode = PackBrowserMode.Local AndAlso kind = CommunityResourceKind.Modpack, Visibility.Visible, Visibility.Collapsed)
+                        Dim entryGeneration = _resourceDetailGeneration, navigation = _surfaceNavigationGeneration, entryNames = _resourceNamesRequest
+                        Dim search = _packSearchRequest, entryArtwork = _packArtworkRequest
                         ApplyDownloadView(DownloadView.Modpacks, previousView)
                         If state.Mode = PackBrowserMode.Detail AndAlso state.Detail?.Project IsNot Nothing Then
                             ' Keep the continuation with the restore's accepted owner.
@@ -232,9 +234,19 @@ Partial Public Class MainWindow
                                     End Try
                                 End Function)
                         Else
-                            If state.Session IsNot Nothing Then RestoreResourceSearchAsync(state.Page)
-                            ModpackPage.UpdateLayout() : ModpackPage.ScrollToVerticalOffset(If(state.Mode = PackBrowserMode.Search, state.Scroll, _packDetailScroll))
+                            Dim entryCurrent As Func(Of Boolean) = Function() Not _closing AndAlso Not _busy AndAlso Not _choosingOnline AndAlso
+                                generation = _resourceCategoryGeneration AndAlso entryGeneration = _resourceDetailGeneration AndAlso navigation = _surfaceNavigationGeneration AndAlso
+                                ActiveSurface() Is main AndAlso _resourceKind = kind AndAlso _downloadView = DownloadView.Modpacks AndAlso _packMode = state.Mode AndAlso
+                                _packSearchSession Is state.Session AndAlso _resourceNamesRequest Is entryNames AndAlso _packSearchRequest Is search AndAlso _packArtworkRequest Is entryArtwork
+                            If Not entryCurrent() Then Return
+                            ModpackPage.UpdateLayout()
+                            If Not entryCurrent() Then Return
+                            ModpackPage.ScrollToVerticalOffset(If(state.Mode = PackBrowserMode.Search, state.Scroll, _packDetailScroll))
+                            If Not entryCurrent() Then Return
                             configure?.Invoke()
+                            ' PCL binds the instance's search filters before entry.
+                            ' Configuration or layout may have accepted another page/query.
+                            If entryCurrent() AndAlso state.Session IsNot Nothing Then RestoreResourceSearchAsync(state.Page)
                         End If
                     End Sub, contentRefresh:=previousView = DownloadView.Modpacks, compositeExit:=HasPackContentMotion() OrElse _pageSwitch.HasMotion)
             End If
