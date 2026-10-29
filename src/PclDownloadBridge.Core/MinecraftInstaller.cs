@@ -255,7 +255,7 @@ namespace PclDownloadBridge.Core
                                                 }
                                                 catch (Exception ex) when (!(ex is OperationCanceledException))
                                                 {
-                                                    reporting.Failed("components");
+                                                    ReportFailure(() => reporting.Failed("components"));
                                                     throw;
                                                 }
                                                 reporting.ComponentsComplete();
@@ -407,8 +407,29 @@ namespace PclDownloadBridge.Core
             {
                 InstallCleanup.NotifyCancellation(linked.Cancel);
                 if (!(ex is OperationCanceledException))
-                    failed?.Invoke();
+                    ReportFailure(failed);
                 throw;
+            }
+        }
+
+        // The operation has already failed. A UI observer failing while we report
+        // shutdown must remain secondary to that original exception and its stack.
+        private static void ReportFailure(Action notice)
+        {
+            try
+            {
+                notice?.Invoke();
+            }
+            catch (Exception secondary)
+            {
+                try
+                {
+                    System.Diagnostics.Trace.TraceWarning("安装失败通知未完成：{0}", secondary);
+                }
+                catch
+                {
+                    // Optional diagnostic listeners/exception formatting can fail too.
+                }
             }
         }
 

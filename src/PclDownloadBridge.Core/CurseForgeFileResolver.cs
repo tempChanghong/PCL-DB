@@ -103,7 +103,15 @@ namespace PclDownloadBridge.Core
                             gate.Release();
                         }
                     }).ToArray();
-                await Task.WhenAll(tasks).ConfigureAwait(false);
+                try
+                {
+                    await Task.WhenAll(tasks).ConfigureAwait(false);
+                }
+                catch
+                {
+                    token.ThrowIfCancellationRequested();
+                    throw;
+                }
             }
             token.ThrowIfCancellationRequested();
             if (!errors.IsEmpty)

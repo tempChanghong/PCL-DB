@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## Core 取消身份与安装失败首因（2026-10-29）
+
+- 核对固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModLoader.vb:381,549`：先保存原错误，再调整终态和通知／取消。C# 重点参考 CE `dev` `915ac29795efbdf6373417389e181e1504117048` 的 `LoaderDownload.cs:64-97` 与 `AdaptiveRangeDownloader.cs:252`，记录首因、等待全部任务，按所有权释放资源。
+- CF 批量查询只在完整 join 后恢复原调用方取消 token；安装器仅隔离操作已失败后的两处次要失败通知，保留普通进度首错、原异常堆栈、实例设置与原子发布。不新增公开／友元接口，不修改 VB UI／动画。[复现与验证](docs/reviews/core-outcome-integrity-2026-10-29.md)。
+
 ## 多源搜索退出与请求收尾（2026-10-29）
 
 - 核对固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ResourceSearcher.vb:407-449`：结果处理前逐个 Join、Finally 清理存活线程、保留健康来源的部分结果；C# 重点参考 CE `dev` `915ac29795efbdf6373417389e181e1504117048` 的 `ModComp.cs:2624` 附近，等待来源后检查中止再发布。

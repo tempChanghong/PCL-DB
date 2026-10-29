@@ -98,6 +98,10 @@ Module Program
                     run = CatalogCancellationChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "search-session-cleanup" Then
                     run = SearchSessionCleanupChecks.RunAsync(TestRoot)
+                ElseIf args(1) = "curseforge-cancellation-identity" Then
+                    run = CurseForgeCancellationIdentityChecks.RunAsync(TestRoot)
+                ElseIf args(1) = "install-failure-notification" Then
+                    run = InstallFailureNotificationChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "modpack-paths" Then
                     run = ModpackPathChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "component-file-names" Then
@@ -201,6 +205,12 @@ Module Program
                 Check(True, label)
             Next
             For Each label In SearchSessionCleanupChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
+                Check(True, label)
+            Next
+            For Each label In CurseForgeCancellationIdentityChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
+                Check(True, label)
+            Next
+            For Each label In InstallFailureNotificationChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
                 Check(True, label)
             Next
             For Each label In ModpackPathChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
