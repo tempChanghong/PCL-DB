@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 搜索状态的并发读取与完整轮次发布（2026-10-29）
+
+- 以固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ResourceSearcher.vb:407-449` 核对来源完成、部分失败及分页存储顺序；C# 重点参考 CE `dev` `915ac29795efbdf6373417389e181e1504117048` 的 `ModComp.cs:2595-2628`，短锁合并来源列表，等待／检查中止后处理结果。
+- PCL-DB 保留异步 gate 单写，在完整轮次结束后原子发布私有状态快照；公开 getter 不再枚举可变 Dictionary，HasNext 使用同一次快照，失败来源返回副本。不对网络、进度或取消加锁，保留 VB UI 身份与动画门控。[复现与验证](docs/reviews/search-state-snapshot-2026-10-29.md)。
+
 ## Core 取消身份与安装失败首因（2026-10-29）
 
 - 核对固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 `ModLoader.vb:381,549`：先保存原错误，再调整终态和通知／取消。C# 重点参考 CE `dev` `915ac29795efbdf6373417389e181e1504117048` 的 `LoaderDownload.cs:64-97` 与 `AdaptiveRangeDownloader.cs:252`，记录首因、等待全部任务，按所有权释放资源。

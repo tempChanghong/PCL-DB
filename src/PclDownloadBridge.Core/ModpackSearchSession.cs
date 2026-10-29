@@ -33,6 +33,7 @@ namespace PclDownloadBridge.Core
         private readonly Dictionary<ModpackPlatform, int> _offsets = new Dictionary<ModpackPlatform, int>();
         private readonly HashSet<ModpackPlatform> _ended = new HashSet<ModpackPlatform>();
         private readonly Dictionary<ModpackPlatform, string> _errors = new Dictionary<ModpackPlatform, string>();
+        private SearchState _state;
         public ModpackSearchSession(ModpackQuery query)
         {
             _query = query.Copy();
@@ -50,6 +51,7 @@ namespace PclDownloadBridge.Core
             // PCL ResourceSearcher distinguishes an unsupported category from no hits.
             if (_offsets.Count == 0)
                 throw new ArgumentException(_query.Platforms.ToString() + " 不支持所选的" + CommunityResources.Name(_query.Kind) + "类型，请更改来源或类型。");
+            PublishState();
         }
         // PCL opens details with Loader.Input.GameVersion, not the editable form.
         public ModpackQuery Query
@@ -63,37 +65,63 @@ namespace PclDownloadBridge.Core
         {
             get
             {
-                return _offsets.Keys.Any(platform => !_ended.Contains(platform) && !_errors.ContainsKey(platform));
+                return Volatile.Read(ref _state).HasMore;
             }
         }
         public int Count
         {
             get
             {
-                return _results.Count;
+                return Volatile.Read(ref _state).Count;
             }
         }
         public string ErrorMessage
         {
             get
             {
-                return string.Join(Constants.vbCrLf, _errors.Select(pair => pair.Key.ToString() + "：" + pair.Value));
+                return Volatile.Read(ref _state).ErrorMessage;
             }
         }
         public ModpackPlatform[] FailedPlatforms
         {
             get
             {
-                return _errors.Keys.ToArray();
+                return (ModpackPlatform[])Volatile.Read(ref _state).FailedPlatforms.Clone();
             }
         }
         public bool HasNext(int page)
         {
             if (page < 0 || page > MaxPage)
                 return false;
+            var state = Volatile.Read(ref _state);
             if (page == MaxPage)
-                return _results.Count < (page + 1) * ModpackCatalogClient.PageSize && HasMore;
-            return _results.Count > (page + 1) * ModpackCatalogClient.PageSize || HasMore;
+                return state.Count < (page + 1) * ModpackCatalogClient.PageSize && state.HasMore;
+            return state.Count > (page + 1) * ModpackCatalogClient.PageSize || state.HasMore;
+        }
+        // The constructor or the async gate owner alone reads mutable collections.
+        // Observers may read state during a request or synchronously from Report;
+        // they must see a complete round without waiting on that same async gate.
+        private void PublishState()
+        {
+            var state = new SearchState(_results.Count,
+                _offsets.Keys.Any(platform => !_ended.Contains(platform) && !_errors.ContainsKey(platform)),
+                string.Join(Constants.vbCrLf, _errors.Select(pair => pair.Key.ToString() + "：" + pair.Value)),
+                _errors.Keys.ToArray());
+            Volatile.Write(ref _state, state);
+        }
+        private sealed class SearchState
+        {
+            internal readonly int Count;
+            internal readonly bool HasMore;
+            internal readonly string ErrorMessage;
+            internal readonly ModpackPlatform[] FailedPlatforms;
+            internal SearchState(int count, bool hasMore, string errorMessage, ModpackPlatform[] failedPlatforms)
+            {
+                Count = count;
+                HasMore = hasMore;
+                ErrorMessage = errorMessage;
+                FailedPlatforms = failedPlatforms;
+            }
         }
         private class FetchResult
         {
@@ -200,6 +228,7 @@ namespace PclDownloadBridge.Core
                         }
                     }
                     _results.AddRange(fresh.OrderByDescending(project => Relevance(project.Name)).ThenByDescending(project => project.Downloads).ThenBy(project => project.Key, StringComparer.Ordinal));
+                    PublishState();
                 }
                 return _results.Skip(page * ModpackCatalogClient.PageSize).Take(ModpackCatalogClient.PageSize).ToList();
             }
