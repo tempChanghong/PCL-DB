@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 第三轮第二批：已安装实例的私有元数据解释器（2026-10-29）
+
+- PCL2 固定 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 ModMinecraft.vb:427 起用于核对 HMCL patches 与原实例 JSON 的关系；同提交 PCLCS/Minecraft/McVersion.cs:140–169 的加载器与 clientVersion／game patch 优先级提供对照。C# 重点参考 CE `915ac29795efbdf6373417389e181e1504117048` 的 McInstance.cs:185–201、755 起的原版／加载器解释；HMCL `63207affc6a73127cea19e64272a0401fde4b7a4` 的持久化表示注释用于确认继承与 patches 不应在只读扫描中被改写。
+- 本工具仅将原有 165 行解释移入 private static MetadataInterpreter，五个外层调用加限定名；保留现有严格类型、别名、结果顺序、异常和继承合并规则，不采用上游新增的兜底或写配置行为。11 份固定 Git 原字节见 `artifacts/instance-metadata-refactor/source/manifest.json`，[边界、差分与提交门槛](docs/reviews/core-refactor-round3-instance-metadata-2026-10-29.md)。
+
 ## 第三轮：本地 Mod 私有解析器（2026-10-29）
 
 - 固定 PCL2 `5ef81e490ae46b1100d61e33d0183094c7a80ca8` 的 Modules/Resource/LocalResourceFile.vb／LocalResourceLoaders.vb 提供启停状态、目录与加载生命周期依据。C# 重点参考 CE `915ac29795efbdf6373417389e181e1504117048` 的 Modules/Minecraft/ModLocalComp.cs:1257–1280 的 Load／LoadCore，以及 1470 起的 mcmod.info／Fabric／Quilt／TOML 分格式解释边界。

@@ -1,5 +1,7 @@
 # PCL-DB · PCL Download Bridge
 
+第三轮第二批将已安装实例的版本号／加载器解释提炼为私有 MetadataInterpreter，配置读取、继承合并、隔离与路径保护继续由原读取器负责。[职责映射与验证口径](docs/reviews/core-refactor-round3-instance-metadata-2026-10-29.md)。
+
 第三轮已开始：本地 Mod 的格式解释提炼为私有、无状态 MetadataParser；Read／Scan、ZIP／流、取消和图标字节仍留在原边界，VB 界面与测试继续保留。[职责拆分与验证](docs/reviews/core-refactor-round3-local-mod-parser-2026-10-29.md)。
 
 页面切换在内容绑定或布局期间接受新操作后，旧入场不再覆盖新时钟、透明度或变换；资源缓存内容继续合成到父级入场。[修复与验证](docs/reviews/surface-entry-reentry-2026-10-29.md)。

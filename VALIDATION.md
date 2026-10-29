@@ -1,5 +1,13 @@
 # 本地验证记录
 
+## 第三轮第二批：已安装实例元数据解释（2026-10-29，尚未发行）
+
+基线 `e05f7a25792034ea0a328411ba343e287d782b75`。InstalledInstanceCatalog 的 GameVersion／IsVersionId／DetectLoaders 共 165 行原样移入私有 MetadataInterpreter；外层 Read／Scan、配置快照、继承合并、原生隔离、路径与 fingerprint、取消和结果发布不变。精确逆向还原和原始文件清单用于约束改动范围。
+
+同一反射探针与 211 个输入，在 en-US／zh-CN／tr-TR／fr-FR 两个独立 net48 进程得到 844 条一致结果／异常，输入无改写。最终提交门槛为：最终 DLL 重跑差分、现有 VB 7814、原 Beta 8 编译宿主 7305；相对本批当前 C# 基线的原始／规范 API 零差异，公开／Friend 979／1245、资源 2、JSON 15；VS2026 Debug 三 Portable PDB、同一单 EXE 冷启动 25／搜索 3444，并核对内嵌两依赖和七根文档。最终完成状态、源码／DLL／提交树绑定见 `artifacts/instance-metadata-refactor/validation.json`。
+
+保留原 VB 界面、测试、验证工具、计数策略和 .NET Framework 4.8。本批不重新运行完整 UI／motion，也不将前序结果算作新 DLL 的证明；原 Beta 8 精确元数据的两个历史内部新增仍有前序记录，这里仅要求当前 C# 元数据零差异及原编译 VB 宿主兼容。受控夹具与主代理自查不代表真实用户验收；不修改外部启动器配置，不打包、推送或发版。[第二批报告](docs/reviews/core-refactor-round3-instance-metadata-2026-10-29.md)。
+
 ## 第三轮首批：本地 Mod 私有解析器（2026-10-29，尚未发行）
 
 基线 `3d017f5413d9caff5b2d586cfc4a607b810dc727`。从 LocalModCatalog 移出 392 行文本解释代码到 private static MetadataParser；外部类型／入口、LocalModEntry、ZIP／流、取消、大小限制、图标字节、字典比较和严格解析规则保留。逐成员映射与完整逆向还原核对正文和外层未移动代码；原工作文件 CRLF 与 Git LF 的关系单独记录。
