@@ -1,5 +1,11 @@
 # 本地验证记录
 
+## Forge／NeoForge 处理器散列取消（2026-10-30，尚未发行）
+
+基线 f9bbb2071ae9ab1b52f22d8141355d6c3d63f144。仅依赖筛选、首次输出复用、整组输出确认和最终输出校验四处 Matches 传原 token；不改变 Merge、缓存回退、处理器执行条件或输出 Save 顺序。取消时清理任务拥有的私有树，保留已有实例／设置与已完成缓存；实例成功后的清理不变。并发取消与摘要错误遵守原 Matches(token) 的取消语义。
+
+专项以现代安装器夹具与现有 Java 处理器资源定位四个真实生产阶段，比较同宿主旧 DLL 和修复后 DLL 的散列字节、处理器执行、清理及重试。当前 VB 全量涵盖原有摘要冲突、All 短路、无输出／不完整输出、缓存恢复和失败控制；另验证原编译 Beta 8 宿主、当前接口／资源／配置、Release／VS2026 Debug 和冷目录单 EXE 启动／兼容。结果、准确计数与输入摘要见[报告](docs/reviews/forgelike-hash-cancellation-2026-10-30.md)和 artifacts/forgelike-hash-cancellation/validation.json。本轮保留 VB 界面、测试和 net48，不另跑完整 UI／动画／搜索，不作真实网络或性能结论；未打包、推送或发版。
+
 ## 组件支持库发布前的校验取消（2026-10-30，尚未发行）
 
 基线 361bd248c12ac04e80cac728a5983bef52ef5a0d。补全判断与发布前最终检查的两个 Matches 调用传入 ApplyAsync 原 token，沿用原有分块散列和 finally 清理。取消不再等待这些文件的完整摘要；未取消时的摘要、URL 缺失、hashless 补全与共享文件冲突规则保留。取消与错误同时出现时遵守既有 Matches(token) 的取消语义，不声称异常优先级全部不变。

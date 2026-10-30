@@ -1,5 +1,7 @@
 # PCL-DB · PCL Download Bridge
 
+Forge／NeoForge 的依赖复用和处理器输出校验现沿用原取消令牌，减少取消后继续散列的等待；保留整组校验、缓存恢复与处理器执行规则。[修复与验证](docs/reviews/forgelike-hash-cancellation-2026-10-30.md)。
+
 组件支持库的补全判断与发布前校验也接入原取消令牌，取消时提前停止散列并沿原流程清理私有工作树，保留共享库和已有实例。[修复与验证](docs/reviews/component-validation-hash-cancellation-2026-10-30.md)。
 
 组件支持库发布的四个散列校验现传递原取消令牌，取消时可按块停止；未提交副本继续清理，已经提交的完整共享库保留供重试，实例成功后的清理不变。[复现与验证](docs/reviews/runtime-publication-hash-cancellation-2026-10-30.md)。

@@ -85,7 +85,7 @@ namespace PclDownloadBridge.Core
             }
             // Combine all integrity declarations before filtering embedded/reusable files.
             // Otherwise an earlier weak match can hide conflicts or change the first URL.
-            files = DownloadPlan.Merge(files, work).Where(item => !SafeFiles.Matches(SafeFiles.UnderRoot(work, item.RelativePath), item)).ToList();
+            files = DownloadPlan.Merge(files, work).Where(item => !SafeFiles.Matches(SafeFiles.UnderRoot(work, item.RelativePath), item, token)).ToList();
             await FetchAsync(work, files, "下载 " + ComponentCatalog.Label(entry.Kind) + " 支持库", token).ConfigureAwait(false);
             var processors = (profile["processors"] as JArray ?? new JArray()).OfType<JObject>().Where(p => p["sides"] is null || p["sides"].Values<string>().Contains("client")).ToList();
             if (processors.Count > 0)
@@ -109,12 +109,12 @@ namespace PclDownloadBridge.Core
                         foreach (var output in outputs)
                         {
                             token.ThrowIfCancellationRequested();
-                            if (SafeFiles.Matches(output.Key, output.Value))
+                            if (SafeFiles.Matches(output.Key, output.Value, token))
                                 continue;
                             Directory.CreateDirectory(Path.GetDirectoryName(output.Key));
                             outputCache.TryRestore(output.Key, output.Value, token);
                         }
-                        reusedOutputs = outputs.All(item => SafeFiles.Matches(item.Key, item.Value));
+                        reusedOutputs = outputs.All(item => SafeFiles.Matches(item.Key, item.Value, token));
                         if (reusedOutputs)
                             Emit("processors", "安装 " + ComponentCatalog.Label(entry.Kind), "处理器 " + (i + 1) + "/" + processors.Count + " · 已校验输出，跳过重复执行", (i + 1) / (double)processors.Count);
                     }
@@ -138,7 +138,7 @@ namespace PclDownloadBridge.Core
                     {
                         token.ThrowIfCancellationRequested();
                         SafeFiles.UnderRoot(work, output.Value.RelativePath); // Recheck links after Java has run.
-                        if (!SafeFiles.Matches(output.Key, output.Value))
+                        if (!SafeFiles.Matches(output.Key, output.Value, token))
                             throw new InvalidDataException("处理器输出校验失败：" + output.Key);
                     }
                     // Verify every output before persisting any of them. Intermediates may

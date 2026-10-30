@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## Forge／NeoForge 处理器散列取消（2026-10-30）
+
+- PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 ModDownloadLib、ModLoader 用于核对 Forgelike 依赖分析、处理器执行和取消归属；C# 重点参考 CE 915ac29795efbdf6373417389e181e1504117048 的 LoaderDownload、FileDownloader、DownloadResourceManager 的校验、晋升与资源释放。
+- 本轮仅将 InstallForgelikeAsync 的四处 Matches 接入原 token，保留 Merge 先检查冲突、All 短路、非空完整输出才能复用及全部输出校验后写缓存的顺序。CE 的 Task.Run(checker.Check, token) 不证明运行中的散列按块可取消；本工具复用既有 Matches(token)。固定原字节与独立阶段审查见 artifacts/forgelike-hash-cancellation/audit；[报告](docs/reviews/forgelike-hash-cancellation-2026-10-30.md)。
+
 ## 组件支持库发布前的校验取消（2026-10-30）
 
 - PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 ModDownloadLib、ModLoader 用于核对支持库补全、迁移与取消边界；C# 重点参考 CE 915ac29795efbdf6373417389e181e1504117048 的 LoaderDownload、FileDownloader 校验／取消／晋升，以及 DownloadResourceManager 的资源释放。

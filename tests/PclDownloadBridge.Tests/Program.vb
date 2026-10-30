@@ -120,6 +120,8 @@ Module Program
                     run = RuntimePublicationHashCancellationChecks.RunAsync(TestRoot, args(1))
                 ElseIf args(1).StartsWith("component-validation-hash-", StringComparison.Ordinal) Then
                     run = ComponentValidationHashCancellationChecks.RunAsync(TestRoot, args(1))
+                ElseIf args(1).StartsWith("forgelike-hash-", StringComparison.Ordinal) Then
+                    run = ForgelikeHashCancellationChecks.RunAsync(TestRoot, args(1))
                 ElseIf args(1) = "modpack-paths" Then
                     run = ModpackPathChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "component-file-names" Then
@@ -250,6 +252,9 @@ Module Program
                 Check(True, label)
             Next
             For Each label In ComponentValidationHashCancellationChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
+                Check(True, label)
+            Next
+            For Each label In ForgelikeHashCancellationChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
                 Check(True, label)
             Next
             For Each label In ModpackPathChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
