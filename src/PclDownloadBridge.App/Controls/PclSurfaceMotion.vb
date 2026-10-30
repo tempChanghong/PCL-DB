@@ -116,13 +116,12 @@ Namespace Controls
                         layer.Children.Add(image)
                         _overlay.Children.Add(layer)
                         If piece.ScrollBar Then
-                            append(New DoubleAnimation(0, 10, TimeSpan.FromMilliseconds(90)) With {
-                                .EasingFunction = New PowerEase With {.Power = 3, .EasingMode = EasingMode.EaseIn}},
+                            append(Global.PclDownloadBridge.Presentation.PageMotion.ScrollBarExit(),
                                 Sub(clock) offset.ApplyAnimationClock(TranslateTransform.XProperty, clock))
                         Else
-                            append(New DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(70)) With {.BeginTime = TimeSpan.FromMilliseconds(piece.Delay)},
+                            append(Global.PclDownloadBridge.Presentation.PageMotion.SurfaceExitOpacity(piece.Delay),
                                 Sub(clock) image.ApplyAnimationClock(UIElement.OpacityProperty, clock))
-                            append(New DoubleAnimation(0, -6, TimeSpan.FromMilliseconds(70)) With {.BeginTime = TimeSpan.FromMilliseconds(piece.Delay)},
+                            append(Global.PclDownloadBridge.Presentation.PageMotion.ExitY(0, piece.Delay),
                                 Sub(clock) offset.ApplyAnimationClock(TranslateTransform.YProperty, clock))
                         End If
                     Next
@@ -131,18 +130,12 @@ Namespace Controls
                 _surface = incoming : _surfaceOpacity = incoming.Opacity
                 ' Hide non-card chrome too, so new controls cannot bleed through
                 ' gaps in the exiting page during the 110 + 30 ms wait.
-                Dim reveal As New DoubleAnimationUsingKeyFrames
-                reveal.KeyFrames.Add(New DiscreteDoubleKeyFrame(0, KeyTime.FromTimeSpan(TimeSpan.Zero)))
-                reveal.KeyFrames.Add(New DiscreteDoubleKeyFrame(_surfaceOpacity, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(delay))))
+                Dim reveal = Global.PclDownloadBridge.Presentation.PageMotion.SurfaceReveal(_surfaceOpacity, delay)
                 append(reveal, Sub(clock) incoming.ApplyAnimationClock(UIElement.OpacityProperty, clock))
                 For Each unit In visible
                     Dim entry = Wrap(unit, 0, -16)
                     _items.Add(entry)
-                    Dim fade As New DoubleAnimationUsingKeyFrames
-                    fade.KeyFrames.Add(New DiscreteDoubleKeyFrame(0, KeyTime.FromTimeSpan(TimeSpan.Zero)))
-                    fade.KeyFrames.Add(New DiscreteDoubleKeyFrame(0, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(delay))))
-                    fade.KeyFrames.Add(New EasingDoubleKeyFrame(entry.Opacity, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(delay + 100)),
-                        New PowerEase With {.Power = 2, .EasingMode = EasingMode.EaseOut}))
+                    Dim fade = Global.PclDownloadBridge.Presentation.PageMotion.SurfaceOpacity(entry.Opacity, delay)
                     append(fade, Sub(clock) entry.Target.ApplyAnimationClock(UIElement.OpacityProperty, clock))
                     append(New PclPageYAnimation With {.BeginTime = TimeSpan.FromMilliseconds(delay)},
                         Sub(clock) entry.Offset.ApplyAnimationClock(TranslateTransform.YProperty, clock))
@@ -162,9 +155,7 @@ Namespace Controls
                     AddHandler bar.Unloaded, entry.Unloaded
                     AddHandler bar.PreviewKeyDown, entry.Key
                     AddHandler bar.PreviewTouchDown, entry.Touch
-                    append(New DoubleAnimation(10, 0, TimeSpan.FromMilliseconds(350)) With {
-                        .BeginTime = TimeSpan.FromMilliseconds(If(snapshot Is Nothing, 0, 140)),
-                        .EasingFunction = New PowerEase With {.Power = 3, .EasingMode = EasingMode.EaseOut}},
+                    append(Global.PclDownloadBridge.Presentation.PageMotion.ScrollBarEntry(If(snapshot Is Nothing, 0, 140)),
                         Sub(clock) entry.Offset.ApplyAnimationClock(TranslateTransform.XProperty, clock))
                 End If
                 Dim group = DirectCast(plan.CreateClock(True), ClockGroup)

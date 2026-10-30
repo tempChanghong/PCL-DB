@@ -21,7 +21,7 @@ Namespace Controls
         End Sub
 
         Friend Function Sample(milliseconds As Double) As Double
-            Return -CDbl(GetValue(OriginProperty)) / 16 * PclMotionCurves.PageY(milliseconds)
+            Return Global.PclDownloadBridge.Presentation.PageMotion.CardOffset(CDbl(GetValue(OriginProperty)), milliseconds)
         End Function
 
         Protected Overrides Function GetCurrentValueCore(origin As Double, destination As Double, clock As AnimationClock) As Double

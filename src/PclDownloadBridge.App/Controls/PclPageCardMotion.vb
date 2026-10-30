@@ -153,21 +153,14 @@ Namespace Controls
                     ' Keep alpha active from time zero, holding its sampled
                     ' origin throughout the stagger. A delayed BeginTime would
                     ' expose the original bound/base alpha on inactive ticks.
-                    Dim alpha As New DoubleAnimationUsingKeyFrames With {
-                        .Duration = New Duration(TimeSpan.FromMilliseconds(delay + If(entry.Incoming, 100, 70)))}
-                    alpha.KeyFrames.Add(New DiscreteDoubleKeyFrame(entry.StartOpacity, KeyTime.FromTimeSpan(TimeSpan.Zero)))
-                    If delay > 0 Then alpha.KeyFrames.Add(New DiscreteDoubleKeyFrame(entry.StartOpacity, KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(delay))))
-                    Dim alphaEnd As New EasingDoubleKeyFrame(If(entry.Incoming, entry.Opacity, 0),
-                        KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(delay + If(entry.Incoming, 100, 70))))
-                    If entry.Incoming Then alphaEnd.EasingFunction = New PowerEase With {.Power = 2, .EasingMode = EasingMode.EaseOut}
-                    alpha.KeyFrames.Add(alphaEnd)
+                    Dim alpha = Global.PclDownloadBridge.Presentation.PageMotion.CardOpacity(entry.Incoming, entry.StartOpacity, entry.Opacity, delay)
                     add(alpha, Sub(clock) entry.Target.ApplyAnimationClock(UIElement.OpacityProperty, clock))
                     If entry.Incoming Then
                         add(New PclPageCardYAnimation(entry.StartY) With {.BeginTime = TimeSpan.FromMilliseconds(delay)},
                             Sub(clock) entry.Offset.ApplyAnimationClock(TranslateTransform.YProperty, clock))
                         duration = Math.Max(duration, delay + 350)
                     Else
-                        add(New DoubleAnimation(entry.StartY, entry.StartY - 6, TimeSpan.FromMilliseconds(70)) With {.BeginTime = TimeSpan.FromMilliseconds(delay)},
+                        add(Global.PclDownloadBridge.Presentation.PageMotion.ExitY(entry.StartY, delay),
                             Sub(clock) entry.Offset.ApplyAnimationClock(TranslateTransform.YProperty, clock))
                         duration = Math.Max(duration, delay + 70)
                     End If
