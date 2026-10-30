@@ -381,23 +381,11 @@ Partial Public Class MainWindow
         _restoringSettings = True
         Try
             Dim settings = DownloadSettingsFile.LoadCompatible(SettingsFile, LegacySettingsFile, Sub(message) migrationNotice = message)
-            If settings IsNot Nothing Then
-                RestoreDeveloperSettings(settings("developer"))
-                RestoreAppearance(settings("appearance"))
-                _pclBase = If(CStr(settings("pclBase")), _pclBase)
-                RestoreSourcePreferences(settings)
-                RestoreIsolationPreference(settings)
-                ConnectionsSlider.Value = ConnectionLevels(Math.Max(0, Math.Min(3, CInt(If(settings("connectionsIndex"), New JValue(1))))))
-                Dim storedSpeed = If(CStr(settings("speed")), "0")
-                Dim restoredSpeed As Double
-                SpeedLimitBox.Text = If(Double.TryParse(storedSpeed, Globalization.NumberStyles.Float, Globalization.CultureInfo.InvariantCulture, restoredSpeed), restoredSpeed.ToString(Globalization.CultureInfo.CurrentCulture), storedSpeed)
-                ReuseBox.IsChecked = CBool(If(settings("reuse"), New JValue(True)))
-                JavaPathBox.Text = If(CStr(settings("java")), "")
-                Await RestoreLauncherBindingsAsync(settings)
-            Else
-                Await RestoreLauncherBindingsAsync(Nothing)
+            Dim invalid = Await RestorePreferenceValuesAsync(settings)
+            If invalid.Count > 0 Then
+                Dim notice = "部分偏好值无法读取，已使用默认值：" & String.Join("、", invalid) & "。"
+                migrationNotice = If(migrationNotice Is Nothing, notice, migrationNotice & "；" & notice)
             End If
-            CapturePreferenceBaseline()
         Catch ex As Exception
             _settingsLoadFailed = True
             migrationNotice = "读取偏好失败，已暂停自动保存；检查后可点击保存设置：" & ex.Message

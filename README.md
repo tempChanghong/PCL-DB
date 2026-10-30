@@ -1,5 +1,7 @@
 # PCL-DB · PCL Download Bridge
 
+PCL 位置、线程数、速度、文件复用和 Java 路径的类型损坏现按项恢复，继续读取有效设置与启动器目录；无关自动保存保留原坏值，显式保存才修复。[修复与验证](docs/reviews/scalar-preference-recovery-2026-10-30.md)。
+
 偏好文件出现重复 JSON 字段时，读取、迁移和自动保存会拒绝歧义并保留原数据；用户确认后的显式修复仍可继续。[修复与验证](docs/reviews/settings-duplicate-keys-2026-10-30.md)。
 
 配置在窗口打开后升级为未知绑定格式时，旧窗口的冲突写入现会被拒绝并提示重新打开；外观等独立设置仍可保存，原数据保留。[修复与验证](docs/reviews/settings-format-conflicts-2026-10-30.md)。

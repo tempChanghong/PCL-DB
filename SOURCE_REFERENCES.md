@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 基础偏好的逐项恢复（2026-10-30）
+
+- PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 Settings.Get:327–361 在单项转换失败时采用该项默认值。C# 重点参考 CE 915ac29795efbdf6373417389e181e1504117048 的 FileConfigStorage:106–135 对转换异常的隔离；不移入 CE 的坏项删除或同步写回。
+- 本工具保留现有 VB 转换、缺省值、速度校验和启动门控，仅对五个标量的类型／格式／溢出错误回退，基线在目录恢复后采集，原坏值通过差量保存保留。十一份固定 Git 字节见 artifacts/scalar-preference-recovery/source/manifest.json，[调用边界与验证](docs/reviews/scalar-preference-recovery-2026-10-30.md)。
+
 ## 偏好文件的重复字段边界（2026-10-30）
 
 - PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 Settings.vb:278–294 按设置键转换、保存后通知，ModMinecraft.vb:17–21 保持目录逻辑值完整。C# 参考 CE 915ac29795efbdf6373417389e181e1504117048 的 JsonFileProvider:32–60 对根对象与解析失败的边界处理；不移入其格式转换、坏项删除或配置重建。
