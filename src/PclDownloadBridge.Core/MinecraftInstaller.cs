@@ -227,72 +227,34 @@ namespace PclDownloadBridge.Core
                         long networkBytes;
                         int reused;
                         int splits;
-                        using (var budget = new DownloadBudget(connections, limit))
-                        using (var linked = CancellationTokenSource.CreateLinkedTokenSource(token))
+                        var execution = await ExecuteDownloadsAsync(new DownloadExecutionInputs()
                         {
-                            var reporting = new InstallationProgress(progress, budget, supportFiles.Count + 1 + (pack is null ? 0 : pack.Files.Count), assetFiles.Count + mappedFiles.Count);
-                            var stagedClient = new DownloadFile() { RelativePath = instanceName + ".jar", Url = client.Url, Size = client.Size, Sha1 = client.Sha1, Category = client.Category };
-                            using (var clientEngine = new DownloadEngine(_policy, reporting.Branch("client"), reuseRoots, connections, root, true, budget))
-                            using (var supportEngine = new DownloadEngine(_policy, reporting.Branch("libraries"), reuseRoots, connections, root, budget: budget))
-                            using (var assetsEngine = new DownloadEngine(_policy, reporting.Branch("assets"), reuseRoots, connections, root, budget: budget))
-                            using (var mappedEngine = new DownloadEngine(_policy, reporting.Branch("mapped"), reuseRoots.Concat(new[] { isolation is not null && isolation.Isolated ? instancePath : root }), connections, root, budget: budget))
-                            using (var packEngine = new DownloadEngine(_policy, reporting.Branch("pack"), reuseRoots, connections, root, true, budget))
-                            {
-                                // PCL's nonblocking library/resource LoaderCombos share ModNet.
-                                // Components need the verified client/support branch, not all assets.
-                                Func<Task> supportWork = async () =>
-                                        {
-                                            var clients = CancelPeersAsync(() => clientEngine.DownloadAsync(stage, new[] { stagedClient }, linked.Token), linked, () => reporting.Failed("files"));
-                                            var libraries = CancelPeersAsync(() => supportEngine.DownloadAsync(root, supportFiles, linked.Token), linked, () => reporting.Failed("files"));
-                                            await Task.WhenAll(clients, libraries).ConfigureAwait(false);
-                                            if (components is not null && components.Entries.Count > 0)
-                                            {
-                                                extension = new ComponentInstaller(_policy, components, root, reuseRoots, reporting.Branch("components"), connections, limit, budget);
-                                                try
-                                                {
-                                                    metadata = await extension.ApplyAsync(metadata, entry.Id, stage, instanceName, linked.Token, isolation.Isolated, writePclSettings: native is null).ConfigureAwait(false);
-                                                }
-                                                catch (Exception ex) when (!(ex is OperationCanceledException))
-                                                {
-                                                    ReportFailure(() => reporting.Failed("components"));
-                                                    throw;
-                                                }
-                                                reporting.ComponentsComplete();
-                                            }
-                                        };
-                                Func<Task> assetWork = async () =>
-                                        {
-                                            await assetsEngine.DownloadAsync(root, assetFiles, linked.Token).ConfigureAwait(false);
-                                            if (mappedFiles.Count > 0)
-                                                await mappedEngine.DownloadAsync(stage, publication.StagedFiles(), linked.Token).ConfigureAwait(false);
-                                        };
-                                Func<Task> packWork = async () => { if (pack is not null) await packEngine.DownloadAsync(stage, pack.Files, linked.Token).ConfigureAwait(false); };
-                                Task[] branches = new[] { CancelPeersAsync(supportWork, linked), CancelPeersAsync(assetWork, linked, () => reporting.Failed("files")), CancelPeersAsync(packWork, linked, () => reporting.Failed("files")) };
-                                try
-                                {
-                                    await Task.WhenAll(branches).ConfigureAwait(false);
-                                }
-                                catch
-                                {
-                                    token.ThrowIfCancellationRequested();
-                                    InstallLog.Failure(root, "安装失败", branches.Select(task => (Exception)task.Exception));
-                                    var failure = branches.Where(t => t.Exception is not null).SelectMany(t => t.Exception.Flatten().InnerExceptions).FirstOrDefault(e => !(e is OperationCanceledException));
-                                    if (failure is not null)
-                                        System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
-                                    throw;
-                                }
-                                networkBytes = clientEngine.NetworkBytes + supportEngine.NetworkBytes + assetsEngine.NetworkBytes + mappedEngine.NetworkBytes + packEngine.NetworkBytes;
-                                reused = clientEngine.Reused + supportEngine.Reused + assetsEngine.Reused + mappedEngine.Reused + packEngine.Reused;
-                                splits = clientEngine.DynamicSplits + supportEngine.DynamicSplits + assetsEngine.DynamicSplits + mappedEngine.DynamicSplits + packEngine.DynamicSplits;
-                                if (extension is not null)
-                                {
-                                    networkBytes += extension.NetworkBytes;
-                                    reused += extension.Reused;
-                                    splits += extension.DynamicSplits;
-                                    plan.AddRange(Enumerable.Repeat(new DownloadFile(), extension.FileCount));
-                                }
-                            }
-                        }
+                            Root = root,
+                            Stage = stage,
+                            InstanceName = instanceName,
+                            InstancePath = instancePath,
+                            ReuseRoots = reuseRoots,
+                            Progress = progress,
+                            Connections = connections,
+                            Limit = limit,
+                            Entry = entry,
+                            Metadata = metadata,
+                            Components = components,
+                            Isolation = isolation,
+                            Native = native,
+                            Client = client,
+                            SupportFiles = supportFiles,
+                            AssetFiles = assetFiles,
+                            MappedFiles = mappedFiles,
+                            Plan = plan,
+                            Publication = publication,
+                            Pack = pack
+                        }, token).ConfigureAwait(false);
+                        metadata = execution.Metadata;
+                        extension = execution.Extension;
+                        networkBytes = execution.NetworkBytes;
+                        reused = execution.Reused;
+                        splits = execution.DynamicSplits;
                         if (pack is not null)
                             pack.CopyOverrides(stage, token);
                         if (newSettings && native is not null)

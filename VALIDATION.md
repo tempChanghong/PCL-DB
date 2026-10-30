@@ -1,5 +1,11 @@
 # 本地验证记录
 
+## 安装并行执行边界（2026-10-30，尚未发行）
+
+原并行段 875 tokens 及非前导空白保持，外层可逆恢复原 Git／工作字节；20 借用输入、五结果字段保持原 metadata／组件身份，14 静态负控制拒绝。独立同宿主新旧 DLL 差分覆盖组件前置、资源／整合包并行、取消汇合、失败通知、最终运行库保护、配置／文件与重试。
+
+最终验收门槛：VB 8284、原编译 VB 宿主 7305、当前 C# 原始／规范 API 零差异（979／1247，资源 2／JSON 15）、Release／VS2026 Debug、冷目录单 EXE 25／兼容 299、两依赖／七文档摘要。原 Beta 8 严格汇总仅历史 Friend +4；前序完整 UI／motion／搜索不是本轮重跑。实际完成及源码／提交树绑定见 artifacts/installer-execution-refactor/validation.json；[报告](docs/reviews/core-refactor-install-execution-2026-10-30.md)。
+
 ## 安装索引与补全客户端复验取消（2026-10-30，尚未发行）
 
 基线 d78cc2fa6592e9da1704fa6feef1fd2094f25420。MinecraftInstaller 两处既有 Matches 接入原 token：旧补充实例保留原 index.id 时的共享索引初检，以及 JSON／隔离 guard 内、客户端原子替换前的最终复验。原布局／索引命名、后续显式取消及 guard 验证、CommitFile、Complete／ReleasePublishedClient 均不改，不新增接口，也不改内存 metadata 摘要。
