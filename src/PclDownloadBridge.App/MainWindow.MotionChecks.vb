@@ -46,6 +46,7 @@ Partial Public Class MainWindow
         End Sub)
         VerifyPreviewFixture(Sub() VerifyMotionStress(directory, check))
         VerifyPreviewFixture(Sub() VerifyMotionLayout(directory, check))
+        VerifyPreviewFixture(Sub() VerifyCardMotionBridgeUi(directory, passed))
         VerifyPreviewFixture(Sub() VerifyPressMotion(directory, check))
         VerifyPreviewFixture(Sub() VerifySelectionMotion(directory, check))
         VerifyPreviewFixture(Sub() VerifyListSelectionMotion(directory, check))

@@ -93,7 +93,7 @@ Namespace Controls
             Me.Builder = builder
             _built = Not Collapsed
             If Collapsed Then
-                If Body IsNot Nothing AndAlso _heightTransition IsNot Nothing AndAlso IsLoaded AndAlso IsVisible AndAlso _presenter.IsVisible Then
+                If Body IsNot Nothing AndAlso _heightMotion.Transition IsNot Nothing AndAlso IsLoaded AndAlso IsVisible AndAlso _presenter.IsVisible Then
                     ' PCL keeps SwapControl visible until the fold finishes. Retain
                     ' accepted-away content for that exit, but block its old actions.
                     _retiringBody = Body
@@ -107,7 +107,7 @@ Namespace Controls
             DiscardRetiringBody()
             Body = builder.Invoke()
             If IsLoaded AndAlso IsVisible AndAlso
-                (_heightTransition IsNot Nothing OrElse Double.IsNaN(Height)) Then
+                (_heightMotion.Transition IsNot Nothing OrElse Double.IsNaN(Height)) Then
                 ' Metadata may replace the list during expansion. Keep the displayed
                 ' height, discard the old target and measure the accepted content.
                 StartHeightTransition(previousHeight, ExpandedHeight())
@@ -182,6 +182,8 @@ Namespace Controls
             End Set
         End Property
         Public Sub New()
+            _heightMotion = New Global.PclDownloadBridge.Presentation.CardHeightMotion(Me,
+                Function(origin, target) PclCardMotion.HeightTransition(origin, target), AddressOf SettleHeight)
             Margin = New Thickness(0, 0, 0, 15)
             _shadow = New PclDropShadow With {.Margin = New Thickness(-3, -3, -3, -4), .ShadowRadius = 3, .CornerRadius = New CornerRadius(5), .Opacity = 0.07, .IsHitTestVisible = False}
             _shadow.SetResourceReference(PclDropShadow.ColorProperty, "ColorObject1")
@@ -247,43 +249,26 @@ Namespace Controls
             AddHandler SizeChanged, AddressOf CardSizeChanged
             Hover(False, False)
         End Sub
-        Private _heightTransition As AnimationClock
-        Private _heightTarget As Double = Double.NaN
+        Private ReadOnly _heightMotion As Global.PclDownloadBridge.Presentation.CardHeightMotion
         Friend ReadOnly Property HeightTransition As AnimationClock
             Get
-                Return _heightTransition
+                Return _heightMotion.Transition
             End Get
         End Property
         Private Sub CardSizeChanged(sender As Object, args As SizeChangedEventArgs)
-            If Not args.WidthChanged OrElse _heightTransition Is Nothing OrElse Collapsed OrElse
+            If Not args.WidthChanged OrElse _heightMotion.Transition Is Nothing OrElse Collapsed OrElse
                 Not IsLoaded OrElse Not IsVisible OrElse ActualWidth <= 0 Then Return
             ' The old target was measured at the previous width. Reflow can make
             ' it obsolete even though the animated Height still looks unchanged.
             Dim target = ExpandedHeight()
-            If Math.Abs(target - _heightTarget) >= 1 Then StartHeightTransition(ActualHeight, target)
+            If Math.Abs(target - _heightMotion.Target) >= 1 Then StartHeightTransition(ActualHeight, target)
         End Sub
         Private Function ExpandedHeight() As Double
             _presenter.Measure(New Size(Math.Max(0, ActualWidth), Double.PositiveInfinity))
             Return Math.Max(40, _presenter.DesiredSize.Height)
         End Function
         Private Sub StartHeightTransition(origin As Double, target As Double)
-            StopHeightTransition()
-            ' PCL MySizeChanged skips its first layout and sub-DIP height noise.
-            If origin <= 0 OrElse Math.Abs(target - origin) < 1 Then
-                SettleHeight()
-                Return
-            End If
-            ClipToBounds = True
-            Dim clock = DirectCast(PclCardMotion.HeightTransition(origin, target).CreateClock(True), AnimationClock)
-            _heightTarget = target
-            _heightTransition = clock
-            AddHandler clock.Completed, Sub()
-                                            If _heightTransition IsNot clock Then Return
-                                            StopHeightTransition()
-                                            SettleHeight()
-                                        End Sub
-            Height = origin
-            ApplyAnimationClock(HeightProperty, clock)
+            _heightMotion.Start(origin, target)
         End Sub
         Private Sub SettleHeight()
             Height = If(_collapsed, 40, Double.NaN)
@@ -305,7 +290,7 @@ Namespace Controls
             _arrowMotion.SetValue(If(_collapsed, If(SwapLogoRight, 270.0, 0.0), 180.0))
         End Sub
         Private Sub SettleMotion()
-            If _heightTransition IsNot Nothing Then
+            If _heightMotion.Transition IsNot Nothing Then
                 StopHeightTransition()
                 SettleHeight()
             End If
@@ -313,12 +298,7 @@ Namespace Controls
             SettleArrow()
         End Sub
         Private Sub StopHeightTransition()
-            Dim previous = _heightTransition
-            _heightTransition = Nothing
-            _heightTarget = Double.NaN
-            If previous Is Nothing Then Return
-            previous.Controller.Remove()
-            ApplyAnimationClock(HeightProperty, Nothing)
+            _heightMotion.Stop()
         End Sub
         Private Function CanToggleHeader(args As Input.MouseButtonEventArgs) As Boolean
             Return Collapsible AndAlso IsEnabled AndAlso ShowHeader AndAlso _header.IsHitTestVisible AndAlso

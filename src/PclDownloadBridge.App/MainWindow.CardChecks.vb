@@ -15,6 +15,7 @@ Partial Public Class MainWindow
                                                  End Sub
         VerifyInstallViewport(check, artifactDirectory)
         VerifyCardMotion(check, artifactDirectory)
+        VerifyPreviewFixture(Sub() VerifyCardMotionBridgeUi(artifactDirectory, checks))
         VerifyComponentSummary(check, artifactDirectory)
         VerifyVersionFormatUi(check, artifactDirectory)
         VerifyLoaderBoundaryUi(check, artifactDirectory)
