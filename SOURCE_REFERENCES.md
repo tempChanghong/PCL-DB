@@ -1,5 +1,9 @@
 # PCL2 代码依据
 
+## Mod 浮动操作条首次弹入（2026-10-30）
+
+主参照固定 PCL2 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 PageInstanceMod.xaml.vb:157–246（RefreshBars）：60 ms 淡入、120/150/90 ms 上移回弹、90 ms 退场。本轮仅修复本工具策略在 owner 已 Loaded 时漏初始化，不改上述时长、曲线与选择逻辑；C# Core 和文件操作保持。[复现与验证](docs/reviews/local-mod-bar-loaded-motion-2026-10-30.md)。
+
 ## 整合包最终校验保护（2026-10-30）
 
 以固定 PCL2 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 ModModpack.vb:112–142 及 C# 参考 PCL-CE 915ac29795efbdf6373417389e181e1504117048 的 ModModpack.cs:308–344、751–755 核对取消、overrides 和隔离流程。本工具自身的逐文件最终校验窗口由私有短期读租约保护，不将该补丁归因上游；Windows 关闭句柄至目录 Move 间隙与新增账本不在保护范围。[源码与复现](docs/reviews/pack-publication-lease-2026-10-30.md)。

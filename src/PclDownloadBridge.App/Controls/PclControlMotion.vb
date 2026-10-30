@@ -86,6 +86,13 @@ Namespace Controls
             AddHandler owner.IsVisibleChanged, Sub() settle()
             AddHandler owner.IsEnabledChanged, Sub() settle()
             AddHandler owner.IsHitTestVisibleChanged, Sub() settle()
+            ' Lazy page policies (such as the Mod selection bar) can be created
+            ' after Loaded has already fired. Start observing now, but do not
+            ' invoke settle before the caller has assigned its policy field.
+            If owner.IsLoaded Then
+                AddHandler SystemParameters.StaticPropertyChanged, _changed
+                _watching = True
+            End If
         End Sub
 
         Friend ReadOnly Property Interactive As Boolean

@@ -18,6 +18,7 @@ Partial Public Class MainWindow
                                                  End Sub
         Dim saved = _appearance.ToJson()
         Try
+            VerifyLateMotionPolicyUi(directory, passed)
             VerifyCardArrowMotion(directory, check)
             VerifyCardHoverMotion(directory, check)
             VerifyImmediateScrollBursts(directory, check)
