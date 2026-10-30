@@ -52,7 +52,7 @@ PCL 位置、线程数、速度、文件复用和 Java 路径的类型损坏现�
 
 C# Core／Presentation + VB.NET WPF + .NET Framework 4.8 的 Minecraft Java 下载与本地实例管理工具，简称 PCL-DB。最新发布为 **Beta 8.0**（`8.0.0-beta.1`）。[发布说明](docs/releases/8.0.0-beta.1.md)。
 
-当前源码已完成 Beta 8 基线的 Core C# 迁移，并开始使用独立的 C# Presentation 辅助库承接纯动画计算；页面、XAML、WPF 动画类型和测试继续使用 VB，现有接口、配置与资源名称保留。这些迁移尚未发行，现有 Beta 8 发布工件不变。[Core 迁移](docs/reviews/core-csharp-migration-2026-10-29.md)；[界面桥接与验证](docs/reviews/presentation-csharp-bridge-2026-10-30.md)。
+当前源码已完成 Beta 8 基线的 Core C# 迁移，并使用独立的 C# Presentation 辅助库承接纯动画计算与单属性时钟管理；页面、XAML、WPF 动画类型和测试继续使用 VB，现有入口、配置与资源名称保留。这些迁移尚未发行，现有 Beta 8 发布工件不变。[Core 迁移](docs/reviews/core-csharp-migration-2026-10-29.md)；[界面桥接](docs/reviews/presentation-csharp-bridge-2026-10-30.md)；[动画时钟迁移](docs/reviews/presentation-motion-slot-2026-10-30.md)。
 
 UI 对照旧 VB 版及 PCL2／PCL-CE，修正本地 Mod 页卡片与列表边距、筛选顺序，并让下拉菜单跟随所属窗口的不透明度；保留换行、明暗模式与原动画。[对照与验证](docs/reviews/ui-fidelity-2026-10-29.md)。
 

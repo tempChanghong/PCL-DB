@@ -1,5 +1,11 @@
 # 本地验证记录
 
+## 第四轮第二批：单属性动画时钟（2026-10-30，尚未发行）
+
+PclMotionSlot 保留 VB 类型与入口，内部 C# 引擎成为唯一 Clock 状态；保持原取样/清理/创建/发布/完成/应用时钟顺序及异常阶段。Presentation 增加 WindowsBase/PresentationCore，原 Loaded 策略、WPF 动画类型、页面、曲线和 Core 保留，工件仍是 v4 三依赖。
+
+新增24项旧/新均通过的 WPF 行为回归，另以同探针比较88项时钟状态与异常、1801项曲线及资源/类型身份；最终须用仅EXE目录新跑。冻结后执行30/7238/6083/3444冷单EXE、Debug四项目、双PS126及实际v4清单绑定。实际结果与提交树见 artifacts/motion-slot-csharp/validation.json；[报告](docs/reviews/presentation-motion-slot-2026-10-30.md)。Core全量不另跑，历史结果不冒称本轮；未打包发版。
+
 ## 第四轮首批：C# 界面辅助库（2026-10-30，尚未发行）
 
 新增 net48 Presentation 类库承接 Fluent/Back/PageY 纯计算，原 VB facade、WPF 类型/依赖属性 owner、XAML/BAML、Loaded 策略和 Core 保留。单 EXE 当前三依赖由 v4 候选/清单明确区分，历史 v2/v3 精确旧两依赖仍可归档验证，不能作当前候选。

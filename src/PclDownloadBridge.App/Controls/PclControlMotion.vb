@@ -6,49 +6,25 @@ Namespace Controls
     ' A slot owns one property, including its base value. Replacement starts at the
     ' displayed value; an old completion can never settle a newer clock.
     Friend NotInheritable Class PclMotionSlot
-        Private ReadOnly _target As DependencyObject
-        Private ReadOnly _property As DependencyProperty
+        Private ReadOnly _implementation As Global.PclDownloadBridge.Presentation.MotionSlot
         Friend Property Clock As AnimationClock
             Get
-                Return _clock
+                Return _implementation.Clock
             End Get
             Private Set(value As AnimationClock)
-                _clock = value
+                _implementation.Clock = value
             End Set
         End Property
-        Private _clock As AnimationClock
-
         Friend Sub New(target As DependencyObject, [property] As DependencyProperty)
-            _target = target : _property = [property]
+            _implementation = New Global.PclDownloadBridge.Presentation.MotionSlot(target, [property])
         End Sub
 
         Friend Sub Animate(animation As AnimationTimeline, finalValue As Object, Optional pauseForChecks As Boolean = False)
-            Dim origin = _target.GetValue(_property)
-            SetValue(origin)
-            Dim current = DirectCast(animation.CreateClock(True), AnimationClock)
-            If pauseForChecks Then current.Controller.Pause()
-            Clock = current
-            AddHandler current.Completed, Sub()
-                                              If Clock Is current Then SetValue(finalValue)
-                                          End Sub
-            Apply(current)
+            _implementation.Animate(animation, finalValue, pauseForChecks)
         End Sub
 
         Friend Sub SetValue(value As Object)
-            Dim previous = Clock : Clock = Nothing
-            Apply(Nothing)
-            previous?.Controller.Remove()
-            ' These are privately owned properties. SetCurrentValue would keep a
-            ' coerced default (e.g. opacity 1) as the next clock's origin.
-            _target.SetValue(_property, value)
-        End Sub
-
-        Private Sub Apply(clock As AnimationClock)
-            If TypeOf _target Is Animatable Then
-                DirectCast(_target, Animatable).ApplyAnimationClock(_property, clock)
-            Else
-                DirectCast(_target, UIElement).ApplyAnimationClock(_property, clock)
-            End If
+            _implementation.SetValue(value)
         End Sub
     End Class
 
