@@ -51,6 +51,7 @@ Partial Public Class MainWindow
         VerifyPreviewFixture(Sub() VerifyLocalModUpdateLifecycleUi(artifactDirectory, checks))
         VerifyPreviewFixture(Sub() VerifyLocalModPromptUi(artifactDirectory, checks))
         VerifyPreviewFixture(Sub() VerifyLateMotionPolicyUi(artifactDirectory, checks))
+        VerifyPreviewFixture(Sub() VerifyControlMotionPolicyBridgeUi(artifactDirectory, checks))
         VerifyPreviewFixture(Sub() VerifyPresentationBridgeUi(checks))
         VerifyPreviewFixture(Sub() VerifyMotionSlotBridgeUi(artifactDirectory, checks))
         VerifyPreviewFixture(Sub() VerifyLocalModTransferUi(artifactDirectory, checks))

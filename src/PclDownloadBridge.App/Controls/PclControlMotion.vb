@@ -31,66 +31,39 @@ Namespace Controls
     ' Shared by local controls and decorative loaders. Never retains unloaded controls in
     ' the static Windows preference event. A preference change settles immediately.
     Friend NotInheritable Class PclControlMotionPolicy
-        Private ReadOnly _owner As FrameworkElement
-        Private ReadOnly _settle As Action
-        Private ReadOnly _changed As PropertyChangedEventHandler
-        Private ReadOnly _requiresInteraction As Boolean
-        Private _watching As Boolean
-        Private _override As Boolean?
+        Private ReadOnly _implementation As Global.PclDownloadBridge.Presentation.ControlMotionPolicy
         Friend Property PauseForChecks As Boolean
+            Get
+                Return _implementation.PauseForChecks
+            End Get
+            Set(value As Boolean)
+                _implementation.PauseForChecks = value
+            End Set
+        End Property
 
         Friend Sub New(owner As FrameworkElement, settle As Action, Optional requiresInteraction As Boolean = True)
-            _owner = owner : _settle = settle : _requiresInteraction = requiresInteraction
-            _changed = Sub(sender, args)
-                           If args.PropertyName <> NameOf(SystemParameters.ClientAreaAnimation) AndAlso Not String.IsNullOrEmpty(args.PropertyName) Then Return
-                           If owner.Dispatcher.CheckAccess() Then
-                               If _watching Then settle()
-                           Else
-                               owner.Dispatcher.BeginInvoke(New Action(Sub()
-                                                                           If _watching Then settle()
-                                                                       End Sub))
-                           End If
-                       End Sub
-            AddHandler owner.Loaded, Sub()
-                                         If Not _watching Then AddHandler SystemParameters.StaticPropertyChanged, _changed
-                                         _watching = True : settle()
-                                     End Sub
-            AddHandler owner.Unloaded, Sub()
-                                           If _watching Then RemoveHandler SystemParameters.StaticPropertyChanged, _changed
-                                           _watching = False : settle()
-                                       End Sub
-            AddHandler owner.IsVisibleChanged, Sub() settle()
-            AddHandler owner.IsEnabledChanged, Sub() settle()
-            AddHandler owner.IsHitTestVisibleChanged, Sub() settle()
-            ' Lazy page policies (such as the Mod selection bar) can be created
-            ' after Loaded has already fired. Start observing now, but do not
-            ' invoke settle before the caller has assigned its policy field.
-            If owner.IsLoaded Then
-                AddHandler SystemParameters.StaticPropertyChanged, _changed
-                _watching = True
-            End If
+            _implementation = New Global.PclDownloadBridge.Presentation.ControlMotionPolicy(owner, settle, requiresInteraction)
         End Sub
 
         Friend ReadOnly Property Interactive As Boolean
             Get
-                Return _owner.IsEnabled AndAlso _owner.IsHitTestVisible AndAlso _owner.IsLoaded AndAlso _owner.IsVisible
+                Return _implementation.Interactive
             End Get
         End Property
 
         Friend ReadOnly Property CanAnimate As Boolean
             Get
-                Return _watching AndAlso _owner.IsLoaded AndAlso _owner.IsVisible AndAlso
-                    (Not _requiresInteraction OrElse Interactive) AndAlso _override.GetValueOrDefault(SystemParameters.ClientAreaAnimation)
+                Return _implementation.CanAnimate
             End Get
         End Property
 
         ' Per-control deterministic seam; never changes the user's Windows settings.
         Friend Property EnabledForChecks As Boolean?
             Get
-                Return _override
+                Return _implementation.EnabledForChecks
             End Get
             Set(value As Boolean?)
-                _override = value : _settle()
+                _implementation.EnabledForChecks = value
             End Set
         End Property
     End Class

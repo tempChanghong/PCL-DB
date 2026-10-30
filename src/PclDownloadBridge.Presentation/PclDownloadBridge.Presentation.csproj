@@ -12,5 +12,6 @@
   <ItemGroup>
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
   </ItemGroup>
 </Project>

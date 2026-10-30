@@ -16,8 +16,8 @@ Partial Public Class MainWindow
         Dim framework = DirectCast(Attribute.GetCustomAttribute(bridge, GetType(TargetFrameworkAttribute)), TargetFrameworkAttribute)
         check(bridge.GetName().Name = "PclDownloadBridge.Presentation" AndAlso framework.FrameworkName = ".NETFramework,Version=v4.8",
             "the C# presentation bridge has its own net48 assembly identity")
-        check(bridge.GetExportedTypes().Length = 0 AndAlso bridge.GetReferencedAssemblies().All(Function(item) {"mscorlib", "System", "System.Core", "WindowsBase", "PresentationCore"}.Contains(item.Name)),
-            "the presentation bridge exposes no public types and references only Framework and WPF clock assemblies")
+        check(bridge.GetExportedTypes().Length = 0 AndAlso bridge.GetReferencedAssemblies().All(Function(item) {"mscorlib", "System", "System.Core", "WindowsBase", "PresentationCore", "PresentationFramework"}.Contains(item.Name)),
+            "the presentation bridge exposes no public types and references only Framework and WPF lifecycle assemblies")
         Dim facade = app.GetType("PclDownloadBridge.Controls.PclMotionCurves", True)
         check(facade.Assembly Is app AndAlso facade.IsDefined(GetType(StandardModuleAttribute), False),
             "the original VB motion module remains a standard module in the App assembly")
