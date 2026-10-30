@@ -318,11 +318,15 @@ namespace PclDownloadBridge.Core
                                 modsPublication.Publish(token, configurationGuard);
                                 if (sharedComponents)
                                     SharedModsPublication.FinishFolders(root, stage, modable);
-                                pack?.WriteLedger(stage, token);
-                                token.ThrowIfCancellationRequested();
-                                runtimeGuard?.Verify(token);
-                                configurationGuard?.Verify();
-                                native?.ValidateStaged(stage, token);
+                                using (var payloadLease = pack is null ? null : new StagedPayloadLease(root, stageRelative, token))
+                                {
+                                    pack?.WriteLedger(stage, token);
+                                    token.ThrowIfCancellationRequested();
+                                    runtimeGuard?.Verify(token);
+                                    configurationGuard?.Verify();
+                                    native?.ValidateStaged(stage, token);
+                                }
+                                // Open child handles prevent a Windows directory rename.
                                 Directory.Move(stage, instancePath);
                             }
                         }

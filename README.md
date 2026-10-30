@@ -1,5 +1,7 @@
 # PCL-DB · PCL Download Bridge
 
+整合包最终校验现短期保护当前私有 payload 的既有文件，阻止校验后续文件时改写先前已验内容；在 Windows 目录发布前释放，保留配置、取消及重试流程。[修复与验证边界](docs/reviews/pack-publication-lease-2026-10-30.md)。
+
 安装的共享预算、并行分支与统计现提炼到私有执行边界，原组件实例交回最终发布阶段，保留取消汇合、隔离和原子提交。[职责映射与验证](docs/reviews/core-refactor-install-execution-2026-10-30.md)。
 
 旧补充实例的共享索引保护和补全客户端的最终复验现可在散列中响应取消，保留原索引／客户端及配置，已完成的资源修复继续留供重试。[修复与验证](docs/reviews/installer-final-hash-cancellation-2026-10-30.md)。
