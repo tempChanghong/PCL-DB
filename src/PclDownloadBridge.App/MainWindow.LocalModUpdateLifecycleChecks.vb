@@ -74,6 +74,47 @@ Partial Public Class MainWindow
         before = calls : _localModUpdateCacheTime = DateTime.UtcNow.AddMinutes(-1) : Await CheckLocalModUpdatesAsync()
         check(calls = before, "a recent successful update cache remains reusable")
 
+        Dim queriedAt = DateTime.UtcNow.AddHours(-5)
+        _localModUpdateCacheTime = queriedAt : Await CheckLocalModUpdatesAsync()
+        check(calls = before AndAlso _localModUpdateCacheTime = queriedAt,
+            "revisiting Mod management does not extend the original update query lifetime")
+        _localModUpdateProvider = Function(instance, files, token)
+                                      calls += 1 : Return Task.FromResult(New LocalModUpdateCheckResult({update}))
+                                  End Function
+        _localModUpdateCacheTime = DateTime.UtcNow.AddHours(-7) : Await CheckLocalModUpdatesAsync() : layout()
+        check(calls = before + 1 AndAlso row.HasUpdate AndAlso LocalModUpdatable.IsVisible AndAlso LocalModUpdateStatus.Text = "发现 1 个可更新的 Mod。",
+            "an expired cached no-update result discovers and visibly announces a newly published update")
+        queriedAt = _localModUpdateCacheTime : before = calls
+        _localModUpdates.Clear() : LocalModUpdateStatus.Text = ""
+        Await CheckLocalModUpdatesAsync() : layout()
+        check(calls = before AndAlso _localModUpdateCacheTime = queriedAt AndAlso row.HasUpdate AndAlso LocalModUpdateStatus.Text = "发现 1 个可更新的 Mod。",
+            "cached updates restore row and completion feedback without renewing their query time")
+        _localModUpdateCacheKey = Nothing
+        _localModUpdateProvider = Function(instance, files, token) Task.FromResult(New LocalModUpdateCheckResult({New LocalModUpdate(entry, project, current, Nothing)}))
+        Await CheckLocalModUpdatesAsync() : layout()
+        check(Not row.HasUpdate AndAlso LocalModUpdateStatus.Text = "已检查 1 个 Mod，暂无可用更新。",
+            "an identified current Mod reports a completed check without advertising an update")
+        _localModUpdateCacheKey = Nothing : _localModUpdateProvider = Function(instance, files, token) Task.FromResult(empty)
+        Await CheckLocalModUpdatesAsync()
+        check(LocalModUpdateStatus.Text = "未匹配到 Mod 更新信息。" AndAlso CStr(LocalModUpdateStatus.ToolTip).Contains("已识别 0 /"),
+            "unidentified files remain distinct from an identified no-update result")
+        Dim partialCalls = 0
+        _localModUpdateCacheKey = Nothing
+        _localModUpdateProvider = Function(instance, files, token)
+                                      partialCalls += 1 : Return Task.FromResult(New LocalModUpdateCheckResult({update}, {"fixture-platform-unavailable"}))
+                                  End Function
+        Await CheckLocalModUpdatesAsync() : layout()
+        check(row.HasUpdate AndAlso LocalModUpdatable.IsVisible AndAlso LocalModUpdateStatus.Text.Contains("发现 1 个") AndAlso
+            LocalModUpdateStatus.Text.Contains("部分来源暂不可用") AndAlso CStr(LocalModUpdateStatus.ToolTip).Contains("fixture-platform-unavailable"),
+            "partial platform failures retain discovered updates and visible failure feedback")
+        Await CheckLocalModUpdatesAsync()
+        check(partialCalls = 2 AndAlso _localModUpdateCacheKey Is Nothing, "partial update results are queried again instead of becoming successful cache entries")
+        Dim acceptedFeedback = LocalModUpdateStatus.Text
+        LocalModSearch.Text = "no-matching-local-mod" : layout()
+        check(Not LocalModUpdatable.IsVisible AndAlso LocalModUpdateStatus.Text = acceptedFeedback AndAlso LocalModUpdateStatus.Text.Contains("发现 1 个"),
+            "search filtering cannot hide the catalogue-wide update completion feedback")
+        LocalModSearch.Text = "" : layout()
+
         Dim gate As New TaskCompletionSource(Of LocalModUpdateCheckResult), child As Task = Nothing, childCalls = 0
         _localModUpdateCacheKey = Nothing
         _localModUpdateProvider = Function(instance, files, token)
@@ -121,8 +162,9 @@ Partial Public Class MainWindow
             nextGate.TrySetResult(empty) : Await replacement
             If nested IsNot Nothing Then Await nested
         End Using
+        acceptedFeedback = LocalModUpdateStatus.Text
         oldGate.TrySetResult(empty) : Await oldRead
-        check(_localModUpdatesRequest Is Nothing AndAlso LocalModUpdateStatus.Text = "", "old query completion cannot replace the latest successful feedback")
+        check(_localModUpdatesRequest Is Nothing AndAlso LocalModUpdateStatus.Text = acceptedFeedback AndAlso acceptedFeedback <> "", "old query completion cannot replace the latest successful feedback")
         check(protectedFiles.All(Function(pair) File.Exists(pair.Key) AndAlso File.ReadAllBytes(pair.Key).SequenceEqual(pair.Value)),
             "update UI lifecycle checks preserve every native configuration and Mod byte")
     End Function

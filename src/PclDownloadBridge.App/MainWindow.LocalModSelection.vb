@@ -174,7 +174,8 @@ Partial Public Class MainWindow
             LocalModUpdateStatus.Text = "正在检查 Mod 更新…" : LocalModUpdateStatus.ToolTip = Nothing
             Dim result As LocalModUpdateCheckResult
             Dim age = DateTime.UtcNow - _localModUpdateCacheTime
-            If key = _localModUpdateCacheKey AndAlso age >= TimeSpan.Zero AndAlso age < TimeSpan.FromHours(6) Then
+            Dim fromCache = key = _localModUpdateCacheKey AndAlso age >= TimeSpan.Zero AndAlso age < TimeSpan.FromHours(6)
+            If fromCache Then
                 result = _localModUpdateCache
             ElseIf _localModUpdateProvider IsNot Nothing Then
                 result = Await _localModUpdateProvider(owner, entries, request.Token)
@@ -193,9 +194,16 @@ Partial Public Class MainWindow
                 Dim entry = entries.FirstOrDefault(Function(item) item.FilePath = match.Entry.FilePath AndAlso item.Sha256 = match.Entry.Sha256)
                 If entry IsNot Nothing Then _localModUpdates(entry.FilePath) = New LocalModUpdate(entry, match.Project, match.Current, match.Release)
             Next
-            If result.Errors.Count = 0 Then _localModUpdateCacheKey = key : _localModUpdateCacheTime = DateTime.UtcNow : _localModUpdateCache = result
-            LocalModUpdateStatus.Text = If(result.Errors.Count = 0, "", "部分来源暂不可用，点击刷新重试。")
-            LocalModUpdateStatus.ToolTip = String.Join(vbCrLf, result.Errors)
+            ' Reading a cached result must not renew its original query lifetime.
+            If result.Errors.Count = 0 AndAlso Not fromCache Then _localModUpdateCacheKey = key : _localModUpdateCacheTime = DateTime.UtcNow : _localModUpdateCache = result
+            Dim updateCount = _localMods.Where(Function(item) HasLocalModUpdate(item)).Count(), recognized = _localModUpdates.Count
+            Dim feedback = If(updateCount > 0, "发现 " & updateCount & " 个可更新的 Mod。",
+                If(recognized > 0, "已检查 " & recognized & " 个 Mod，暂无可用更新。",
+                    If(entries.Count = 0, "没有可检查更新的 Mod。", "未匹配到 Mod 更新信息。")))
+            If result.Errors.Count > 0 Then feedback = If(updateCount > 0, feedback & " ", "") & "部分来源暂不可用，点击刷新重试。"
+            LocalModUpdateStatus.Text = feedback
+            LocalModUpdateStatus.ToolTip = "已识别 " & recognized & " / " & entries.Count & " 个 Mod，可更新 " & updateCount & " 个。" &
+                If(result.Errors.Count > 0, vbCrLf & String.Join(vbCrLf, result.Errors), "")
             ' Online metadata does not own page motion or keyboard focus.
             Dim query = LocalModSearch.Text.Trim()
             Dim updatable = _localMods.Where(Function(item) HasLocalModUpdate(item) AndAlso (query.Length = 0 OrElse
