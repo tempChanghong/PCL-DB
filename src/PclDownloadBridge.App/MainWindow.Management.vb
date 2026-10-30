@@ -505,9 +505,18 @@ Partial Public Class MainWindow
             If index < 0 Then Return
             _managementInstances(index) = refreshed : _managedInstance = refreshed : owner = refreshed
             Dim repairStatus = ManagedRepairStatus.Text
-            RenderManagementRows() : RenderManagedInstance() : ManagedRepairStatus.Text = repairStatus
+            ' WPF publication and the shell can reenter navigation or accept a
+            ' newer shortcut. Recheck ownership before the external side effect
+            ' and leave any newer request's feedback and return clock alone.
+            RenderManagementRows()
+            If Not current() Then Return
+            RenderManagedInstance()
+            If Not current() Then Return
+            ManagedRepairStatus.Text = repairStatus
+            If Not current() Then Return
+            request.Token.ThrowIfCancellationRequested()
             _managementOpenFolder(folder)
-            ManagedFolderStatus.Text = ""
+            If current() Then ManagedFolderStatus.Text = ""
         Catch ex As OperationCanceledException When request IsNot Nothing AndAlso request.IsCancellationRequested
             ' Navigation and a newer click silently retire this read-only action.
             If current() Then ManagedFolderStatus.Text = "读取文件夹超时，请重试。"

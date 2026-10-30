@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 管理目录操作的发布与交接（2026-10-30）
+
+- PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 PageInstanceOverall.xaml.vb:180–207 从当前实例的 PathVersion／PathIndie 取得目录，ModLoader.vb:275–287 以执行身份与取消状态判定输出有效性。参考 CE 915ac29795efbdf6373417389e181e1504117048 的 PageInstanceOverall.xaml.cs:508–531、ModLoader.cs:514–523、641–672；继续以 PCL2 的实例语义为主。
+- 本工具的目录重读与 WPF 发布是异步链路，在重绘后、系统打开前复核原有任务身份，在系统返回后仅允许当前请求清理反馈。保留现有共享路径检查、输入门控和页面切换动画，不采用上游自动创建目录或强制中断线程的行为。十份固定 Git 原字节及 SHA-256 见 artifacts/management-folder-publication/source/manifest.json，[受控复现与验证](docs/reviews/management-folder-publication-2026-10-30.md)。
+
 ## 启动恢复退役与关闭（2026-10-30）
 
 - PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 ModLoader.vb:275–287 通过当前线程身份和取消状态判断结果有效性，FormMain:557 起在处理退出任务后才进入关闭。C# 重点参考 CE 915ac29795efbdf6373417389e181e1504117048 的 ModLoader.cs:514–523、641–672 对过期完成／异常的丢弃，以及 FormMain:491 起的退出确认边界。

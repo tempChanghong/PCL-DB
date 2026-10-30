@@ -41,6 +41,7 @@ Partial Public Class MainWindow
         VerifyPreviewFixture(Sub() VerifyManagementTargetUi(artifactDirectory, checks))
         VerifyPreviewFixture(Sub() VerifyTaskManagementRefreshUi(artifactDirectory, checks))
         VerifyPreviewFixture(Sub() VerifyManagementFolderUi(artifactDirectory, checks))
+        VerifyPreviewFixture(Sub() VerifyManagementFolderPublicationUi(artifactDirectory, checks))
         VerifyPreviewFixture(Sub() VerifyManagementRetirementUi(artifactDirectory, checks))
         VerifyPreviewFixture(Sub() VerifyManagementIntentUi(artifactDirectory, checks))
         VerifyPreviewFixture(Sub() VerifyManagementSelectionUi(artifactDirectory, checks))
