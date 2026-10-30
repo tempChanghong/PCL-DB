@@ -1,5 +1,7 @@
 # PCL-DB · PCL Download Bridge
 
+旧资源与共享 Mods 发布阶段的入口和逐文件校验现响应取消；新安装继续回收本任务新建文件，已有实例补全保留已完成的修复，回滚校验仍完整执行。[修复与验证](docs/reviews/legacy-publication-hash-cancellation-2026-10-30.md)。
+
 共享组件 Mods 的远程校验和本地冻结摘要均可响应取消，保留跨两步的文件读保护，避免把变化中的内容作为发布依据。[修复与验证](docs/reviews/shared-mods-hash-cancellation-2026-10-30.md)。
 
 Forge／NeoForge 的依赖复用和处理器输出校验现沿用原取消令牌，减少取消后继续散列的等待；保留整组校验、缓存恢复与处理器执行规则。[修复与验证](docs/reviews/forgelike-hash-cancellation-2026-10-30.md)。

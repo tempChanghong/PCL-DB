@@ -1,5 +1,11 @@
 # 本地验证记录
 
+## 旧资源发布阶段的散列取消（2026-10-30，尚未发行）
+
+基线 9dd5ff07314fd36194f0f6eaeb781d4d0699b035。原 internal Validate 四参入口委托 None，验证正文收进不同名 private ValidateCore；Publish 传原 token，入口目标与逐文件目标／源／新建 held 目标四处 Matches 可取消。布局／冲突顺序、隔离新安装早返、guard、repair 原子替换、新建文件记录、Complete 与 Dispose 均不改；初始安装规划与 SharedMods.Preflight 仍走原 None 入口，不称整条链已全部可取消。
+
+专项比较同新宿主旧 DLL 与修复后 DLL 的四阶段目标读取量、取消归属、读租约、原文件保留及重试，另区分 repair 已完成文件与 new 自建文件回滚；回滚字节单独统计，不能混入前台早停。再验证实际安装、当前 VB 全量、原编译 Beta 8 宿主、当前接口／资源／配置、Release／VS2026 Debug 和冷目录单 EXE。准确结果及输入摘要见[报告](docs/reviews/legacy-publication-hash-cancellation-2026-10-30.md)与 artifacts/legacy-publication-hash-cancellation/validation.json。保留原测试、界面与 net48，不另跑完整 UI／动画／搜索，不作真实网络或性能结论；未打包、推送或发版。
+
 ## 共享组件 Mods 校验与冻结取消（2026-10-30，尚未发行）
 
 基线 3ae37284d1b140d2ec78f9ff38258423274489c2。仅 SharedModsPublication.CheckedFiles 的远程声明校验与本地冻结摘要接入取消。原外层 FileShare.Read 租约、流位置、返回的路径／大小／小写 SHA1／分类、失败不返回部分结果保持；None 沿原 ComputeHash，取消分支用私有分块辅助方法，无新公开或 Friend API。Preflight、旧资源发布、Dispose／回滚及成功收尾不改。

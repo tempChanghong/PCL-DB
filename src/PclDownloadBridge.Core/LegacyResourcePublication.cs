@@ -36,6 +36,10 @@ namespace PclDownloadBridge.Core
         }
         internal static void Validate(string root, IEnumerable<DownloadFile> files, bool repair, string description = "旧资源")
         {
+            ValidateCore(root, files, repair, description, CancellationToken.None);
+        }
+        private static void ValidateCore(string root, IEnumerable<DownloadFile> files, bool repair, string description, CancellationToken token)
+        {
             var targets = new HashSet<string>(files.Select(item => SafeFiles.UnderRoot(root, item.RelativePath)), StringComparer.OrdinalIgnoreCase);
             foreach (var item in files)
             {
@@ -49,7 +53,7 @@ namespace PclDownloadBridge.Core
                         throw new InvalidDataException(description + "文件与目录路径冲突：" + item.RelativePath);
                     parent = Path.GetDirectoryName(parent);
                 }
-                if (!repair && File.Exists(target) && !SafeFiles.Matches(target, item))
+                if (!repair && File.Exists(target) && !SafeFiles.Matches(target, item, token))
                     throw new IOException("已有" + description + "内容不同，不会覆盖共享文件：" + item.RelativePath);
             }
         }
@@ -83,7 +87,7 @@ namespace PclDownloadBridge.Core
         {
             if (_isolated && !_repair)
                 return; // Directory.Move publishes the whole payload.
-            Validate(_root, _files, _repair, _description);
+            ValidateCore(_root, _files, _repair, _description, token);
             var staged = StagedFiles();
             for (int i = 0, loopTo = _files.Count - 1; i <= loopTo; i++)
             {
@@ -93,7 +97,7 @@ namespace PclDownloadBridge.Core
                 string target = SafeFiles.UnderRoot(_root, item.RelativePath);
                 if (_holdTargets && File.Exists(target))
                     HoldTarget(target);
-                if (SafeFiles.Matches(target, item))
+                if (SafeFiles.Matches(target, item, token))
                 {
                     token.ThrowIfCancellationRequested();
                     guard?.Verify();
@@ -106,7 +110,7 @@ namespace PclDownloadBridge.Core
                     throw new IOException(_description + "目标在安装期间发生变化：" + item.RelativePath);
                 Directory.CreateDirectory(Path.GetDirectoryName(target));
                 string source = SafeFiles.UnderRoot(_stage, staged[i].RelativePath);
-                if (!SafeFiles.Matches(source, item))
+                if (!SafeFiles.Matches(source, item, token))
                     throw new InvalidDataException("待发布的" + _description + "文件校验失败：" + item.RelativePath);
                 token.ThrowIfCancellationRequested();
                 guard?.Verify();
@@ -121,7 +125,7 @@ namespace PclDownloadBridge.Core
                     if (_holdTargets)
                     {
                         HoldTarget(target);
-                        if (!SafeFiles.Matches(target, item))
+                        if (!SafeFiles.Matches(target, item, token))
                             throw new IOException(_description + "目标在发布期间发生变化：" + item.RelativePath);
                         token.ThrowIfCancellationRequested();
                     }

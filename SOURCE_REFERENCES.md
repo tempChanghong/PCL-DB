@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 旧资源发布阶段的散列取消（2026-10-30）
+
+- PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的旧资源映射、PathIndie 与安装任务归属作为核心依据；C# 重点参考 CE 915ac29795efbdf6373417389e181e1504117048 的资源布局、临时校验／晋升与租约释放。
+- 本轮仅为 LegacyResourcePublication 的 Publish 入口和三处逐文件校验接入原 token。原 Validate 签名和 None 行为保留，以不同名的私有 ValidateCore 避免反射歧义；Dispose 的回滚匹配与成功收尾不接取消。上游的 Task.Run(checker.Check, token) 不证明运行中摘要按块可取消，冻结／所有权回滚是本工具既有协议。固定原字节与独立阶段审查见 artifacts/legacy-publication-hash-cancellation/audit；[报告](docs/reviews/legacy-publication-hash-cancellation-2026-10-30.md)。
+
 ## 共享组件 Mods 校验与冻结取消（2026-10-30）
 
 - PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 ModDownloadLib／ModMinecraft 用于核对 PathIndie/mods、组件安装与隔离目录；C# 重点参考 CE 915ac29795efbdf6373417389e181e1504117048 的组件路径、下载校验、取消归属与资源释放。
