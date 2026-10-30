@@ -22,6 +22,7 @@ Partial Public Class MainWindow
             VerifyPresentationBridgeUi(passed)
             VerifyLateMotionPolicyUi(directory, passed)
             VerifyControlMotionPolicyBridgeUi(directory, passed)
+            VerifyControlFeedbackBridgeUi(directory, passed)
             VerifyCardArrowMotion(directory, check)
             VerifyCardHoverMotion(directory, check)
             VerifyImmediateScrollBursts(directory, check)

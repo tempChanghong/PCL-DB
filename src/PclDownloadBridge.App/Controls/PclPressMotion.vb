@@ -67,71 +67,26 @@ Namespace Controls
 
     ' Each control owns one shared X/Y clock. Page gates and removal cancel the gesture.
     Friend NotInheritable Class PclPressMotion
-        Private ReadOnly _owner As FrameworkElement
-        Private ReadOnly _scale As ScaleTransform
-        Private ReadOnly _cancelPress As Action
-        Private ReadOnly _canAnimate As Func(Of Boolean)
-        Private ReadOnly _pauseForChecks As Func(Of Boolean)
-        Private _clock As AnimationClock
+        Private ReadOnly _implementation As Global.PclDownloadBridge.Presentation.PressMotion(Of PclPressKind)
 
         Friend Sub New(owner As FrameworkElement, scale As ScaleTransform, cancelPress As Action, Optional canAnimate As Func(Of Boolean) = Nothing, Optional pauseForChecks As Func(Of Boolean) = Nothing)
-            _owner = owner : _scale = scale : _cancelPress = cancelPress
-            _canAnimate = canAnimate
-            _pauseForChecks = pauseForChecks
-            AddHandler owner.Unloaded, Sub() Cancel()
-            AddHandler owner.IsVisibleChanged, Sub()
-                                                   If Not owner.IsVisible Then Cancel()
-                                               End Sub
-            AddHandler owner.IsHitTestVisibleChanged, Sub()
-                                                          If Not owner.IsHitTestVisible Then Cancel()
-                                                      End Sub
-            AddHandler owner.IsEnabledChanged, Sub()
-                                                   If Not owner.IsEnabled Then Cancel()
-                                               End Sub
+            _implementation = New Global.PclDownloadBridge.Presentation.PressMotion(Of PclPressKind)(owner, scale, cancelPress, canAnimate, pauseForChecks,
+                Function(origin, kind) New PclPressAnimation(origin, kind),
+                Function(kind) kind = PclPressKind.ButtonDown OrElse kind = PclPressKind.IconDown)
         End Sub
 
         Friend ReadOnly Property Transition As AnimationClock
             Get
-                Return _clock
+                Return _implementation.Transition
             End Get
         End Property
 
         Friend Sub Start(kind As PclPressKind)
-            If Not _owner.IsLoaded Then
-                ResetScale() : Return
-            End If
-            If Not _owner.IsVisible OrElse Not _owner.IsHitTestVisible OrElse Not _owner.IsEnabled Then
-                Cancel() : Return
-            End If
-            If _canAnimate IsNot Nothing AndAlso Not _canAnimate() Then
-                ResetScale() : Return
-            End If
-            Dim origin = _scale.ScaleX
-            ResetScale()
-            ' A newly attached WPF clock may not be active until the next tick.
-            _scale.ScaleX = origin : _scale.ScaleY = origin
-            Dim clock = DirectCast(New PclPressAnimation(origin, kind).CreateClock(True), AnimationClock)
-            If _pauseForChecks IsNot Nothing AndAlso _pauseForChecks() Then clock.Controller.Pause()
-            _clock = clock
-            If kind <> PclPressKind.ButtonDown AndAlso kind <> PclPressKind.IconDown Then
-                AddHandler clock.Completed, Sub()
-                                                If _clock Is clock Then ResetScale()
-                                            End Sub
-            End If
-            _scale.ApplyAnimationClock(ScaleTransform.ScaleXProperty, clock)
-            _scale.ApplyAnimationClock(ScaleTransform.ScaleYProperty, clock)
+            _implementation.Start(kind)
         End Sub
 
         Friend Sub Cancel()
-            _cancelPress() : ResetScale()
-        End Sub
-
-        Private Sub ResetScale()
-            Dim old = _clock : _clock = Nothing
-            _scale.ApplyAnimationClock(ScaleTransform.ScaleXProperty, Nothing)
-            _scale.ApplyAnimationClock(ScaleTransform.ScaleYProperty, Nothing)
-            old?.Controller.Remove()
-            _scale.ScaleX = 1 : _scale.ScaleY = 1
+            _implementation.Cancel()
         End Sub
     End Class
 End Namespace
