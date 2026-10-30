@@ -1,5 +1,7 @@
 # PCL-DB · PCL Download Bridge
 
+安装初始阶段的旧资源验证和共享 Mods 预检现传递取消令牌，避免校验已有大文件时继续读完整份摘要；保留原兼容入口、布局冲突及摘要门控规则。[修复与验证](docs/reviews/install-preflight-hash-cancellation-2026-10-30.md)。
+
 旧资源与共享 Mods 发布阶段的入口和逐文件校验现响应取消；新安装继续回收本任务新建文件，已有实例补全保留已完成的修复，回滚校验仍完整执行。[修复与验证](docs/reviews/legacy-publication-hash-cancellation-2026-10-30.md)。
 
 共享组件 Mods 的远程校验和本地冻结摘要均可响应取消，保留跨两步的文件读保护，避免把变化中的内容作为发布依据。[修复与验证](docs/reviews/shared-mods-hash-cancellation-2026-10-30.md)。

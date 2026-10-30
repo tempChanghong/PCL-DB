@@ -126,6 +126,8 @@ Module Program
                     run = SharedModsHashCancellationChecks.RunAsync(TestRoot, args(1))
                 ElseIf args(1).StartsWith("legacy-publication-hash-", StringComparison.Ordinal) Then
                     run = LegacyPublicationHashCancellationChecks.RunAsync(TestRoot, args(1))
+                ElseIf args(1).StartsWith("install-preflight-hash-", StringComparison.Ordinal) Then
+                    run = InstallPreflightHashCancellationChecks.RunAsync(TestRoot, args(1))
                 ElseIf args(1) = "modpack-paths" Then
                     run = ModpackPathChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "component-file-names" Then
@@ -265,6 +267,9 @@ Module Program
                 Check(True, label)
             Next
             For Each label In LegacyPublicationHashCancellationChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
+                Check(True, label)
+            Next
+            For Each label In InstallPreflightHashCancellationChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
                 Check(True, label)
             Next
             For Each label In ModpackPathChecks.RunAsync(TestRoot).GetAwaiter().GetResult()

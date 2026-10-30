@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 安装初始预检的散列取消（2026-10-30）
+
+- 以 PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的旧资源、PathIndie、组件 Mods 和任务归属为核心，C# 重点参考 CE 915ac29795efbdf6373417389e181e1504117048 的资源布局、下载校验和取消传播。
+- 原 Validate／Preflight 签名、唯一方法名及 None 行为保留；新增两个不同名 internal 安装入口，将 MinecraftInstaller 原令牌传给既有校验。公开接口不变，Friend 明确增加 2 项，不宣称所有接口零差异；不移动布局冲突检查，也不扩大 hashless／repair 的内容校验。固定 Git 原字节与独立审查见 artifacts/install-preflight-hash-cancellation/audit；[报告](docs/reviews/install-preflight-hash-cancellation-2026-10-30.md)。
+
 ## 旧资源发布阶段的散列取消（2026-10-30）
 
 - PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的旧资源映射、PathIndie 与安装任务归属作为核心依据；C# 重点参考 CE 915ac29795efbdf6373417389e181e1504117048 的资源布局、临时校验／晋升与租约释放。

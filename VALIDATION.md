@@ -1,5 +1,13 @@
 # 本地验证记录
 
+## 安装初始预检的散列取消（2026-10-30，尚未发行）
+
+基线 c14dcd0bed951527a74cd67c993d027fb773c467。MinecraftInstaller 初始旧资源验证与共享 Mods 预检改走两个带原 token 的新 internal 命名入口，原签名／唯一方法名与 None 行为保留。目录／路径冲突顺序、Sha1/MD5 门控、hashless 和 repair 跳过规则、隔离／启动器目标解析、发布与成功／回滚收尾不改。
+
+本批明确为兼容性增量：公开 979 项不变，现有 Friend 无缺失／改动，仅新增 2 项（1245→1247）；原 Beta 8 历史 2 项加本批 2 项共 4 项。验证工具的两个严格元数据汇总均保留失败，另按精确新增清单、资源 2／配置样本 15、原编译宿主与实际安装判断，不放宽工具或称 API 零差异。准确计数、进程／输入与源码摘要见[报告](docs/reviews/install-preflight-hash-cancellation-2026-10-30.md)和 artifacts/install-preflight-hash-cancellation/validation.json。
+
+新增专项与当前 VB 全量、原编译 Beta 8 宿主、Release／VS2026 Debug 和冷目录单 EXE 启动／兼容均按最终 DLL 验证；旧宿主全量在主 VB 完成后串行运行、保持默认临时目录。保留原测试、界面和 net48，不另跑完整 UI／动画／搜索，不作真实网络或性能结论；未打包、推送或发版。
+
 ## 旧资源发布阶段的散列取消（2026-10-30，尚未发行）
 
 基线 9dd5ff07314fd36194f0f6eaeb781d4d0699b035。原 internal Validate 四参入口委托 None，验证正文收进不同名 private ValidateCore；Publish 传原 token，入口目标与逐文件目标／源／新建 held 目标四处 Matches 可取消。布局／冲突顺序、隔离新安装早返、guard、repair 原子替换、新建文件记录、Complete 与 Dispose 均不改；初始安装规划与 SharedMods.Preflight 仍走原 None 入口，不称整条链已全部可取消。

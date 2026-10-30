@@ -199,12 +199,12 @@ namespace PclDownloadBridge.Core
                 if (mappedFiles.Count > 0)
                 {
                     LegacyResourcePublication.ValidateLayout(root, plan);
-                    LegacyResourcePublication.Validate(root, mappedFiles, repairExisting);
+                    LegacyResourcePublication.ValidateForInstallation(root, mappedFiles, repairExisting, token);
                 }
                 bool sharedComponents = withComponents && !isolation.Isolated;
                 if (sharedComponents)
                 {
-                    SharedModsPublication.Preflight(root, componentMods, modable);
+                    SharedModsPublication.PreflightForInstallation(root, componentMods, modable, token);
                     LegacyResourcePublication.ValidateLayout(root, plan.Concat(componentMods));
                 }
                 var sharedMods = new List<DownloadFile>();

@@ -15,12 +15,16 @@ namespace PclDownloadBridge.Core
         }
         internal static void Preflight(string root, List<DownloadFile> files, bool modable)
         {
+            PreflightForInstallation(root, files, modable, CancellationToken.None);
+        }
+        internal static void PreflightForInstallation(string root, List<DownloadFile> files, bool modable, CancellationToken token)
+        {
             ValidateFolders(root, modable);
-            LegacyResourcePublication.Validate(root, files, true, "共享 Mods");
+            LegacyResourcePublication.ValidateForInstallation(root, files, true, token, "共享 Mods");
             foreach (var item in files)
             {
                 string target = SafeFiles.UnderRoot(root, item.RelativePath);
-                if (File.Exists(target) && (!string.IsNullOrWhiteSpace(item.Sha1) || !string.IsNullOrWhiteSpace(item.Md5)) && !SafeFiles.Matches(target, item))
+                if (File.Exists(target) && (!string.IsNullOrWhiteSpace(item.Sha1) || !string.IsNullOrWhiteSpace(item.Md5)) && !SafeFiles.Matches(target, item, token))
                     throw new IOException("已有共享 Mods 内容不同，不会覆盖：" + item.RelativePath);
             }
         }

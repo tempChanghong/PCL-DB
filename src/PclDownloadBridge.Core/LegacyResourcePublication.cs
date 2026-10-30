@@ -38,6 +38,10 @@ namespace PclDownloadBridge.Core
         {
             ValidateCore(root, files, repair, description, CancellationToken.None);
         }
+        internal static void ValidateForInstallation(string root, IEnumerable<DownloadFile> files, bool repair, CancellationToken token, string description = "旧资源")
+        {
+            ValidateCore(root, files, repair, description, token);
+        }
         private static void ValidateCore(string root, IEnumerable<DownloadFile> files, bool repair, string description, CancellationToken token)
         {
             var targets = new HashSet<string>(files.Select(item => SafeFiles.UnderRoot(root, item.RelativePath)), StringComparer.OrdinalIgnoreCase);
