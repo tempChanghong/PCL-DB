@@ -46,9 +46,9 @@ try {
     $releaseVersion = Get-PclDbReleaseVersion $version ([Diagnostics.FileVersionInfo]::GetVersionInfo($candidate).ProductVersion) $source.Commit
     $standalone = Invoke-IsolatedCheck 'standalone' 'standalone'
     $embedded = Get-Content -LiteralPath (Join-Path $operation 'embedded-content.json') -Raw -Encoding UTF8 | ConvertFrom-Json
-    if ($embedded.Assemblies.Count -ne 2 -or $embedded.Documents.Count -ne 7) { throw 'Incomplete embedded content inventory.' }
+    Assert-PclDbEmbeddedAssemblies $embedded.Assemblies -Presentation
+    if ($embedded.Documents.Count -ne 7) { throw 'Incomplete embedded content inventory.' }
     foreach ($assembly in $embedded.Assemblies) {
-        if ($assembly.Name -notin @('PclDownloadBridge.Core','Newtonsoft.Json')) { throw 'Unexpected embedded dependency.' }
         $expected = (Get-FileHash -LiteralPath (Join-Path $runtime ($assembly.Name + '.dll')) -Algorithm SHA256).Hash
         if ($expected -ne $assembly.SHA256) { throw "Embedded DLL differs from this build: $($assembly.Name)" }
     }
@@ -72,7 +72,7 @@ try {
         [pscustomobject]@{Name=$_.Name;Length=$_.Length;SHA256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash}
     })
     Assert-PclDbSourceState $source (Get-PclDbSourceState $root)
-    $result = [ordered]@{Format='PCL-DB-candidate/v3'; Succeeded=$true; PowerShellVersion=$PSVersionTable.PSVersion.ToString(); Version=$version; ReleaseVersion=$releaseVersion;
+    $result = [ordered]@{Format='PCL-DB-candidate/v4'; Succeeded=$true; PowerShellVersion=$PSVersionTable.PSVersion.ToString(); Version=$version; ReleaseVersion=$releaseVersion;
         StandaloneChecks=$standalone.Count; UiChecks=$ui.Count; MotionChecks=$motion.Count; PackSearchChecks=$packSearch.Count; Verification=$verification;
         EmbeddedAssemblies=$embedded.Assemblies; EmbeddedDocuments=$embedded.Documents;
         CandidatePath=$candidate; CandidateSHA256=$candidateHash;

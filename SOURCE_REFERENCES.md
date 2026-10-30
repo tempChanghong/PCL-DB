@@ -1,5 +1,9 @@
 # PCL2 代码依据
 
+## C# 界面辅助库桥接（2026-10-30）
+
+固定 PCL2 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 ModAnimation.vb:612–621、674–684 和 MyPageRight.vb:410–415，以及 C# 参考 PCL-CE 915ac29795efbdf6373417389e181e1504117048 的 ModAnimation.cs:1313–1326、1396–1409、MyPageRight.cs:578–586，作为 Fluent/Back 与页面叠加入场依据。仅迁当前工具的三个纯公式，保留原 Clamp 运算顺序和非有限值行为；VB 动画类型、DP owner、XAML/BAML 和时长不动。[桥接边界与验证](docs/reviews/presentation-csharp-bridge-2026-10-30.md)。
+
 ## Mod 浮动操作条首次弹入（2026-10-30）
 
 主参照固定 PCL2 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 PageInstanceMod.xaml.vb:157–246（RefreshBars）：60 ms 淡入、120/150/90 ms 上移回弹、90 ms 退场。本轮仅修复本工具策略在 owner 已 Loaded 时漏初始化，不改上述时长、曲线与选择逻辑；C# Core 和文件操作保持。[复现与验证](docs/reviews/local-mod-bar-loaded-motion-2026-10-30.md)。

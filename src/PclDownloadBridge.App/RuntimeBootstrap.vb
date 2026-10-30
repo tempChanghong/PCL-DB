@@ -35,6 +35,8 @@ Friend NotInheritable Class RuntimeBootstrap
             canonical = "PclDownloadBridge.Core"
         ElseIf String.Equals(requested.Name, "Newtonsoft.Json", StringComparison.OrdinalIgnoreCase) Then
             canonical = "Newtonsoft.Json"
+        ElseIf String.Equals(requested.Name, "PclDownloadBridge.Presentation", StringComparison.OrdinalIgnoreCase) Then
+            canonical = "PclDownloadBridge.Presentation"
         Else
             Return Nothing
         End If

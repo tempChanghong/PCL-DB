@@ -1,5 +1,11 @@
 # 本地验证记录
 
+## 第四轮首批：C# 界面辅助库（2026-10-30，尚未发行）
+
+新增 net48 Presentation 类库承接 Fluent/Back/PageY 纯计算，原 VB facade、WPF 类型/依赖属性 owner、XAML/BAML、Loaded 策略和 Core 保留。单 EXE 当前三依赖由 v4 候选/清单明确区分，历史 v2/v3 精确旧两依赖仍可归档验证，不能作当前候选。
+
+新增界面14、单 EXE5项；冻结源码后使用当前同一冷 EXE 验证30/7214/6059/3444，Debug四项目、三依赖/七文档摘要，以及独立同探针1801数值与资源/类型差分。工具PS7/PS5.1各126及实际Beta8旧归档只读检查另行保存。实际完成状态及提交绑定见 artifacts/presentation-csharp/validation.json；[报告](docs/reviews/presentation-csharp-bridge-2026-10-30.md)。Core全量不另跑，历史结果不计本轮；不作真人帧率或手工F5结论，未打包发版。
+
 ## Mod 浮动操作条首次弹入（2026-10-30，尚未发行）
 
 真实窗口先 Loaded、首次进入 Mod 页后才懒创建动画策略时，旧策略漏订阅，操作条直接显示终态。已加载 owner 在构造末尾补订阅，但不提前调用 settle；保持 PCL2 的 60 ms 淡入、120/150/90 ms 回弹、90 ms 退场、系统减少动画及旧时钟归属。

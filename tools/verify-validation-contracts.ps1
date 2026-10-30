@@ -121,17 +121,18 @@ try {
     $bad = Copy-Object $historicEvidence; $bad.Policy=$verification.Policy
     Assert-Rejected { Assert-PclDbVerification $bad $hash -Current } 'check count' 'renaming an old policy does not promote its incomplete suite'
 
-    $candidate = [pscustomobject]@{Format='PCL-DB-candidate/v3';CandidateSHA256=$hash;Verification=$verification
+    $candidate = [pscustomobject]@{Format='PCL-DB-candidate/v4';CandidateSHA256=$hash;Verification=$verification
         StandaloneChecks=$verification.StandaloneChecks;UiChecks=$verification.UiChecks;MotionChecks=$verification.MotionChecks;PackSearchChecks=$verification.PackSearchChecks;Version='0.0.0';ReleaseVersion='0.0.0-alpha.1'
         Source=[pscustomobject]@{Commit=('1'*40);Branch='fixture';Dirty=$false;InventorySHA256=('2'*64)};DotnetSDK='fixture'
         PayloadFiles=@($payload.Keys | ForEach-Object { [pscustomobject]@{Name=$_;Length=$payload[$_].Length;SHA256=(Hash-Bytes $payload[$_])} })
-        EmbeddedAssemblies=@([pscustomobject]@{Name='PclDownloadBridge.Core';SHA256=('3'*64)},[pscustomobject]@{Name='Newtonsoft.Json';SHA256=('4'*64)})}
+        EmbeddedAssemblies=@([pscustomobject]@{Name='PclDownloadBridge.Core';SHA256=('3'*64)},[pscustomobject]@{Name='Newtonsoft.Json';SHA256=('4'*64)},[pscustomobject]@{Name='PclDownloadBridge.Presentation';SHA256=('5'*64)})}
     Assert-PclDbCandidateVerification $candidate
     Assert-Case $true 'candidate evidence parser accepts a complete controlled receipt set (not an executed candidate)'
-    foreach ($mode in @('legacy','array-format','missing-search-total','wrong-search-total','missing-search-receipt','ordinary-exe','failed-search')) {
+    foreach ($mode in @('legacy','old-v3','array-format','missing-search-total','wrong-search-total','missing-search-receipt','ordinary-exe','failed-search')) {
         $bad = Copy-Object $candidate
         switch ($mode) {
             'legacy' {$bad.PSObject.Properties.Remove('Format')}
+            'old-v3' {$bad.Format='PCL-DB-candidate/v3'}
             'array-format' {$bad.Format=@($bad.Format)}
             'missing-search-total' {$bad.PSObject.Properties.Remove('PackSearchChecks')}
             'wrong-search-total' {$bad.PackSearchChecks=170}
@@ -145,7 +146,7 @@ try {
 
     $manifest = & $packageModule {param($c) New-PclDbBuildManifest $c} $candidate
     Assert-Manifest $manifest
-    foreach ($mode in @('duplicate','unknown','array-name','array-hash','invalid-hash','missing','null')) {
+    foreach ($mode in @('duplicate','unknown','array-name','array-hash','invalid-hash','missing','legacy-two','extra','missing-presentation','null')) {
         $bad = Copy-Object $candidate
         switch ($mode) {
             'duplicate' {$bad.EmbeddedAssemblies[1]=$bad.EmbeddedAssemblies[0]}
@@ -154,6 +155,9 @@ try {
             'array-hash' {$bad.EmbeddedAssemblies[0].SHA256=@($bad.EmbeddedAssemblies[0].SHA256)}
             'invalid-hash' {$bad.EmbeddedAssemblies[0].SHA256='invalid'}
             'missing' {$bad.EmbeddedAssemblies=@($bad.EmbeddedAssemblies[0])}
+            'legacy-two' {$bad.EmbeddedAssemblies=@($bad.EmbeddedAssemblies | Select-Object -First 2)}
+            'extra' {$bad.EmbeddedAssemblies+=@([pscustomobject]@{Name='Extra.Assembly';SHA256=('6'*64)})}
+            'missing-presentation' {$bad.EmbeddedAssemblies[2].Name='PclDownloadBridge.Other'}
             'null' {$bad.EmbeddedAssemblies=$null}
         }
         Assert-Rejected { & $packageModule {param($c) New-PclDbBuildManifest $c} $bad } 'embedded dependency inventory' ("manifest builder rejects malformed dependency inventory: " + $mode)
@@ -163,13 +167,25 @@ try {
         Assert-Rejected { Assert-Manifest $badManifest } 'embedded dependency inventory' ("archive parser rejects malformed dependency inventory: " + $mode)
     }
     Assert-BoundManifest $manifest $candidate
-    Assert-Case ($manifest.Format -ceq 'PCL-DB-single-exe/v3' -and $manifest.Verification.PackSearchChecks -eq $requiredSearchCount) 'production manifest builder carries complete search evidence into v3'
+    Assert-Case ($manifest.Format -ceq 'PCL-DB-single-exe/v4' -and $manifest.Verification.PackSearchChecks -eq $requiredSearchCount -and $manifest.EmbeddedAssemblies.Count -eq 3) 'production v4 manifest binds complete search evidence and the three-dependency model'
     $bad=Copy-Object $manifest; $bad.Format=@($bad.Format)
     Assert-Rejected { Assert-Manifest $bad } 'Invalid build manifest' 'archive format cannot be a JSON array'
-    $archive = Join-Path $fixture 'v3-fixture.zip'; Write-FixtureZip $archive $manifest
+    $archive = Join-Path $fixture 'v4-fixture.zip'; Write-FixtureZip $archive $manifest
     $report = Test-PclDbPackage -ProjectRoot $root -PackagePath $archive
-    Assert-Case ($report.Succeeded -and !$report.CandidateVerified -and $report.VerificationLevel -ceq 'ArchiveIntegrity') 'v3 archive-only check makes no current candidate or execution claim'
-    $legacy = Copy-Object $manifest; $legacy.Format='PCL-DB-single-exe/v2'; $legacy.Verification=[pscustomobject]@{StandaloneChecks=25;UiChecks=658;MotionChecks=328}
+    Assert-Case ($report.Succeeded -and !$report.CandidateVerified -and $report.VerificationLevel -ceq 'ArchiveIntegrity') 'v4 archive-only check makes no current candidate or execution claim'
+    $historicV3 = Copy-Object $manifest; $historicV3.Format='PCL-DB-single-exe/v3'; $historicV3.EmbeddedAssemblies=@($historicV3.EmbeddedAssemblies | Select-Object -First 2); $historicV3.Verification=$historicEvidence
+    Assert-Manifest $historicV3
+    $archive = Join-Path $fixture 'v3-fixture.zip'; Write-FixtureZip $archive $historicV3
+    $report = Test-PclDbPackage -ProjectRoot $root -PackagePath $archive
+    Assert-Case ($report.Succeeded -and !$report.CandidateVerified -and $report.ManifestFormat -ceq 'PCL-DB-single-exe/v3') 'historical v3 archives retain their exact two-dependency model'
+    Assert-Rejected { Assert-BoundManifest $historicV3 $candidate } 'historical manifest' 'a historical v3 archive cannot satisfy current candidate verification'
+    foreach ($format in @('v2','v3')) {
+        $bad=Copy-Object $manifest; $bad.Format='PCL-DB-single-exe/'+$format
+        Assert-Rejected { Assert-Manifest $bad } 'embedded dependency inventory' ("a three-dependency manifest cannot be relabelled as historical " + $format)
+    }
+    $bad=Copy-Object $historicV3; $bad.Format='PCL-DB-single-exe/v4'
+    Assert-Rejected { Assert-Manifest $bad } 'embedded dependency inventory' 'relabeling a two-dependency archive cannot promote it to v4'
+    $legacy = Copy-Object $historicV3; $legacy.Format='PCL-DB-single-exe/v2'; $legacy.Verification=[pscustomobject]@{StandaloneChecks=25;UiChecks=658;MotionChecks=328}
     $archive = Join-Path $fixture 'v2-fixture.zip'; Write-FixtureZip $archive $legacy
     $report = Test-PclDbPackage -ProjectRoot $root -PackagePath $archive
     Assert-Case ($report.Succeeded -and !$report.CandidateVerified -and $report.ManifestFormat -ceq 'PCL-DB-single-exe/v2') 'historical Beta 658/328 totals remain valid for archive integrity'
@@ -182,8 +198,8 @@ try {
     Assert-Rejected { Assert-Manifest $bad } 'Invalid build manifest' 'v2 still requires all declared suite totals'
     $bad=Copy-Object $manifest; $bad.Verification=$historicEvidence
     Assert-Manifest $bad
-    Assert-Case $true 'a structurally complete older v3 policy remains inspectable as an archive'
-    Assert-Rejected { Assert-BoundManifest $bad $candidate } 'not current' 'archived v3 evidence does not satisfy current candidate policy'
+    Assert-Case $true 'a structurally complete older v4 policy remains inspectable as an archive'
+    Assert-Rejected { Assert-BoundManifest $bad $candidate } 'not current' 'archived v4 evidence does not satisfy current candidate policy'
     foreach ($mode in @('missing-search','failed-search','wrong-scope','short-passed','wrong-exe','wrong-total')) {
         $bad=Copy-Object $manifest
         switch ($mode) {
@@ -205,8 +221,8 @@ try {
     Assert-Rejected { Assert-BoundManifest $bad $candidate } 'selected candidate bytes' 'current evidence does not waive exact payload binding'
     $bad=Copy-Object $manifest; $bad.EmbeddedAssemblies[0].SHA256=('0'*64)
     Assert-Rejected { Assert-BoundManifest $bad $candidate } 'selected embedded dependencies' 'current evidence does not waive embedded dependency binding'
-    foreach ($format in @('v2','v3')) {
-        $source=if($format -eq 'v2'){$legacy}else{$manifest}
+    foreach ($format in @('v2','v3','v4')) {
+        $source=if($format -eq 'v2'){$legacy}elseif($format -eq 'v3'){$historicV3}else{$manifest}
         $path=Join-Path $fixture ($format+'-corrupt.zip')
         Write-FixtureZip $path $source {param($zip)
             $name='PclDownloadBridge/README.md'; $zip.GetEntry($name).Delete(); $bytes=[byte[]]$payload['README.md'].Clone(); $bytes[0]=$bytes[0] -bxor 1

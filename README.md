@@ -50,9 +50,9 @@ PCL 位置、线程数、速度、文件复用和 Java 路径的类型损坏现�
 
 从本地 Mod 管理进入下载时，先绑定当前实例的版本／加载器，再恢复仍有效的搜索缓存；布局期间的新导航会使旧配置停止。[修复与验证](docs/reviews/search-restore-entry-2026-10-29.md)。
 
-C# Core + VB.NET WPF + .NET Framework 4.8 的 Minecraft Java 下载与本地实例管理工具，简称 PCL-DB。最新发布为 **Beta 8.0**（`8.0.0-beta.1`）。[发布说明](docs/releases/8.0.0-beta.1.md)。
+C# Core／Presentation + VB.NET WPF + .NET Framework 4.8 的 Minecraft Java 下载与本地实例管理工具，简称 PCL-DB。最新发布为 **Beta 8.0**（`8.0.0-beta.1`）。[发布说明](docs/releases/8.0.0-beta.1.md)。
 
-当前源码以 Beta 8 为基线迁移 Core 到 C#，界面和测试继续使用 VB，公开接口、配置与资源名称保持兼容。这项迁移尚未发行，现有 Beta 8 发布工件不变。[迁移说明与验证](docs/reviews/core-csharp-migration-2026-10-29.md)。
+当前源码已完成 Beta 8 基线的 Core C# 迁移，并开始使用独立的 C# Presentation 辅助库承接纯动画计算；页面、XAML、WPF 动画类型和测试继续使用 VB，现有接口、配置与资源名称保留。这些迁移尚未发行，现有 Beta 8 发布工件不变。[Core 迁移](docs/reviews/core-csharp-migration-2026-10-29.md)；[界面桥接与验证](docs/reviews/presentation-csharp-bridge-2026-10-30.md)。
 
 UI 对照旧 VB 版及 PCL2／PCL-CE，修正本地 Mod 页卡片与列表边距、筛选顺序，并让下拉菜单跟随所属窗口的不透明度；保留换行、明暗模式与原动画。[对照与验证](docs/reviews/ui-fidelity-2026-10-29.md)。
 
@@ -391,9 +391,9 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 .\build.ps1 -Package
 ```
 
-此模式独立构建单 EXE，并执行 25 项单文件、2031 项界面、1501 项动画和 1169 项搜索候选检查；完整模式另运行临时目录中的打包回归，再生成便携目录、ZIP、可单独分发的版本号 EXE 与独立构建清单。不会读取旧 bin 作为打包候选。
+此模式独立构建单 EXE，并执行当前策略要求的单文件、界面、动画和搜索候选检查；完整模式另运行临时目录中的打包回归，再生成便携目录、ZIP、可单独分发的版本号 EXE 与独立构建清单。不会读取旧 bin 作为打包候选。
 
-新 ZIP 内固定为 `PclDownloadBridge/` 下的 `PCL-DB.exe`、7 份文档（包含 `LICENCE`）和 `build-manifest.json`，共 9 个文件，无相邻 DLL、config 或 PDB。独立资产使用完整发布版本。v3 清单记录数字程序集版本、发布版本、完整提交、分支、工作区是否有改动、源码清单 SHA-256、SDK、运行时、两份内嵌依赖及每个载荷文件的 SHA-256。四组验收各自保留 Scope、Succeeded、Count、Passed、实际 EXE 摘要和单文件模式标识；当前要求由 `tools/VerificationTools.psm1` 集中维护。EXE ProductVersion 必须包含发布版本和提交；源码、文档或候选改变后需重新验证。下一次发行另定新版本，不能以新增功能覆盖既有 Beta 身份。
+新 ZIP 内固定为 `PclDownloadBridge/` 下的 `PCL-DB.exe`、7 份文档（包含 `LICENCE`）和 `build-manifest.json`，共 9 个文件，无相邻 DLL、config 或 PDB。独立资产使用完整发布版本。v4 清单记录数字程序集版本、发布版本、完整提交、分支、工作区是否有改动、源码清单 SHA-256、SDK、运行时、三份内嵌依赖（Core、Presentation、Newtonsoft.Json）及每个载荷文件的 SHA-256。四组验收各自保留 Scope、Succeeded、Count、Passed、实际 EXE 摘要和单文件模式标识；当前要求由 `tools/VerificationTools.psm1` 集中维护。EXE ProductVersion 必须包含发布版本和提交；源码、文档或候选改变后需重新验证。下一次发行另定新版本，不能以新增功能覆盖既有 Beta 身份。
 
 打包先复制已验证候选到独立暂存目录，校验四种输出后再顺序替换；旧目录、ZIP、EXE 和清单保留在报告记录的备份位置。文件占用或替换失败时逆序恢复，失败详情、回滚问题和备份位置写入 `artifacts/packages/<本次编号>/failure.json`。文件锁阻止并发打包，输出路径经过目录联接检查。这是顺序替换与尽力回滚，不保证断电或强制终止时的多文件原子性。
 
@@ -403,11 +403,11 @@ Visual Studio 2026 可直接打开 `PclDownloadBridge.sln`，选择 **Debug / An
 .\tools\verify-package.ps1 -PackagePath .\dist\PCL-DB-6.0.0-beta.1.zip -DistributionPath .\dist\PclDownloadBridge -StandalonePath .\dist\PCL-DB-6.0.0-beta.1.exe -ManifestPath .\dist\PCL-DB-6.0.0-beta.1.build-manifest.json
 ```
 
-上面的命令执行归档完整性检查，返回 `VerificationLevel=ArchiveIntegrity`、`CandidateVerified=false`。Beta 1.0 的 v2 清单保留当时的 25/658/328 记录，仅校验其结构、非零整数计数及实际文件摘要；不套用当前套件数量。Beta 2.0 的 v3 清单还核对四组完整回执及其 EXE 摘要。两种归档检查都不证明源码来源、签名或通过当前验收，v1/未知格式仍拒绝；旧 ZIP 不会被重写。检查旧 Beta 时请同时指定它对应的资产，不要混用当前便携目录。
+上面的命令执行归档完整性检查，返回 `VerificationLevel=ArchiveIntegrity`、`CandidateVerified=false`。Beta 1.0 的 v2 清单保留当时的 25/658/328 记录，仅校验其结构、非零整数计数及实际文件摘要；不套用当前套件数量。Beta 2.0 的 v3 清单还核对四组完整回执及其 EXE 摘要。旧 v2/v3 归档继续要求原来的 Core／Newtonsoft.Json 两依赖，v4 要求包含 Presentation 的精确三依赖。归档检查都不证明源码来源、签名或通过当前验收，v1/未知格式仍拒绝；旧 ZIP 不会被重写。检查旧 Beta 时请同时指定它对应的资产，不要混用当前便携目录。
 
-以后验证新发行候选时，使用该次四项资产的实际路径，并追加 `-CandidateResultPath <该次单EXE验证打印的result.json完整路径>`。只有当前 v3 候选通过全部套件、源码、载荷及清单证据一致性核对，才返回 `VerificationLevel=CurrentCandidate`、`CandidateVerified=true`。历史回执或普通多文件 EXE 的回执不能用来通过当前候选验收。
+以后验证新发行候选时，使用该次四项资产的实际路径，并追加 `-CandidateResultPath <该次单EXE验证打印的result.json完整路径>`。只有当前 v4 候选通过全部套件、源码、载荷及清单证据一致性核对，才返回 `VerificationLevel=CurrentCandidate`、`CandidateVerified=true`。历史回执或普通多文件 EXE 的回执不能用来通过当前候选验收。
 
-`-SkipTests -Package` 跳过核心、常规构建回归及打包回归，仍强制独立构建并在同一个单 EXE 上执行 25/2031/1501/1169 四组候选验收，以及源码和全部分发资产校验；不能据此声称通过完整回归。单独执行 `tools/verify-packaging.ps1` 会创建全新候选，仅在随机临时目录生成测试 ZIP，不更新项目 `dist`。可用 `-CandidateResultPath` 显式复用当前源码对应的候选，避免重复构建。
+`-SkipTests -Package` 跳过核心、常规构建回归及打包回归，仍强制独立构建并在同一个单 EXE 上执行当前策略要求的四组候选验收，以及源码和全部分发资产校验；不能据此声称通过完整回归。单独执行 `tools/verify-packaging.ps1` 会创建全新候选，仅在随机临时目录生成测试 ZIP，不更新项目 `dist`。可用 `-CandidateResultPath` 显式复用当前源码对应的候选，避免重复构建。
 
 单 EXE 功能可用以下命令独立验证；该命令构建开发候选，不生成 ZIP、不更新 `dist`，不创建 Release：
 

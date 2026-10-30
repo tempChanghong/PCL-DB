@@ -1,6 +1,6 @@
 # 在 Visual Studio 2026 中开发 PCL-DB
 
-在完整源码目录中打开 `PclDownloadBridge.sln`。三个项目均使用 SDK 格式和 .NET Framework 4.8：**C# Core 类库、VB.NET WPF 主应用、原有 VB.NET 控制台测试**。无需从现有代码创建新项目。解决方案中的主应用显示为 **PCL-DB**，源码文件夹和程序集名为 `PclDownloadBridge.App` / `PclDownloadBridge.exe`；Core 仍输出 `PclDownloadBridge.Core.dll`。便携包附带本说明供查阅。
+在完整源码目录中打开 `PclDownloadBridge.sln`。四个项目均使用 SDK 格式和 .NET Framework 4.8：**C# Core 类库、C# Presentation 界面辅助库、VB.NET WPF 主应用、原有 VB.NET 控制台测试**。无需从现有代码创建新项目。解决方案中的主应用显示为 **PCL-DB**，源码文件夹和程序集名为 `PclDownloadBridge.App` / `PclDownloadBridge.exe`；Core 仍输出 `PclDownloadBridge.Core.dll`。便携包附带本说明供查阅。
 
 本文件后半部保留了逐批新增专项的历史说明。当前要求以 `tools/VerificationTools.psm1` 为准，实际通过数量以对应运行回执和控制台汇总为准，不将旧批次的计数相加作为本轮执行数。
 
@@ -111,7 +111,7 @@ Debug 构建输出为 `src/PclDownloadBridge.App/bin/Debug/net48/`。启动配�
 | 清理异常与日志 | `src/PclDownloadBridge.Core/InstallCleanup.cs`：`DeleteOwnedDirectory` |
 | 下载成功后的分片清理 | `src/PclDownloadBridge.Core/TransferCleanup.cs`：`DeleteCommitted` |
 
-F9 切换断点，F10 逐过程，F11 逐语句。`Directory.Build.props` 明确为 Debug 启用 Portable PDB 并关闭优化，三个项目都会生成对应 `.pdb`；本机 CLI 构建已经核对这些实际设置。断点灰色时先确认当前是 Debug，并在「调试 → 窗口 → 模块」检查加载路径和符号，避免误运行 `dist` 中的 Release 程序。
+F9 切换断点，F10 逐过程，F11 逐语句。`Directory.Build.props` 明确为 Debug 启用 Portable PDB 并关闭优化，四个项目都会生成对应 `.pdb`；本机 CLI 构建已经核对这些实际设置。断点灰色时先确认当前是 Debug，并在「调试 → 窗口 → 模块」检查加载路径和符号，避免误运行 `dist` 中的 Release 程序。
 
 默认使用托管调试，启动配置关闭本机代码调试。需要查看被捕获的校验错误时，可在「调试 → 窗口 → 异常设置」（Ctrl+Alt+E）中搜索 `System.IO.InvalidDataException` / `System.IO.IOException`，临时勾选“引发时中断”。下载器会捕获部分异常进行重试，取消也会使用 `OperationCanceledException`，因此日常调试可保持 VS 默认的未处理异常设置。
 
@@ -169,7 +169,7 @@ Motion Checks 现含 913 项，其中 263 项覆盖标题栏、滚动条本体�
 
 构建、VS 验证和单 EXE 验证脚本共用 `VerificationProcessTools.psm1`：只清除本次明确要求的旧回执/预览，要求进程成功退出并重新生成非空输出，保留两路日志，核对执行前后 EXE 摘要。`verify-vs2026.ps1` 按 `VerificationTools.psm1` 的实际 scope 读取 App 检查期限；预览为 180 秒、核心检查为 900 秒。每次 App 检查或预览通过 `New-PclDbVerificationDirectory` 创建新工作目录，保留配置模式、其它参数和工作目录，仅将诊断输出明确重定位到该目录；回执分别记录 `OriginalArguments`、实际 `Arguments`、原配置输出和实际 `OutputPath`。后续断言只读取本次实际输出，不复用构建输出目录中的旧 JSON 或旧图像。
 
-超时只终止本次创建的进程，不按名称清理其他应用。`verify-vs2026.ps1` 开始时还会移除旧的总报告，失败不会留下上次的成功总报告。脚本另核对 C# Core 的 `net48`、`PclDownloadBridge.Core` 程序集名和命名空间，以及三个项目的未优化 Debug 与 Portable PDB。以上时限和诊断输出重定位只用于自动验证，IDE F5 调试及正常下载/安装不增加时限。`tools/verify-verification-process.ps1` 可单独检查进程边界。
+超时只终止本次创建的进程，不按名称清理其他应用。`verify-vs2026.ps1` 开始时还会移除旧的总报告，失败不会留下上次的成功总报告。脚本另核对 C# Core 的 `net48`、`PclDownloadBridge.Core` 程序集名和命名空间，以及四个项目的未优化 Debug 与 Portable PDB。以上时限和诊断输出重定位只用于自动验证，IDE F5 调试及正常下载/安装不增加时限。`tools/verify-verification-process.ps1` 可单独检查进程边界。
 
 原版安装按钮独立动效另含 79 项检查（已计入 Motion Checks），参照 MyExtraTextButton.Show 验证回弹、快速反向、输入门控及页面接管；输出 install-action-090/250/hide-075/dark-250.png 四张采样图。
 

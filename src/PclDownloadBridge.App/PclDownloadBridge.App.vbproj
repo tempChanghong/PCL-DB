@@ -25,6 +25,7 @@
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />
     <ProjectReference Include="../PclDownloadBridge.Core/PclDownloadBridge.Core.csproj" />
+    <ProjectReference Include="../PclDownloadBridge.Presentation/PclDownloadBridge.Presentation.csproj" />
   </ItemGroup>
   <ItemGroup><Resource Include="Images/Blocks/*.png"/><Resource Include="Images/Icons/*.png"/><Resource Include="Images/Themes/*.png"/><Resource Include="Images/Heads/*.png;Images/Heads/*.jpg"/><Resource Include="Resources/Font.ttf"/></ItemGroup>
   <ItemGroup>
@@ -38,10 +39,10 @@
   <Target Name="EmbedStandaloneDependencies" BeforeTargets="AssignTargetPaths" DependsOnTargets="ResolveReferences" Condition="'$(PclDbSingleExecutable)' == 'true'">
     <ItemGroup>
       <_StandaloneDependency Remove="@(_StandaloneDependency)" />
-      <_StandaloneDependency Include="@(ReferenceCopyLocalPaths)" Condition="'%(ReferenceCopyLocalPaths.Extension)' == '.dll' And ('%(ReferenceCopyLocalPaths.Filename)' == 'PclDownloadBridge.Core' Or '%(ReferenceCopyLocalPaths.Filename)' == 'Newtonsoft.Json')" />
+      <_StandaloneDependency Include="@(ReferenceCopyLocalPaths)" Condition="'%(ReferenceCopyLocalPaths.Extension)' == '.dll' And ('%(ReferenceCopyLocalPaths.Filename)' == 'PclDownloadBridge.Core' Or '%(ReferenceCopyLocalPaths.Filename)' == 'Newtonsoft.Json' Or '%(ReferenceCopyLocalPaths.Filename)' == 'PclDownloadBridge.Presentation')" />
       <EmbeddedResource Remove="@(_StandaloneDependency)" />
       <EmbeddedResource Include="@(_StandaloneDependency)" LogicalName="PclDownloadBridge.Dependencies.%(Filename)%(Extension)" />
     </ItemGroup>
-    <Error Condition="'@(_StandaloneDependency->Count())' != '2'" Text="The single executable requires exactly Core and Newtonsoft.Json from the resolved references: @(_StandaloneDependency)" />
+    <Error Condition="'@(_StandaloneDependency->Count())' != '3'" Text="The single executable requires exactly Core, Presentation and Newtonsoft.Json from the resolved references: @(_StandaloneDependency)" />
   </Target>
 </Project>

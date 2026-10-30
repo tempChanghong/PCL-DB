@@ -29,7 +29,7 @@ function Assert-OutputChild([string]$Root, [string]$Path) {
 }
 
 function Assert-BuildManifest([object]$Manifest) {
-    if ($Manifest.Format -isnot [string] -or $Manifest.Format -cnotin @('PCL-DB-single-exe/v2','PCL-DB-single-exe/v3') -or !$Manifest.PSObject.Properties['ReleaseVersion'] -or
+    if ($Manifest.Format -isnot [string] -or $Manifest.Format -cnotin @('PCL-DB-single-exe/v2','PCL-DB-single-exe/v3','PCL-DB-single-exe/v4') -or !$Manifest.PSObject.Properties['ReleaseVersion'] -or
         !$Manifest.Verification.PSObject.Properties['MotionChecks'] -or
         $Manifest.Version -notmatch '^\d+\.\d+\.\d+$' -or
         $Manifest.ReleaseVersion -cnotmatch ('^' + [regex]::Escape($Manifest.Version) + '(?:-(?:alpha|beta|rc)\.[1-9]\d*)?$') -or
@@ -51,8 +51,8 @@ function Assert-BuildManifest([object]$Manifest) {
         if ($file.Name -cnotin $script:PayloadNames -or $seen.ContainsKey($file.Name) -or $file.Length -le 0 -or $file.SHA256 -notmatch '^[0-9A-F]{64}$') { throw 'Invalid build manifest file inventory.' }
         $seen[$file.Name] = $true
     }
-    Assert-PclDbEmbeddedAssemblies $Manifest.EmbeddedAssemblies
-    if ($Manifest.Format -ceq 'PCL-DB-single-exe/v3') {
+    Assert-PclDbEmbeddedAssemblies $Manifest.EmbeddedAssemblies -Presentation:($Manifest.Format -ceq 'PCL-DB-single-exe/v4')
+    if ($Manifest.Format -cin @('PCL-DB-single-exe/v3','PCL-DB-single-exe/v4')) {
         $exe = $Manifest.Files | Where-Object Name -CEQ 'PCL-DB.exe'
         try { Assert-PclDbVerification $Manifest.Verification $exe.SHA256 }
         catch { throw "Invalid build manifest. $($_.Exception.Message)" }
@@ -61,9 +61,9 @@ function Assert-BuildManifest([object]$Manifest) {
 
 function New-PclDbBuildManifest([object]$Candidate) {
     Assert-PclDbCandidateVerification $Candidate
-    Assert-PclDbEmbeddedAssemblies $Candidate.EmbeddedAssemblies
+    Assert-PclDbEmbeddedAssemblies $Candidate.EmbeddedAssemblies -Presentation
     [pscustomobject][ordered]@{
-        Format='PCL-DB-single-exe/v3';Version=$Candidate.Version;ReleaseVersion=$Candidate.ReleaseVersion
+        Format='PCL-DB-single-exe/v4';Version=$Candidate.Version;ReleaseVersion=$Candidate.ReleaseVersion
         Build=[ordered]@{SourceCommit=$Candidate.Source.Commit;SourceBranch=$Candidate.Source.Branch;Dirty=$Candidate.Source.Dirty;InventorySHA256=$Candidate.Source.InventorySHA256
             DotnetSDK=$Candidate.DotnetSDK;Configuration='Release';Framework='net48';SingleExecutable=$true}
         Verification=$Candidate.Verification
@@ -81,7 +81,9 @@ function Write-PclDbBuildManifest([object]$Manifest, [string]$Path) {
 }
 
 function Assert-ManifestCandidate([object]$Manifest, [object]$Candidate) {
-    if ($Manifest.Format -cne 'PCL-DB-single-exe/v3') { throw 'A historical manifest cannot satisfy current candidate verification.' }
+    if ($Manifest.Format -cne 'PCL-DB-single-exe/v4') { throw 'A historical manifest cannot satisfy current candidate verification.' }
+    Assert-PclDbCandidateVerification $Candidate
+    Assert-PclDbEmbeddedAssemblies $Manifest.EmbeddedAssemblies -Presentation
     Assert-PclDbVerification $Manifest.Verification $Candidate.CandidateSHA256 -Current
     $manifestEvidence = New-PclDbVerification $Manifest.Verification.Reports $Candidate.CandidateSHA256
     $candidateEvidence = New-PclDbVerification $Candidate.Verification.Reports $Candidate.CandidateSHA256

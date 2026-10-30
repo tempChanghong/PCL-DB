@@ -4,6 +4,7 @@
     "Projects": [
       { "Path": "src\\PclDownloadBridge.App\\PclDownloadBridge.App.vbproj", "Action": "Start" },
       { "Path": "src\\PclDownloadBridge.Core\\PclDownloadBridge.Core.csproj", "Action": "None" },
+      { "Path": "src\\PclDownloadBridge.Presentation\\PclDownloadBridge.Presentation.csproj", "Action": "None" },
       { "Path": "tests\\PclDownloadBridge.Tests\\PclDownloadBridge.Tests.vbproj", "Action": "None" }
     ]
   },
@@ -12,6 +13,7 @@
     "Projects": [
       { "Path": "src\\PclDownloadBridge.App\\PclDownloadBridge.App.vbproj", "Action": "None" },
       { "Path": "src\\PclDownloadBridge.Core\\PclDownloadBridge.Core.csproj", "Action": "None" },
+      { "Path": "src\\PclDownloadBridge.Presentation\\PclDownloadBridge.Presentation.csproj", "Action": "None" },
       { "Path": "tests\\PclDownloadBridge.Tests\\PclDownloadBridge.Tests.vbproj", "Action": "Start" }
     ]
   }

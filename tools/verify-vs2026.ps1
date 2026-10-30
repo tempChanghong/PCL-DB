@@ -16,8 +16,9 @@ $msbuild = Join-Path $installation.installationPath 'MSBuild\Current\Bin\amd64\M
 if (!(Test-Path -LiteralPath $msbuild)) { throw 'VS 2026 MSBuild.exe was not found.' }
 $appProject = 'src\PclDownloadBridge.App\PclDownloadBridge.App.vbproj'
 $coreProject = 'src\PclDownloadBridge.Core\PclDownloadBridge.Core.csproj'
+$presentationProject = 'src\PclDownloadBridge.Presentation\PclDownloadBridge.Presentation.csproj'
 $testProject = 'tests\PclDownloadBridge.Tests\PclDownloadBridge.Tests.vbproj'
-$projects = @($appProject, $coreProject, $testProject)
+$projects = @($appProject, $coreProject, $presentationProject, $testProject)
 $properties = @{}
 
 function Expand-ProfileValue([string]$value, $evaluated) {
@@ -79,6 +80,7 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "Cannot evaluate project: $project" }
         $evaluated = ($json | ConvertFrom-Json).Properties
         if ($project -ceq $coreProject -and ($evaluated.TargetFramework -cne 'net48' -or $evaluated.AssemblyName -cne 'PclDownloadBridge.Core' -or $evaluated.RootNamespace -cne 'PclDownloadBridge.Core')) { throw 'C# Core must retain its .NET Framework target and assembly/namespace identity.' }
+        if ($project -ceq $presentationProject -and ($evaluated.TargetFramework -cne 'net48' -or $evaluated.AssemblyName -cne 'PclDownloadBridge.Presentation' -or $evaluated.RootNamespace -cne 'PclDownloadBridge.Presentation')) { throw 'C# Presentation must retain its .NET Framework target and assembly/namespace identity.' }
         if ($evaluated.DebugType -ne 'portable' -or $evaluated.DebugSymbols -ne 'true' -or $evaluated.Optimize -ne 'false') { throw "Invalid Debug symbol/optimization settings: $project" }
         $pdb = [IO.Path]::ChangeExtension($evaluated.TargetPath, '.pdb')
         if (!(Test-Path -LiteralPath $pdb)) { throw "Missing PDB: $pdb" }

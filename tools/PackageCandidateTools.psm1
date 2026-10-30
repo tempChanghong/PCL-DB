@@ -78,14 +78,14 @@ function Test-PclDbCandidate {
     param([Parameter(Mandatory)][string]$ProjectRoot, [Parameter(Mandatory)][string]$CandidateResultPath)
     $result = Get-Content -LiteralPath $CandidateResultPath -Raw -Encoding UTF8 | ConvertFrom-Json
     Assert-PclDbCandidateVerification $result
-    Assert-PclDbEmbeddedAssemblies $result.EmbeddedAssemblies
+    Assert-PclDbEmbeddedAssemblies $result.EmbeddedAssemblies -Presentation
     if (!$result.PSObject.Properties['ReleaseVersion'] -or
         $result.Succeeded -isnot [bool] -or !$result.Succeeded -or
         $result.ColdDirectoryContainsOnlyExe -isnot [bool] -or !$result.ColdDirectoryContainsOnlyExe -or $result.Version -notmatch '^\d+\.\d+\.\d+$' -or
         $result.Source.Commit -notmatch '^[0-9a-f]{40}$' -or $result.Source.InventorySHA256 -notmatch '^[0-9A-F]{64}$') { throw 'Invalid single EXE candidate report.' }
     Assert-PclDbSourceState $result.Source (Get-PclDbSourceState $ProjectRoot)
     $expectedNames = @('PCL-DB.exe') + $script:Documents
-    if ($result.PayloadFiles.Count -ne 8 -or $result.EmbeddedDocuments.Count -ne 7 -or $result.EmbeddedAssemblies.Count -ne 2) { throw 'Incomplete candidate inventory.' }
+    if ($result.PayloadFiles.Count -ne 8 -or $result.EmbeddedDocuments.Count -ne 7 -or $result.EmbeddedAssemblies.Count -ne 3) { throw 'Incomplete candidate inventory.' }
     $seen = @{}
     foreach ($file in $result.PayloadFiles) {
         if ($file.Name -cnotin $expectedNames -or $seen.ContainsKey($file.Name) -or $file.SHA256 -notmatch '^[0-9A-F]{64}$') { throw 'Unexpected or duplicate candidate file.' }

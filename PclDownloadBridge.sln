@@ -23,6 +23,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Development", "Development"
 		VS2026_DEBUG.md = VS2026_DEBUG.md
 	EndProjectSection
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PclDownloadBridge.Presentation", "src\PclDownloadBridge.Presentation\PclDownloadBridge.Presentation.csproj", "{8B3BF335-B7B9-4CDF-BA2B-AA8A4ECB2EB2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,18 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8B3BF335-B7B9-4CDF-BA2B-AA8A4ECB2EB2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8B3BF335-B7B9-4CDF-BA2B-AA8A4ECB2EB2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8B3BF335-B7B9-4CDF-BA2B-AA8A4ECB2EB2}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{8B3BF335-B7B9-4CDF-BA2B-AA8A4ECB2EB2}.Debug|x64.Build.0 = Debug|Any CPU
+		{8B3BF335-B7B9-4CDF-BA2B-AA8A4ECB2EB2}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{8B3BF335-B7B9-4CDF-BA2B-AA8A4ECB2EB2}.Debug|x86.Build.0 = Debug|Any CPU
+		{8B3BF335-B7B9-4CDF-BA2B-AA8A4ECB2EB2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8B3BF335-B7B9-4CDF-BA2B-AA8A4ECB2EB2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8B3BF335-B7B9-4CDF-BA2B-AA8A4ECB2EB2}.Release|x64.ActiveCfg = Release|Any CPU
+		{8B3BF335-B7B9-4CDF-BA2B-AA8A4ECB2EB2}.Release|x64.Build.0 = Release|Any CPU
+		{8B3BF335-B7B9-4CDF-BA2B-AA8A4ECB2EB2}.Release|x86.ActiveCfg = Release|Any CPU
+		{8B3BF335-B7B9-4CDF-BA2B-AA8A4ECB2EB2}.Release|x86.Build.0 = Release|Any CPU
 		{1023FFB0-4648-4404-BF8C-3DBC62CE1012}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{1023FFB0-4648-4404-BF8C-3DBC62CE1012}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1023FFB0-4648-4404-BF8C-3DBC62CE1012}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -74,6 +88,7 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{8B3BF335-B7B9-4CDF-BA2B-AA8A4ECB2EB2} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{1023FFB0-4648-4404-BF8C-3DBC62CE1012} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{A370AC6B-661C-4582-A7AE-3680369377BD} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{341E0A96-B55F-45EB-8C66-43AB99C4F51E} = {0AB3BF05-4346-4AA6-1389-037BE0695223}

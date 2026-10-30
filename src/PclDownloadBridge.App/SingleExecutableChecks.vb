@@ -36,19 +36,26 @@ Friend NotInheritable Class SingleExecutableChecks
         Check(RuntimeBootstrap.IsStandalone, "standalone build flag is active", passed)
         Dim executableFiles = IO.Directory.GetFiles(AppDomain.CurrentDomain.BaseDirectory)
         Check(executableFiles.Length = 1 AndAlso IO.Path.GetExtension(executableFiles(0)) = ".exe", "the cold-start directory contains only one executable and no config or DLLs", passed)
-        Dim assemblies = {GetType(MinecraftInstaller).Assembly, GetType(JsonConvert).Assembly}
+        Dim assemblies = {GetType(MinecraftInstaller).Assembly, GetType(JsonConvert).Assembly, GetType(Global.PclDownloadBridge.Presentation.MotionCurves).Assembly}
         For Each assembly In assemblies
             Check(String.IsNullOrEmpty(assembly.Location), "dependency was loaded from embedded bytes: " & assembly.GetName().Name, passed)
             Dim requests = Enumerable.Range(0, 16).Select(Function(index) Task.Run(Function() RuntimeBootstrap.Resolve(assembly.FullName))).ToArray()
             Dim values = Await Task.WhenAll(requests).ConfigureAwait(False)
             Check(values.All(Function(value) Object.ReferenceEquals(value, assembly)), "concurrent dependency requests reuse the same assembly identity: " & assembly.GetName().Name, passed)
         Next
-        Check(RuntimeBootstrap.Resolve("Newtonsoft.Json.resources") Is Nothing AndAlso RuntimeBootstrap.Resolve("Unrelated.Assembly") Is Nothing, "the resolver ignores unknown and satellite assemblies", passed)
+        Check(RuntimeBootstrap.Resolve("Newtonsoft.Json.resources") Is Nothing AndAlso RuntimeBootstrap.Resolve("Unrelated.Assembly") Is Nothing AndAlso RuntimeBootstrap.Resolve("PclDownloadBridge.Presentation.resources") Is Nothing, "the resolver ignores unknown and satellite assemblies", passed)
         Dim wrongVersion As New AssemblyName(assemblies(0).FullName) With {.Version = New Version(99, 0, 0, 0)}
         Check(RuntimeBootstrap.Resolve(wrongVersion.FullName) Is Nothing, "an incompatible requested assembly version is rejected", passed)
         Dim wrongToken As New AssemblyName(assemblies(1).FullName)
         wrongToken.SetPublicKeyToken(New Byte(7) {})
         Check(RuntimeBootstrap.Resolve(wrongToken.FullName) Is Nothing, "an incompatible public-key token is rejected", passed)
+        Dim wrongPresentationVersion As New AssemblyName(assemblies(2).FullName) With {.Version = New Version(99, 0, 0, 0)}
+        Check(RuntimeBootstrap.Resolve(wrongPresentationVersion.FullName) Is Nothing, "an incompatible Presentation assembly version is rejected", passed)
+        Dim wrongPresentationCulture As New AssemblyName(assemblies(2).FullName) With {.CultureName = "fr-FR"}
+        Check(RuntimeBootstrap.Resolve(wrongPresentationCulture.FullName) Is Nothing, "an incompatible Presentation assembly culture is rejected", passed)
+        Dim wrongPresentationToken As New AssemblyName(assemblies(2).FullName)
+        wrongPresentationToken.SetPublicKeyToken(New Byte(7) {})
+        Check(RuntimeBootstrap.Resolve(wrongPresentationToken.FullName) Is Nothing, "an incompatible Presentation public-key token is rejected", passed)
         Dim legacy As Boolean, blocked As Boolean
         Check(AppContext.TryGetSwitch("Switch.System.IO.UseLegacyPathHandling", legacy) AndAlso Not legacy, "long-path handling does not rely on an adjacent config", passed)
         Check(AppContext.TryGetSwitch("Switch.System.IO.BlockLongPaths", blocked) AndAlso Not blocked, "long paths remain enabled without an adjacent config", passed)

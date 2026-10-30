@@ -3,9 +3,9 @@ $ErrorActionPreference = 'Stop'
 
 # Bump the policy ID when the required suites change. Archive integrity never
 # applies today's counts to an older manifest; current candidates always do.
-$script:PolicyId = 'PCL-DB-checks/2026-10-30.22'
+$script:PolicyId = 'PCL-DB-checks/2026-10-30.23'
 $script:CandidateScopes = @('standalone', 'all', 'motion', 'pack-search')
-$script:Counts = @{standalone=25; all=7200; motion=6045; 'pack-search'=3444; appearance=191; developer=36; cards=134; navigation=4639; compatibility=299; 'control-motion'=711}
+$script:Counts = @{standalone=30; all=7214; motion=6059; 'pack-search'=3444; appearance=191; developer=36; cards=134; navigation=4653; compatibility=299; 'control-motion'=725}
 $script:Fields = @{standalone='StandaloneChecks'; all='UiChecks'; motion='MotionChecks'; 'pack-search'='PackSearchChecks'}
 
 function Get-PclDbCheckPolicy {
@@ -90,21 +90,27 @@ function New-PclDbVerification {
 function Assert-PclDbCandidateVerification {
     [CmdletBinding()]
     param([Parameter(Mandatory)][object]$Candidate)
-    if (!$Candidate.PSObject.Properties['Format'] -or $Candidate.Format -isnot [string] -or $Candidate.Format -cne 'PCL-DB-candidate/v3' -or
+    if (!$Candidate.PSObject.Properties['Format'] -or $Candidate.Format -isnot [string] -or $Candidate.Format -cne 'PCL-DB-candidate/v4' -or
         !$Candidate.PSObject.Properties['Verification'] -or !$Candidate.PSObject.Properties['CandidateSHA256'] -or
         $Candidate.CandidateSHA256 -isnot [string] -or $Candidate.CandidateSHA256 -cnotmatch '^[0-9A-F]{64}$') { throw 'Invalid single EXE candidate report.' }
+    if (!$Candidate.PSObject.Properties['EmbeddedAssemblies']) { throw 'Incomplete embedded dependency inventory.' }
+    Assert-PclDbEmbeddedAssemblies $Candidate.EmbeddedAssemblies -Presentation
     Assert-PclDbVerification $Candidate.Verification $Candidate.CandidateSHA256 -Current
     foreach ($field in $script:Fields.Values) {
         if (!$Candidate.PSObject.Properties[$field] -or !(Test-CheckCount $Candidate.$field) -or $Candidate.$field -ne $Candidate.Verification.$field) { throw "Invalid single EXE candidate verification total: $field" }
     }
 }
 
-function Assert-PclDbEmbeddedAssemblies([object]$Assemblies) {
-    if ($Assemblies -isnot [array] -or $Assemblies.Count -ne 2) { throw 'Incomplete embedded dependency inventory.' }
+function Assert-PclDbEmbeddedAssemblies([object]$Assemblies, [switch]$Presentation) {
+    # The caller selects the model from a validated format, never from the
+    # supplied count. v2/v3 archives retain the original two-dependency model.
+    $names = @('PclDownloadBridge.Core','Newtonsoft.Json')
+    if ($Presentation) { $names += 'PclDownloadBridge.Presentation' }
+    if ($Assemblies -isnot [array] -or $Assemblies.Count -ne $names.Count) { throw 'Incomplete embedded dependency inventory.' }
     $seen = @{}
     foreach ($assembly in $Assemblies) {
         if ($null -eq $assembly -or !$assembly.PSObject.Properties['Name'] -or !$assembly.PSObject.Properties['SHA256'] -or
-            $assembly.Name -isnot [string] -or $assembly.Name -cnotin @('PclDownloadBridge.Core','Newtonsoft.Json') -or
+            $assembly.Name -isnot [string] -or $assembly.Name -cnotin $names -or
             $seen.ContainsKey($assembly.Name) -or $assembly.SHA256 -isnot [string] -or $assembly.SHA256 -cnotmatch '^[0-9A-F]{64}$') {
             throw 'Invalid embedded dependency inventory.'
         }

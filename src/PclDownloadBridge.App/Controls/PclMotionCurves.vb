@@ -6,17 +6,16 @@ Namespace Controls
     ' PCL 5ef81e4 ModAnimation: fluent powers and the cosine Back curve.
     Friend Module PclMotionCurves
         Friend Function Fluent(progress As Double, power As Double) As Double
-            Return 1 - Math.Pow(1 - Math.Max(0, Math.Min(1, progress)), power)
+            Return Global.PclDownloadBridge.Presentation.MotionCurves.Fluent(progress, power)
         End Function
 
         Friend Function Back(progress As Double, Optional power As Double = 3) As Double
-            Dim p = Math.Max(0, Math.Min(1, progress))
-            Return 1 - Math.Pow(1 - p, 3 - power * 0.5) * Math.Cos(1.5 * Math.PI * p)
+            Return Global.PclDownloadBridge.Presentation.MotionCurves.Back(progress, power)
         End Function
 
         Friend Function PageY(milliseconds As Double) As Double
             ' AaTranslateY(5,250,fluent) + AaTranslateY(11,350,back), running in parallel.
-            Return -16 + 5 * Fluent(milliseconds / 250, 3) + 11 * Back(milliseconds / 350)
+            Return Global.PclDownloadBridge.Presentation.MotionCurves.PageY(milliseconds)
         End Function
     End Module
 
