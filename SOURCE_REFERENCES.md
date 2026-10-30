@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 共享组件 Mods 校验与冻结取消（2026-10-30）
+
+- PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 ModDownloadLib／ModMinecraft 用于核对 PathIndie/mods、组件安装与隔离目录；C# 重点参考 CE 915ac29795efbdf6373417389e181e1504117048 的组件路径、下载校验、取消归属与资源释放。
+- 本轮仅修改 SharedModsPublication.CheckedFiles：远程 Matches 接原 token，本地 SHA1 冻结在原读租约内分块取消，None 调用保留原 ComputeHash；辅助方法为私有，不扩展接口。PCL-DB 的本地冻结／原子发布机制不冒称直接来自上游；Task.Run(checker.Check, token) 也不等于运行中散列按块取消。固定原字节与独立阶段审查见 artifacts/shared-mods-hash-cancellation/audit；[报告](docs/reviews/shared-mods-hash-cancellation-2026-10-30.md)。
+
 ## Forge／NeoForge 处理器散列取消（2026-10-30）
 
 - PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 ModDownloadLib、ModLoader 用于核对 Forgelike 依赖分析、处理器执行和取消归属；C# 重点参考 CE 915ac29795efbdf6373417389e181e1504117048 的 LoaderDownload、FileDownloader、DownloadResourceManager 的校验、晋升与资源释放。

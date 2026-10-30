@@ -1,5 +1,11 @@
 # 本地验证记录
 
+## 共享组件 Mods 校验与冻结取消（2026-10-30，尚未发行）
+
+基线 3ae37284d1b140d2ec78f9ff38258423274489c2。仅 SharedModsPublication.CheckedFiles 的远程声明校验与本地冻结摘要接入取消。原外层 FileShare.Read 租约、流位置、返回的路径／大小／小写 SHA1／分类、失败不返回部分结果保持；None 沿原 ComputeHash，取消分支用私有分块辅助方法，无新公开或 Friend API。Preflight、旧资源发布、Dispose／回滚及成功收尾不改。
+
+专项比较同新宿主旧 DLL 与修复后 DLL，检查远程／冻结散列早停、无远程摘要的 OptiFine、跨阶段写保护、取消重试，以及 None／未取消／空文件／预取消／坏摘要控制；实际安装联动另验证共享文件与隔离设置、私有树清理及无实例发布。再运行当前 VB 全量、原编译 Beta 8 宿主、当前接口／资源／配置、Release／VS2026 Debug 和冷目录单 EXE 启动／兼容。准确结果和输入摘要见[报告](docs/reviews/shared-mods-hash-cancellation-2026-10-30.md)及 artifacts/shared-mods-hash-cancellation/validation.json。本轮保留 VB 界面、测试和 net48，不另跑完整 UI／动画／搜索，不作真实网络或性能结论；未打包、推送或发版。
+
 ## Forge／NeoForge 处理器散列取消（2026-10-30，尚未发行）
 
 基线 f9bbb2071ae9ab1b52f22d8141355d6c3d63f144。仅依赖筛选、首次输出复用、整组输出确认和最终输出校验四处 Matches 传原 token；不改变 Merge、缓存回退、处理器执行条件或输出 Save 顺序。取消时清理任务拥有的私有树，保留已有实例／设置与已完成缓存；实例成功后的清理不变。并发取消与摘要错误遵守原 Matches(token) 的取消语义。

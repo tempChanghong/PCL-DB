@@ -48,7 +48,7 @@ namespace PclDownloadBridge.Core
                 // changed bytes into the new trusted publication digest.
                 using (var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
-                    if (!SafeFiles.Matches(path, item))
+                    if (!SafeFiles.Matches(path, item, token))
                         throw new InvalidDataException("待发布的组件 Mods 校验失败：" + item.RelativePath);
                     using (var sha = System.Security.Cryptography.SHA1.Create())
                     {
@@ -56,7 +56,7 @@ namespace PclDownloadBridge.Core
                         {
                             RelativePath = item.RelativePath,
                             Size = input.Length,
-                            Sha1 = BitConverter.ToString(sha.ComputeHash(input)).Replace("-", "").ToLowerInvariant(),
+                            Sha1 = BitConverter.ToString(HashStream(sha, input, token)).Replace("-", "").ToLowerInvariant(),
                             Category = "component"
                         });
                     }
@@ -64,6 +64,30 @@ namespace PclDownloadBridge.Core
                 }
             }
             return result;
+        }
+
+        private static byte[] HashStream(System.Security.Cryptography.HashAlgorithm hash, Stream input, CancellationToken token)
+        {
+            // Keep the existing provider behavior for non-cancellable callers. The
+            // caller's read lease spans remote checks and this frozen local digest.
+            if (!token.CanBeCanceled)
+                return hash.ComputeHash(input);
+            var buffer = new byte[65536];
+            do
+            {
+                token.ThrowIfCancellationRequested();
+                int count = input.Read(buffer, 0, buffer.Length);
+                if (count == 0)
+                    break;
+                hash.TransformBlock(buffer, 0, count, buffer, 0);
+            }
+            while (true);
+            token.ThrowIfCancellationRequested();
+            hash.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+            byte[] digest = hash.Hash;
+            hash.Initialize(); // ComputeHash resets its provider before returning.
+            token.ThrowIfCancellationRequested();
+            return digest;
         }
 
         internal static void FinishFolders(string root, string stage, bool modable)
