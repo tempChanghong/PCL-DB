@@ -53,6 +53,7 @@ Partial Public Class MainWindow
         VerifyPreviewFixture(Sub() VerifyLocalModTransferUi(artifactDirectory, checks))
         VerifyPreviewFixture(Sub() VerifyResourcePromptLifecycleUi(artifactDirectory, checks))
         VerifyPreviewFixture(Sub() VerifyResourceInputReentrancyUi(artifactDirectory, checks))
+        VerifyPreviewFixture(Sub() VerifyResourceSaveChooserUi(artifactDirectory, checks))
         VerifyPreviewFixture(Sub() VerifyResourceRetirementUi(artifactDirectory, checks))
         VerifyPreviewFixture(Sub() VerifyResourceEntryUi(artifactDirectory, checks))
         VerifyPreviewFixture(Sub() VerifyRepairNativeUi(artifactDirectory, checks))

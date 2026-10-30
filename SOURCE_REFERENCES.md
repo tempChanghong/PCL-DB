@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 社区资源另存为的页面归属（2026-10-30）
+
+- PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 PageDownloadCompDetail.xaml.vb:508–525 先选择保存位置、取消即返回，再按选定文件和路径建立下载步骤；ModLoader.vb:275–287 以执行身份判定结果有效性。参考 CE 915ac29795efbdf6373417389e181e1504117048 的 PageDownloadCompDetail.xaml.cs:384–398 与 ModLoader.cs:514–523、641–672。
+- 保留本工具现有选中文件副本、保存位置和下载内核，仅将选择器结果及错误绑定原有详情／分类／主页面代次；离开后返回同一项目也不复活旧操作。十份固定 Git 原字节及 SHA-256 见 artifacts/resource-save-chooser-lifetime/source/manifest.json，[受控复现与边界](docs/reviews/resource-save-chooser-lifetime-2026-10-30.md)。
+
 ## 管理目录操作的发布与交接（2026-10-30）
 
 - PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 PageInstanceOverall.xaml.vb:180–207 从当前实例的 PathVersion／PathIndie 取得目录，ModLoader.vb:275–287 以执行身份与取消状态判定输出有效性。参考 CE 915ac29795efbdf6373417389e181e1504117048 的 PageInstanceOverall.xaml.cs:508–531、ModLoader.cs:514–523、641–672；继续以 PCL2 的实例语义为主。

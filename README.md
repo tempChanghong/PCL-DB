@@ -1,5 +1,7 @@
 # PCL-DB · PCL Download Bridge
 
+社区资源另存为现绑定发起时的页面访问，离开再返回同一项目后，旧选择与错误不会影响新页面；正常下载和取消保持原流程。[修复与验证](docs/reviews/resource-save-chooser-lifetime-2026-10-30.md)。
+
 管理页打开文件夹时，重绘期间的返回和后续目录点击会使旧操作退役，避免打开旧目录或清掉新请求的加载提示。[修复与验证](docs/reviews/management-folder-publication-2026-10-30.md)。
 
 启动恢复在关闭或被新读取替代后会明确退役，迟到结果不再重采偏好基线、覆盖新编辑或更新关闭窗口；正常错误与暂缓关闭继续沿用原流程。[修复与验证](docs/reviews/preference-restore-lifetime-2026-10-30.md)。

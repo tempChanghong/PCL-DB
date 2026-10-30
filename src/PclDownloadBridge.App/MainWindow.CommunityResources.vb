@@ -484,6 +484,17 @@ Partial Public Class MainWindow
         If release.Platform <> project.Platform OrElse release.ProjectId <> project.Id OrElse release.Kind <> project.Kind Then Return
         Dim snapshot = release.Copy(), destination As String = Nothing, limit As Double
         If Not TryGetSpeedLimit(limit) Then NavigateToSetting(SpeedLimitBox, True) : Return
+        ' A modal picker can return to the same project after a newer page visit.
+        ' Its selection and errors still belong to the original visit only.
+        Dim generation = _resourceDetailGeneration, category = _resourceCategoryGeneration, navigation = _surfaceNavigationGeneration
+        Dim current As Func(Of Boolean) = Function() Not _closing AndAlso generation = _resourceDetailGeneration AndAlso category = _resourceCategoryGeneration AndAlso
+            navigation = _surfaceNavigationGeneration AndAlso ActivePackProject() Is project AndAlso _downloadView = DownloadView.Modpacks AndAlso
+            _packMode = PackBrowserMode.Detail AndAlso DownloadPage.IsVisible AndAlso owner.IsLoaded AndAlso owner.IsVisible
+        Dim publishFailure As Action(Of Exception) = Sub(failure)
+                                                         If Not current() Then Return
+                                                         PackProjectActionStatus.Text = failure.GetBaseException().Message
+                                                         If current() Then PackProjectActionStatus.Visibility = Visibility.Visible
+                                                     End Sub
         _choosingOnline = True
         Try
             If _resourceSaveChooser IsNot Nothing Then
@@ -496,16 +507,16 @@ Partial Public Class MainWindow
                 If dialog.ShowDialog(Me) = True Then destination = dialog.FileName
             End If
         Catch ex As Exception
-            If Not _closing Then PackProjectActionStatus.Text = ex.GetBaseException().Message : PackProjectActionStatus.Visibility = Visibility.Visible
+            publishFailure(ex)
             Return
         Finally
             _choosingOnline = False
         End Try
-        If String.IsNullOrEmpty(destination) OrElse Not CanUseResourceDetail(owner) OrElse ActivePackProject() IsNot project Then Return
+        If String.IsNullOrEmpty(destination) OrElse Not current() OrElse Not CanUseResourceDetail(owner) Then Return
         Try
             Await RunResourceSaveAsync(snapshot, destination)
         Catch ex As Exception
-            If Not _closing Then PackProjectActionStatus.Text = ex.GetBaseException().Message : PackProjectActionStatus.Visibility = Visibility.Visible
+            publishFailure(ex)
         End Try
     End Sub
     Private Function ResourceSaveContext() As InstalledInstance
