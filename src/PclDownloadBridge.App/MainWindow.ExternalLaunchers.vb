@@ -47,16 +47,24 @@ Partial Public Class MainWindow
         RefreshFollowedLauncherTheme()
     End Sub
 
-    Private Async Function RestoreLauncherBindingsAsync(settings As JObject) As Task
+    Private Async Function RestoreLauncherBindingsAsync(settings As JObject) As Task(Of Boolean)
+        If _closing Then Return False
         _launcherReadGeneration += 1
         Dim generation = _launcherReadGeneration
         _launcherFolders.Clear()
         _launcherState = LauncherBindingsState.Restore(settings, _pclBase)
         _launcherMigrationPending = settings IsNot Nothing AndAlso settings("externalLaunchers") Is Nothing
         RenderLauncherBindings()
+        If _closing OrElse generation <> _launcherReadGeneration Then Return False
         For Each binding In _launcherState.Bindings.ToArray()
-            Dim result = Await _launcherDirectoryLoader(binding.Copy())
-            If _closing OrElse generation <> _launcherReadGeneration Then Return
+            Dim result As LauncherDirectoryResult
+            Try
+                result = Await _launcherDirectoryLoader(binding.Copy())
+            Catch ex As Exception
+                If _closing OrElse generation <> _launcherReadGeneration Then Return False
+                Throw
+            End Try
+            If _closing OrElse generation <> _launcherReadGeneration Then Return False
             If result.Succeeded AndAlso result.Folders.Count > 0 Then _launcherFolders(binding.Id) = result.Folders
             If result.Warnings.Count > 0 Then LauncherReadStatus.Text = String.Join("；", result.Warnings)
         Next
@@ -65,7 +73,9 @@ Partial Public Class MainWindow
         If Not _launcherState.ReadOnlyFormat Then GameFolderFromSavedTarget(saved)
         ' Corrupt saved preferences require an explicit target choice when no trusted target remains.
         RebuildLauncherFolders(_launcherState.Warnings.Count = 0)
+        If _closing OrElse generation <> _launcherReadGeneration Then Return False
         If _launcherState.Warnings.Count > 0 Then LauncherReadStatus.Text = String.Join("；", _launcherState.Warnings)
+        Return Not _closing AndAlso generation = _launcherReadGeneration
     End Function
 
     Private Sub GameFolderFromSavedTarget(binding As ExternalLauncherBinding)

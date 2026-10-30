@@ -165,5 +165,6 @@ Partial Public Class MainWindow
         VerifySettingsFormatConflicts(check, root)
         VerifySettingsDuplicateKeys(check, root)
         VerifyScalarPreferenceRecovery(check, root)
+        VerifyRetiredPreferenceRecovery(check, root)
     End Sub
 End Class

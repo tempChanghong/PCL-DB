@@ -16,6 +16,7 @@ Partial Public Class MainWindow
     End Function
 
     Private Async Function RestorePreferenceValuesAsync(settings As JObject) As Task(Of List(Of String))
+        If _closing Then Return Nothing
         Dim invalid As New List(Of String)
         If settings IsNot Nothing Then
             RestoreDeveloperSettings(settings("developer"))
@@ -30,10 +31,11 @@ Partial Public Class MainWindow
             SpeedLimitBox.Text = If(Double.TryParse(storedSpeed, Globalization.NumberStyles.Float, Globalization.CultureInfo.InvariantCulture, restoredSpeed), restoredSpeed.ToString(Globalization.CultureInfo.CurrentCulture), storedSpeed)
             ReuseBox.IsChecked = ReadScalarPreference(settings, "reuse", "复用文件", True, Function(value) CBool(value), invalid)
             JavaPathBox.Text = ReadScalarPreference(settings, "java", "Java 路径", "", Function(value) If(CStr(value), ""), invalid)
-            Await RestoreLauncherBindingsAsync(settings)
+            If Not Await RestoreLauncherBindingsAsync(settings) Then Return Nothing
         Else
-            Await RestoreLauncherBindingsAsync(Nothing)
+            If Not Await RestoreLauncherBindingsAsync(Nothing) Then Return Nothing
         End If
+        If _closing Then Return Nothing
         CapturePreferenceBaseline()
         Return invalid
     End Function

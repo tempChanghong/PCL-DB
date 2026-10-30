@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 启动恢复退役与关闭（2026-10-30）
+
+- PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 ModLoader.vb:275–287 通过当前线程身份和取消状态判断结果有效性，FormMain:557 起在处理退出任务后才进入关闭。C# 重点参考 CE 915ac29795efbdf6373417389e181e1504117048 的 ModLoader.cs:514–523、641–672 对过期完成／异常的丢弃，以及 FormMain:491 起的退出确认边界。
+- 本工具继续使用既有任务代次和关闭标志，目录恢复返回私有完成标志后才允许基线发布，不采用强制终止线程或上游退出窗口流程。十三份固定 Git 原字节见 artifacts/preference-restore-lifetime/source/manifest.json，[复现与验证边界](docs/reviews/preference-restore-lifetime-2026-10-30.md)。
+
 ## 基础偏好的逐项恢复（2026-10-30）
 
 - PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 Settings.Get:327–361 在单项转换失败时采用该项默认值。C# 重点参考 CE 915ac29795efbdf6373417389e181e1504117048 的 FileConfigStorage:106–135 对转换异常的隔离；不移入 CE 的坏项删除或同步写回。

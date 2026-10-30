@@ -14,7 +14,7 @@ Partial Public Class MainWindow
         Set(value As Boolean)
             If _settingsRestoring = value Then Return
             _settingsRestoring = value
-            If AppearanceCard Is Nothing Then Return
+            If AppearanceCard Is Nothing OrElse _closing Then Return
             ' PCL reloads settings synchronously under AniControlEnabled. Our
             ' external directory discovery awaits I/O, so its reload gate must
             ' also cover user input until models and their baseline are ready.
