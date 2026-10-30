@@ -135,11 +135,11 @@ F9 切换断点，F10 逐过程，F11 逐语句。`Directory.Build.props` 明确
 
 Copy Fallback 的文件占用样本使用 Windows NTFS 辅助数据流，默认临时目录需支持 NTFS 数据流。取消样本只在控制台进程内暂时注册受控 SHA-1 提供程序，在真实哈希计算结束处请求取消，并在 Finally 恢复原映射；应用程序与便携包不包含这个提供程序。
 
-当前版本为 Beta 6.0（`6.0.0-beta.1`），包含已安装实例与本地 Mod 管理、社区资源搜索与指定实例安装，以及设置恢复、目录身份、弹窗和动画交接修复；历史 Beta 的标签及工件保留。已有 `.vs` / `.suo` 用户状态继续保留；共享配置使用源码中的启动配置文件。`build.ps1` 默认构建和验证；明确要求打包时才使用 `build.ps1 -Package`，发布另行处理。
+当前版本为 Beta 9.0（`9.0.0-beta.1`），包含已安装实例与本地 Mod 管理、社区资源搜索与指定实例安装，以及设置恢复、目录身份、弹窗和动画交接修复；历史 Beta 的标签及工件保留。已有 `.vs` / `.suo` 用户状态继续保留；共享配置使用源码中的启动配置文件。`build.ps1` 默认构建和验证；明确要求打包时才使用 `build.ps1 -Package`，发布另行处理。
 
-单 EXE 验证单独执行 `tools/verify-single-exe.ps1`。该工具以 `PclDbSingleExecutable=true` 构建 App，并使用本次独立的 MSBuild artifacts 路径，不覆盖默认 bin/obj 或现有 VS 输出；候选只含一个 EXE，仍依赖系统 .NET Framework 4.8。它运行 25 项单文件、2031 项界面、1501 项动画与 1169 项搜索检查，验证资源、字体、文档回退、程序集加载、长路径、回环下载及界面流程。普通 F5 继续使用多文件 Debug 与便携 PDB，不需要手动移动 DLL 或修改启动项目；验证器不会生成发布 ZIP 或更新 dist。
+单 EXE 验证单独执行 `tools/verify-single-exe.ps1`。该工具以 `PclDbSingleExecutable=true` 构建 App，并使用本次独立的 MSBuild artifacts 路径，不覆盖默认 bin/obj 或现有 VS 输出；候选只含一个 EXE，仍依赖系统 .NET Framework 4.8。它运行当前策略规定的单文件、界面、动画与搜索检查（计数见 `tools/VerificationTools.psm1` 和发行附件 `verification.json`），验证资源、字体、文档回退、程序集加载、长路径、回环下载及界面流程。普通 F5 继续使用多文件 Debug 与便携 PDB，不需要手动移动 DLL 或修改启动项目；验证器不会生成发布 ZIP 或更新 dist。
 
-显式 `build.ps1 -Package` 接入上述独立候选，生成单 EXE、九文件 ZIP 和 v3 构建清单。候选报告包含完整 Git 提交、源码摘要、工作区状态、SDK、EXE ProductVersion 及四组完整回执；源码或文档变化后必须重新验证。`-SkipTests -Package` 仍执行 25/2031/1501/1169 四组候选验收。旧 Beta v2 清单可独立核对历史载荷完整性，不能充当当前候选。普通构建/F5 不增加打包动作，具体资产核对命令见 README。
+显式 `build.ps1 -Package` 接入上述独立候选，生成单 EXE、九文件 ZIP 和 v4 构建清单。候选报告包含完整 Git 提交、源码摘要、工作区状态、SDK、EXE ProductVersion 及四组完整回执；源码或文档变化后必须重新验证。`-SkipTests -Package` 仍执行当前策略的四组完整候选验收。旧 Beta v2 清单可独立核对历史载荷完整性，不能充当当前候选。普通构建/F5 不增加打包动作，具体资产核对命令见 README。
 
 ## 配置依据
 

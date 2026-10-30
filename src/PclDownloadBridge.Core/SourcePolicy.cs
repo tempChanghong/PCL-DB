@@ -423,7 +423,7 @@ namespace PclDownloadBridge.Core
         public static HttpClient CreateClient()
         {
             var client = new HttpClient(new HttpClientHandler() { AutomaticDecompression = System.Net.DecompressionMethods.None, MaxConnectionsPerServer = 16 }) { Timeout = TimeSpan.FromSeconds(45d) };
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("PclDownloadBridge/8.0.0-beta.1 (local Minecraft installer)");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("PclDownloadBridge/9.0.0-beta.1 (local Minecraft installer)");
             return client;
         }
     }

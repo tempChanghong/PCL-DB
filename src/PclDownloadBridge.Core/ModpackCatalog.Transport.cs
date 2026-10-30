@@ -19,7 +19,7 @@ namespace PclDownloadBridge.Core
         public ModpackCatalogClient(HttpMessageHandler handler = null, string apiKey = null, int communitySource = 2)
         {
             _client = new HttpClient(handler ?? new HttpClientHandler() { AllowAutoRedirect = false, AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate, MaxConnectionsPerServer = 4 }) { Timeout = Timeout.InfiniteTimeSpan };
-            _client.DefaultRequestHeaders.UserAgent.ParseAdd("PclDownloadBridge/8.0.0-beta.1 (modpack catalogue)");
+            _client.DefaultRequestHeaders.UserAgent.ParseAdd("PclDownloadBridge/9.0.0-beta.1 (modpack catalogue)");
             _key = apiKey ?? Environment.GetEnvironmentVariable("PCLDB_CURSEFORGE_API_KEY");
             if (communitySource < 0 || communitySource > 2)
                 throw new ArgumentOutOfRangeException(nameof(communitySource));

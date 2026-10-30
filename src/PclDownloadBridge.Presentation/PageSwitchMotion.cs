@@ -15,6 +15,7 @@ namespace PclDownloadBridge.Presentation
         private readonly TranslateTransform _installOffset;
         private readonly Action _completed;
         private ClockGroup _transition;
+        private long _mutation;
 
         internal PageSwitchMotion(FrameworkElement versions, FrameworkElement install,
             TranslateTransform versionOffset, TranslateTransform installOffset, Action completed)
@@ -46,36 +47,56 @@ namespace PclDownloadBridge.Presentation
         internal void Start(FrameworkElement outgoing, FrameworkElement incoming,
             TranslateTransform outOffset, TranslateTransform inOffset, bool entering)
         {
+            var mutation = ++_mutation;
             var clock = (ClockGroup)TransitionPlan(outgoing.Opacity, outOffset.X,
                 incoming.Opacity, inOffset.X, entering).CreateClock(true);
+            if (mutation != _mutation)
+            {
+                clock.Controller.Remove();
+                return;
+            }
             _transition = clock;
             clock.CurrentTimeInvalidated += (sender, args) =>
             {
-                if (ReferenceEquals(_transition, clock) && entering && clock.CurrentTime.HasValue &&
+                if (mutation == _mutation && ReferenceEquals(_transition, clock) && entering && clock.CurrentTime.HasValue &&
                     clock.CurrentTime.Value.TotalMilliseconds >= 100)
                     _versions.Visibility = Visibility.Collapsed;
             };
             clock.Completed += (sender, args) =>
             {
-                if (!ReferenceEquals(_transition, clock)) return;
-                Stop();
+                if (mutation != _mutation || !ReferenceEquals(_transition, clock)) return;
+                if (!StopCore()) return;
                 _completed();
             };
             outgoing.ApplyAnimationClock(UIElement.OpacityProperty, (AnimationClock)clock.Children[0]);
+            if (mutation != _mutation || !ReferenceEquals(_transition, clock)) return;
             outOffset.ApplyAnimationClock(TranslateTransform.XProperty, (AnimationClock)clock.Children[1]);
+            if (mutation != _mutation || !ReferenceEquals(_transition, clock)) return;
             incoming.ApplyAnimationClock(UIElement.OpacityProperty, (AnimationClock)clock.Children[2]);
+            if (mutation != _mutation || !ReferenceEquals(_transition, clock)) return;
             inOffset.ApplyAnimationClock(TranslateTransform.XProperty, (AnimationClock)clock.Children[3]);
         }
 
         internal void Stop()
         {
+            StopCore();
+        }
+
+        private bool StopCore()
+        {
+            var mutation = ++_mutation;
             var previous = _transition;
             _transition = null;
             previous?.Controller.Remove();
+            if (mutation != _mutation) return false;
             _versions.BeginAnimation(UIElement.OpacityProperty, null);
+            if (mutation != _mutation) return false;
             _install.BeginAnimation(UIElement.OpacityProperty, null);
+            if (mutation != _mutation) return false;
             _versionOffset.BeginAnimation(TranslateTransform.XProperty, null);
+            if (mutation != _mutation) return false;
             _installOffset.BeginAnimation(TranslateTransform.XProperty, null);
+            return mutation == _mutation;
         }
     }
 }

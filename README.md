@@ -50,9 +50,9 @@ PCL 位置、线程数、速度、文件复用和 Java 路径的类型损坏现�
 
 从本地 Mod 管理进入下载时，先绑定当前实例的版本／加载器，再恢复仍有效的搜索缓存；布局期间的新导航会使旧配置停止。[修复与验证](docs/reviews/search-restore-entry-2026-10-29.md)。
 
-C# Core／Presentation + VB.NET WPF + .NET Framework 4.8 的 Minecraft Java 下载与本地实例管理工具，简称 PCL-DB。最新发布为 **Beta 8.0**（`8.0.0-beta.1`）。[发布说明](docs/releases/8.0.0-beta.1.md)。
+C# Core／Presentation + VB.NET WPF + .NET Framework 4.8 的 Minecraft Java 下载与本地实例管理工具，简称 PCL-DB。最新发布为 **Beta 9.0**（`9.0.0-beta.1`）。[发布说明](docs/releases/9.0.0-beta.1.md)。
 
-当前源码已完成 Beta 8 基线的 Core C# 迁移，并使用独立的 C# Presentation 辅助库承接纯动画计算与单属性时钟管理；页面、XAML、WPF 动画类型和测试继续使用 VB，现有入口、配置与资源名称保留。这些迁移尚未发行，现有 Beta 8 发布工件不变。[Core 迁移](docs/reviews/core-csharp-migration-2026-10-29.md)；[界面桥接](docs/reviews/presentation-csharp-bridge-2026-10-30.md)；[动画时钟迁移](docs/reviews/presentation-motion-slot-2026-10-30.md)。
+Beta 9 包含以 Beta 8 为基线的 Core C# 迁移，独立的 C# Presentation 库承接动画计算、控件反馈及部分时钟管理；页面、XAML、原 WPF 动画类型和 VB 测试继续保留，配置与资源名称不变。界面继续以 PCL2 为核心，C# 逻辑参考 PCL-CE。[Core 迁移](docs/reviews/core-csharp-migration-2026-10-29.md)；[界面桥接](docs/reviews/presentation-csharp-bridge-2026-10-30.md)；[水平切换时钟](docs/reviews/presentation-page-switch-2026-10-31.md)。
 
 UI 对照旧 VB 版及 PCL2／PCL-CE，修正本地 Mod 页卡片与列表边距、筛选顺序，并让下拉菜单跟随所属窗口的不透明度；保留换行、明暗模式与原动画。[对照与验证](docs/reviews/ui-fidelity-2026-10-29.md)。
 
@@ -85,6 +85,8 @@ Core 已进入第二轮结构整理，首批将平台目录按模型、查询编
 下载器的目标／供体／复制副本、续传缓存、HEAD 长度误报和最终内容校验接入取消令牌，取消保留可重试内容并避免误计复用。[修复与验证](docs/reviews/download-hash-cancellation-2026-10-29.md)。[第二轮收尾边界与第三轮门槛](docs/reviews/core-refactor-round2-closeout-2026-10-29.md)继续保留；第三轮已从本地 Mod 私有文本解析开始，发布编排仍单独收尾。
 
 组件和处理器输出缓存的恢复、保存与副本校验也接入取消令牌，取消保留原文件和缓存并支持重试；实例发布成功后的可选清理保持原语义。[修复与验证](docs/reviews/component-cache-hash-cancellation-2026-10-29.md)。
+
+Beta 9.0 发布 C# Core 与动画辅助库重构，完善散列校验取消、共享文件发布保护、Mod 更新提示，并修复安装页动画回调期间接受新选择时的旧操作覆盖。原下载、管理、搜索和三种启动器的目录与隔离机制保留。[整体检查与发布验证](docs/reviews/beta9-overall-audit-2026-10-31.md)。
 
 Beta 8.0 完善快速切换、搜索返回、安装任务与本地管理的交接：旧请求和取消通知不再覆盖新操作，任务页和返回标题保持一致；资源已成功安装后，列表刷新异常不再将其误报为失败或阻止重试。打包直接保留完整验证回执并压缩 JSON 格式，无需环境覆盖。
 
@@ -134,9 +136,9 @@ Beta 5.0 同时修复资源弹窗失败恢复、启动目录恢复被切页中�
 
 ## 使用
 
-从 [Beta 8.0](https://github.com/tempChanghong/PCL-DB/releases/tag/v8.0.0-beta.1) 下载 `PCL-DB-8.0.0-beta.1.exe` 直接运行，或下载 ZIP 解压后运行其中的 `PCL-DB.exe`。源码构建方法见下文。
+从 [Beta 9.0](https://github.com/tempChanghong/PCL-DB/releases/tag/v9.0.0-beta.1) 下载 `PCL-DB-9.0.0-beta.1.exe` 直接运行，或下载 ZIP 解压后运行其中的 `PCL-DB.exe`。源码构建方法见下文。
 
-Beta 8.0 的两个下载入口使用相同的单 EXE，仍需系统安装 .NET Framework 4.8。ZIP 另外附带许可、使用说明和构建清单。已有多文件预览版运行时仍须保留自己的 DLL 和配置文件。源码默认构建入口为 `src/PclDownloadBridge.App/bin/Release/net48/PclDownloadBridge.exe`，显式打包后的便携目录入口为 `dist/PclDownloadBridge/PCL-DB.exe`。
+Beta 9.0 的两个下载入口使用相同的单 EXE，仍需系统安装 .NET Framework 4.8。ZIP 另外附带许可、使用说明和构建清单。已有多文件预览版运行时仍须保留自己的 DLL 和配置文件。源码默认构建入口为 `src/PclDownloadBridge.App/bin/Release/net48/PclDownloadBridge.exe`，显式打包后的便携目录入口为 `dist/PclDownloadBridge/PCL-DB.exe`。
 
 1. 打开「设置 → 外部启动器」，选择 PCL、HMCL 或 PCL-CE 的工作目录，点击「读取目录」，然后在「游戏」卡片选择安装目标；多份启动器可分别绑定，也可指定目录配置文件或手动选择 `.minecraft`。同页可分别设置「文件下载源」和「版本列表源」：BMCLAPI 优先、自动、官方优先；自动为默认值。切换版本列表源后，返回下载页会按新设置刷新当前列表；安装选项页也可点击「刷新列表」，保留版本、名称与组件选择。
 2. 回到「下载」，顶部显示安装目标；点击版本，填写实例名称。展开卡片选择 Forge、NeoForge、Fabric、Fabric API、OptiFine、OptiFabric 或 LiteLoader，点击「开始下载」。按 PCL 规则显示适用选项及互斥关系，Fabric API 和 OptiFabric 随父组件显示。默认拒绝覆盖同名实例。

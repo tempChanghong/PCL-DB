@@ -17,6 +17,7 @@ Namespace Controls
         Private ReadOnly _cardsEnabled As Func(Of Boolean)
         Private ReadOnly _cards As PclPageCardMotion
         Private _finishing As Boolean
+        Private _selectionGeneration As Long
 
         Friend Event Settled As EventHandler
 
@@ -67,44 +68,71 @@ Namespace Controls
 
         Friend Sub SelectInstall(value As Boolean, animate As Boolean)
             If _installSelected = value Then Return
+            _selectionGeneration += 1
+            Dim generation = _selectionGeneration
             Dim versionOpacity = _versions.Opacity, versionX = _versionOffset.X
             Dim installOpacity = _install.Opacity, installX = _installOffset.X
+            If generation <> _selectionGeneration Then Return
             _installSelected = value
             StopTransition()
-            If Not animate OrElse Not _enabled() OrElse Not _host.IsVisible OrElse Not _host.IsLoaded Then
+            If generation <> _selectionGeneration Then Return
+            Dim canAnimate = animate AndAlso _enabled() AndAlso _host.IsVisible AndAlso _host.IsLoaded
+            If generation <> _selectionGeneration Then Return
+            If Not canAnimate Then
                 Finish()
                 Return
             End If
-            _versions.Opacity = versionOpacity : _versionOffset.X = versionX
-            _install.Opacity = installOpacity : _installOffset.X = installX
-            _versions.Visibility = Visibility.Visible : _install.Visibility = Visibility.Visible
-            _versions.IsHitTestVisible = Not value : _install.IsHitTestVisible = value
+            _versions.Opacity = versionOpacity
+            If generation <> _selectionGeneration Then Return
+            _versionOffset.X = versionX
+            If generation <> _selectionGeneration Then Return
+            _install.Opacity = installOpacity
+            If generation <> _selectionGeneration Then Return
+            _installOffset.X = installX
+            If generation <> _selectionGeneration Then Return
+            _versions.Visibility = Visibility.Visible
+            If generation <> _selectionGeneration Then Return
+            _install.Visibility = Visibility.Visible
+            If generation <> _selectionGeneration Then Return
+            _versions.IsHitTestVisible = Not value
+            If generation <> _selectionGeneration Then Return
+            _install.IsHitTestVisible = value
+            If generation <> _selectionGeneration Then Return
             _host.IsHitTestVisible = False
+            If generation <> _selectionGeneration Then Return
             Dim outgoing = If(value, _versions, _install), incoming = If(value, _install, _versions)
             Dim outOffset = If(value, _versionOffset, _installOffset), inOffset = If(value, _installOffset, _versionOffset)
             _finishing = True
             Try
                 If _cards IsNot Nothing Then
-                    If _cardsEnabled() Then
+                    Dim animateCards = _cardsEnabled()
+                    If generation <> _selectionGeneration Then Return
+                    If animateCards Then
                         _cards.Change(outgoing, incoming)
                     Else
                         _cards.Finish()
                     End If
+                    If generation <> _selectionGeneration Then Return
                 End If
             Catch
-                Finish()
+                If generation = _selectionGeneration Then Finish()
                 Throw
             Finally
                 _finishing = False
             End Try
+            If generation <> _selectionGeneration Then Return
             _motion.Start(outgoing, incoming, outOffset, inOffset, value)
         End Sub
 
         Friend Sub Finish()
+            _selectionGeneration += 1
+            Dim generation = _selectionGeneration
             _finishing = True
             Try
                 StopTransition()
+                If generation <> _selectionGeneration Then Return
                 _cards?.Finish()
+                If generation <> _selectionGeneration Then Return
             Finally
                 _finishing = False
             End Try
@@ -116,16 +144,26 @@ Namespace Controls
         End Sub
 
         Private Sub Settle(notify As Boolean, Optional initial As Boolean = False)
+            Dim generation = _selectionGeneration
             _versions.Visibility = If(_installSelected, Visibility.Collapsed, Visibility.Visible)
+            If generation <> _selectionGeneration Then Return
             _install.Visibility = If(_installSelected, Visibility.Visible, Visibility.Collapsed)
+            If generation <> _selectionGeneration Then Return
             _versions.Opacity = If(_installSelected, 0, 1)
+            If generation <> _selectionGeneration Then Return
             _install.Opacity = If(_installSelected, 1, 0)
+            If generation <> _selectionGeneration Then Return
             _versionOffset.X = If(_installSelected, -50, 0)
+            If generation <> _selectionGeneration Then Return
             ' PCL initially starts at 40 DIP; returning from the install page leaves it at 50 DIP.
             _installOffset.X = If(_installSelected, 0, If(initial, 40, 50))
+            If generation <> _selectionGeneration Then Return
             _versions.IsHitTestVisible = Not _installSelected
+            If generation <> _selectionGeneration Then Return
             _install.IsHitTestVisible = _installSelected
+            If generation <> _selectionGeneration Then Return
             _host.IsHitTestVisible = True
+            If generation <> _selectionGeneration Then Return
             If notify Then RaiseEvent Settled(Me, EventArgs.Empty)
         End Sub
     End Class

@@ -36,7 +36,7 @@ namespace PclDownloadBridge.Core
         internal static HttpClient CreateClient(bool allowLoopback)
         {
             var client = new HttpClient(new RedirectHandler(allowLoopback)) { Timeout = Timeout.InfiniteTimeSpan };
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("PclDownloadBridge/8.0.0-beta.1 (local Minecraft installer)");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("PclDownloadBridge/9.0.0-beta.1 (local Minecraft installer)");
             return client;
         }
         private sealed class RedirectHandler : DelegatingHandler

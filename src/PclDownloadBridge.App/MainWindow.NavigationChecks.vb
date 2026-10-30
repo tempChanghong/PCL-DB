@@ -56,6 +56,7 @@ Partial Public Class MainWindow
         VerifyPreviewFixture(Sub() VerifyCardMotionBridgeUi(artifactDirectory, checks))
         VerifyPreviewFixture(Sub() VerifyPageMotionBridgeUi(artifactDirectory, checks))
         VerifyPreviewFixture(Sub() VerifyPageSwitchBridgeUi(artifactDirectory, checks))
+        VerifyPreviewFixture(Sub() VerifyBeta9SwitchReentryUi(artifactDirectory, checks))
         VerifyPreviewFixture(Sub() VerifyPresentationBridgeUi(checks))
         VerifyPreviewFixture(Sub() VerifyMotionSlotBridgeUi(artifactDirectory, checks))
         VerifyPreviewFixture(Sub() VerifyLocalModTransferUi(artifactDirectory, checks))

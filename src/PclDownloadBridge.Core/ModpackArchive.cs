@@ -37,7 +37,7 @@ namespace PclDownloadBridge.Core
         internal static HttpClient CreateClient(ModpackPlatform platform, bool allowLoopback)
         {
             var client = new HttpClient(new ArchiveRedirects(platform, allowLoopback)) { Timeout = Timeout.InfiniteTimeSpan };
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("PclDownloadBridge/8.0.0-beta.1 (modpack archive)");
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("PclDownloadBridge/9.0.0-beta.1 (modpack archive)");
             return client;
         }
         private class ArchiveRedirects : DelegatingHandler
