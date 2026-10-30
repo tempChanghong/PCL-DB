@@ -1,5 +1,11 @@
 # 本地验证记录
 
+## 安装索引与补全客户端复验取消（2026-10-30，尚未发行）
+
+基线 d78cc2fa6592e9da1704fa6feef1fd2094f25420。MinecraftInstaller 两处既有 Matches 接入原 token：旧补充实例保留原 index.id 时的共享索引初检，以及 JSON／隔离 guard 内、客户端原子替换前的最终复验。原布局／索引命名、后续显式取消及 guard 验证、CommitFile、Complete／ReleasePublishedClient 均不改，不新增接口，也不改内存 metadata 摘要。
+
+专项沿真实安装链区分目标散列与下载／metadata 摘要，检查原令牌、字节早停、索引／JSON／INI／客户端保留、已完成资源修复保留、读保护释放和新令牌重试。None、冲突与迟到取消沿新必要控制及既有套件核对。具体计数、输入与源码摘要见[报告](docs/reviews/installer-final-hash-cancellation-2026-10-30.md)及 artifacts/installer-final-hash-cancellation/validation.json。最终使用当前 VB 全量、原编译 Beta 8 宿主、当前原始／规范 API（979／1247）、资源 2／配置样本 15、Release／VS2026 Debug 和冷目录单 EXE 验证；原 Beta 8 strict 仍因既有 Friend +4 不相等，不伪称零差异。原宿主全量在主 VB 完成后串行、默认 TEMP/TMP，不改断言或超时。未打包、推送或发版。
+
 ## 安装初始预检的散列取消（2026-10-30，尚未发行）
 
 基线 c14dcd0bed951527a74cd67c993d027fb773c467。MinecraftInstaller 初始旧资源验证与共享 Mods 预检改走两个带原 token 的新 internal 命名入口，原签名／唯一方法名与 None 行为保留。目录／路径冲突顺序、Sha1/MD5 门控、hashless 和 repair 跳过规则、隔离／启动器目标解析、发布与成功／回滚收尾不改。

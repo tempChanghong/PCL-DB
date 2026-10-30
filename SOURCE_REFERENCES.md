@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 安装索引与补全客户端复验取消（2026-10-30）
+
+- 以 PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的资源索引、PathIndie、客户端校验和安装任务归属为核心，C# 重点参考 CE 915ac29795efbdf6373417389e181e1504117048 的资源／客户端校验、取消与临时文件晋升。
+- 本轮仅为 MinecraftInstaller 的旧补充共享索引初检与补全客户端最终 Matches 传原 token，保留索引私有化、JSON／隔离 guard、原子替换和成功清理。补全已经完成的资源仍保留；SourcePolicy 的内存 metadata 摘要不在本轮。没有新增接口，相对当前 C# 基线应为原始／规范 API 零差异；原 Beta 8 的既有 Friend +4 继续单独记录。固定原字节与独立阶段审查见 artifacts/installer-final-hash-cancellation/audit；[报告](docs/reviews/installer-final-hash-cancellation-2026-10-30.md)。
+
 ## 安装初始预检的散列取消（2026-10-30）
 
 - 以 PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的旧资源、PathIndie、组件 Mods 和任务归属为核心，C# 重点参考 CE 915ac29795efbdf6373417389e181e1504117048 的资源布局、下载校验和取消传播。

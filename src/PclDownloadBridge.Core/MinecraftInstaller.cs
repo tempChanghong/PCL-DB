@@ -153,7 +153,7 @@ namespace PclDownloadBridge.Core
                 if (legacySupplementalIndex)
                 {
                     string indexTarget = SafeFiles.UnderRoot(root, indexRelative);
-                    if (File.Exists(indexTarget) && !SafeFiles.Matches(indexTarget, ToFile(index, indexRelative, "meta")))
+                    if (File.Exists(indexTarget) && !SafeFiles.Matches(indexTarget, ToFile(index, indexRelative, "meta"), token))
                         throw new InvalidDataException("旧补充实例的共享资源索引与当前文件不一致。请使用新名称重新安装，以免覆盖其他版本的索引。");
                 }
                 Report(progress, "准备安装", "解析资源索引与支持库");
@@ -327,7 +327,7 @@ namespace PclDownloadBridge.Core
                                 {
                                     publication.Publish(token, isolationGuard);
                                     string clientTarget = SafeFiles.UnderRoot(root, client.RelativePath);
-                                    bool needsReplacement = !SafeFiles.Matches(clientTarget, client);
+                                    bool needsReplacement = !SafeFiles.Matches(clientTarget, client, token);
                                     token.ThrowIfCancellationRequested();
                                     isolationGuard?.Verify();
                                     if (needsReplacement)
