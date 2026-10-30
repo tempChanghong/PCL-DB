@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 组件支持库发布的散列取消（2026-10-30）
+
+- PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 ModDownloadLib.vb:1837–1845 将组件工作树支持库迁入游戏目录；ModLoader.vb:275–287 区分当前工作与取消。参考 CE 915ac29795efbdf6373417389e181e1504117048 的 FileDownloader 校验／晋升阶段、DownloadResourceManager 租约 Dispose、CommonFileProvider 临时文件替换。
+- CE 的 Task.Run(checker.Check, token) 不代表运行中的散列按块可取消。本工具复用既有 Matches(token)，仅将 Publish 的四个原调用接入原令牌，保留单库提交、整实例提交与成功清理之间的区别。十一份固定源码及独立阶段审查见 artifacts/runtime-publication-hash-cancellation/source/manifest.json 和 audit；[验证与限制](docs/reviews/runtime-publication-hash-cancellation-2026-10-30.md)。
+
 ## 第三轮第四批：目录配置解释（2026-10-30）
 
 - PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 ModMinecraft／Settings 用于核对目录发现和选择；C# 重点参考 CE 915ac29795efbdf6373417389e181e1504117048 的 States、Settings 与 INI／JSON／YAML providers。HMCL 固定 63207affc6a73127cea19e64272a0401fde4b7a4 的 GameDirectoryConfig／ConfigGameDirectory 说明配置版本、目录身份和路径。

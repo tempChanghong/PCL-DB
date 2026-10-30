@@ -1,5 +1,15 @@
 # 本地验证记录
 
+## 组件支持库发布散列取消（2026-10-30，尚未发行）
+
+基线 b1fc205032cbcf7545753d8d28f3ec7289905f2c。六个受控场景在首块取消后，原调用仍散列完整 524307 字节（ETag 524323，含二次 MD5）；原产品基线 55/61、六项早停失败。候选将 Publish 四处 Matches 传入原 token 后，六场景均在 65536 字节停止，61/61。记录实际字节、取消令牌、文件状态、租约释放、清理与新令牌重试，不依赖延时断言。
+
+覆盖源文件 SHA1、已有相同目标 SHA512、已有不同目标 MD5、临时副本 ETag、新建目标提交后 SHA512、替换目标提交后 MD5；这是分阶段分配，并非算法全排列。已更名的完整库取消后仍保留，未提交副本由原 finally 删除；成功后迟到取消不删除完整库。生产只改四个实参，Dispose、发布顺序、全局实例成功清理与回滚不变。并发取消与坏摘要同时出现时，原 Matches(token) 的取消优先语义生效，不声称所有异常先后相同。
+
+新增 VB 回归 61 项，原有断言正文保留；当前全量 7984→8045。UI 与验证计数策略不变。最终验收口径：专项 61、当前 VB 8045、原编译 VB 宿主 7305、当前 C# 原始／规范 API 零差异（979／1245，资源 2／JSON 15）、同一冷目录单 EXE 启动 25／兼容 299／完整 UI 7166、两依赖／七根文档摘要、Release／VS2026 Debug、验证契约 110。实际进程、源码与提交树绑定见 artifacts/runtime-publication-hash-cancellation/validation.json；[报告](docs/reviews/runtime-publication-hash-cancellation-2026-10-30.md)。
+
+使用临时文件和进程内 CryptoConfig 探针，无生产测试 hook；独立阶段审查验证提交边界。未真实下载、写用户配置、运行 Minecraft 或做延迟／吞吐量验收；完整 motion／搜索专项不另跑。未打包、推送或发版。
+
 ## 第三轮第四批：外部启动器目录解释（2026-10-30，尚未发行）
 
 基线 b59b4ce7ae26ce6d14c955c26767a5c06a819be1。先复验该 Core 与 Beta 8 原编译 VB 宿主，7305 项通过且原 EXE 字节不变；严格元数据总比较仍保留两个历史 Friend 入口新增的失败，不放宽规则。随后将 LauncherDirectoryReader 的七个纯文本／对象解释入口收进私有 DirectoryConfigurationInterpreter，逐项 emit 回调保留 Add／ExpandPath 的原时机，读取与回退留在原类。

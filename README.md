@@ -1,5 +1,7 @@
 # PCL-DB · PCL Download Bridge
 
+组件支持库发布的四个散列校验现传递原取消令牌，取消时可按块停止；未提交副本继续清理，已经提交的完整共享库保留供重试，实例成功后的清理不变。[复现与验证](docs/reviews/runtime-publication-hash-cancellation-2026-10-30.md)。
+
 第三轮第四批提炼外部启动器目录的私有配置解释器，保留文件发现、读取、逐项路径验证、部分结果及回退顺序；VB 界面、测试和 net48 不变。[职责映射与验证](docs/reviews/core-refactor-round3-launcher-directories-2026-10-30.md)。
 
 社区资源确认安装后，若在弹窗退场期间切换主页面，旧计划会退役；回到同一项目也不会继续启动旧任务。正常确认仍沿用选定实例与原退场动画。[修复与验证](docs/reviews/resource-install-handoff-2026-10-30.md)。

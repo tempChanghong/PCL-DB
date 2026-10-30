@@ -57,7 +57,7 @@ namespace PclDownloadBridge.Core
                 bool hashless = !HasDigest(item);
                 using (var input = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read))
                 {
-                    if (!SafeFiles.Matches(source, item))
+                    if (!SafeFiles.Matches(source, item, token))
                         throw new InvalidDataException("组件支持库校验失败：" + item.RelativePath);
                     var expected = hashless ? Freeze(input, item, token) : item;
                     token.ThrowIfCancellationRequested();
@@ -67,7 +67,7 @@ namespace PclDownloadBridge.Core
                         var held = new FileStream(destination, FileMode.Open, FileAccess.Read, FileShare.Read);
                         try
                         {
-                            if (SafeFiles.Matches(destination, expected))
+                            if (SafeFiles.Matches(destination, expected, token))
                             {
                                 token.ThrowIfCancellationRequested();
                                 _held.Add(held);
@@ -101,7 +101,7 @@ namespace PclDownloadBridge.Core
                             }
                             while (true);
                         }
-                        if (!SafeFiles.Matches(temporary, expected))
+                        if (!SafeFiles.Matches(temporary, expected, token))
                             throw new InvalidDataException("组件支持库副本校验失败：" + item.RelativePath);
                         token.ThrowIfCancellationRequested();
                         // An absent target must stay create-only, even if another writer
@@ -117,7 +117,7 @@ namespace PclDownloadBridge.Core
                         var held = new FileStream(SafeFiles.UnderRoot(_root, item.RelativePath), FileMode.Open, FileAccess.Read, FileShare.Read);
                         try
                         {
-                            if (!SafeFiles.Matches(destination, expected))
+                            if (!SafeFiles.Matches(destination, expected, token))
                                 throw new IOException("组件支持库在发布期间发生变化：" + item.RelativePath);
                             token.ThrowIfCancellationRequested();
                             _held.Add(held);

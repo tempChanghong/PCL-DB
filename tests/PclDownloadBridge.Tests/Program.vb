@@ -116,6 +116,8 @@ Module Program
                     run = DownloadHashCancellationChecks.RunAsync(TestRoot, args(1))
                 ElseIf args(1).StartsWith("component-cache-hash-", StringComparison.Ordinal) Then
                     run = ComponentCacheHashCancellationChecks.RunAsync(TestRoot, args(1))
+                ElseIf args(1).StartsWith("runtime-publication-hash-", StringComparison.Ordinal) Then
+                    run = RuntimePublicationHashCancellationChecks.RunAsync(TestRoot, args(1))
                 ElseIf args(1) = "modpack-paths" Then
                     run = ModpackPathChecks.RunAsync(TestRoot)
                 ElseIf args(1) = "component-file-names" Then
@@ -240,6 +242,9 @@ Module Program
                 Check(True, label)
             Next
             For Each label In ComponentCacheHashCancellationChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
+                Check(True, label)
+            Next
+            For Each label In RuntimePublicationHashCancellationChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
                 Check(True, label)
             Next
             For Each label In ModpackPathChecks.RunAsync(TestRoot).GetAwaiter().GetResult()
