@@ -81,7 +81,7 @@ namespace PclDownloadBridge.Core
         public bool Succeeded { get; set; }
     }
 
-    public sealed class LauncherDirectoryReader
+    public sealed partial class LauncherDirectoryReader
     {
         public static string AbsolutePath(string value, string workspace)
         {
@@ -152,9 +152,7 @@ namespace PclDownloadBridge.Core
 
         private static JObject ParseConfiguration(string text)
         {
-            // Match install-time configuration snapshots: ambiguous duplicate keys
-            // must not silently choose a different game directory.
-            return JObject.Parse(text, new JsonLoadSettings() { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error });
+            return DirectoryConfigurationInterpreter.ParseConfiguration(text);
         }
 
         private static string ReadText(string path)
@@ -240,16 +238,8 @@ namespace PclDownloadBridge.Core
                 }
                 else if (json["configurations"] is JObject)
                 {
-                    if (((JObject)json["configurations"]).Count > 2048)
-                        throw new InvalidDataException("HMCL 目录条目过多。");
-                    string selected = (string)json["last"];
-                    foreach (var item in ((JObject)json["configurations"]).Properties())
-                    {
-                        JObject profile = item.Value as JObject;
-                        if (profile is null || ((profile["gameDir"]?.Type) is { } arg1 ? arg1 != JTokenType.String : (bool?)null).GetValueOrDefault())
-                            continue;
-                        Add(result, binding, (string)profile["gameDir"], item.Name, primary, (item.Name ?? "") == (selected ?? ""));
-                    }
+                    DirectoryConfigurationInterpreter.ReadHmclProfiles(json,
+                        (raw, name, isSelected) => Add(result, binding, raw, name, primary, isSelected));
                 }
                 else
                 {
@@ -279,24 +269,8 @@ namespace PclDownloadBridge.Core
 
         private static void ReadHmclDirectories(JObject json, ExternalLauncherBinding binding, LauncherDirectoryResult result, string origin, string selected, HashSet<string> ids)
         {
-            JArray directories = json["directories"] as JArray;
-            if (directories is null)
-                throw new InvalidDataException("HMCL 目录列表缺失。");
-            if (directories.Count > 2048)
-                throw new InvalidDataException("HMCL 目录条目过多。");
-            var schema = json["$schema"];
-            if (schema is not null && (schema.Type != JTokenType.String || !Regex.IsMatch((string)schema, @"\Ahttps://schemas\.glavo\.site/hmcl/game-directories/1\.\d+(?:\.\d+)?\z")))
-                throw new InvalidDataException("HMCL 目录配置版本暂不支持。");
-            foreach (var item in directories.OfType<JObject>())
-            {
-                if ((item["path"]?.Type) is { } arg2 && arg2 != JTokenType.String)
-                    continue;
-                string id = (item["id"]?.Type) is { } arg3 && arg3 == JTokenType.String ? (string)item["id"] : null;
-                if (id is not null && !ids.Add(id))
-                    continue;
-                string label = (item["name"]?.Type) is { } arg4 && arg4 == JTokenType.String ? (string)item["name"] : "HMCL 游戏目录";
-                Add(result, binding, (string)item["path"], label, origin, selected is not null && (id ?? "") == (selected ?? ""));
-            }
+            DirectoryConfigurationInterpreter.ReadHmclDirectories(json, selected, ids,
+                (raw, name, isSelected) => Add(result, binding, raw, name, origin, isSelected));
         }
 
         private static void ReadCe(ExternalLauncherBinding binding, LauncherDirectoryResult result, bool user)
@@ -312,18 +286,12 @@ namespace PclDownloadBridge.Core
                     case ".yml":
                     case ".yaml":
                         {
-                            string version = ReadYamlScalar(content, "LocalFileVersion");
-                            if (version is not null && version != "1")
-                                throw new InvalidDataException("PCL-CE 本地配置版本暂不支持。");
-                            selected = ReadYamlScalar(content, "LaunchFolderSelect");
+                            selected = DirectoryConfigurationInterpreter.CeYamlSelection(content);
                             break;
                         }
                     case ".json":
                         {
-                            var json = ParseConfiguration(content);
-                            if (json["LocalFileVersion"] is not null && (string)json["LocalFileVersion"] != "1")
-                                throw new InvalidDataException("PCL-CE 本地配置版本暂不支持。");
-                            selected = (string)json["LaunchFolderSelect"];
+                            selected = DirectoryConfigurationInterpreter.CeJsonSelection(content);
                             break;
                         }
                     case ".ini":
@@ -351,21 +319,8 @@ namespace PclDownloadBridge.Core
                 try
                 {
                     var json = ParseConfiguration(ReadText(sharedFile));
-                    if (json["FileVersion"] is not null && (string)json["FileVersion"] != "1")
-                        throw new InvalidDataException("PCL-CE 共享配置版本暂不支持。");
-                    string raw = (string)json["LaunchFolders"];
-                    if (raw is not null)
-                    {
-                        if (raw.Split('|').Length > 2048)
-                            throw new InvalidDataException("PCL-CE 目录条目过多。");
-                        foreach (var item in raw.Split('|'))
-                        {
-                            int split = item.IndexOf('>');
-                            if (split < 1)
-                                continue;
-                            Add(result, binding, PclFolders.ExpandPath(item.Substring(split + 1), work), item.Substring(0, split), sharedFile);
-                        }
-                    }
+                    DirectoryConfigurationInterpreter.ReadCeShared(json,
+                        (raw, name) => Add(result, binding, PclFolders.ExpandPath(raw, work), name, sharedFile));
                 }
                 catch (Exception ex) when (ex is InvalidDataException || ex is IOException || ex is UnauthorizedAccessException || ex is Newtonsoft.Json.JsonException || ex is ArgumentException || ex is InvalidCastException || ex is FormatException)
                 {
@@ -382,48 +337,9 @@ namespace PclDownloadBridge.Core
             Add(result, binding, ".minecraft", "PCL-CE 默认游戏目录", "启动器目录", warnMissing: false);
         }
 
-        // Read only the flat scalar used by CE's YamlFileProvider. Unsupported YAML
-        // constructs fail visibly instead of guessing or migrating the foreign file.
         internal static string ReadYamlScalar(string text, string key)
         {
-            if (text.TrimStart().StartsWith("{", StringComparison.Ordinal) || text.TrimStart().StartsWith("[", StringComparison.Ordinal))
-                throw new InvalidDataException("此 YAML 配置写法暂不支持。");
-            bool found = false;
-            string value = null;
-            foreach (var line in text.Replace(Constants.vbCrLf, Constants.vbLf).Split('\n'))
-            {
-                if (!line.StartsWith(key + ":", StringComparison.Ordinal))
-                {
-                    if (Regex.IsMatch(line, @"^\s*[""']?" + Regex.Escape(key) + @"[""']?\s*:", RegexOptions.IgnoreCase))
-                        throw new InvalidDataException("此 YAML 配置键写法暂不支持，请使用普通顶层键。");
-                    continue;
-                }
-                if (found)
-                    throw new InvalidDataException("PCL-CE 目录配置包含重复键。");
-                found = true;
-                value = line.Substring(key.Length + 1).Trim();
-                if (value.StartsWith("\"", StringComparison.Ordinal))
-                {
-                    value = JToken.Parse(value).Value<string>();
-                }
-                else if (value.StartsWith("'", StringComparison.Ordinal))
-                {
-                    if (!value.EndsWith("'", StringComparison.Ordinal) || value.Length < 2)
-                        throw new InvalidDataException("PCL-CE 目录字符串不完整。");
-                    value = value.Substring(1, value.Length - 2).Replace("''", "'");
-                }
-                else
-                {
-                    if (value.StartsWith("|", StringComparison.Ordinal) || value.StartsWith(">", StringComparison.Ordinal) || value.StartsWith("*", StringComparison.Ordinal) || value.StartsWith("&", StringComparison.Ordinal) || value.StartsWith("!", StringComparison.Ordinal) || value.StartsWith("{", StringComparison.Ordinal) || value.StartsWith("[", StringComparison.Ordinal))
-                        throw new InvalidDataException("此 YAML 目录写法暂不支持，请手动选择游戏目录。");
-                    int comment = value.IndexOf(" #", StringComparison.Ordinal);
-                    if (comment >= 0)
-                        value = value.Substring(0, comment).TrimEnd();
-                    if (value == "null" || value == "~")
-                        value = null;
-                }
-            }
-            return value;
+            return DirectoryConfigurationInterpreter.ReadYamlScalar(text, key);
         }
     }
 

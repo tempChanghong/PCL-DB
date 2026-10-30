@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 第三轮第四批：目录配置解释（2026-10-30）
+
+- PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 ModMinecraft／Settings 用于核对目录发现和选择；C# 重点参考 CE 915ac29795efbdf6373417389e181e1504117048 的 States、Settings 与 INI／JSON／YAML providers。HMCL 固定 63207affc6a73127cea19e64272a0401fde4b7a4 的 GameDirectoryConfig／ConfigGameDirectory 说明配置版本、目录身份和路径。
+- 本工具仅提炼原有解释，不采用上游配置创建、修复、迁移或写入。逐项回传候选保留原文件访问与异常顺序，内部 ReadYamlScalar 入口兼容转发。固定 Git 原字节、摘要及独立审查见 artifacts/launcher-directory-refactor/source/manifest.json 和 audit；[范围与验证限制](docs/reviews/core-refactor-round3-launcher-directories-2026-10-30.md)。
+
 ## 实例安装确认后的页面归属（2026-10-30）
 
 - PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 MyMsgText.xaml.vb:53–80 分别处理模态退出、退场动画和单次确认；ModLoader.vb:275–287 判定执行身份。参考 CE 915ac29795efbdf6373417389e181e1504117048 的 MyMsgText.xaml.cs:105–144、ModLoader.cs:514–523、641–672，以及两者的 PageDownloadCompDetail 下载交接。
