@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 组件支持库发布前的校验取消（2026-10-30）
+
+- PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 ModDownloadLib、ModLoader 用于核对支持库补全、迁移与取消边界；C# 重点参考 CE 915ac29795efbdf6373417389e181e1504117048 的 LoaderDownload、FileDownloader 校验／取消／晋升，以及 DownloadResourceManager 的资源释放。
+- 本轮仅将 ComponentInstaller 两个发布前 Matches 调用接入原 token；不改变 PCL 的库解析或引入新校验算法。CE 的 Task.Run(checker.Check, token) 不证明运行中的散列会按块取消。固定原字节、摘要与独立审查见 artifacts/component-validation-hash-cancellation/audit；[阶段与验证边界](docs/reviews/component-validation-hash-cancellation-2026-10-30.md)。
+
 ## 组件支持库发布的散列取消（2026-10-30）
 
 - PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 ModDownloadLib.vb:1837–1845 将组件工作树支持库迁入游戏目录；ModLoader.vb:275–287 区分当前工作与取消。参考 CE 915ac29795efbdf6373417389e181e1504117048 的 FileDownloader 校验／晋升阶段、DownloadResourceManager 租约 Dispose、CommonFileProvider 临时文件替换。

@@ -1,5 +1,11 @@
 # 本地验证记录
 
+## 组件支持库发布前的校验取消（2026-10-30，尚未发行）
+
+基线 361bd248c12ac04e80cac728a5983bef52ef5a0d。补全判断与发布前最终检查的两个 Matches 调用传入 ApplyAsync 原 token，沿用原有分块散列和 finally 清理。取消不再等待这些文件的完整摘要；未取消时的摘要、URL 缺失、hashless 补全与共享文件冲突规则保留。取消与错误同时出现时遵守既有 Matches(token) 的取消语义，不声称异常优先级全部不变。
+
+专项用真实 legacy Forge 安装夹具、实际生产调用栈和进度阶段定位两处散列，检查早停、文件状态、清理与重试；再用当前 VB 全量、原编译 Beta 8 宿主、API／配置／资源比较、Release／VS2026 Debug 与冷目录单 EXE 启动／兼容验证收尾。具体结果及输入摘要见[报告](docs/reviews/component-validation-hash-cancellation-2026-10-30.md)和 artifacts/component-validation-hash-cancellation/validation.json。VB 界面、原有测试正文、验证计数策略和 net48 保留；本轮不另跑完整 UI／动画／搜索专项，不作真实下载或性能结论。未打包、推送或发版。
+
 ## 组件支持库发布散列取消（2026-10-30，尚未发行）
 
 基线 b1fc205032cbcf7545753d8d28f3ec7289905f2c。六个受控场景在首块取消后，原调用仍散列完整 524307 字节（ETag 524323，含二次 MD5）；原产品基线 55/61、六项早停失败。候选将 Publish 四处 Matches 传入原 token 后，六场景均在 65536 字节停止，61/61。记录实际字节、取消令牌、文件状态、租约释放、清理与新令牌重试，不依赖延时断言。

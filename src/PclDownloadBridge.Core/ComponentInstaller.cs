@@ -157,7 +157,7 @@ namespace PclDownloadBridge.Core
                 foreach (var libraryInfo in libraries)
                 {
                     string local = SafeFiles.UnderRoot(work, libraryInfo.RelativePath);
-                    if (!SafeFiles.Matches(local, libraryInfo))
+                    if (!SafeFiles.Matches(local, libraryInfo, token))
                     {
                         if (string.IsNullOrWhiteSpace(libraryInfo.Url))
                             throw new FileNotFoundException("安装器缺少生成的支持库：" + libraryInfo.RelativePath);
@@ -172,7 +172,7 @@ namespace PclDownloadBridge.Core
                 Emit("processors", "校验安装结果", "校验处理器输出与启动支持库", 0.95d);
                 foreach (var libraryInfo in libraries)
                 {
-                    if (!SafeFiles.Matches(SafeFiles.UnderRoot(work, libraryInfo.RelativePath), libraryInfo))
+                    if (!SafeFiles.Matches(SafeFiles.UnderRoot(work, libraryInfo.RelativePath), libraryInfo, token))
                         throw new InvalidDataException("组件支持库校验失败：" + libraryInfo.RelativePath);
                 }
                 // Publish only the checked runtime plan. Embedded processor dependencies and
