@@ -1,5 +1,10 @@
 # PCL2 代码依据
 
+## 实例安装确认后的页面归属（2026-10-30）
+
+- PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 MyMsgText.xaml.vb:53–80 分别处理模态退出、退场动画和单次确认；ModLoader.vb:275–287 判定执行身份。参考 CE 915ac29795efbdf6373417389e181e1504117048 的 MyMsgText.xaml.cs:105–144、ModLoader.cs:514–523、641–672，以及两者的 PageDownloadCompDetail 下载交接。
+- 保留本工具此前等待弹窗退场再切换任务页的异步约定，追加原有详情／分类／主页面代次与目标绑定检查；不改弹窗曲线、原生实例隔离和文件发布。十份固定 Git 原字节及 SHA-256 见 artifacts/resource-install-handoff/source/manifest.json，[复现与边界](docs/reviews/resource-install-handoff-2026-10-30.md)。
+
 ## 社区资源另存为的页面归属（2026-10-30）
 
 - PCL2 固定 5ef81e490ae46b1100d61e33d0183094c7a80ca8 的 PageDownloadCompDetail.xaml.vb:508–525 先选择保存位置、取消即返回，再按选定文件和路径建立下载步骤；ModLoader.vb:275–287 以执行身份判定结果有效性。参考 CE 915ac29795efbdf6373417389e181e1504117048 的 PageDownloadCompDetail.xaml.cs:384–398 与 ModLoader.cs:514–523、641–672。

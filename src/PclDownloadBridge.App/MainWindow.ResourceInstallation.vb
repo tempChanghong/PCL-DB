@@ -35,6 +35,13 @@ Partial Public Class MainWindow
         Dim limit As Double
         If Not TryGetSpeedLimit(limit) Then NavigateToSetting(SpeedLimitBox, True) : Return
         Dim target = CurrentInstallTarget(), snapshot = release.Copy()
+        ' Completing the modal is not permission for a retired page visit to
+        ' start work, even when navigation returns to the same project object.
+        Dim generation = _resourceDetailGeneration, category = _resourceCategoryGeneration, navigation = _surfaceNavigationGeneration
+        Dim current As Func(Of Boolean) = Function() Not _closing AndAlso generation = _resourceDetailGeneration AndAlso category = _resourceCategoryGeneration AndAlso
+            navigation = _surfaceNavigationGeneration AndAlso ActivePackProject() Is project AndAlso _downloadView = DownloadView.Modpacks AndAlso
+            _packMode = PackBrowserMode.Detail AndAlso DownloadPage.IsVisible AndAlso owner.IsLoaded AndAlso owner.IsVisible AndAlso
+            _selectedFolder IsNot Nothing AndAlso SameManagementTarget(target, CurrentInstallTarget())
         _choosingOnline = True
         Try
             Dim plan As ResourceInstallationPlan
@@ -43,11 +50,14 @@ Partial Public Class MainWindow
             Finally
                 _choosingOnline = False
             End Try
-            If plan Is Nothing OrElse _closing OrElse ActivePackProject() IsNot project OrElse Not SameManagementTarget(plan.LauncherTarget, CurrentInstallTarget()) Then Return
+            If plan Is Nothing OrElse Not current() OrElse Not SameManagementTarget(plan.LauncherTarget, CurrentInstallTarget()) Then Return
             Await RunResourceSaveAsync(plan.Release, plan.Destination, plan)
         Catch ex As OperationCanceledException
         Catch ex As Exception
-            If Not _closing Then PackProjectActionStatus.Text = ex.GetBaseException().Message : PackProjectActionStatus.Visibility = Visibility.Visible
+            If current() Then
+                PackProjectActionStatus.Text = ex.GetBaseException().Message
+                If current() Then PackProjectActionStatus.Visibility = Visibility.Visible
+            End If
         End Try
     End Sub
     Private Async Function PromptResourceTargetAsync(release As ModpackRelease, target As LauncherInstallTarget, owner As FrameworkElement) As Task(Of ResourceInstallationPlan)
