@@ -69,6 +69,7 @@ Partial Public Class MainWindow
         VerifyPreviewFixture(Sub() VerifyInstallActionMotion(directory, check))
         VerifyPreviewFixture(Sub() VerifyVanillaCardMotion(directory, check))
         VerifyPreviewFixture(Sub() VerifyPageMotionBridgeUi(directory, passed))
+        VerifyPreviewFixture(Sub() VerifyPageSwitchBridgeUi(directory, passed))
         VerifyPreviewFixture(Sub() VerifyControlMotionUi(directory, passed))
         VerifyPreviewFixture(Sub() VerifyTitleNavigation(check, directory, True))
         VerifyPreviewFixture(Sub() VerifyManagementMotion(directory, check))

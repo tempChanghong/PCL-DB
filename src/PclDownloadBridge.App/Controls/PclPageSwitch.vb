@@ -12,7 +12,7 @@ Namespace Controls
         Private ReadOnly _versionOffset As New TranslateTransform
         Private ReadOnly _installOffset As New TranslateTransform
         Private _installSelected As Boolean
-        Private _transition As ClockGroup
+        Private ReadOnly _motion As Global.PclDownloadBridge.Presentation.PageSwitchMotion
         Private ReadOnly _enabled As Func(Of Boolean)
         Private ReadOnly _cardsEnabled As Func(Of Boolean)
         Private ReadOnly _cards As PclPageCardMotion
@@ -24,12 +24,14 @@ Namespace Controls
                        Optional cardUnits As Func(Of FrameworkElement, IEnumerable(Of FrameworkElement)) = Nothing,
                        Optional cardsEnabled As Func(Of Boolean) = Nothing)
             _host = host : _versions = versions : _install = install
+            _motion = New Global.PclDownloadBridge.Presentation.PageSwitchMotion(versions, install, _versionOffset, _installOffset,
+                Sub() Settle(_cards Is Nothing OrElse Not _cards.HasMotion))
             _enabled = If(enabled, Function() SystemParameters.ClientAreaAnimation)
             _cardsEnabled = If(cardsEnabled, _enabled)
             If cardUnits IsNot Nothing Then
                 _cards = New PclPageCardMotion(host, cardUnits)
                 AddHandler _cards.Settled, Sub()
-                                              If _transition Is Nothing AndAlso Not _finishing Then RaiseEvent Settled(Me, EventArgs.Empty)
+                                              If _motion.Transition Is Nothing AndAlso Not _finishing Then RaiseEvent Settled(Me, EventArgs.Empty)
                                           End Sub
             End If
             versions.RenderTransform = _versionOffset
@@ -49,24 +51,18 @@ Namespace Controls
         End Property
         Friend ReadOnly Property HasMotion As Boolean
             Get
-                Return _transition IsNot Nothing OrElse (_cards IsNot Nothing AndAlso _cards.HasMotion)
+                Return _motion.Transition IsNot Nothing OrElse (_cards IsNot Nothing AndAlso _cards.HasMotion)
             End Get
         End Property
 
         Friend ReadOnly Property Transition As ClockGroup
             Get
-                Return _transition
+                Return _motion.Transition
             End Get
         End Property
 
         Friend Shared Function TransitionPlan(outOpacity As Double, outX As Double, inOpacity As Double, inX As Double, entering As Boolean) As ParallelTimeline
-            Dim plan As New ParallelTimeline With {.Duration = New Duration(TimeSpan.FromMilliseconds(260))}
-            plan.Children.Add(New DoubleAnimation(outOpacity, 0, TimeSpan.FromMilliseconds(70)) With {.BeginTime = TimeSpan.FromMilliseconds(10)})
-            plan.Children.Add(New DoubleAnimation(outX, If(entering, -50.0, 50.0), TimeSpan.FromMilliseconds(90)) With {.BeginTime = TimeSpan.FromMilliseconds(10)})
-            plan.Children.Add(New DoubleAnimation(inOpacity, 1, TimeSpan.FromMilliseconds(70)) With {.BeginTime = TimeSpan.FromMilliseconds(100)})
-            plan.Children.Add(New DoubleAnimation(inX, 0, TimeSpan.FromMilliseconds(160)) With {
-                .BeginTime = TimeSpan.FromMilliseconds(100), .EasingFunction = New PowerEase With {.Power = 5, .EasingMode = EasingMode.EaseOut}})
-            Return plan
+            Return Global.PclDownloadBridge.Presentation.PageSwitchMotion.TransitionPlan(outOpacity, outX, inOpacity, inX, entering)
         End Function
 
         Friend Sub SelectInstall(value As Boolean, animate As Boolean)
@@ -101,25 +97,7 @@ Namespace Controls
             Finally
                 _finishing = False
             End Try
-            Dim clock = DirectCast(TransitionPlan(outgoing.Opacity, outOffset.X, incoming.Opacity, inOffset.X, value).CreateClock(True), ClockGroup)
-            _transition = clock
-            AddHandler clock.CurrentTimeInvalidated, Sub()
-                                                        If _transition Is clock AndAlso value AndAlso clock.CurrentTime.HasValue AndAlso clock.CurrentTime.Value.TotalMilliseconds >= 100 Then
-                                                            _versions.Visibility = Visibility.Collapsed
-                                                        End If
-                                                    End Sub
-            AddHandler clock.Completed, Sub()
-                                            If _transition IsNot clock Then Return
-                                            StopTransition()
-                                            ' The page becomes interactive at its original 260 ms.
-                                            ' Local card gates protect the staggered fade, and its
-                                            ' remaining rebound owns no root-page or scroll state.
-                                            Settle(_cards Is Nothing OrElse Not _cards.HasMotion)
-                                        End Sub
-            outgoing.ApplyAnimationClock(UIElement.OpacityProperty, DirectCast(clock.Children(0), AnimationClock))
-            outOffset.ApplyAnimationClock(TranslateTransform.XProperty, DirectCast(clock.Children(1), AnimationClock))
-            incoming.ApplyAnimationClock(UIElement.OpacityProperty, DirectCast(clock.Children(2), AnimationClock))
-            inOffset.ApplyAnimationClock(TranslateTransform.XProperty, DirectCast(clock.Children(3), AnimationClock))
+            _motion.Start(outgoing, incoming, outOffset, inOffset, value)
         End Sub
 
         Friend Sub Finish()
@@ -134,13 +112,7 @@ Namespace Controls
         End Sub
 
         Private Sub StopTransition()
-            Dim previous = _transition
-            _transition = Nothing
-            previous?.Controller.Remove()
-            _versions.BeginAnimation(UIElement.OpacityProperty, Nothing)
-            _install.BeginAnimation(UIElement.OpacityProperty, Nothing)
-            _versionOffset.BeginAnimation(TranslateTransform.XProperty, Nothing)
-            _installOffset.BeginAnimation(TranslateTransform.XProperty, Nothing)
+            _motion.Stop()
         End Sub
 
         Private Sub Settle(notify As Boolean, Optional initial As Boolean = False)
